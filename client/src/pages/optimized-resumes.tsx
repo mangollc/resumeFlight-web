@@ -111,7 +111,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   return (
     <>
-      <TableRow className={`cursor-pointer hover:bg-muted/60 even:bg-muted/10 dark:even:bg-muted/20 ${isExpanded ? 'bg-muted/5 dark:bg-muted/10' : ''}`} onClick={() => setIsExpanded(!isExpanded)}>
+      <TableRow 
+        className={`cursor-pointer hover:bg-muted/60 ${
+          isExpanded 
+            ? 'bg-muted/5 dark:bg-muted/10' 
+            : 'even:bg-slate-50 dark:even:bg-slate-800/50'
+        }`} 
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <TableCell>
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
@@ -244,7 +251,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       </TableRow>
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={6}>
+          <TableCell colSpan={6} className="bg-muted/5 dark:bg-muted/10">
             <div className="py-4 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
@@ -319,14 +326,14 @@ export default function OptimizedResumesPage() {
       {resumes && resumes.length > 0 ? (
         <div className="border rounded-lg overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-primary/5 dark:bg-primary/10">
               <TableRow>
                 <TableHead className="w-[30px]"></TableHead>
-                <TableHead className="w-[100px]">Date</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead className="hidden sm:table-cell">Company</TableHead>
-                <TableHead className="hidden lg:table-cell">Match Score</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-[100px] font-bold text-primary">Date</TableHead>
+                <TableHead className="font-bold text-primary">Position</TableHead>
+                <TableHead className="hidden sm:table-cell font-bold text-primary">Company</TableHead>
+                <TableHead className="hidden lg:table-cell font-bold text-primary">Match Score</TableHead>
+                <TableHead className="text-right font-bold text-primary">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
