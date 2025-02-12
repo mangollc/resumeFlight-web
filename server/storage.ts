@@ -54,12 +54,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getResume(id: number): Promise<Resume | undefined> {
-    const [resume] = await db.select().from(resumes).where(eq(resumes.id, id));
-    return resume;
+    const [result] = await db.select().from(resumes).where(eq(resumes.id, id));
+    if (!result) return undefined;
+
+    return {
+      ...result,
+      metadata: result.metadata as Resume['metadata']
+    };
   }
 
   async createResume(resume: InsertResume & { userId: number, jobDescription: string | null }): Promise<Resume> {
-    const [newResume] = await db
+    const [result] = await db
       .insert(resumes)
       .values({
         ...resume,
@@ -67,40 +72,65 @@ export class DatabaseStorage implements IStorage {
         optimizedContent: null,
       })
       .returning();
-    return newResume;
+
+    return {
+      ...result,
+      metadata: result.metadata as Resume['metadata']
+    };
   }
 
   async updateResume(id: number, updates: Partial<Resume>): Promise<Resume> {
-    const [updated] = await db
+    const [result] = await db
       .update(resumes)
       .set(updates)
       .where(eq(resumes.id, id))
       .returning();
-    return updated;
+
+    return {
+      ...result,
+      metadata: result.metadata as Resume['metadata']
+    };
   }
 
   async getResumesByUser(userId: number): Promise<Resume[]> {
-    return db.select().from(resumes).where(eq(resumes.userId, userId));
+    const results = await db.select().from(resumes).where(eq(resumes.userId, userId));
+    return results.map(result => ({
+      ...result,
+      metadata: result.metadata as Resume['metadata']
+    }));
   }
 
   async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
-    const [coverLetter] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
-    return coverLetter;
+    const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
+    if (!result) return undefined;
+
+    return {
+      ...result,
+      metadata: result.metadata as CoverLetter['metadata']
+    };
   }
 
   async createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter> {
-    const [newCoverLetter] = await db
+    const [result] = await db
       .insert(coverLetters)
       .values({
         ...coverLetter,
         createdAt: new Date().toISOString(),
       })
       .returning();
-    return newCoverLetter;
+
+    return {
+      ...result,
+      metadata: result.metadata as CoverLetter['metadata']
+    };
   }
 
   async getCoverLettersByUser(userId: number): Promise<CoverLetter[]> {
-    return db.select().from(coverLetters).where(eq(coverLetters.userId, userId));
+    const results = await db.select().from(coverLetters).where(eq(coverLetters.userId, userId));
+    return results.map(result => ({
+      ...result,
+      metadata: result.metadata as CoverLetter['metadata']
+    }));
   }
 }
 

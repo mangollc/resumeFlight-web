@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { optimizeResume } from "./openai";
+import { optimizeResume, generateCoverLetter } from "./openai";
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
