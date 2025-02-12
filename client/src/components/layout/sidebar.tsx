@@ -54,10 +54,12 @@ export function Sidebar() {
       {/* Fixed Sidebar - Always visible */}
       <div className="fixed top-0 left-0 h-screen w-64 bg-card border-r shadow-sm">
         {/* Logo and App Name */}
-        <div className="p-4 border-b">
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <Plane className="h-6 w-6 text-primary rotate-45" />
-            <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <div className="p-6 border-b">
+          <Link href="/dashboard" className="flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Plane className="h-6 w-6 text-primary rotate-45" />
+            </div>
+            <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               ResumeFlight
             </span>
           </Link>
