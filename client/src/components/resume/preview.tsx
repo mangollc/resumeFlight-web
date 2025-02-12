@@ -66,15 +66,14 @@ export default function Preview({ resume }: PreviewProps) {
   };
 
   const isOptimized = 'jobDescription' in resume;
+  const beforeContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
+  const afterContent = resume.content;
 
   const getMetricsColor = (value: number) => {
     if (value >= 80) return "bg-green-600";
     if (value >= 60) return "bg-yellow-500";
     return "bg-red-500";
   };
-
-  const beforeContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
-  const afterContent = resume.content;
 
   return (
     <Card className="h-full">

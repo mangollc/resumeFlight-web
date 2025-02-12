@@ -74,7 +74,7 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
         </div>
 
         {/* Optimized Content (Right Side) */}
-        <div
+        <div 
           className="absolute inset-0 w-full h-full bg-primary/5"
           style={{ clipPath: `inset(0 0 0 ${position}%)` }}
         >
