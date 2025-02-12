@@ -18,20 +18,24 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
     if (!range) return;
 
     const updatePosition = (e: MouseEvent | TouchEvent) => {
-      if (!isResizing) return;
+      if (!isResizing || !range) return;
 
       const rangeRect = range.getBoundingClientRect();
       const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const position = ((x - rangeRect.left) / rangeRect.width) * 100;
+
+      // Clamp position between 0 and 100
       setPosition(Math.min(Math.max(0, position), 100));
     };
 
     const stopResizing = () => setIsResizing(false);
 
-    document.addEventListener('mousemove', updatePosition);
-    document.addEventListener('touchmove', updatePosition);
-    document.addEventListener('mouseup', stopResizing);
-    document.addEventListener('touchend', stopResizing);
+    if (isResizing) {
+      document.addEventListener('mousemove', updatePosition);
+      document.addEventListener('touchmove', updatePosition);
+      document.addEventListener('mouseup', stopResizing);
+      document.addEventListener('touchend', stopResizing);
+    }
 
     return () => {
       document.removeEventListener('mousemove', updatePosition);
@@ -42,21 +46,26 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
   }, [isResizing]);
 
   return (
-    <div className="relative w-full overflow-hidden rounded-lg bg-muted" ref={rangeRef}>
+    <div 
+      className="relative w-full min-h-[400px] overflow-hidden rounded-lg border bg-background"
+      ref={rangeRef}
+    >
       {/* Before Content */}
-      <div className="absolute inset-0 overflow-hidden">
-        <pre className="whitespace-pre-wrap font-sans text-sm p-4">
-          {beforeContent}
-        </pre>
+      <div className="absolute inset-0 w-full h-full">
+        <div className="h-full overflow-auto p-4">
+          <pre className="whitespace-pre-wrap font-sans text-sm">
+            {beforeContent}
+          </pre>
+        </div>
       </div>
 
       {/* After Content */}
       <div
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-0 w-full h-full bg-background transition-transform"
         style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
       >
-        <div className="h-full w-full bg-primary/5">
-          <pre className="whitespace-pre-wrap font-sans text-sm p-4">
+        <div className="h-full overflow-auto bg-primary/5 p-4">
+          <pre className="whitespace-pre-wrap font-sans text-sm">
             {afterContent}
           </pre>
         </div>
@@ -64,19 +73,19 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
 
       {/* Slider Handle */}
       <div
-        className="absolute inset-y-0"
+        className="absolute inset-y-0 z-10"
         style={{ left: `${position}%` }}
         onMouseDown={() => setIsResizing(true)}
         onTouchStart={() => setIsResizing(true)}
       >
-        <div className="absolute inset-y-0 -left-px w-0.5 bg-primary/50" />
+        <div className="absolute inset-y-0 -left-px w-0.5 bg-primary" />
         <div
           className={cn(
             "absolute top-1/2 -translate-x-1/2 -translate-y-1/2",
             "flex h-12 w-12 items-center justify-center",
-            "rounded-full border-2 border-primary bg-background shadow-lg",
-            "cursor-ew-resize touch-none",
-            isResizing && "scale-110 transition-transform"
+            "rounded-full border-2 border-primary bg-background shadow-xl",
+            "cursor-ew-resize touch-none select-none",
+            isResizing && "scale-110"
           )}
         >
           <ArrowLeftRight className="h-6 w-6 text-primary" />
@@ -85,10 +94,10 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
 
       {/* Labels */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-4 top-4 rounded-full bg-primary/10 px-2 py-1 text-sm font-medium">
+        <div className="absolute left-6 top-6 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold">
           Original
         </div>
-        <div className="absolute right-4 top-4 rounded-full bg-primary/10 px-2 py-1 text-sm font-medium">
+        <div className="absolute right-6 top-6 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold">
           Optimized
         </div>
       </div>
