@@ -8,7 +8,6 @@ import {
   Settings,
   Plane,
   Menu,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -113,15 +112,12 @@ export function Sidebar() {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed top-0 left-0 h-screen w-64 bg-card border-r shadow-sm">
+      <div className="hidden lg:block fixed top-0 left-0 h-screen w-64 bg-card border-r shadow-sm z-40">
         <div className="p-6 border-b">
           <AppLogo />
         </div>
         <NavigationItems />
       </div>
-
-      {/* Content Margin */}
-      <div className="lg:ml-64 mt-16 lg:mt-0" />
     </>
   );
 }
