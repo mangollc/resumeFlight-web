@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
@@ -7,6 +7,12 @@ import { optimizeResume } from "./openai";
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import { insertResumeSchema } from "@shared/schema";
+import axios from "axios";
+import * as cheerio from "cheerio";
+
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -37,10 +43,41 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
   }
 }
 
+async function extractJobDescription(url: string): Promise<string> {
+  try {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
+
+    // Common job description selectors
+    const selectors = [
+      '.job-description',
+      '#job-description',
+      '[data-testid="job-description"]',
+      '.description',
+      '.jobDescription',
+      'article',
+      'section'
+    ];
+
+    for (const selector of selectors) {
+      const element = $(selector);
+      if (element.length) {
+        return element.text().trim();
+      }
+    }
+
+    // Fallback to main content if specific selectors not found
+    return $('main').text().trim() || $('body').text().trim();
+  } catch (error) {
+    console.error("Error extracting job description:", error);
+    throw new Error("Failed to extract job description from URL. Please paste the description manually.");
+  }
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  app.post("/api/resume/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/resume/upload", upload.single("file"), async (req: MulterRequest, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
       if (!req.file) return res.status(400).send("No file uploaded");
@@ -58,7 +95,7 @@ export function registerRoutes(app: Express): Server {
 
       const resume = await storage.createResume({
         ...validatedData,
-        jobDescription: null,
+        jobDescription: "",  // Fixed: Use empty string instead of null
         userId: req.user!.id
       });
 
@@ -72,24 +109,34 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/resume/:id/optimize", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
-      const { jobDescription } = req.body;
-      if (!jobDescription) {
-        return res.status(400).json({ error: "Job description is required" });
+      const { jobUrl, jobDescription } = req.body;
+
+      if (!jobUrl && !jobDescription) {
+        return res.status(400).json({ error: "Please provide either a job URL or description" });
       }
 
       const resume = await storage.getResume(parseInt(req.params.id));
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      const optimized = await optimizeResume(resume.originalContent, jobDescription);
+      // Extract job description from URL if provided
+      const finalJobDescription = jobUrl ? await extractJobDescription(jobUrl) : jobDescription;
+
+      const optimized = await optimizeResume(resume.originalContent, finalJobDescription);
 
       // Update resume with optimization results
       const updated = await storage.updateResume(resume.id, {
         optimizedContent: optimized.optimizedContent,
-        jobDescription
+        jobDescription: finalJobDescription
       });
 
-      res.json(updated);
+      res.json({
+        ...updated,
+        optimizationDetails: {
+          changes: optimized.changes,
+          matchScore: optimized.matchScore
+        }
+      });
     } catch (error: any) {
       console.error("Optimization error:", error);
       res.status(500).json({ error: error.message });
