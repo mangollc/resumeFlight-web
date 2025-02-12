@@ -85,9 +85,9 @@ export default function UploadedResumesPage() {
             <Table>
               <TableHeader className="bg-primary/5 dark:bg-primary/10">
                 <TableRow>
-                  <TableHead className="font-bold text-primary w-[40%] sm:w-[30%]">File Name</TableHead>
-                  <TableHead className="hidden sm:table-cell font-bold text-primary w-[30%]">Upload Date</TableHead>
-                  <TableHead className="w-[60px] font-bold text-primary text-right">Actions</TableHead>
+                  <TableHead className="font-bold text-primary w-[50%]">File Name</TableHead>
+                  <TableHead className="hidden sm:table-cell font-bold text-primary w-[25%]">Upload Date</TableHead>
+                  <TableHead className="w-[100px] font-bold text-primary text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -104,7 +104,7 @@ export default function UploadedResumesPage() {
                     <TableCell className="hidden sm:table-cell whitespace-nowrap">
                       {new Date(resume.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
