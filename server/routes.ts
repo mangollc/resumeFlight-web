@@ -334,6 +334,23 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add this new route after the existing resume routes
+  app.delete("/api/resume/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const resume = await storage.getResume(parseInt(req.params.id));
+      if (!resume) return res.status(404).send("Resume not found");
+      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+
+      await storage.deleteResume(parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (error: any) {
+      console.error("Delete resume error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Add these new routes after the existing resume routes
   app.post("/api/resume/:id/cover-letter", async (req, res) => {
     try {
