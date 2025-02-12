@@ -115,18 +115,19 @@ export default function OptimizedResumesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">#</TableHead>
                 <TableHead className="w-[100px]">Date</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead className="hidden sm:table-cell">Company</TableHead>
                 <TableHead className="hidden md:table-cell">Location</TableHead>
-                <TableHead className="hidden lg:table-cell">Salary Range</TableHead>
-                <TableHead className="hidden xl:table-cell">Level</TableHead>
+                <TableHead className="hidden lg:table-cell">Match Score</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resumes.map((resume) => (
+              {resumes.map((resume, index) => (
                 <TableRow key={resume.id}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
@@ -138,10 +139,13 @@ export default function OptimizedResumesPage() {
                     {resume.jobDetails?.location}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {resume.jobDetails?.salary || "—"}
-                  </TableCell>
-                  <TableCell className="hidden xl:table-cell">
-                    {resume.jobDetails?.positionLevel || "—"}
+                    <span className={`font-medium ${
+                      (resume.metrics?.overall ?? 0) >= 80 ? 'text-green-600' :
+                      (resume.metrics?.overall ?? 0) >= 60 ? 'text-yellow-500' :
+                      'text-red-500'
+                    }`}>
+                      {resume.metrics?.overall ?? 0}%
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -154,7 +158,7 @@ export default function OptimizedResumesPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
-                          <a 
+                          <a
                             href={`/api/optimized-resume/${resume.id}/download`}
                             download
                             className="flex items-center"
@@ -164,7 +168,7 @@ export default function OptimizedResumesPage() {
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <a 
+                          <a
                             href={`/api/optimized-resume/${resume.id}/cover-letter/download`}
                             download
                             className="flex items-center"
@@ -177,7 +181,7 @@ export default function OptimizedResumesPage() {
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
-                              <a 
+                              <a
                                 href={resume.jobUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
