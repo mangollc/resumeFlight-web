@@ -1,77 +1,72 @@
-import { User, InsertUser, Resume, InsertResume } from "@shared/schema";
+import { User, InsertUser, Resume, InsertResume, users, resumes } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { eq } from "drizzle-orm";
+import { db, pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   // Resume operations
   getResume(id: number): Promise<Resume | undefined>;
   createResume(resume: InsertResume & { userId: number }): Promise<Resume>;
   getResumesByUser(userId: number): Promise<Resume[]>;
-  
+
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private resumes: Map<number, Resume>;
-  private currentUserId: number;
-  private currentResumeId: number;
+export class DatabaseStorage implements IStorage {
   readonly sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.resumes = new Map();
-    this.currentUserId = 1;
-    this.currentResumeId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({ 
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async getResume(id: number): Promise<Resume | undefined> {
-    return this.resumes.get(id);
+    const [resume] = await db.select().from(resumes).where(eq(resumes.id, id));
+    return resume;
   }
 
   async createResume(resume: InsertResume & { userId: number }): Promise<Resume> {
-    const id = this.currentResumeId++;
-    const newResume: Resume = {
-      ...resume,
-      id,
-      createdAt: new Date().toISOString(),
-      optimizedContent: null,
-    };
-    this.resumes.set(id, newResume);
+    const [newResume] = await db
+      .insert(resumes)
+      .values({
+        ...resume,
+        createdAt: new Date().toISOString(),
+        optimizedContent: null,
+      })
+      .returning();
     return newResume;
   }
 
   async getResumesByUser(userId: number): Promise<Resume[]> {
-    return Array.from(this.resumes.values()).filter(
-      (resume) => resume.userId === userId,
-    );
+    return db.select().from(resumes).where(eq(resumes.userId, userId));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
