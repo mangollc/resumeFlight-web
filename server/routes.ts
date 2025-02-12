@@ -169,14 +169,20 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
 async function analyzeJobDescription(description: string) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
           content: `Analyze the job description and provide:
-1. The position level (e.g., Senior, Mid-level, Junior, Intern, Entry-level)
-2. A concise summary of the ideal candidate profile (skills, experience, and qualifications)
+1. The job title
+2. Company name
+3. Location (including if remote)
+4. The position level (e.g., Senior, Mid-level, Junior, Intern, Entry-level)
+5. A concise summary of the ideal candidate profile (skills, experience, and qualifications)
 Return as JSON: {
+  "title": "string",
+  "company": "string",
+  "location": "string",
   "positionLevel": "string",
   "candidateProfile": "string (max 100 words)"
 }`
@@ -192,18 +198,28 @@ Return as JSON: {
     const content = response.choices[0].message.content;
     if (!content) {
       return {
+        title: "Not specified",
+        company: "Not specified",
+        location: "Not specified",
         positionLevel: "Not specified",
         candidateProfile: "Unable to generate candidate profile"
       };
     }
 
-    return JSON.parse(content) as {
-      positionLevel: string;
-      candidateProfile: string;
+    const parsed = JSON.parse(content);
+    return {
+      title: parsed.title,
+      company: parsed.company,
+      location: parsed.location,
+      positionLevel: parsed.positionLevel,
+      candidateProfile: parsed.candidateProfile
     };
   } catch (error) {
     console.error("Error analyzing job description:", error);
     return {
+      title: "Not specified",
+      company: "Not specified",
+      location: "Not specified",
       positionLevel: "Not specified",
       candidateProfile: "Unable to generate candidate profile"
     };
@@ -372,15 +388,19 @@ export function registerRoutes(app: Express): Server {
       if (jobUrl) {
         jobDetails = await extractJobDetails(jobUrl);
       } else {
+        // Use AI to analyze manual job description
+        const analysis = await analyzeJobDescription(jobDescription);
         jobDetails = {
-          title: 'Manual Entry',
-          company: 'Manual Entry',
-          location: 'Not specified',
-          description: jobDescription
+          title: analysis.title,
+          company: analysis.company,
+          location: analysis.location,
+          description: jobDescription,
+          positionLevel: analysis.positionLevel,
+          candidateProfile: analysis.candidateProfile
         };
       }
 
-      const optimized = await optimizeResume(uploadedResume.content, jobDetails.description);
+      const optimized = await optimizeResume(uploadedResume.content, jobDescription);
 
       // Get initials from the resume content
       const initials = getInitials(uploadedResume.content);
@@ -395,7 +415,7 @@ export function registerRoutes(app: Express): Server {
       // Create a new optimized resume
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
-        jobDescription: jobDetails.description,
+        jobDescription: jobDescription,
         jobUrl: jobUrl || null,
         jobDetails,
         uploadedResumeId: uploadedResume.id,
