@@ -80,11 +80,11 @@ export default function UploadedResumesPage() {
       </div>
 
       {resumes && resumes.length > 0 ? (
-        <div className="border rounded-lg overflow-x-auto">
+        <div className="border rounded-lg overflow-x-auto max-w-[70%] mx-auto">
           <Table>
             <TableHeader className="bg-primary/5">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[45%] py-2 pl-4">
+                <TableHead className="w-[40%] py-2 pl-4">
                   <div className="flex items-center text-xs uppercase tracking-wider font-semibold text-primary">
                     File Name
                   </div>
@@ -92,7 +92,7 @@ export default function UploadedResumesPage() {
                 <TableHead className="w-[35%] py-2 text-xs uppercase tracking-wider font-semibold text-primary">
                   Upload Date
                 </TableHead>
-                <TableHead className="w-[20%] py-2 pr-2 text-right text-xs uppercase tracking-wider font-semibold text-primary">
+                <TableHead className="w-[25%] py-2 pr-2 text-right text-xs uppercase tracking-wider font-semibold text-primary">
                   Actions
                 </TableHead>
               </TableRow>
@@ -103,7 +103,7 @@ export default function UploadedResumesPage() {
                   <TableCell className="py-2 pl-4">
                     <div className="flex items-center space-x-2">
                       <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="font-medium truncate max-w-[300px]">
+                      <span className="font-medium truncate max-w-[200px] sm:max-w-[250px]">
                         {resume.metadata.filename}
                       </span>
                     </div>
