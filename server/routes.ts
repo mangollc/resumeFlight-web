@@ -177,26 +177,22 @@ async function analyzeJobDescription(description: string) {
       messages: [
         {
           role: "system",
-          content: `You are a job posting analyzer. Your task is to analyze the job description and extract key information.
+          content: `Analyze the job description and extract key information in a concise format. Follow these rules strictly:
+1. Keep key points between 3-5 bullet points ONLY
+2. Each point must be under 50 words
+3. Focus on the most critical requirements and qualifications
+4. Include position level based on requirements
+5. Calculate match metrics based on complexity and requirements
 
-Instructions:
-1. Extract the most important requirements and qualifications
-2. Keep the key points concise (max 50 words total)
-3. Return exactly 3-5 bullet points
-4. Analyze the text to determine position level and location
-
-Return the information in this exact format:
+Return in this exact JSON format:
 {
-  "title": "specific job title",
-  "company": "company name",
-  "location": "job location (include Remote if applicable)",
-  "positionLevel": "one of: Senior, Mid-level, Junior, Entry-level, or Intern",
-  "keyPoints": ["point 1", "point 2", "point 3"],
+  "positionLevel": "Senior|Mid-level|Junior|Entry-level|Intern",
+  "keyPoints": ["point1", "point2", "point3"],
   "metrics": {
-    "keywords": number (0-100),
-    "skills": number (0-100),
-    "experience": number (0-100),
-    "overall": number (0-100)
+    "keywords": number 0-100,
+    "skills": number 0-100,
+    "experience": number 0-100,
+    "overall": number 0-100
   }
 }`
         },
@@ -204,8 +200,7 @@ Return the information in this exact format:
           role: "user",
           content: description
         }
-      ],
-      response_format: { type: "json_object" }
+      ]
     });
 
     const content = response.choices[0].message.content;
@@ -213,27 +208,12 @@ Return the information in this exact format:
 
     if (!content) {
       console.warn("[AI Analysis] No content in OpenAI response");
-      return {
-        title: "Not specified",
-        company: "Not specified",
-        location: "Not specified",
-        positionLevel: "Not specified",
-        keyPoints: ["Unable to extract key points"],
-        metrics: {
-          keywords: 0,
-          skills: 0,
-          experience: 0,
-          overall: 0
-        }
-      };
+      return getDefaultAnalysis();
     }
 
     try {
       const parsed = JSON.parse(content);
-      const result = {
-        title: parsed.title || "Not specified",
-        company: parsed.company || "Not specified",
-        location: parsed.location || "Not specified",
+      return {
         positionLevel: parsed.positionLevel || "Not specified",
         keyPoints: parsed.keyPoints || ["Unable to extract key points"],
         metrics: parsed.metrics || {
@@ -243,29 +223,28 @@ Return the information in this exact format:
           overall: 0
         }
       };
-
-      console.log("[AI Analysis] Extracted job details:", result);
-      return result;
     } catch (parseError) {
       console.error("[AI Analysis] Error parsing OpenAI response:", parseError);
-      throw new Error("Failed to parse job details from AI response");
+      return getDefaultAnalysis();
     }
   } catch (error) {
     console.error("[AI Analysis] Error during job description analysis:", error);
-    return {
-      title: "Not specified",
-      company: "Not specified",
-      location: "Not specified",
-      positionLevel: "Not specified",
-      keyPoints: ["Unable to extract key points"],
-      metrics: {
-        keywords: 0,
-        skills: 0,
-        experience: 0,
-        overall: 0
-      }
-    };
+    return getDefaultAnalysis();
   }
+}
+
+// Helper function for default analysis
+function getDefaultAnalysis() {
+  return {
+    positionLevel: "Not specified",
+    keyPoints: ["Unable to extract key points"],
+    metrics: {
+      keywords: 0,
+      skills: 0,
+      experience: 0,
+      overall: 0
+    }
+  };
 }
 
 // Update the createPDF function for better formatting
@@ -431,8 +410,18 @@ export function registerRoutes(app: Express): Server {
 
       if (jobUrl) {
         try {
-          jobDetails = await extractJobDetails(jobUrl);
-          finalJobDescription = jobDetails.description;
+          const extractedDetails = await extractJobDetails(jobUrl);
+          finalJobDescription = extractedDetails.description;
+          const analysis = await analyzeJobDescription(finalJobDescription);
+          jobDetails = {
+            title: extractedDetails.title,
+            company: extractedDetails.company,
+            location: extractedDetails.location,
+            salary: extractedDetails.salary,
+            description: finalJobDescription,
+            positionLevel: analysis.positionLevel,
+            keyPoints: analysis.keyPoints
+          };
         } catch (error: any) {
           console.error("[URL Extraction] Error:", error);
           return res.status(400).json({ error: error.message });
@@ -442,15 +431,13 @@ export function registerRoutes(app: Express): Server {
         finalJobDescription = jobDescription;
         const analysis = await analyzeJobDescription(jobDescription);
         jobDetails = {
-          title: analysis.title,
-          company: analysis.company,
-          location: analysis.location,
+          title: "Manual Input",
+          company: "Not specified",
+          location: "Not specified",
           description: jobDescription,
           positionLevel: analysis.positionLevel,
-          candidateProfile: analysis.candidateProfile,
           keyPoints: analysis.keyPoints
         };
-        console.log("[Manual Input] Extracted job details:", jobDetails);
       }
 
       const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
@@ -461,12 +448,12 @@ export function registerRoutes(app: Express): Server {
       const cleanJobTitle = jobDetails.title
         .replace(/[^a-zA-Z0-9\s]/g, '')
         .replace(/\s+/g, '_')
-        .substring(0, 50); // Limit length
+        .substring(0, 50);
 
       // Create new filename: initials_jobTitle.pdf
       const newFilename = `${initials}_${cleanJobTitle}.pdf`;
 
-      // Create a new optimized resume with metrics
+      // Create the optimized resume with proper metrics
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
         jobDescription: finalJobDescription,
@@ -478,16 +465,10 @@ export function registerRoutes(app: Express): Server {
           filename: newFilename,
           optimizedAt: new Date().toISOString()
         },
-        metrics: optimized.metrics // Use metrics from the optimization response
+        metrics: optimized.metrics
       });
 
-      res.json({
-        ...optimizedResume,
-        optimizationDetails: {
-          changes: optimized.changes,
-          matchScore: optimized.matchScore
-        }
-      });
+      res.json(optimizedResume);
     } catch (error: any) {
       console.error("Optimization error:", error);
       res.status(500).json({ error: error.message });
