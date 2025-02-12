@@ -1,9 +1,17 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +39,33 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+function formatJobDetails(resume: OptimizedResume) {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="font-semibold mb-1">Position Details</h3>
+        <p className="text-sm text-muted-foreground">
+          Level: {resume.jobDetails?.positionLevel || "Not specified"}
+        </p>
+      </div>
+
+      {resume.jobDetails?.candidateProfile && (
+        <div>
+          <h3 className="font-semibold mb-1">Candidate Profile</h3>
+          <p className="text-sm text-muted-foreground">{resume.jobDetails.candidateProfile}</p>
+        </div>
+      )}
+
+      <div>
+        <h3 className="font-semibold mb-1">Job Description</h3>
+        <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+          {resume.jobDescription}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function OptimizedResumesPage() {
   const { toast } = useToast();
@@ -138,7 +173,7 @@ export default function OptimizedResumesPage() {
                             Download Cover Letter
                           </a>
                         </DropdownMenuItem>
-                        {resume.jobUrl && (
+                        {resume.jobUrl ? (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
@@ -152,6 +187,26 @@ export default function OptimizedResumesPage() {
                                 View Job Posting
                               </a>
                             </DropdownMenuItem>
+                          </>
+                        ) : (
+                          <>
+                            <DropdownMenuSeparator />
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Info className="mr-2 h-4 w-4" />
+                                  View Job Details
+                                </DropdownMenuItem>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                                <DialogHeader>
+                                  <DialogTitle>Job Details</DialogTitle>
+                                  <DialogDescription>
+                                    {formatJobDetails(resume)}
+                                  </DialogDescription>
+                                </DialogHeader>
+                              </DialogContent>
+                            </Dialog>
                           </>
                         )}
                         <DropdownMenuSeparator />
