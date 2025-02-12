@@ -14,16 +14,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   disabled?: boolean;
-  group?: string;
 }
 
 const navItems: NavItem[] = [
@@ -31,62 +28,32 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
-    group: "main",
   },
   {
     title: "Uploaded Resumes",
     href: "/uploaded-resumes",
     icon: FileText,
-    group: "main",
   },
   {
     title: "Optimized Resumes",
     href: "/optimized-resumes",
     icon: FileCheck2,
-    group: "main",
   },
   {
-    title: "Subscription Plan",
+    title: "Subscription",
     href: "/subscription",
     icon: CreditCard,
     disabled: true,
-    group: "system",
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
-    group: "system",
   },
 ];
 
-const mainNavItems = navItems.filter(item => item.group === "main");
-const systemNavItems = navItems.filter(item => item.group === "system");
-
 export function Sidebar() {
   const [location] = useLocation();
-
-  const NavigationItems = ({ items }: { items: NavItem[] }) => (
-    <>
-      {items.map((item) => (
-        <Link key={item.href} href={item.href}>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start h-10",
-              "transition-colors hover:bg-accent",
-              location === item.href && "bg-accent/50 hover:bg-accent/60",
-              item.disabled && "opacity-50"
-            )}
-            disabled={item.disabled}
-          >
-            <item.icon className="h-4 w-4 mr-3" />
-            <span className="text-sm font-medium">{item.title}</span>
-          </Button>
-        </Link>
-      ))}
-    </>
-  );
 
   return (
     <>
@@ -94,26 +61,28 @@ export function Sidebar() {
       <div className="lg:hidden fixed top-0 left-0 right-0 h-14 px-4 border-b bg-background flex items-center z-50">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="hover:bg-muted">
+            <Button variant="ghost" size="icon">
               <Menu className="h-5 w-5" />
-              <span className="sr-only">Open menu</span>
+              <span className="sr-only">Menu</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56 mt-1">
-            {mainNavItems.map((item) => (
-              <DropdownMenuItem key={item.href} disabled={item.disabled} asChild>
-                <Link href={item.href} className="flex items-center">
+          <DropdownMenuContent align="start" className="w-56 p-2">
+            {navItems.map((item) => (
+              <DropdownMenuItem
+                key={item.href}
+                disabled={item.disabled}
+                className="p-0"
+              >
+                <Link 
+                  href={item.href}
+                  className={cn(
+                    "flex items-center w-full px-2 py-2 rounded-md",
+                    location === item.href && "bg-accent",
+                    !item.disabled && "hover:bg-accent/80"
+                  )}
+                >
                   <item.icon className="h-4 w-4 mr-3" />
-                  <span className="text-sm">{item.title}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            {systemNavItems.map((item) => (
-              <DropdownMenuItem key={item.href} disabled={item.disabled} asChild>
-                <Link href={item.href} className="flex items-center">
-                  <item.icon className="h-4 w-4 mr-3" />
-                  <span className="text-sm">{item.title}</span>
+                  {item.title}
                 </Link>
               </DropdownMenuItem>
             ))}
@@ -122,21 +91,30 @@ export function Sidebar() {
       </div>
 
       {/* Desktop Navigation */}
-      <div className="hidden lg:block fixed top-0 left-0 h-screen w-[200px] border-r bg-background z-50">
-        <div className="flex flex-col h-full py-4">
-          <div className="px-3 mb-2">
-            <NavigationItems items={mainNavItems} />
-          </div>
-          <Separator className="mx-3 my-2" />
-          <div className="px-3">
-            <NavigationItems items={systemNavItems} />
-          </div>
-        </div>
+      <div className="hidden lg:flex fixed top-0 left-0 h-screen w-64 border-r shadow-sm bg-card">
+        <nav className="flex flex-col flex-1 p-4 space-y-2">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              <Button
+                variant="ghost"
+                disabled={item.disabled}
+                className={cn(
+                  "w-full justify-start py-6 px-4 rounded-lg",
+                  location === item.href ? "bg-accent text-accent-foreground" : "hover:bg-accent/50",
+                  "transition-colors duration-200"
+                )}
+              >
+                <item.icon className="h-5 w-5 mr-3" />
+                <span className="font-medium">{item.title}</span>
+              </Button>
+            </Link>
+          ))}
+        </nav>
       </div>
 
       {/* Content Padding */}
-      <div className="lg:hidden h-14" /> {/* Mobile padding */}
-      <div className="hidden lg:block lg:ml-[200px]" /> {/* Desktop padding */}
+      <div className="lg:hidden h-14" />
+      <div className="hidden lg:block lg:ml-64" />
     </>
   );
 }

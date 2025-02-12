@@ -16,9 +16,9 @@ import React from 'react';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 flex flex-col lg:pl-[200px] pt-14 lg:pt-0">
+      <main className="flex-1 flex flex-col lg:pl-64 pt-14 lg:pt-6 px-4 lg:px-8">
         {children}
       </main>
     </div>
