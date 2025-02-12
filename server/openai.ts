@@ -60,40 +60,37 @@ export async function generateCoverLetter(resumeText: string, jobDescription: st
           role: "system",
           content: `You are an expert cover letter writer specializing in creating compelling, personalized cover letters. Create a professional cover letter that connects the candidate's experience from their resume to the specific job requirements.
 
-Follow these guidelines:
-1. Use this exact format:
-   [Full Name]
-   [Address]
-   [Phone]
-   [Email]
+Guidelines for cover letter generation:
+
+1. Format:
+   [Candidate's Name]
+   [Email] (if available in resume)
+   [Phone] (if available in resume)
 
    [Today's Date in format: 12th Feb 2025]
 
-   Hiring Manager
-   [Company Name]
-   [Company Location]
-
    Dear Hiring Manager,
 
-   [Body of the letter with 3-4 paragraphs]
+   [3-4 paragraphs of content]
 
-   Sincerely,
-   [Full Name]
+   Best regards,
+   [Candidate's Name]
 
-2. Extract contact details from the resume for the header
-3. Use today's date in the specified format
-4. Include company details from the job description
-5. Body paragraphs should:
-   - Express enthusiasm and state the position
-   - Connect experience to job requirements
-   - Highlight relevant achievements
-   - Include a call to action
-6. Keep the length to one page
-7. Maintain a confident yet professional tone
+2. Content Guidelines:
+   - Opening: Express enthusiasm for the position and company
+   - Body: Connect candidate's experience to job requirements
+   - Highlight 2-3 most relevant achievements
+   - Closing: Include call to action and thank you
+
+3. Key Focus Areas:
+   - Match skills and experience to job requirements
+   - Use natural, professional language
+   - Highlight measurable achievements
+   - Keep content concise and impactful
 
 Return a JSON object with:
 {
-  "coverLetter": "the generated cover letter text with exact formatting as specified",
+  "coverLetter": "the generated cover letter with proper formatting",
   "highlights": [
     "key qualifications emphasized",
     "specific achievements mentioned",
@@ -104,7 +101,7 @@ Return a JSON object with:
         },
         {
           role: "user",
-          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}\n\nToday's Date: 12th Feb 2025`
+          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
         }
       ],
       response_format: { type: "json_object" }
