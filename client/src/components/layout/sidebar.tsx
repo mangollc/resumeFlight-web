@@ -24,7 +24,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     title: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -59,13 +59,13 @@ export function Sidebar() {
     <>
       {/* Mobile Menu Trigger */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetTrigger asChild className="lg:hidden fixed top-4 left-4">
-          <Button variant="ghost" size="icon">
+        <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
+          <Button variant="ghost" size="icon" className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="p-0 w-[300px]">
-          <nav className="h-full flex flex-col border-r bg-background p-4">
+          <nav className="h-full flex flex-col border-r bg-background p-6">
             <div className="space-y-4 py-4">
               {navItems.map((item) => (
                 <Link key={item.href} href={item.href}>
@@ -88,15 +88,16 @@ export function Sidebar() {
       <div className="hidden lg:flex">
         <nav
           className={cn(
-            "h-screen flex flex-col border-r bg-background p-4 transition-all duration-300",
+            "h-screen sticky top-0 flex flex-col border-r bg-background p-6 transition-all duration-300",
             collapsed ? "w-[80px]" : "w-[280px]"
           )}
         >
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end mb-6">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setCollapsed(!collapsed)}
+              className="hover:bg-accent"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -111,7 +112,7 @@ export function Sidebar() {
                 <Button
                   variant={location === item.href ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start",
+                    "w-full justify-start hover:bg-accent/50",
                     collapsed && "justify-center px-2"
                   )}
                   disabled={item.disabled}
