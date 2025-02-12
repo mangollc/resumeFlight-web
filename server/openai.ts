@@ -10,12 +10,26 @@ export async function optimizeResume(resumeText: string, jobDescription: string)
       messages: [
         {
           role: "system",
-          content: `You are an expert resume optimizer. Analyze the provided resume and job description to create an optimized version that highlights relevant skills and experience. Return the result as a JSON object with the following structure:
-          {
-            "optimizedContent": "the optimized resume text",
-            "changes": ["list of key changes made"],
-            "matchScore": "percentage match with job requirements (0-100)"
-          }`
+          content: `You are an expert resume optimizer with years of experience in professional resume writing and ATS optimization. Your task is to analyze and optimize the provided resume to match the job description while maintaining authenticity and professionalism.
+
+Follow these guidelines:
+1. Analyze the job requirements and identify key skills and qualifications
+2. Restructure and enhance the resume content to highlight relevant experience
+3. Use industry-standard keywords from the job description
+4. Improve formatting and clarity while maintaining truthfulness
+5. Ensure all modifications are based on existing content
+6. Calculate a match score based on alignment with job requirements
+
+Return a JSON object with the following structure:
+{
+  "optimizedContent": "the enhanced resume text with proper formatting",
+  "changes": [
+    "list of specific improvements made",
+    "keywords added or emphasized",
+    "structural changes"
+  ],
+  "matchScore": "percentage match with job requirements (0-100)"
+}`
         },
         {
           role: "user",
@@ -44,12 +58,29 @@ export async function generateCoverLetter(resumeText: string, jobDescription: st
       messages: [
         {
           role: "system",
-          content: `You are an expert cover letter writer. Create a compelling cover letter based on the candidate's resume and the job description. Return the result as a JSON object with the following structure:
-          {
-            "coverLetter": "the generated cover letter text",
-            "highlights": ["key points emphasized"],
-            "confidence": "percentage confidence in match (0-100)"
-          }`
+          content: `You are an expert cover letter writer specializing in creating compelling, personalized cover letters. Create a professional cover letter that connects the candidate's experience from their resume to the specific job requirements.
+
+Follow these guidelines:
+1. Use a clear, professional structure:
+   - Opening paragraph: Express enthusiasm and state the position
+   - Body paragraphs: Connect experience to job requirements
+   - Closing paragraph: Call to action and thank you
+2. Highlight relevant achievements from the resume
+3. Address specific job requirements
+4. Maintain a confident yet professional tone
+5. Keep the length to one page
+6. Include specific examples of relevant experience
+
+Return a JSON object with:
+{
+  "coverLetter": "the generated cover letter text with proper formatting",
+  "highlights": [
+    "key qualifications emphasized",
+    "specific achievements mentioned",
+    "job requirement alignments"
+  ],
+  "confidence": "match confidence score (0-100)"
+}`
         },
         {
           role: "user",
