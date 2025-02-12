@@ -38,6 +38,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
   const [jobDescription, setJobDescription] = useState("");
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const optimizeMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
@@ -54,15 +55,13 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
         keyRequirements: data.jobDetails.keyRequirements,
         skillsAndTools: data.jobDetails.skillsAndTools
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
       onOptimized(data);
       toast({
         title: "Success",
-        description: "Resume optimized successfully",
+        description: "Resume optimized successfully. You can optimize again with the same input if needed.",
       });
-      // Reset input fields
-      setJobUrl("");
-      setJobDescription("");
+      setIsProcessing(false);
     },
     onError: (error: Error) => {
       if (error.message.includes("dynamically loaded or require authentication")) {
@@ -80,6 +79,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
           variant: "destructive",
         });
       }
+      setIsProcessing(false);
     },
   });
 
@@ -94,6 +94,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       return;
     }
 
+    setIsProcessing(true);
     optimizeMutation.mutate(
       activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
     );
@@ -128,8 +129,8 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="url" disabled={optimizeMutation.isPending || !!jobDescription}>Job URL</TabsTrigger>
-          <TabsTrigger value="manual" disabled={optimizeMutation.isPending || !!jobUrl}>Manual Input</TabsTrigger>
+          <TabsTrigger value="url" disabled={isProcessing || !!jobDescription}>Job URL</TabsTrigger>
+          <TabsTrigger value="manual" disabled={isProcessing || !!jobUrl}>Manual Input</TabsTrigger>
         </TabsList>
 
         <TabsContent value="url" className="space-y-4">
@@ -140,7 +141,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
               className="w-full"
-              disabled={optimizeMutation.isPending}
+              disabled={isProcessing}
             />
             <p className="text-sm text-muted-foreground">
               Enter the URL of the job posting for best results
@@ -155,7 +156,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               className="min-h-[200px] w-full"
-              disabled={optimizeMutation.isPending}
+              disabled={isProcessing}
             />
             <p className="text-sm text-muted-foreground">
               Manually enter the job description if URL is not available
@@ -235,16 +236,16 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
 
       <Button
         type="submit"
-        disabled={(!jobUrl && !jobDescription.trim()) || optimizeMutation.isPending}
+        disabled={(!jobUrl && !jobDescription.trim()) || isProcessing}
         className="w-full md:w-auto"
       >
-        {optimizeMutation.isPending ? (
+        {isProcessing ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Optimizing...
           </>
         ) : (
-          "Optimize Resume"
+          extractedDetails ? "Optimize Again" : "Optimize Resume"
         )}
       </Button>
     </form>

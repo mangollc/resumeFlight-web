@@ -186,37 +186,21 @@ async function analyzeJobDescription(description: string) {
       messages: [
         {
           role: "system",
-          content: `Analyze the job description and extract key information in a structured format. Follow these rules strictly:
+          content: `You are a job analysis expert. Analyze the job description and extract key information in a structured format.
+Extract and respond with ONLY a JSON object containing these fields:
 
-1. First analyze and identify:
-   - Job title/position
-   - Company name
-   - Location (include if Remote)
-   - Position level (Senior/Mid-level/Junior/Entry-level/Intern)
-
-2. Then extract:
-   - 3-5 key requirements (each under 50 words)
-   - Required skills and tools (specific technologies, software, programming languages, etc.)
-
-3. Calculate match metrics based on:
-   - Keywords relevance
-   - Required skills match
-   - Experience level match
-   - Overall fit
-
-Return in this exact JSON format:
 {
-  "title": "exact job title",
-  "company": "company name",
-  "location": "job location",
-  "positionLevel": "Senior|Mid-level|Junior|Entry-level|Intern",
-  "keyRequirements": ["requirement1", "requirement2", "requirement3"],
-  "skillsAndTools": ["skill1", "skill2", "technology1", "software1"],
+  "title": "Job title extracted from description",
+  "company": "Company name if found, otherwise 'Not specified'",
+  "location": "Job location if found, otherwise 'Not specified'",
+  "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
+  "keyRequirements": ["3-5 key requirements, each under 50 words"],
+  "skillsAndTools": ["List of specific technologies, programming languages, software, tools required"],
   "metrics": {
-    "keywords": number 0-100,
-    "skills": number 0-100,
-    "experience": number 0-100,
-    "overall": number 0-100
+    "keywords": "Match score 0-100 based on keyword relevance",
+    "skills": "Match score 0-100 based on required skills match",
+    "experience": "Match score 0-100 based on experience level match",
+    "overall": "Overall match score 0-100"
   }
 }`
         },
@@ -225,7 +209,8 @@ Return in this exact JSON format:
           content: description
         }
       ],
-      response_format: { type: "json_object" }
+      temperature: 0.3, // Add lower temperature for more consistent output
+      max_tokens: 1000,
     });
 
     const content = response.choices[0].message.content;
@@ -237,7 +222,14 @@ Return in this exact JSON format:
     }
 
     try {
-      const parsed = JSON.parse(content);
+      // Find the JSON object in the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn("[AI Analysis] No JSON found in response");
+        return getDefaultAnalysis();
+      }
+
+      const parsed = JSON.parse(jsonMatch[0]);
       return {
         title: parsed.title || "Not specified",
         company: parsed.company || "Not specified",
