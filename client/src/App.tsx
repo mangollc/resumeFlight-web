@@ -18,7 +18,9 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main className="flex-1 flex flex-col lg:pl-[200px] pt-14 lg:pt-0">
+        {children}
+      </main>
     </div>
   );
 }
