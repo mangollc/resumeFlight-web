@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
+import CoverLetterComponent from "@/components/resume/cover-letter";
 import { useQuery } from "@tanstack/react-query";
 import { Resume } from "@shared/schema";
 import { LogOut, Menu } from "lucide-react";
