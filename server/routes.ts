@@ -267,7 +267,7 @@ async function createPDF(content: string): Promise<Buffer> {
   });
 }
 
-// Add helper function to get name initials
+// Update the getInitials helper function to be more robust
 function getInitials(text: string): string {
   // Look for a name pattern at the start of the resume
   const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);

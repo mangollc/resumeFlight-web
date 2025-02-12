@@ -91,7 +91,10 @@ export default function UploadedResumesPage() {
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border border-blue-200 dark:border-blue-800">
+                      <svg className="w-3 h-3 mr-1 fill-current" viewBox="0 0 12 12">
+                        <circle cx="6" cy="6" r="5"/>
+                      </svg>
                       Original Version
                     </span>
                   </TableCell>
