@@ -66,14 +66,10 @@ export default function Preview({ resume }: PreviewProps) {
   };
 
   const isOptimized = 'jobDescription' in resume;
-  // Ensure we get the original content for optimized resumes
   const originalContent = isOptimized 
     ? (resume as OptimizedResume).originalContent 
     : resume.content;
   const optimizedContent = resume.content;
-
-  console.log('Original Content:', originalContent?.substring(0, 100)); // Debug log
-  console.log('Optimized Content:', optimizedContent?.substring(0, 100)); // Debug log
 
   const getMetricsColor = (value: number) => {
     if (value >= 80) return "bg-green-600";
@@ -145,7 +141,7 @@ export default function Preview({ resume }: PreviewProps) {
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
               <pre className="whitespace-pre-wrap font-sans text-sm">
-                {resume.content}
+                {optimizedContent}
               </pre>
             </div>
           </div>

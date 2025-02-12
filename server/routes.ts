@@ -517,6 +517,7 @@ export function registerRoutes(app: Express): Server {
 
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
+        originalContent: uploadedResume.content, // Ensure original content is set
         jobDescription: finalJobDescription,
         jobUrl: jobUrl || null,
         jobDetails,
