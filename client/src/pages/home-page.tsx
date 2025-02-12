@@ -14,6 +14,7 @@ import Preview from "@/components/resume/preview";
 import CoverLetterComponent from "@/components/resume/cover-letter";
 import { useQuery } from "@tanstack/react-query";
 import { Resume } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -24,35 +25,48 @@ export default function HomePage() {
     queryKey: ["/api/resume"],
   });
 
+  const SectionTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+    <h2 className={cn(
+      "text-xl font-semibold mb-4",
+      "bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent",
+      className
+    )}>
+      {children}
+    </h2>
+  );
+
   return (
-    <div className="bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Optimize your resume for your dream job</p>
-        </div>
+    <div className="bg-background min-h-screen">
+      <div className="max-w-7xl mx-auto p-6">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Welcome to ResumeFlight</h1>
+          <p className="text-muted-foreground">
+            Optimize your resume for your dream job using AI-powered insights
+          </p>
+        </header>
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column */}
           <div className="space-y-8">
             <section className="bg-card rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow">
-              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
-                Step 1: Select or Upload Resume
-              </h2>
-
+              <SectionTitle>Step 1: Select or Upload Resume</SectionTitle>
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <Button
                     variant={uploadMode === 'choose' ? "default" : "outline"}
                     onClick={() => setUploadMode('choose')}
-                    className={uploadMode === 'choose' ? "bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] hover:from-[#FFDFBA] hover:to-[#FFFFBA]" : ""}
+                    className={cn(
+                      uploadMode === 'choose' && "bg-primary text-primary-foreground"
+                    )}
                   >
                     Choose Existing
                   </Button>
                   <Button
                     variant={uploadMode === 'upload' ? "default" : "outline"}
                     onClick={() => setUploadMode('upload')}
-                    className={uploadMode === 'upload' ? "bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] hover:from-[#FFDFBA] hover:to-[#FFFFBA]" : ""}
+                    className={cn(
+                      uploadMode === 'upload' && "bg-primary text-primary-foreground"
+                    )}
                   >
                     Upload New
                   </Button>
@@ -98,9 +112,7 @@ export default function HomePage() {
 
             {selectedResume && (
               <section className="bg-card rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow">
-                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
-                  Step 2: Add Job Details
-                </h2>
+                <SectionTitle>Step 2: Add Job Details</SectionTitle>
                 <JobInput resumeId={selectedResume.id} onOptimized={setSelectedResume} />
               </section>
             )}
@@ -108,18 +120,14 @@ export default function HomePage() {
 
           {/* Right Column */}
           <div className="space-y-8">
-            <section className="bg-card rounded-lg border-2 border-[#FFB3BA]/30 shadow-sm p-6 hover:shadow-md transition-shadow">
-              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
-                Preview
-              </h2>
+            <section className="bg-card rounded-lg border-2 border-primary/10 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <SectionTitle>Resume Preview</SectionTitle>
               <Preview resume={selectedResume} />
             </section>
 
             {selectedResume && (
-              <section className="bg-card rounded-lg border-2 border-[#FFB3BA]/30 shadow-sm p-6 hover:shadow-md transition-shadow">
-                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
-                  Cover Letter
-                </h2>
+              <section className="bg-card rounded-lg border-2 border-primary/10 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <SectionTitle>Cover Letter Generator</SectionTitle>
                 <CoverLetterComponent resume={selectedResume} />
               </section>
             )}
