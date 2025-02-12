@@ -386,7 +386,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update the resume optimization endpoint to better handle manual input
+  // Update the resume optimization endpoint to better handle both manual input and URL
   app.post("/api/resume/:id/optimize", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -401,12 +401,19 @@ export function registerRoutes(app: Express): Server {
       if (uploadedResume.userId !== req.user!.id) return res.sendStatus(403);
 
       let jobDetails: JobDetails;
+      let finalJobDescription: string;
 
       if (jobUrl) {
-        jobDetails = await extractJobDetails(jobUrl);
+        try {
+          jobDetails = await extractJobDetails(jobUrl);
+          finalJobDescription = jobDetails.description;
+        } catch (error: any) {
+          console.error("[URL Extraction] Error:", error);
+          return res.status(400).json({ error: error.message });
+        }
       } else {
         console.log("[Manual Input] Processing manual job description");
-        // Use AI to analyze manual job description
+        finalJobDescription = jobDescription;
         const analysis = await analyzeJobDescription(jobDescription);
         jobDetails = {
           title: analysis.title,
@@ -419,7 +426,7 @@ export function registerRoutes(app: Express): Server {
         console.log("[Manual Input] Extracted job details:", jobDetails);
       }
 
-      const optimized = await optimizeResume(uploadedResume.content, jobDescription);
+      const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
 
       // Get initials from the resume content
       const initials = getInitials(uploadedResume.content);
@@ -435,7 +442,7 @@ export function registerRoutes(app: Express): Server {
       // Create a new optimized resume
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
-        jobDescription: jobDescription,
+        jobDescription: finalJobDescription, // Use the final job description
         jobUrl: jobUrl || null,
         jobDetails,
         uploadedResumeId: uploadedResume.id,
