@@ -104,8 +104,8 @@ export function Sidebar() {
       </div>
 
       {/* Desktop Sidebar - Always Visible */}
-      <div className="hidden lg:block fixed h-screen w-[240px] z-40">
-        <nav className="h-full flex flex-col border-r bg-background/95 backdrop-blur-sm">
+      <div className="hidden lg:block fixed top-0 left-0 h-screen w-[240px] z-40">
+        <nav className="h-full flex flex-col border-r bg-background">
           <div className="p-6 border-b">
             <h1 className="text-xl font-semibold bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
               Resume Optimizer
@@ -138,10 +138,9 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Mobile Content Padding */}
-      <div className="lg:hidden h-16" />
-      {/* Desktop Content Padding */}
-      <div className="hidden lg:block lg:pl-[240px]" />
+      {/* Content Padding */}
+      <div className="lg:hidden h-16" /> {/* Mobile padding */}
+      <div className="hidden lg:block lg:ml-[240px] min-h-screen" /> {/* Desktop padding */}
     </>
   );
 }
