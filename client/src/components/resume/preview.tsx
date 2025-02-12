@@ -39,7 +39,7 @@ export default function Preview({ resume }: PreviewProps) {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const filename = 'jobDescription' in resume 
+      const filename = 'jobDescription' in resume
         ? `optimized-${resume.metadata.filename}`
         : resume.metadata.filename;
 
@@ -94,14 +94,26 @@ export default function Preview({ resume }: PreviewProps) {
           <div className="mt-6 p-4 bg-muted rounded-lg">
             <h4 className="font-semibold mb-3">Job Details</h4>
             <div className="space-y-2 text-sm">
-              <p><strong>Position:</strong> {resume.jobDetails.title}</p>
-              <p><strong>Company:</strong> {resume.jobDetails.company}</p>
-              <p><strong>Location:</strong> {resume.jobDetails.location}</p>
+              {resume.jobDetails.title && (
+                <p><strong>Position:</strong> {resume.jobDetails.title}</p>
+              )}
+              {resume.jobDetails.company && (
+                <p><strong>Company:</strong> {resume.jobDetails.company}</p>
+              )}
+              {resume.jobDetails.location && (
+                <p><strong>Location:</strong> {resume.jobDetails.location}</p>
+              )}
               {resume.jobDetails.salary && (
                 <p><strong>Salary Range:</strong> {resume.jobDetails.salary}</p>
               )}
               {resume.jobDetails.positionLevel && (
                 <p><strong>Position Level:</strong> {resume.jobDetails.positionLevel}</p>
+              )}
+              {resume.jobDetails.candidateProfile && (
+                <div className="mt-4">
+                  <p><strong>Candidate Profile:</strong></p>
+                  <p className="mt-1 text-muted-foreground">{resume.jobDetails.candidateProfile}</p>
+                </div>
               )}
             </div>
           </div>

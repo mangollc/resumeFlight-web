@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -94,19 +95,22 @@ export default function OptimizedResumesPage() {
                 <TableRow key={resume.id}>
                   <TableCell className="whitespace-nowrap">
                     {new Date(resume.createdAt).toLocaleDateString()}
+                    <Badge variant="success" className="ml-2">
+                      Optimized
+                    </Badge>
                   </TableCell>
-                  <TableCell>{resume.jobDetails?.title || "N/A"}</TableCell>
+                  <TableCell>{resume.jobDetails?.title}</TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {resume.jobDetails?.company || "N/A"}
+                    {resume.jobDetails?.company}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    {resume.jobDetails?.location || "N/A"}
+                    {resume.jobDetails?.location}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {resume.jobDetails?.salary || "Not specified"}
+                    {resume.jobDetails?.salary || "—"}
                   </TableCell>
                   <TableCell className="hidden xl:table-cell">
-                    {resume.jobDetails?.positionLevel || "Not specified"}
+                    {resume.jobDetails?.positionLevel || "—"}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
