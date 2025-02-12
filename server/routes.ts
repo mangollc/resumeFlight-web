@@ -267,6 +267,20 @@ async function createPDF(content: string): Promise<Buffer> {
   });
 }
 
+// Add helper function to get name initials
+function getInitials(text: string): string {
+  // Look for a name pattern at the start of the resume
+  const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
+  if (!nameMatch) return "NA";
+
+  // Extract initials from the full name
+  return nameMatch[0]
+    .split(/\s+/)
+    .map(name => name[0])
+    .join('')
+    .toUpperCase();
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -353,16 +367,26 @@ export function registerRoutes(app: Express): Server {
 
       const optimized = await optimizeResume(uploadedResume.content, jobDetails.description);
 
-      // Create a new optimized resume with jobUrl
+      // Get initials from the resume content
+      const initials = getInitials(uploadedResume.content);
+      // Clean up job title for filename
+      const cleanJobTitle = jobDetails.title
+        .replace(/[^a-zA-Z0-9\s]/g, '')
+        .replace(/\s+/g, '_');
+
+      // Create new filename: initials_jobTitle.pdf
+      const newFilename = `${initials}_${cleanJobTitle}.pdf`;
+
+      // Create a new optimized resume
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
         jobDescription: jobDetails.description,
-        jobUrl: jobUrl || null, // Store jobUrl if available
+        jobUrl: jobUrl || null,
         jobDetails,
         uploadedResumeId: uploadedResume.id,
         userId: req.user!.id,
         metadata: {
-          filename: `${uploadedResume.metadata.filename}_optimized`,
+          filename: newFilename,
           optimizedAt: new Date().toISOString()
         }
       });

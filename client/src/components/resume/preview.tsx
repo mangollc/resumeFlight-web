@@ -66,9 +66,17 @@ export default function Preview({ resume }: PreviewProps) {
             <h3 className="font-semibold truncate max-w-[200px] sm:max-w-none">
               {resume.metadata.filename}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {isOptimized ? "Optimized" : "Original"} Version
-            </p>
+            <div>
+              {isOptimized ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                  Optimized Version
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                  Original Version
+                </span>
+              )}
+            </div>
           </div>
           <Button
             variant="outline"

@@ -95,8 +95,8 @@ export default function OptimizedResumesPage() {
                 <TableRow key={resume.id}>
                   <TableCell className="whitespace-nowrap">
                     {new Date(resume.createdAt).toLocaleDateString()}
-                    <Badge variant="success" className="ml-2">
-                      Optimized
+                    <Badge variant="success" className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                      Optimized Version
                     </Badge>
                   </TableCell>
                   <TableCell>{resume.jobDetails?.title}</TableCell>

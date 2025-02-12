@@ -91,7 +91,9 @@ export default function UploadedResumesPage() {
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground">Original</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                      Original Version
+                    </span>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
                     <Button
