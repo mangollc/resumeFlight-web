@@ -72,17 +72,22 @@ export default function UploadedResumesPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      {/* Title section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center">
         <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
-        <Button onClick={() => setLocation("/dashboard")} className="w-full sm:w-auto">
-          Upload New Resume
-        </Button>
       </div>
 
       {resumes && resumes.length > 0 ? (
         <div className="space-y-4">
-          <div className="flex justify-end">
+          {/* Button container aligned with table */}
+          <div className="w-full sm:w-[70%]">
+            <div className="flex justify-end mb-2">
+              <Button onClick={() => setLocation("/dashboard")} size="sm">
+                Upload New Resume
+              </Button>
+            </div>
           </div>
+
           <div className="border rounded-lg overflow-x-auto w-full sm:w-[70%]">
             <Table>
               <TableHeader className="bg-primary/5">
