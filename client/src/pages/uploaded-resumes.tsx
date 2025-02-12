@@ -80,85 +80,83 @@ export default function UploadedResumesPage() {
       </div>
 
       {resumes && resumes.length > 0 ? (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-primary/5 dark:bg-primary/10">
-                <TableRow>
-                  <TableHead className="font-bold text-primary w-[50%]">File Name</TableHead>
-                  <TableHead className="hidden sm:table-cell font-bold text-primary w-[25%]">Upload Date</TableHead>
-                  <TableHead className="w-[100px] font-bold text-primary text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {resumes.map((resume) => (
-                  <TableRow key={resume.id} className="even:bg-slate-50 dark:even:bg-slate-800/50">
-                    <TableCell className="max-w-[200px] sm:max-w-[300px] break-words">
-                      <div>
-                        {resume.metadata.filename}
-                        <div className="text-sm text-muted-foreground sm:hidden">
-                          {new Date(resume.createdAt).toLocaleDateString()}
-                        </div>
+        <div className="border rounded-lg overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-primary/5 dark:bg-primary/10">
+              <TableRow>
+                <TableHead className="font-bold text-primary w-[50%]">File Name</TableHead>
+                <TableHead className="hidden sm:table-cell font-bold text-primary w-[25%]">Upload Date</TableHead>
+                <TableHead className="w-[100px] font-bold text-primary text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {resumes.map((resume) => (
+                <TableRow key={resume.id} className="even:bg-slate-50 dark:even:bg-slate-800/50">
+                  <TableCell className="max-w-[200px] sm:max-w-[300px] break-words py-2">
+                    <div>
+                      {resume.metadata.filename}
+                      <div className="text-sm text-muted-foreground sm:hidden">
+                        {new Date(resume.createdAt).toLocaleDateString()}
                       </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell whitespace-nowrap">
-                      {new Date(resume.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="text-right pr-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreVertical className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem
-                            onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
-                            className="flex items-center"
-                          >
-                            <FileText className="mr-2 h-4 w-4" />
-                            Optimize
-                          </DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                                className="text-destructive focus:text-destructive"
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell whitespace-nowrap py-2">
+                    {new Date(resume.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-right py-2 pr-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[160px]">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
+                          className="flex items-center"
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Optimize
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Uploaded Resume</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will only remove the resume from your uploaded resumes list. 
+                                Any optimized versions will remain available in the Optimized Resumes section.
+                                Are you sure you want to continue?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(resume.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Uploaded Resume</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will only remove the resume from your uploaded resumes list. 
-                                  Any optimized versions will remain available in the Optimized Resumes section.
-                                  Are you sure you want to continue?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteMutation.mutate(resume.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="text-center py-12">
