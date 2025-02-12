@@ -15,6 +15,14 @@ interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
+interface JobDetails {
+  title: string;
+  company: string;
+  salary?: string;
+  location: string;
+  description: string;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
@@ -44,34 +52,60 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
   }
 }
 
-async function extractJobDescription(url: string): Promise<string> {
+async function extractJobDetails(url: string): Promise<JobDetails> {
   try {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
-    // Common job description selectors
-    const selectors = [
+    // Common selectors for different job boards
+    const titleSelectors = ['h1', '.job-title', '[data-testid="job-title"]', '.position-title'];
+    const companySelectors = ['.company-name', '[data-testid="company-name"]', '.employer'];
+    const locationSelectors = ['.location', '[data-testid="location"]', '.job-location'];
+    const salarySelectors = ['.salary', '[data-testid="salary-range"]', '.compensation'];
+    const descriptionSelectors = [
       '.job-description',
       '#job-description',
       '[data-testid="job-description"]',
-      '.description',
-      '.jobDescription',
-      'article',
-      'section'
+      '.description'
     ];
 
-    for (const selector of selectors) {
-      const element = $(selector);
-      if (element.length) {
-        return element.text().trim();
+    // Helper function to find content using multiple selectors
+    const findContent = (selectors: string[]): string => {
+      for (const selector of selectors) {
+        const element = $(selector);
+        if (element.length) {
+          return element.text().trim();
+        }
       }
+      return '';
+    };
+
+    // Extract job details
+    const title = findContent(titleSelectors);
+    const company = findContent(companySelectors);
+    let location = findContent(locationSelectors);
+    const salary = findContent(salarySelectors);
+    const description = findContent(descriptionSelectors);
+
+    // Check for remote indicators
+    const isRemote = description.toLowerCase().includes('remote') ||
+                    location.toLowerCase().includes('remote') ||
+                    $('body').text().toLowerCase().includes('remote position');
+
+    if (isRemote) {
+      location = 'Remote';
     }
 
-    // Fallback to main content if specific selectors not found
-    return $('main').text().trim() || $('body').text().trim();
+    return {
+      title: title || 'Not specified',
+      company: company || 'Not specified',
+      salary: salary || undefined,
+      location: location || 'Not specified',
+      description: description || $('body').text().trim()
+    };
   } catch (error) {
-    console.error("Error extracting job description:", error);
-    throw new Error("Failed to extract job description from URL. Please paste the description manually.");
+    console.error("Error extracting job details:", error);
+    throw new Error("Failed to extract job details from URL. Please paste the description manually.");
   }
 }
 
@@ -164,19 +198,30 @@ export function registerRoutes(app: Express): Server {
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      // Extract job description from URL if provided
-      const finalJobDescription = jobUrl ? await extractJobDescription(jobUrl) : jobDescription;
+      let jobDetails: JobDetails;
 
-      const optimized = await optimizeResume(resume.originalContent, finalJobDescription);
+      if (jobUrl) {
+        jobDetails = await extractJobDetails(jobUrl);
+      } else {
+        jobDetails = {
+          title: 'Manual Entry',
+          company: 'Manual Entry',
+          location: 'Not specified',
+          description: jobDescription
+        };
+      }
+
+      const optimized = await optimizeResume(resume.originalContent, jobDetails.description);
 
       // Update resume with optimization results
       const updated = await storage.updateResume(resume.id, {
         optimizedContent: optimized.optimizedContent,
-        jobDescription: finalJobDescription
+        jobDescription: jobDetails.description
       });
 
       res.json({
         ...updated,
+        jobDetails,
         optimizationDetails: {
           changes: optimized.changes,
           matchScore: optimized.matchScore

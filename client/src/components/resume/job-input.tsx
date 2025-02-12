@@ -8,6 +8,22 @@ import { Resume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Link } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+interface JobDetails {
+  title: string;
+  company: string;
+  salary?: string;
+  location: string;
+  description: string;
+}
 
 interface JobInputProps {
   resumeId: number;
@@ -18,6 +34,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
 
   const optimizeMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
@@ -25,6 +42,15 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       return res.json();
     },
     onSuccess: (data) => {
+      setExtractedDetails(data.jobDetails);
+      if (!data.jobDetails.description) {
+        toast({
+          title: "Warning",
+          description: "Could not extract job details. Please check the URL or enter details manually.",
+          variant: "destructive",
+        });
+        return;
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
       onOptimized(data);
       toast({
@@ -94,6 +120,40 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
           </div>
         </TabsContent>
       </Tabs>
+
+      {extractedDetails && (
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead colSpan={2} className="text-center">
+                  Extracted Job Details
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">Title</TableCell>
+                <TableCell>{extractedDetails.title}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Company</TableCell>
+                <TableCell>{extractedDetails.company}</TableCell>
+              </TableRow>
+              {extractedDetails.salary && (
+                <TableRow>
+                  <TableCell className="font-medium">Salary</TableCell>
+                  <TableCell>{extractedDetails.salary}</TableCell>
+                </TableRow>
+              )}
+              <TableRow>
+                <TableCell className="font-medium">Location</TableCell>
+                <TableCell>{extractedDetails.location}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <Button
         type="submit"
