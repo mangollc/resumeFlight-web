@@ -111,12 +111,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   return (
     <>
-      <TableRow 
+      <TableRow
         className={`cursor-pointer hover:bg-muted/60 ${
-          isExpanded 
-            ? 'bg-muted/5 dark:bg-muted/10' 
+          isExpanded
+            ? 'bg-muted/5 dark:bg-muted/10'
             : 'even:bg-slate-50 dark:even:bg-slate-800/50'
-        }`} 
+        }`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <TableCell>
@@ -143,7 +143,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 </span>
               </div>
             </div>
-            <Progress 
+            <Progress
               value={resume.metrics?.after?.overall || 0}
               className={`h-2 ${getMetricsColor(resume.metrics?.after?.overall || 0)}`}
             />
@@ -265,7 +265,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             {resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0}%
                           </span>
                         </div>
-                        <Progress 
+                        <Progress
                           value={resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0}
                           className={`h-2 ${getMetricsColor(resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0)}`}
                         />
@@ -284,7 +284,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             {resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}%
                           </span>
                         </div>
-                        <Progress 
+                        <Progress
                           value={resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}
                           className={`h-2 ${getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}`}
                         />
@@ -330,10 +330,10 @@ export default function OptimizedResumesPage() {
               <TableRow>
                 <TableHead className="w-[30px]"></TableHead>
                 <TableHead className="w-[100px] font-bold text-primary">Date</TableHead>
-                <TableHead className="font-bold text-primary">Position</TableHead>
-                <TableHead className="hidden sm:table-cell font-bold text-primary">Company</TableHead>
-                <TableHead className="hidden lg:table-cell font-bold text-primary">Match Score</TableHead>
-                <TableHead className="text-right font-bold text-primary">Actions</TableHead>
+                <TableHead className="font-bold text-primary w-[30%]">Position</TableHead>
+                <TableHead className="hidden sm:table-cell font-bold text-primary w-[20%]">Company</TableHead>
+                <TableHead className="hidden lg:table-cell font-bold text-primary w-[20%]">Match Score</TableHead>
+                <TableHead className="text-right font-bold text-primary w-[60px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

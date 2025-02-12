@@ -83,16 +83,16 @@ export default function UploadedResumesPage() {
         <div className="border rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-primary/5 dark:bg-primary/10">
                 <TableRow>
-                  <TableHead>File Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Upload Date</TableHead>
-                  <TableHead className="w-[60px]">Actions</TableHead>
+                  <TableHead className="font-bold text-primary w-[40%] sm:w-[30%]">File Name</TableHead>
+                  <TableHead className="hidden sm:table-cell font-bold text-primary w-[30%]">Upload Date</TableHead>
+                  <TableHead className="w-[60px] font-bold text-primary text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {resumes.map((resume) => (
-                  <TableRow key={resume.id}>
+                  <TableRow key={resume.id} className="even:bg-slate-50 dark:even:bg-slate-800/50">
                     <TableCell className="max-w-[200px] sm:max-w-[300px] break-words">
                       <div>
                         {resume.metadata.filename}
@@ -104,7 +104,7 @@ export default function UploadedResumesPage() {
                     <TableCell className="hidden sm:table-cell whitespace-nowrap">
                       {new Date(resume.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
