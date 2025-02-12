@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Maximize2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import ComparisonSlider from "./comparison-slider";
+import DiffView from "./diff-view";
 import {
   Dialog,
   DialogContent,
@@ -111,11 +111,11 @@ export default function Preview({ resume }: PreviewProps) {
                       <DialogHeader>
                         <DialogTitle>Resume Comparison</DialogTitle>
                         <DialogDescription>
-                          Use the slider to compare the original and optimized versions of your resume.
+                          Compare the original and optimized versions of your resume side by side.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="mt-4">
-                        <ComparisonSlider
+                        <DiffView
                           beforeContent={beforeContent}
                           afterContent={afterContent}
                         />
