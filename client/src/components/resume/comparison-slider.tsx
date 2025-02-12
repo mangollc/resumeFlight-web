@@ -69,13 +69,14 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
         onMouseDown={() => setIsResizing(true)}
         onTouchStart={() => setIsResizing(true)}
       >
-        <div className="absolute inset-y-0 -left-px w-0.5 bg-primary" />
+        <div className="absolute inset-y-0 -left-px w-0.5 bg-primary/50" />
         <div
           className={cn(
             "absolute top-1/2 -translate-x-1/2 -translate-y-1/2",
             "flex h-12 w-12 items-center justify-center",
-            "rounded-full border-2 border-primary bg-background",
-            "cursor-ew-resize touch-none"
+            "rounded-full border-2 border-primary bg-background shadow-lg",
+            "cursor-ew-resize touch-none",
+            isResizing && "scale-110 transition-transform"
           )}
         >
           <ArrowLeftRight className="h-6 w-6 text-primary" />
@@ -84,10 +85,10 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
 
       {/* Labels */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-4 top-4 rounded-full bg-primary/10 px-2 py-1">
+        <div className="absolute left-4 top-4 rounded-full bg-primary/10 px-2 py-1 text-sm font-medium">
           Original
         </div>
-        <div className="absolute right-4 top-4 rounded-full bg-primary/10 px-2 py-1">
+        <div className="absolute right-4 top-4 rounded-full bg-primary/10 px-2 py-1 text-sm font-medium">
           Optimized
         </div>
       </div>
