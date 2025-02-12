@@ -60,7 +60,7 @@ export function Sidebar() {
       {/* Mobile Menu Trigger */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-          <Button variant="ghost" size="icon" className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <Button variant="ghost" size="icon" className="bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
@@ -71,7 +71,12 @@ export function Sidebar() {
                 <Link key={item.href} href={item.href}>
                   <Button
                     variant={location === item.href ? "secondary" : "ghost"}
-                    className="w-full justify-start"
+                    className={cn(
+                      "w-full justify-start relative overflow-hidden group",
+                      "bg-gradient-to-r from-transparent to-transparent",
+                      "hover:from-blue-500/10 hover:to-blue-500/5",
+                      location === item.href && "bg-gradient-to-r from-blue-500/20 to-blue-500/10"
+                    )}
                     disabled={item.disabled}
                   >
                     <item.icon className="mr-2 h-4 w-4" />
@@ -85,11 +90,16 @@ export function Sidebar() {
       </Sheet>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex">
+      <div 
+        className={cn(
+          "hidden lg:block fixed h-screen transition-all duration-300 ease-in-out z-40",
+          collapsed ? "w-[80px]" : "w-[280px]"
+        )}
+      >
         <nav
           className={cn(
-            "h-screen sticky top-0 flex flex-col border-r bg-background p-6 transition-all duration-300",
-            collapsed ? "w-[80px]" : "w-[280px]"
+            "h-full flex flex-col border-r bg-background/95 backdrop-blur-sm p-6",
+            "shadow-lg shadow-blue-500/5"
           )}
         >
           <div className="flex justify-end mb-6">
@@ -97,7 +107,7 @@ export function Sidebar() {
               variant="ghost"
               size="icon"
               onClick={() => setCollapsed(!collapsed)}
-              className="hover:bg-accent"
+              className="hover:bg-blue-500/10 transition-colors"
             >
               {collapsed ? (
                 <ChevronRight className="h-4 w-4" />
@@ -112,19 +122,35 @@ export function Sidebar() {
                 <Button
                   variant={location === item.href ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start hover:bg-accent/50",
-                    collapsed && "justify-center px-2"
+                    "w-full relative overflow-hidden group transition-all duration-200",
+                    "bg-gradient-to-r from-transparent to-transparent",
+                    "hover:from-blue-500/10 hover:to-blue-500/5",
+                    location === item.href && "bg-gradient-to-r from-blue-500/20 to-blue-500/10",
+                    collapsed ? "justify-center px-2" : "justify-start"
                   )}
                   disabled={item.disabled}
                 >
                   <item.icon className={cn("h-4 w-4", !collapsed && "mr-2")} />
-                  {!collapsed && item.title}
+                  {!collapsed && (
+                    <span className="truncate">{item.title}</span>
+                  )}
+                  {collapsed && (
+                    <span className="sr-only">{item.title}</span>
+                  )}
                 </Button>
               </Link>
             ))}
           </div>
         </nav>
       </div>
+
+      {/* Content Wrapper with Padding */}
+      <div
+        className={cn(
+          "lg:ml-[280px] transition-all duration-300",
+          collapsed && "lg:ml-[80px]"
+        )}
+      />
     </>
   );
 }

@@ -35,20 +35,22 @@ export default function HomePage() {
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column */}
           <div className="space-y-8">
-            <section className="bg-card rounded-lg border shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4">Step 1: Select or Upload Resume</h2>
+            <section className="bg-card rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Step 1: Select or Upload Resume</h2>
 
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <Button
                     variant={uploadMode === 'choose' ? "default" : "outline"}
                     onClick={() => setUploadMode('choose')}
+                    className="bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500"
                   >
                     Choose Existing
                   </Button>
                   <Button
                     variant={uploadMode === 'upload' ? "default" : "outline"}
                     onClick={() => setUploadMode('upload')}
+                    className={uploadMode === 'upload' ? "bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500" : ""}
                   >
                     Upload New
                   </Button>
@@ -93,8 +95,8 @@ export default function HomePage() {
             </section>
 
             {selectedResume && (
-              <section className="bg-card rounded-lg border shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Step 2: Add Job Details</h2>
+              <section className="bg-card rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow">
+                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Step 2: Add Job Details</h2>
                 <JobInput resumeId={selectedResume.id} onOptimized={setSelectedResume} />
               </section>
             )}
@@ -102,14 +104,14 @@ export default function HomePage() {
 
           {/* Right Column */}
           <div className="space-y-8">
-            <section className="bg-card rounded-lg border shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4">Preview</h2>
+            <section className="bg-card rounded-lg border-2 border-blue-100 dark:border-blue-900/30 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Preview</h2>
               <Preview resume={selectedResume} />
             </section>
 
             {selectedResume && (
-              <section className="bg-card rounded-lg border shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Cover Letter</h2>
+              <section className="bg-card rounded-lg border-2 border-blue-100 dark:border-blue-900/30 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Cover Letter</h2>
                 <CoverLetterComponent resume={selectedResume} />
               </section>
             )}
