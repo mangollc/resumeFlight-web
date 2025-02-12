@@ -58,7 +58,7 @@ export function Sidebar() {
       {/* Mobile Menu Trigger */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-          <Button variant="ghost" size="icon" className="bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500">
+          <Button variant="ghost" size="icon" className="bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] text-foreground hover:from-[#FFDFBA] hover:to-[#FFFFBA]">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
@@ -72,12 +72,15 @@ export function Sidebar() {
                     className={cn(
                       "w-full justify-start relative overflow-hidden group",
                       "bg-gradient-to-r from-transparent to-transparent",
-                      "hover:from-blue-500/10 hover:to-blue-500/5",
-                      location === item.href && "bg-gradient-to-r from-blue-500/20 to-blue-500/10"
+                      "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
+                      location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
                     )}
                     disabled={item.disabled}
                   >
-                    <item.icon className="mr-2 h-5 w-5" />
+                    <item.icon className={cn(
+                      "h-5 w-5 mr-3",
+                      item.disabled && "opacity-50"
+                    )} />
                     {item.title}
                   </Button>
                 </Link>
@@ -87,19 +90,19 @@ export function Sidebar() {
         </SheetContent>
       </Sheet>
 
-      {/* Desktop Sidebar */}
+      {/* Desktop Sidebar - Always Visible */}
       <div className="hidden lg:block fixed h-screen w-[240px] z-40">
-        <nav className="h-full flex flex-col border-r bg-background/95 backdrop-blur-sm py-6 px-4 shadow-lg shadow-blue-500/5">
+        <nav className="h-full flex flex-col border-r bg-background/95 backdrop-blur-sm py-6 px-4">
           <div className="space-y-4 py-4">
             {navItems.map((item) => (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant={location === item.href ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start relative overflow-hidden group transition-colors",
+                    "w-full justify-start relative overflow-hidden group",
                     "bg-gradient-to-r from-transparent to-transparent",
-                    "hover:from-blue-500/10 hover:to-blue-500/5",
-                    location === item.href && "bg-gradient-to-r from-blue-500/20 to-blue-500/10"
+                    "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
+                    location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
                   )}
                   disabled={item.disabled}
                 >

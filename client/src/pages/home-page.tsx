@@ -36,21 +36,21 @@ export default function HomePage() {
           {/* Left Column */}
           <div className="space-y-8">
             <section className="bg-card rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow">
-              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Step 1: Select or Upload Resume</h2>
+              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">Step 1: Select or Upload Resume</h2>
 
               <div className="space-y-4">
                 <div className="flex gap-4">
                   <Button
                     variant={uploadMode === 'choose' ? "default" : "outline"}
                     onClick={() => setUploadMode('choose')}
-                    className="bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500"
+                    className={uploadMode === 'choose' ? "bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] hover:from-[#FFDFBA] hover:to-[#FFFFBA]" : ""}
                   >
                     Choose Existing
                   </Button>
                   <Button
                     variant={uploadMode === 'upload' ? "default" : "outline"}
                     onClick={() => setUploadMode('upload')}
-                    className={uploadMode === 'upload' ? "bg-gradient-to-r from-blue-600 to-blue-400 text-white hover:from-blue-700 hover:to-blue-500" : ""}
+                    className={uploadMode === 'upload' ? "bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] hover:from-[#FFDFBA] hover:to-[#FFFFBA]" : ""}
                   >
                     Upload New
                   </Button>
@@ -96,7 +96,7 @@ export default function HomePage() {
 
             {selectedResume && (
               <section className="bg-card rounded-lg border shadow-sm p-6 hover:shadow-md transition-shadow">
-                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Step 2: Add Job Details</h2>
+                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">Step 2: Add Job Details</h2>
                 <JobInput resumeId={selectedResume.id} onOptimized={setSelectedResume} />
               </section>
             )}
@@ -104,14 +104,14 @@ export default function HomePage() {
 
           {/* Right Column */}
           <div className="space-y-8">
-            <section className="bg-card rounded-lg border-2 border-blue-100 dark:border-blue-900/30 shadow-sm p-6 hover:shadow-md transition-shadow">
-              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Preview</h2>
+            <section className="bg-card rounded-lg border-2 border-[#FFB3BA]/30 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">Preview</h2>
               <Preview resume={selectedResume} />
             </section>
 
             {selectedResume && (
-              <section className="bg-card rounded-lg border-2 border-blue-100 dark:border-blue-900/30 shadow-sm p-6 hover:shadow-md transition-shadow">
-                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">Cover Letter</h2>
+              <section className="bg-card rounded-lg border-2 border-[#FFB3BA]/30 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">Cover Letter</h2>
                 <CoverLetterComponent resume={selectedResume} />
               </section>
             )}
