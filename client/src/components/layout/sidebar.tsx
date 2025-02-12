@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,13 +9,21 @@ import {
   Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   disabled?: boolean;
+  group?: string;
 }
 
 const navItems: NavItem[] = [
@@ -24,96 +31,112 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    group: "main",
   },
   {
     title: "Uploaded Resumes",
     href: "/uploaded-resumes",
     icon: FileText,
+    group: "main",
   },
   {
     title: "Optimized Resumes",
     href: "/optimized-resumes",
     icon: FileCheck2,
+    group: "main",
   },
   {
     title: "Subscription Plan",
     href: "/subscription",
     icon: CreditCard,
     disabled: true,
+    group: "system",
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
+    group: "system",
   },
 ];
 
+const mainNavItems = navItems.filter(item => item.group === "main");
+const systemNavItems = navItems.filter(item => item.group === "system");
+
 export function Sidebar() {
   const [location] = useLocation();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const NavigationItems = ({ onClick }: { onClick?: () => void }) => (
-    <div className="space-y-2">
-      {navItems.map((item) => (
+  const NavigationItems = ({ items }: { items: NavItem[] }) => (
+    <>
+      {items.map((item) => (
         <Link key={item.href} href={item.href}>
           <Button
-            variant={location === item.href ? "secondary" : "ghost"}
+            variant="ghost"
             className={cn(
-              "w-full justify-start relative overflow-hidden group",
-              "bg-gradient-to-r from-transparent to-transparent",
-              "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
-              location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
+              "w-full justify-start h-10",
+              "transition-colors",
+              location === item.href && "bg-muted",
+              item.disabled && "opacity-50"
             )}
             disabled={item.disabled}
-            onClick={onClick}
           >
-            <item.icon className={cn(
-              "h-5 w-5 mr-3",
-              item.disabled && "opacity-50"
-            )} />
-            <span className="truncate">{item.title}</span>
+            <item.icon className="h-4 w-4 mr-3" />
+            <span className="text-sm font-medium">{item.title}</span>
           </Button>
         </Link>
       ))}
-    </div>
+    </>
   );
 
   return (
     <>
-      {/* Mobile Menu */}
-      <div className="lg:hidden flex items-center h-16 px-4 border-b bg-background/95 backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] text-foreground hover:from-[#FFDFBA] hover:to-[#FFFFBA]"
-            >
+      {/* Mobile Navigation */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 px-4 border-b bg-background flex items-center z-50">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="hover:bg-muted">
               <Menu className="h-5 w-5" />
+              <span className="sr-only">Open menu</span>
             </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[300px]">
-            <nav className="h-full flex flex-col border-r bg-background">
-              <div className="flex-1 px-4 py-6">
-                <NavigationItems onClick={() => setIsMobileMenuOpen(false)} />
-              </div>
-            </nav>
-          </SheetContent>
-        </Sheet>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 mt-1">
+            {mainNavItems.map((item) => (
+              <DropdownMenuItem key={item.href} disabled={item.disabled} asChild>
+                <Link href={item.href} className="flex items-center">
+                  <item.icon className="h-4 w-4 mr-3" />
+                  <span className="text-sm">{item.title}</span>
+                </Link>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            {systemNavItems.map((item) => (
+              <DropdownMenuItem key={item.href} disabled={item.disabled} asChild>
+                <Link href={item.href} className="flex items-center">
+                  <item.icon className="h-4 w-4 mr-3" />
+                  <span className="text-sm">{item.title}</span>
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Desktop Sidebar - Static */}
-      <div className="hidden lg:block fixed top-0 left-0 h-screen w-[240px] z-40">
-        <nav className="h-full flex flex-col border-r bg-background">
-          <div className="flex-1 px-4 py-6">
-            <NavigationItems />
+      {/* Desktop Navigation */}
+      <div className="hidden lg:block fixed top-0 left-0 h-screen w-[200px] border-r bg-background">
+        <div className="flex flex-col h-full py-4">
+          <div className="px-3 mb-2">
+            <NavigationItems items={mainNavItems} />
           </div>
-        </nav>
+          <Separator className="mx-3 my-2" />
+          <div className="px-3">
+            <NavigationItems items={systemNavItems} />
+          </div>
+        </div>
       </div>
 
       {/* Content Padding */}
-      <div className="lg:hidden h-16" /> {/* Mobile padding */}
-      <div className="hidden lg:block lg:ml-[240px] min-h-screen" /> {/* Desktop padding */}
+      <div className="lg:hidden h-14" /> {/* Mobile padding */}
+      <div className="hidden lg:block lg:ml-[200px]" /> {/* Desktop padding */}
     </>
   );
 }
