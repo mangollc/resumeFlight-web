@@ -2,12 +2,15 @@ import { Resume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
+import { useState } from "react";
 
 interface PreviewProps {
   resume: Resume | null;
 }
 
 export default function Preview({ resume }: PreviewProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!resume) {
     return (
       <Card className="h-full">
@@ -25,16 +28,29 @@ export default function Preview({ resume }: PreviewProps) {
   }
 
   const handleDownload = async () => {
-    const content = resume.optimizedContent || resume.originalContent;
-    const blob = new Blob([content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `optimized-${resume.metadata.filename}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      setIsDownloading(true);
+      const response = await fetch(`/api/resume/${resume.id}/download`);
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const filename = resume.optimizedContent 
+        ? `optimized-${resume.metadata.filename}`
+        : resume.metadata.filename;
+
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -53,10 +69,11 @@ export default function Preview({ resume }: PreviewProps) {
             variant="outline"
             size="sm"
             onClick={handleDownload}
+            disabled={isDownloading}
             className="w-full sm:w-auto"
           >
-            <Download className="h-4 w-4 mr-2" />
-            Download
+            <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+            {isDownloading ? 'Downloading...' : 'Download'}
           </Button>
         </div>
 

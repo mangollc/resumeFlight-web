@@ -6,6 +6,7 @@ import multer from "multer";
 import { optimizeResume } from "./openai";
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
+import PDFDocument from "pdfkit";
 import { insertResumeSchema } from "@shared/schema";
 import axios from "axios";
 import * as cheerio from "cheerio";
@@ -74,6 +75,30 @@ async function extractJobDescription(url: string): Promise<string> {
   }
 }
 
+function createPDF(content: string): Buffer {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+      // Add content to PDF
+      doc.fontSize(12)
+         .font('Helvetica')
+         .text(content, {
+           align: 'left',
+           lineGap: 5
+         });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
@@ -103,6 +128,26 @@ export function registerRoutes(app: Express): Server {
     } catch (error: any) {
       console.error("Upload error:", error);
       res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/resume/:id/download", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const resume = await storage.getResume(parseInt(req.params.id));
+      if (!resume) return res.status(404).send("Resume not found");
+      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+
+      const content = resume.optimizedContent || resume.originalContent;
+      const pdfBuffer = await createPDF(content);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename}.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Download error:", error);
+      res.status(500).json({ error: error.message });
     }
   });
 
