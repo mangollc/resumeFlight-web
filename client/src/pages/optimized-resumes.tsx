@@ -1,20 +1,7 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Resume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Download, FileText } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -25,32 +12,11 @@ import {
 } from "@/components/ui/table";
 
 export default function OptimizedResumesPage() {
-  const { toast } = useToast();
   const { data: resumes, isLoading } = useQuery<Resume[]>({
     queryKey: ["/api/resume"],
   });
 
   const optimizedResumes = resumes?.filter((resume) => resume.optimizedContent);
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/resume/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
-      toast({
-        title: "Success",
-        description: "Resume deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   if (isLoading) {
     return (
@@ -72,10 +38,12 @@ export default function OptimizedResumesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Job Title</TableHead>
+                <TableHead className="w-[100px]">Date</TableHead>
+                <TableHead>Position</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Location</TableHead>
+                <TableHead>Salary Range</TableHead>
+                <TableHead>Level</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -85,43 +53,24 @@ export default function OptimizedResumesPage() {
                   <TableCell>
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>Applied Position</TableCell>
-                  <TableCell>Company Name</TableCell>
-                  <TableCell>Location</TableCell>
+                  <TableCell>{resume.jobDetails?.title || "N/A"}</TableCell>
+                  <TableCell>{resume.jobDetails?.company || "N/A"}</TableCell>
+                  <TableCell>{resume.jobDetails?.location || "N/A"}</TableCell>
+                  <TableCell>{resume.jobDetails?.salary || "Not specified"}</TableCell>
+                  <TableCell>{resume.jobDetails?.positionLevel || "Not specified"}</TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Resume
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`/api/resume/${resume.id}/download`} download>
+                        <Download className="mr-2 h-4 w-4" />
+                        Resume
+                      </a>
                     </Button>
-                    <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Cover Letter
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`/api/cover-letter/${resume.id}/download`} download>
+                        <Download className="mr-2 h-4 w-4" />
+                        Cover Letter
+                      </a>
                     </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this optimized resume? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMutation.mutate(resume.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}

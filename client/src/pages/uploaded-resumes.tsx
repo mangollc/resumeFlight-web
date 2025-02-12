@@ -32,6 +32,9 @@ export default function UploadedResumesPage() {
     queryKey: ["/api/resume"],
   });
 
+  // Only show original resumes that haven't been optimized
+  const originalResumes = resumes?.filter((resume) => !resume.optimizedContent);
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/resume/${id}`);
@@ -67,23 +70,25 @@ export default function UploadedResumesPage() {
     <div className="flex-1 p-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
-        <Button onClick={() => setLocation("/")}>Upload New Resume</Button>
+        <Button onClick={() => setLocation("/dashboard")}>Upload New Resume</Button>
       </div>
 
-      {resumes && resumes.length > 0 ? (
+      {originalResumes && originalResumes.length > 0 ? (
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>File Name</TableHead>
-                <TableHead>Upload Date</TableHead>
+                <TableHead className="w-[200px]">File Name</TableHead>
+                <TableHead className="w-[150px]">Upload Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resumes.map((resume) => (
+              {originalResumes.map((resume) => (
                 <TableRow key={resume.id}>
-                  <TableCell>{resume.metadata.filename}</TableCell>
+                  <TableCell className="font-medium">
+                    {resume.metadata.filename}
+                  </TableCell>
                   <TableCell>
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
@@ -91,7 +96,7 @@ export default function UploadedResumesPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setLocation(`/?resume=${resume.id}`)}
+                      onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Optimize
