@@ -22,9 +22,9 @@ interface JobDetails {
   company: string;
   salary?: string;
   location: string;
-  description: string;
   positionLevel?: string;
-  keyPoints?: string[];
+  keyRequirements?: string[];
+  skillsAndTools?: string[];
 }
 
 interface JobInputProps {
@@ -44,15 +44,14 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       return res.json();
     },
     onSuccess: (data: OptimizedResume) => {
-      // Set extracted details from the optimized resume response
       setExtractedDetails({
         title: data.jobDetails.title,
         company: data.jobDetails.company,
         location: data.jobDetails.location,
-        description: data.jobDescription,
         salary: data.jobDetails.salary,
         positionLevel: data.jobDetails.positionLevel,
-        keyPoints: data.jobDetails.keyPoints
+        keyRequirements: data.jobDetails.keyRequirements,
+        skillsAndTools: data.jobDetails.skillsAndTools
       });
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       onOptimized(data);
@@ -62,7 +61,6 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       });
     },
     onError: (error: Error) => {
-      // Check if it's a LinkedIn authentication error
       if (error.message.includes("dynamically loaded or require authentication")) {
         toast({
           title: "LinkedIn Job Detection",
@@ -70,7 +68,6 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
           variant: "destructive",
           duration: 6000,
         });
-        // Switch to manual input tab
         const manualTab = document.querySelector('[value="manual"]') as HTMLElement;
         if (manualTab) {
           manualTab.click();
@@ -174,22 +171,35 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
                   <TableCell>{extractedDetails.positionLevel}</TableCell>
                 </TableRow>
               )}
-              {extractedDetails.keyPoints && (
+              {extractedDetails.keyRequirements && (
                 <TableRow>
                   <TableCell className="font-medium">Key Requirements</TableCell>
                   <TableCell>
                     <ul className="list-disc list-inside space-y-1">
-                      {extractedDetails.keyPoints.map((point, index) => (
-                        <li key={index}>{point}</li>
+                      {extractedDetails.keyRequirements.map((requirement, index) => (
+                        <li key={index}>{requirement}</li>
                       ))}
                     </ul>
                   </TableCell>
                 </TableRow>
               )}
-              <TableRow>
-                <TableCell className="font-medium">Description</TableCell>
-                <TableCell>{extractedDetails.description}</TableCell>
-              </TableRow>
+              {extractedDetails.skillsAndTools && (
+                <TableRow>
+                  <TableCell className="font-medium">Skills & Tools</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-2">
+                      {extractedDetails.skillsAndTools.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary-foreground"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>

@@ -1,17 +1,9 @@
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Info } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { useState } from "react";
 import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
@@ -71,18 +63,6 @@ export default function Preview({ resume }: PreviewProps) {
     return "bg-red-500";
   };
 
-  const formatMetrics = (metrics: OptimizedResume['metrics']) => {
-    if (!metrics) {
-      return {
-        overall: Math.round(Math.random() * 30 + 65),
-        keywords: Math.round(Math.random() * 25 + 70),
-        skills: Math.round(Math.random() * 20 + 75),
-        experience: Math.round(Math.random() * 20 + 75)
-      };
-    }
-    return metrics;
-  };
-
   return (
     <Card className="h-full">
       <CardContent className="p-6">
@@ -133,93 +113,61 @@ export default function Preview({ resume }: PreviewProps) {
 
           {isOptimized && (
             <div className="mt-6 space-y-6">
-              {resume.jobDetails.keyPoints && (
+              <div className="space-y-4">
+                <h4 className="font-semibold">Match Analysis</h4>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Overall Match</span>
+                      <span className="font-medium">{resume.metrics.overall}%</span>
+                    </div>
+                    <Progress 
+                      value={resume.metrics.overall} 
+                      className={`h-2 ${getMetricsColor(resume.metrics.overall)}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Keywords</span>
+                      <span className="font-medium">{resume.metrics.keywords}%</span>
+                    </div>
+                    <Progress 
+                      value={resume.metrics.keywords} 
+                      className={`h-2 ${getMetricsColor(resume.metrics.keywords)}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Skills</span>
+                      <span className="font-medium">{resume.metrics.skills}%</span>
+                    </div>
+                    <Progress 
+                      value={resume.metrics.skills} 
+                      className={`h-2 ${getMetricsColor(resume.metrics.skills)}`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Experience</span>
+                      <span className="font-medium">{resume.metrics.experience}%</span>
+                    </div>
+                    <Progress 
+                      value={resume.metrics.experience} 
+                      className={`h-2 ${getMetricsColor(resume.metrics.experience)}`}
+                    />
+                  </div>
+                </div>
+              </div>
+              {resume.jobDetails.keyRequirements && (
                 <div className="space-y-2">
                   <h4 className="font-semibold">Key Requirements</h4>
                   <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    {resume.jobDetails.keyPoints.map((point, index) => (
+                    {resume.jobDetails.keyRequirements.map((point, index) => (
                       <li key={index}>{point}</li>
                     ))}
                   </ul>
                 </div>
               )}
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Resume Match</h4>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <Info className="h-4 w-4 mr-2" />
-                        View Details
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Detailed Match Analysis</DialogTitle>
-                        <DialogDescription>
-                          <div className="mt-4 space-y-4">
-                            {(() => {
-                              const metrics = formatMetrics(resume.metrics);
-                              return (
-                                <div className="space-y-4">
-                                  <div className="grid gap-4">
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between text-sm">
-                                        <span>Keywords</span>
-                                        <span className="font-medium">{metrics.keywords}%</span>
-                                      </div>
-                                      <Progress 
-                                        value={metrics.keywords} 
-                                        className={`h-2 ${getMetricsColor(metrics.keywords)}`}
-                                      />
-                                    </div>
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between text-sm">
-                                        <span>Skills</span>
-                                        <span className="font-medium">{metrics.skills}%</span>
-                                      </div>
-                                      <Progress 
-                                        value={metrics.skills} 
-                                        className={`h-2 ${getMetricsColor(metrics.skills)}`}
-                                      />
-                                    </div>
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between text-sm">
-                                        <span>Experience</span>
-                                        <span className="font-medium">{metrics.experience}%</span>
-                                      </div>
-                                      <Progress 
-                                        value={metrics.experience} 
-                                        className={`h-2 ${getMetricsColor(metrics.experience)}`}
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </DialogDescription>
-                      </DialogHeader>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-                {(() => {
-                  const metrics = formatMetrics(resume.metrics);
-                  return (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Overall Match</span>
-                        <span className="font-medium">{metrics.overall}%</span>
-                      </div>
-                      <Progress 
-                        value={metrics.overall} 
-                        className={`h-2 ${getMetricsColor(metrics.overall)}`}
-                      />
-                    </div>
-                  );
-                })()}
-              </div>
             </div>
           )}
         </div>

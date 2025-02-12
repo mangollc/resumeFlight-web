@@ -1,17 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,32 +33,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-function formatJobDetails(resume: OptimizedResume) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="font-semibold mb-1">Position Details</h3>
-        <p className="text-sm text-muted-foreground">
-          Level: {resume.jobDetails?.positionLevel || "Not specified"}
-        </p>
-      </div>
-
-      {resume.jobDetails?.candidateProfile && (
-        <div>
-          <h3 className="font-semibold mb-1">Candidate Profile</h3>
-          <p className="text-sm text-muted-foreground">{resume.jobDetails.candidateProfile}</p>
-        </div>
-      )}
-
-      <div>
-        <h3 className="font-semibold mb-1">Job Description</h3>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-          {resume.jobDescription}
-        </div>
-      </div>
-    </div>
-  );
-}
+const getMetricsColor = (value: number) => {
+  if (value >= 80) return "bg-green-600";
+  if (value >= 60) return "bg-yellow-500";
+  return "bg-red-500";
+};
 
 export default function OptimizedResumesPage() {
   const { toast } = useToast();
@@ -119,8 +91,7 @@ export default function OptimizedResumesPage() {
                 <TableHead className="w-[100px]">Date</TableHead>
                 <TableHead>Position</TableHead>
                 <TableHead className="hidden sm:table-cell">Company</TableHead>
-                <TableHead className="hidden md:table-cell">Location</TableHead>
-                <TableHead className="hidden lg:table-cell">Match Score</TableHead>
+                <TableHead className="hidden lg:table-cell">Metrics</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -135,17 +106,17 @@ export default function OptimizedResumesPage() {
                   <TableCell className="hidden sm:table-cell">
                     {resume.jobDetails?.company}
                   </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {resume.jobDetails?.location}
-                  </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    <span className={`font-medium ${
-                      (resume.metrics?.overall ?? 0) >= 80 ? 'text-green-600' :
-                      (resume.metrics?.overall ?? 0) >= 60 ? 'text-yellow-500' :
-                      'text-red-500'
-                    }`}>
-                      {resume.metrics?.overall ?? 0}%
-                    </span>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Overall</span>
+                        <span className="font-medium">{resume.metrics?.overall}%</span>
+                      </div>
+                      <Progress 
+                        value={resume.metrics?.overall} 
+                        className={`h-2 ${getMetricsColor(resume.metrics?.overall ?? 0)}`}
+                      />
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -177,7 +148,7 @@ export default function OptimizedResumesPage() {
                             Download Cover Letter
                           </a>
                         </DropdownMenuItem>
-                        {resume.jobUrl ? (
+                        {resume.jobUrl && (
                           <>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem asChild>
@@ -191,26 +162,6 @@ export default function OptimizedResumesPage() {
                                 View Job Posting
                               </a>
                             </DropdownMenuItem>
-                          </>
-                        ) : (
-                          <>
-                            <DropdownMenuSeparator />
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <Info className="mr-2 h-4 w-4" />
-                                  View Job Details
-                                </DropdownMenuItem>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>Job Details</DialogTitle>
-                                  <DialogDescription>
-                                    {formatJobDetails(resume)}
-                                  </DialogDescription>
-                                </DialogHeader>
-                              </DialogContent>
-                            </Dialog>
                           </>
                         )}
                         <DropdownMenuSeparator />
