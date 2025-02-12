@@ -84,15 +84,15 @@ export default function UploadedResumesPage() {
           <Table>
             <TableHeader className="bg-primary/5">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[55%] py-2 pl-4">
+                <TableHead className="w-[45%] py-2 pl-4">
                   <div className="flex items-center text-xs uppercase tracking-wider font-semibold text-primary">
                     File Name
                   </div>
                 </TableHead>
-                <TableHead className="w-[30%] py-2 text-xs uppercase tracking-wider font-semibold text-primary">
+                <TableHead className="w-[35%] py-2 text-xs uppercase tracking-wider font-semibold text-primary">
                   Upload Date
                 </TableHead>
-                <TableHead className="w-[15%] py-2 pr-2 text-right text-xs uppercase tracking-wider font-semibold text-primary">
+                <TableHead className="w-[20%] py-2 pr-2 text-right text-xs uppercase tracking-wider font-semibold text-primary">
                   Actions
                 </TableHead>
               </TableRow>
@@ -142,7 +142,7 @@ export default function UploadedResumesPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Resume</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will remove the resume from your uploaded resumes. 
+                                This will remove the resume from your uploaded resumes.
                                 This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
