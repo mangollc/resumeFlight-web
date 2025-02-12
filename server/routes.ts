@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { optimizeResume, generateCoverLetter } from "./openai";
+import { optimizeResume, generateCoverLetter, openai } from "./openai"; // Import openai
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
@@ -21,6 +21,8 @@ interface JobDetails {
   salary?: string;
   location: string;
   description: string;
+  positionLevel?: string; // Added fields from AI analysis
+  candidateProfile?: string;
 }
 
 const upload = multer({
@@ -61,7 +63,7 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
     const linkedInSelectors = {
       title: ['.top-card-layout__title', '.job-details-jobs-unified-top-card__job-title'],
       company: ['.topcard__org-name-link', '.job-details-jobs-unified-top-card__company-name'],
-      location: ['.topcard__flavor--bullet', '.job-details-jobs-unified-top-card__bullet'],
+      location: ['.topcard__flavor:not(:contains("applicants"))', '.job-details-jobs-unified-top-card__bullet:not(:contains("applicants"))'],
       salary: ['.compensation__salary', '.job-details-jobs-unified-top-card__salary-info'],
       description: ['.description__text', '.job-details-jobs-unified-top-card__job-description']
     };
@@ -81,12 +83,19 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
     };
 
     // Helper function to find content using multiple selectors with improved text cleaning
-    const findContent = (selectors: string[], type: string): string => {
+    const findContent = (selectors: string[], type: keyof typeof linkedInSelectors): string => {
       // Try LinkedIn specific selectors first
       for (const selector of linkedInSelectors[type]) {
         const element = $(selector);
         if (element.length) {
-          return element.text().trim().replace(/\s+/g, ' ');
+          let text = element.text().trim().replace(/\s+/g, ' ');
+          // Clean up location text specifically
+          if (type === 'location') {
+            text = text.replace(/\d+\s*applicants?/gi, '')  // Remove applicant counts
+                      .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '') // Remove leading/trailing commas and spaces
+                      .trim();
+          }
+          return text;
         }
       }
 
@@ -123,8 +132,11 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
     );
 
     if (isRemote) {
-      location = 'Remote';
+      location = location ? `${location} (Remote)` : 'Remote';
     }
+
+    // Analyze job description with AI
+    const aiAnalysis = await analyzeJobDescription(description);
 
     // Validate extracted data
     const jobDetails: JobDetails = {
@@ -132,7 +144,9 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       company: company || 'Not specified',
       salary: salary || undefined,
       location: location || 'Not specified',
-      description: description || $('body').text().trim()
+      description,
+      positionLevel: aiAnalysis.positionLevel,
+      candidateProfile: aiAnalysis.candidateProfile
     };
 
     // Validate that we have at least some essential information
@@ -148,6 +162,40 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         ? error.message
         : "Failed to extract job details from URL. Please paste the description manually."
     );
+  }
+}
+
+// Add this new function for AI analysis
+async function analyzeJobDescription(description: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Analyze the job description and provide:
+1. The position level (e.g., Senior, Mid-level, Junior, Intern, Entry-level)
+2. A concise summary of the ideal candidate profile (skills, experience, and qualifications)
+Return as JSON: {
+  "positionLevel": "string",
+  "candidateProfile": "string (max 100 words)"
+}`
+        },
+        {
+          role: "user",
+          content: description
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    return JSON.parse(response.choices[0].message.content);
+  } catch (error) {
+    console.error("Error analyzing job description:", error);
+    return {
+      positionLevel: "Not specified",
+      candidateProfile: "Unable to generate candidate profile"
+    };
   }
 }
 

@@ -23,6 +23,8 @@ interface JobDetails {
   salary?: string;
   location: string;
   description: string;
+  positionLevel?: string;
+  candidateProfile?: string;
 }
 
 interface JobInputProps {
@@ -129,12 +131,12 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       </Tabs>
 
       {extractedDetails && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm space-y-4">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead colSpan={2} className="text-center">
-                  Extracted Job Details
+                  Job Details
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -157,8 +159,21 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
                 <TableCell className="font-medium">Location</TableCell>
                 <TableCell>{extractedDetails.location}</TableCell>
               </TableRow>
+              {extractedDetails.positionLevel && (
+                <TableRow>
+                  <TableCell className="font-medium">Position Level</TableCell>
+                  <TableCell>{extractedDetails.positionLevel}</TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
+
+          {extractedDetails.candidateProfile && (
+            <div className="p-4">
+              <h4 className="font-medium mb-2">Ideal Candidate Profile</h4>
+              <p className="text-sm text-muted-foreground">{extractedDetails.candidateProfile}</p>
+            </div>
+          )}
         </div>
       )}
 
