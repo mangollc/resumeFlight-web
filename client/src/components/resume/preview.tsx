@@ -8,6 +8,7 @@ import ComparisonSlider from "./comparison-slider";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -72,6 +73,9 @@ export default function Preview({ resume }: PreviewProps) {
     return "bg-red-500";
   };
 
+  const beforeContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
+  const afterContent = resume.content;
+
   return (
     <Card className="h-full">
       <CardContent className="p-6">
@@ -96,36 +100,39 @@ export default function Preview({ resume }: PreviewProps) {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Maximize2 className="h-4 w-4 mr-2" />
-                      Compare Versions
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Resume Comparison</DialogTitle>
-                    </DialogHeader>
-                    <div className="mt-4">
-                      <ComparisonSlider
-                        beforeContent={(resume as OptimizedResume).originalContent || resume.content}
-                        afterContent={resume.content}
-                      />
-                    </div>
-                  </DialogContent>
-                </Dialog>
                 {isOptimized && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                  >
-                    <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-                    {isDownloading ? 'Downloading...' : 'Download'}
-                  </Button>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Maximize2 className="h-4 w-4 mr-2" />
+                        Compare Versions
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>Resume Comparison</DialogTitle>
+                        <DialogDescription>
+                          Use the slider to compare the original and optimized versions of your resume.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="mt-4">
+                        <ComparisonSlider
+                          beforeContent={beforeContent}
+                          afterContent={afterContent}
+                        />
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                >
+                  <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+                  {isDownloading ? 'Downloading...' : 'Download'}
+                </Button>
               </div>
             </div>
           </div>
