@@ -44,13 +44,20 @@ import {
 function formatJobDetails(resume: OptimizedResume) {
   return (
     <div className="space-y-6">
+      {/* Show basic information */}
       <div>
-        <h3 className="font-semibold text-lg mb-2">Position Details</h3>
+        <h3 className="font-semibold text-lg mb-2">Job Details</h3>
         <div className="grid gap-4">
           <div>
-            <p className="font-medium mb-1">Level</p>
+            <p className="font-medium mb-1">Title</p>
             <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.positionLevel || "Not specified"}
+              {resume.jobDetails?.title || "Not specified"}
+            </p>
+          </div>
+          <div>
+            <p className="font-medium mb-1">Company</p>
+            <p className="text-sm text-muted-foreground">
+              {resume.jobDetails?.company || "Not specified"}
             </p>
           </div>
           <div>
@@ -59,44 +66,12 @@ function formatJobDetails(resume: OptimizedResume) {
               {resume.jobDetails?.location || "Not specified"}
             </p>
           </div>
-          {resume.jobDetails?.salary && (
-            <div>
-              <p className="font-medium mb-1">Salary Range</p>
-              <p className="text-sm text-muted-foreground">{resume.jobDetails.salary}</p>
-            </div>
-          )}
         </div>
       </div>
 
-      {resume.jobDetails?.keyRequirements && (
-        <div>
-          <h3 className="font-semibold text-lg mb-2">Key Requirements</h3>
-          <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
-            {resume.jobDetails.keyRequirements.map((requirement, index) => (
-              <li key={index} className="pl-2">{requirement}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {resume.jobDetails?.skillsAndTools && (
-        <div>
-          <h3 className="font-semibold text-lg mb-2">Required Skills & Tools</h3>
-          <div className="flex flex-wrap gap-2">
-            {resume.jobDetails.skillsAndTools.map((skill, index) => (
-              <span
-                key={index}
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary-foreground"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
+      {/* Show original job description */}
       <div>
-        <h3 className="font-semibold text-lg mb-2">Full Description</h3>
+        <h3 className="font-semibold text-lg mb-2">Description</h3>
         <div className="text-sm text-muted-foreground whitespace-pre-wrap rounded-md bg-muted p-4">
           {resume.jobDescription}
         </div>
