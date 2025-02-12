@@ -320,10 +320,11 @@ export function registerRoutes(app: Express): Server {
 
       const optimized = await optimizeResume(uploadedResume.content, jobDetails.description);
 
-      // Create a new optimized resume
+      // Create a new optimized resume with jobUrl
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
         jobDescription: jobDetails.description,
+        jobUrl: jobUrl || null, // Store jobUrl if available
         jobDetails,
         uploadedResumeId: uploadedResume.id,
         userId: req.user!.id,

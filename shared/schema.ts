@@ -23,6 +23,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   uploadedResumeId: integer("uploaded_resume_id").notNull(),
   content: text("content").notNull(),
   jobDescription: text("job_description").notNull(),
+  jobUrl: text("job_url"),
   jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
   createdAt: text("created_at").notNull(),
@@ -75,6 +76,7 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
   .pick({
     content: true,
     jobDescription: true,
+    jobUrl: true,
     jobDetails: true,
     metadata: true,
     uploadedResumeId: true,
@@ -113,6 +115,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     positionLevel?: string;
     candidateProfile?: string;
   };
+  jobUrl: string | null;
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 

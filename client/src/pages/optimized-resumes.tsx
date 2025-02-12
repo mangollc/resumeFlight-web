@@ -1,9 +1,17 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2 } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,47 +108,84 @@ export default function OptimizedResumesPage() {
                   <TableCell className="hidden xl:table-cell">
                     {resume.jobDetails?.positionLevel || "Not specified"}
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <div className="flex justify-end gap-2 flex-wrap">
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={`/api/optimized-resume/${resume.id}/download`} download>
-                          <Download className="mr-2 h-4 w-4" />
-                          Resume
-                        </a>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={`/api/cover-letter/${resume.id}/download`} download>
-                          <Download className="mr-2 h-4 w-4" />
-                          Cover Letter
-                        </a>
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently delete the optimized resume and its corresponding cover letter.
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => deleteMutation.mutate(resume.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <a 
+                            href={`/api/optimized-resume/${resume.id}/download`}
+                            download
+                            className="flex items-center"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Resume
+                          </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <a 
+                            href={`/api/cover-letter/${resume.id}/download`}
+                            download
+                            className="flex items-center"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download Cover Letter
+                          </a>
+                        </DropdownMenuItem>
+                        {resume.jobUrl && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                              <a 
+                                href={resume.jobUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center"
+                              >
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                View Job Posting
+                              </a>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-destructive focus:text-destructive"
                             >
+                              <Trash2 className="mr-2 h-4 w-4" />
                               Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete the optimized resume and its corresponding cover letter.
+                                This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(resume.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}
