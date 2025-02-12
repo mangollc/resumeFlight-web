@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
-import { Link } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -11,7 +10,7 @@ import {
   Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface NavItem {
   title: string;
@@ -53,6 +52,32 @@ export function Sidebar() {
   const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const NavigationItems = ({ onClick }: { onClick?: () => void }) => (
+    <div className="space-y-2">
+      {navItems.map((item) => (
+        <Link key={item.href} href={item.href}>
+          <Button
+            variant={location === item.href ? "secondary" : "ghost"}
+            className={cn(
+              "w-full justify-start relative overflow-hidden group",
+              "bg-gradient-to-r from-transparent to-transparent",
+              "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
+              location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
+            )}
+            disabled={item.disabled}
+            onClick={onClick}
+          >
+            <item.icon className={cn(
+              "h-5 w-5 mr-3",
+              item.disabled && "opacity-50"
+            )} />
+            <span className="truncate">{item.title}</span>
+          </Button>
+        </Link>
+      ))}
+    </div>
+  );
+
   return (
     <>
       {/* Mobile Menu */}
@@ -69,71 +94,20 @@ export function Sidebar() {
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-[300px]">
             <nav className="h-full flex flex-col border-r bg-background">
-              <SheetHeader className="p-6 border-b">
-                <SheetTitle>Resume Optimizer</SheetTitle>
-              </SheetHeader>
               <div className="flex-1 px-4 py-6">
-                <div className="space-y-2">
-                  {navItems.map((item) => (
-                    <Link key={item.href} href={item.href}>
-                      <Button
-                        variant={location === item.href ? "secondary" : "ghost"}
-                        className={cn(
-                          "w-full justify-start relative overflow-hidden group",
-                          "bg-gradient-to-r from-transparent to-transparent",
-                          "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
-                          location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
-                        )}
-                        disabled={item.disabled}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <item.icon className={cn(
-                          "h-5 w-5 mr-3",
-                          item.disabled && "opacity-50"
-                        )} />
-                        {item.title}
-                      </Button>
-                    </Link>
-                  ))}
-                </div>
+                <NavigationItems onClick={() => setIsMobileMenuOpen(false)} />
               </div>
             </nav>
           </SheetContent>
         </Sheet>
-        <h1 className="text-xl font-semibold ml-4">Resume Optimizer</h1>
+        <h1 className="text-xl font-semibold ml-4">Navigation</h1>
       </div>
 
-      {/* Desktop Sidebar - Always Visible */}
+      {/* Desktop Sidebar - Static */}
       <div className="hidden lg:block fixed top-0 left-0 h-screen w-[240px] z-40">
         <nav className="h-full flex flex-col border-r bg-background">
-          <div className="p-6 border-b">
-            <h1 className="text-xl font-semibold bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
-              Resume Optimizer
-            </h1>
-          </div>
           <div className="flex-1 px-4 py-6">
-            <div className="space-y-2">
-              {navItems.map((item) => (
-                <Link key={item.href} href={item.href}>
-                  <Button
-                    variant={location === item.href ? "secondary" : "ghost"}
-                    className={cn(
-                      "w-full justify-start relative overflow-hidden group",
-                      "bg-gradient-to-r from-transparent to-transparent",
-                      "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
-                      location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
-                    )}
-                    disabled={item.disabled}
-                  >
-                    <item.icon className={cn(
-                      "h-5 w-5 mr-3",
-                      item.disabled && "opacity-50"
-                    )} />
-                    <span className="truncate">{item.title}</span>
-                  </Button>
-                </Link>
-              ))}
-            </div>
+            <NavigationItems />
           </div>
         </nav>
       </div>
