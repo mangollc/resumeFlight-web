@@ -32,9 +32,6 @@ export default function UploadedResumesPage() {
     queryKey: ["/api/resume"],
   });
 
-  // Only show original resumes that haven't been optimized
-  const originalResumes = resumes?.filter((resume) => !resume.optimizedContent);
-
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/resume/${id}`);
@@ -73,18 +70,19 @@ export default function UploadedResumesPage() {
         <Button onClick={() => setLocation("/dashboard")}>Upload New Resume</Button>
       </div>
 
-      {originalResumes && originalResumes.length > 0 ? (
+      {resumes && resumes.length > 0 ? (
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[200px]">File Name</TableHead>
                 <TableHead className="w-[150px]">Upload Date</TableHead>
+                <TableHead className="w-[150px]">Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {originalResumes.map((resume) => (
+              {resumes.map((resume) => (
                 <TableRow key={resume.id}>
                   <TableCell className="font-medium">
                     {resume.metadata.filename}
@@ -92,15 +90,24 @@ export default function UploadedResumesPage() {
                   <TableCell>
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
+                  <TableCell>
+                    {resume.optimizedContent ? (
+                      <span className="text-primary">Optimized</span>
+                    ) : (
+                      <span className="text-muted-foreground">Original</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Optimize
-                    </Button>
+                    {!resume.optimizedContent && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Optimize
+                      </Button>
+                    )}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm">
