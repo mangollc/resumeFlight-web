@@ -1,4 +1,4 @@
-import { User, InsertUser, Resume, InsertResume, CoverLetter, InsertCoverLetter, users, resumes, coverLetters } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq } from "drizzle-orm";
@@ -11,12 +11,16 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  // Resume operations
-  getResume(id: number): Promise<Resume | undefined>;
-  createResume(resume: InsertResume & { userId: number, jobDescription: string | null }): Promise<Resume>;
-  updateResume(id: number, updates: Partial<Resume>): Promise<Resume>;
-  getResumesByUser(userId: number): Promise<Resume[]>;
-  deleteUploadedResume(id: number): Promise<void>; 
+  // Uploaded Resume operations
+  getUploadedResume(id: number): Promise<UploadedResume | undefined>;
+  createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume>;
+  getUploadedResumesByUser(userId: number): Promise<UploadedResume[]>;
+  deleteUploadedResume(id: number): Promise<void>;
+
+  // Optimized Resume operations
+  getOptimizedResume(id: number): Promise<OptimizedResume | undefined>;
+  createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume>;
+  getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
 
   // Cover letter operations
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
@@ -54,57 +58,82 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getResume(id: number): Promise<Resume | undefined> {
-    const [result] = await db.select().from(resumes).where(eq(resumes.id, id));
+  // Uploaded Resume methods
+  async getUploadedResume(id: number): Promise<UploadedResume | undefined> {
+    const [result] = await db.select().from(uploadedResumes).where(eq(uploadedResumes.id, id));
     if (!result) return undefined;
 
     return {
       ...result,
-      metadata: result.metadata as Resume['metadata']
+      metadata: result.metadata as UploadedResume['metadata']
     };
   }
 
-  async createResume(resume: InsertResume & { userId: number, jobDescription: string | null }): Promise<Resume> {
+  async createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume> {
     const [result] = await db
-      .insert(resumes)
+      .insert(uploadedResumes)
       .values({
         ...resume,
         createdAt: new Date().toISOString(),
-        optimizedContent: null,
       })
       .returning();
 
     return {
       ...result,
-      metadata: result.metadata as Resume['metadata']
+      metadata: result.metadata as UploadedResume['metadata']
     };
   }
 
-  async updateResume(id: number, updates: Partial<Resume>): Promise<Resume> {
+  async getUploadedResumesByUser(userId: number): Promise<UploadedResume[]> {
+    const results = await db.select().from(uploadedResumes).where(eq(uploadedResumes.userId, userId));
+    return results.map(result => ({
+      ...result,
+      metadata: result.metadata as UploadedResume['metadata']
+    }));
+  }
+
+  async deleteUploadedResume(id: number): Promise<void> {
+    await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
+  }
+
+  // Optimized Resume methods
+  async getOptimizedResume(id: number): Promise<OptimizedResume | undefined> {
+    const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
+    if (!result) return undefined;
+
+    return {
+      ...result,
+      metadata: result.metadata as OptimizedResume['metadata'],
+      jobDetails: result.jobDetails as OptimizedResume['jobDetails']
+    };
+  }
+
+  async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     const [result] = await db
-      .update(resumes)
-      .set(updates)
-      .where(eq(resumes.id, id))
+      .insert(optimizedResumes)
+      .values({
+        ...resume,
+        createdAt: new Date().toISOString(),
+      })
       .returning();
 
     return {
       ...result,
-      metadata: result.metadata as Resume['metadata']
+      metadata: result.metadata as OptimizedResume['metadata'],
+      jobDetails: result.jobDetails as OptimizedResume['jobDetails']
     };
   }
 
-  async getResumesByUser(userId: number): Promise<Resume[]> {
-    const results = await db.select().from(resumes).where(eq(resumes.userId, userId));
+  async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
+    const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
     return results.map(result => ({
       ...result,
-      metadata: result.metadata as Resume['metadata']
+      metadata: result.metadata as OptimizedResume['metadata'],
+      jobDetails: result.jobDetails as OptimizedResume['jobDetails']
     }));
   }
 
-  async deleteUploadedResume(id: number): Promise<void> { 
-    await db.delete(resumes).where(eq(resumes.id, id));
-  }
-
+  // Cover Letter methods
   async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
     const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
     if (!result) return undefined;

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Resume } from "@shared/schema";
+import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import {
@@ -12,11 +12,9 @@ import {
 } from "@/components/ui/table";
 
 export default function OptimizedResumesPage() {
-  const { data: resumes, isLoading } = useQuery<Resume[]>({
-    queryKey: ["/api/resume"],
+  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
+    queryKey: ["/api/optimized-resumes"],
   });
-
-  const optimizedResumes = resumes?.filter((resume) => resume.optimizedContent);
 
   if (isLoading) {
     return (
@@ -33,7 +31,7 @@ export default function OptimizedResumesPage() {
     <div className="flex-1 p-8 space-y-6">
       <h1 className="text-2xl font-bold">Optimized Resumes</h1>
 
-      {optimizedResumes && optimizedResumes.length > 0 ? (
+      {resumes && resumes.length > 0 ? (
         <div className="border rounded-lg">
           <Table>
             <TableHeader>
@@ -48,7 +46,7 @@ export default function OptimizedResumesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {optimizedResumes.map((resume) => (
+              {resumes.map((resume) => (
                 <TableRow key={resume.id}>
                   <TableCell>
                     {new Date(resume.createdAt).toLocaleDateString()}

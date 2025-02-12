@@ -8,12 +8,21 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
-export const resumes = pgTable("resumes", {
+export const uploadedResumes = pgTable("uploaded_resumes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  originalContent: text("original_content").notNull(),
-  optimizedContent: text("optimized_content"),
-  jobDescription: text("job_description"),
+  content: text("content").notNull(),
+  metadata: jsonb("metadata").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+export const optimizedResumes = pgTable("optimized_resumes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  uploadedResumeId: integer("uploaded_resume_id").notNull(),
+  content: text("content").notNull(),
+  jobDescription: text("job_description").notNull(),
+  jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
   createdAt: text("created_at").notNull(),
 });
@@ -21,47 +30,69 @@ export const resumes = pgTable("resumes", {
 export const coverLetters = pgTable("cover_letters", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  resumeId: integer("resume_id").notNull(),
+  optimizedResumeId: integer("optimized_resume_id").notNull(),
   content: text("content").notNull(),
-  jobDescription: text("job_description").notNull(),
   metadata: jsonb("metadata").notNull(),
   createdAt: text("created_at").notNull(),
 });
 
+// Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
 });
 
-export const insertResumeSchema = createInsertSchema(resumes)
+export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
   .pick({
-    originalContent: true,
+    content: true,
     metadata: true,
-  })
-  .extend({
-    jobDescription: z.string().optional(),
+  });
+
+export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
+  .pick({
+    content: true,
+    jobDescription: true,
+    jobDetails: true,
+    metadata: true,
+    uploadedResumeId: true,
   });
 
 export const insertCoverLetterSchema = createInsertSchema(coverLetters)
   .pick({
     content: true,
-    jobDescription: true,
     metadata: true,
-  })
-  .extend({
-    resumeId: z.number(),
+    optimizedResumeId: true,
   });
 
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type Resume = typeof resumes.$inferSelect & {
+
+export type UploadedResume = typeof uploadedResumes.$inferSelect & {
   metadata: {
     filename: string;
     fileType: string;
     uploadedAt: string;
   };
 };
-export type InsertResume = z.infer<typeof insertResumeSchema>;
+export type InsertUploadedResume = z.infer<typeof insertUploadedResumeSchema>;
+
+export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
+  metadata: {
+    filename: string;
+    optimizedAt: string;
+  };
+  jobDetails: {
+    title: string;
+    company: string;
+    location: string;
+    salary?: string;
+    positionLevel?: string;
+    candidateProfile?: string;
+  };
+};
+export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
+
 export type CoverLetter = typeof coverLetters.$inferSelect & {
   metadata: {
     filename: string;

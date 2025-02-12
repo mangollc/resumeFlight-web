@@ -7,7 +7,7 @@ import { optimizeResume, generateCoverLetter, openai } from "./openai"; // Impor
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
-import { insertResumeSchema } from "@shared/schema";
+import { insertUploadedResumeSchema } from "@shared/schema"; // Assuming this is the correct import
 import axios from "axios";
 import * as cheerio from "cheerio";
 
@@ -165,7 +165,7 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
   }
 }
 
-// Add this new function for AI analysis
+// Fix the analyzeJobDescription function
 async function analyzeJobDescription(description: string) {
   try {
     const response = await openai.chat.completions.create({
@@ -189,7 +189,18 @@ Return as JSON: {
       response_format: { type: "json_object" }
     });
 
-    return JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content;
+    if (!content) {
+      return {
+        positionLevel: "Not specified",
+        candidateProfile: "Unable to generate candidate profile"
+      };
+    }
+
+    return JSON.parse(content) as {
+      positionLevel: string;
+      candidateProfile: string;
+    };
   } catch (error) {
     console.error("Error analyzing job description:", error);
     return {
@@ -199,8 +210,9 @@ Return as JSON: {
   }
 }
 
-function createPDF(content: string): Buffer {
-  return new Promise((resolve, reject) => {
+// Fix the createPDF function
+async function createPDF(content: string): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
     try {
       const doc = new PDFDocument({ margin: 50 });
       const chunks: Buffer[] = [];
@@ -208,7 +220,6 @@ function createPDF(content: string): Buffer {
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-      // Add content to PDF
       doc.fontSize(12)
          .font('Helvetica')
          .text(content, {
@@ -233,8 +244,8 @@ export function registerRoutes(app: Express): Server {
 
       const content = await parseResume(req.file.buffer, req.file.mimetype);
 
-      const validatedData = insertResumeSchema.parse({
-        originalContent: content,
+      const validatedData = insertUploadedResumeSchema.parse({
+        content: content,
         metadata: {
           filename: req.file.originalname,
           fileType: req.file.mimetype,
@@ -242,9 +253,8 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
-      const resume = await storage.createResume({
+      const resume = await storage.createUploadedResume({
         ...validatedData,
-        jobDescription: "",
         userId: req.user!.id
       });
 
@@ -255,22 +265,29 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/resume/:id/download", async (req, res) => {
+  app.get("/api/uploaded-resumes", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      const resumes = await storage.getUploadedResumesByUser(req.user!.id);
+      res.json(resumes);
+    } catch (error: any) {
+      console.error("Get uploaded resumes error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/uploaded-resume/:id", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
-      const resume = await storage.getResume(parseInt(req.params.id));
+      const resume = await storage.getUploadedResume(parseInt(req.params.id));
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      const content = resume.optimizedContent || resume.originalContent;
-      const pdfBuffer = await createPDF(content);
-
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename}.pdf"`);
-      res.send(pdfBuffer);
+      await storage.deleteUploadedResume(parseInt(req.params.id));
+      res.sendStatus(200);
     } catch (error: any) {
-      console.error("Download error:", error);
+      console.error("Delete uploaded resume error:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -284,9 +301,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ error: "Please provide either a job URL or description" });
       }
 
-      const resume = await storage.getResume(parseInt(req.params.id));
-      if (!resume) return res.status(404).send("Resume not found");
-      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+      const uploadedResume = await storage.getUploadedResume(parseInt(req.params.id));
+      if (!uploadedResume) return res.status(404).send("Resume not found");
+      if (uploadedResume.userId !== req.user!.id) return res.sendStatus(403);
 
       let jobDetails: JobDetails;
 
@@ -301,17 +318,23 @@ export function registerRoutes(app: Express): Server {
         };
       }
 
-      const optimized = await optimizeResume(resume.originalContent, jobDetails.description);
+      const optimized = await optimizeResume(uploadedResume.content, jobDetails.description);
 
-      // Update resume with optimization results
-      const updated = await storage.updateResume(resume.id, {
-        optimizedContent: optimized.optimizedContent,
-        jobDescription: jobDetails.description
+      // Create a new optimized resume
+      const optimizedResume = await storage.createOptimizedResume({
+        content: optimized.optimizedContent,
+        jobDescription: jobDetails.description,
+        jobDetails,
+        uploadedResumeId: uploadedResume.id,
+        userId: req.user!.id,
+        metadata: {
+          filename: `${uploadedResume.metadata.filename}_optimized`,
+          optimizedAt: new Date().toISOString()
+        }
       });
 
       res.json({
-        ...updated,
-        jobDetails,
+        ...optimizedResume,
         optimizationDetails: {
           changes: optimized.changes,
           matchScore: optimized.matchScore
@@ -323,54 +346,33 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.get("/api/resume", async (req, res) => {
+  app.get("/api/optimized-resumes", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
-      const resumes = await storage.getResumesByUser(req.user!.id);
+      const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
       res.json(resumes);
     } catch (error: any) {
-      console.error("Get resumes error:", error);
+      console.error("Get optimized resumes error:", error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Add this new route after the existing resume routes
-  app.delete("/api/resume/:id", async (req, res) => {
+    app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
-      const resume = await storage.getResume(parseInt(req.params.id));
-      if (!resume) return res.status(404).send("Resume not found");
-      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+      const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+      if (!optimizedResume) return res.status(404).send("Optimized resume not found");
+      if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
 
-      // Only delete if it's not optimized or has no associated optimized version
-      await storage.deleteUploadedResume(parseInt(req.params.id));
-      res.sendStatus(200);
-    } catch (error: any) {
-      console.error("Delete resume error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Add these new routes after the existing resume routes
-  app.post("/api/resume/:id/cover-letter", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const resume = await storage.getResume(parseInt(req.params.id));
-      if (!resume) return res.status(404).send("Resume not found");
-      if (resume.userId !== req.user!.id) return res.sendStatus(403);
-      if (!resume.jobDescription) return res.status(400).send("No job description available");
-
-      const generated = await generateCoverLetter(resume.originalContent, resume.jobDescription);
+      const generated = await generateCoverLetter(optimizedResume.content, optimizedResume.jobDescription);
 
       const coverLetter = await storage.createCoverLetter({
         content: generated.coverLetter,
-        jobDescription: resume.jobDescription,
-        resumeId: resume.id,
+        optimizedResumeId: optimizedResume.id,
         userId: req.user!.id,
         metadata: {
-          filename: `cover-letter-${new Date().toISOString()}.pdf`,
+          filename: `cover_letter_${new Date().toISOString()}.pdf`,
           generatedAt: new Date().toISOString()
         }
       });
@@ -415,6 +417,7 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ error: error.message });
     }
   });
+
 
   const httpServer = createServer(app);
   return httpServer;

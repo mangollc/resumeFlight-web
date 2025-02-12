@@ -13,16 +13,16 @@ import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetterComponent from "@/components/resume/cover-letter";
 import { useQuery } from "@tanstack/react-query";
-import { Resume } from "@shared/schema";
+import { UploadedResume } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
+  const [selectedResume, setSelectedResume] = useState<UploadedResume | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
 
-  const { data: resumes, isLoading } = useQuery<Resume[]>({
-    queryKey: ["/api/resume"],
+  const { data: resumes, isLoading } = useQuery<UploadedResume[]>({
+    queryKey: ["/api/uploaded-resumes"],
   });
 
   const SectionTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (

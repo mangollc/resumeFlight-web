@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Resume } from "@shared/schema";
+import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Link } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,7 +29,7 @@ interface JobDetails {
 
 interface JobInputProps {
   resumeId: number;
-  onOptimized: (resume: Resume) => void;
+  onOptimized: (resume: OptimizedResume) => void;
 }
 
 export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
