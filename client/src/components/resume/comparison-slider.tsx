@@ -61,10 +61,10 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
         className="relative w-full min-h-[400px] overflow-hidden rounded-lg border bg-background"
         ref={rangeRef}
       >
-        {/* Original Content (Right Side) */}
+        {/* Original Content (Left Side) */}
         <div 
-          className="absolute inset-0 w-full h-full bg-background transition-transform"
-          style={{ clipPath: `inset(0 0 0 ${position}%)` }}
+          className="absolute inset-0 w-full h-full bg-background"
+          style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
         >
           <div className="h-full overflow-auto p-4">
             <pre className="whitespace-pre-wrap font-sans text-sm">
@@ -73,10 +73,10 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
           </div>
         </div>
 
-        {/* Optimized Content (Left Side) */}
+        {/* Optimized Content (Right Side) */}
         <div
-          className="absolute inset-0 w-full h-full bg-primary/5 transition-transform"
-          style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+          className="absolute inset-0 w-full h-full bg-primary/5"
+          style={{ clipPath: `inset(0 0 0 ${position}%)` }}
         >
           <div className="h-full overflow-auto p-4">
             <pre className="whitespace-pre-wrap font-sans text-sm">
