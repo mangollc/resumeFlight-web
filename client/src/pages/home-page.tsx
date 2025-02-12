@@ -21,42 +21,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">ResumeFlight</h1>
-
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center gap-4">
-              <span className="text-muted-foreground">Welcome, {user?.username}</span>
-              <Button variant="outline" onClick={() => logoutMutation.mutate()}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-
-            {/* Mobile Menu */}
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[80vw] sm:w-[385px]">
-                <div className="flex flex-col gap-4 pt-6">
-                  <span className="text-muted-foreground">Welcome, {user?.username}</span>
-                  <Button variant="outline" onClick={() => logoutMutation.mutate()}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Left Column */}
