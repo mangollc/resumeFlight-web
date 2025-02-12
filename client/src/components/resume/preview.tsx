@@ -1,11 +1,11 @@
-import { Resume } from "@shared/schema";
+import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { useState } from "react";
 
 interface PreviewProps {
-  resume: Resume | null;
+  resume: UploadedResume | OptimizedResume | null;
 }
 
 export default function Preview({ resume }: PreviewProps) {
@@ -30,13 +30,16 @@ export default function Preview({ resume }: PreviewProps) {
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/resume/${resume.id}/download`);
+      const isOptimized = 'jobDescription' in resume;
+      const endpoint = isOptimized ? `/api/optimized-resume/${resume.id}/download` : `/api/uploaded-resume/${resume.id}/download`;
+
+      const response = await fetch(endpoint);
       if (!response.ok) throw new Error('Download failed');
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      const filename = resume.optimizedContent 
+      const filename = 'jobDescription' in resume 
         ? `optimized-${resume.metadata.filename}`
         : resume.metadata.filename;
 
@@ -53,6 +56,8 @@ export default function Preview({ resume }: PreviewProps) {
     }
   };
 
+  const isOptimized = 'jobDescription' in resume;
+
   return (
     <Card className="h-full">
       <CardContent className="p-6">
@@ -62,7 +67,7 @@ export default function Preview({ resume }: PreviewProps) {
               {resume.metadata.filename}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {resume.optimizedContent ? "Optimized" : "Original"} Version
+              {isOptimized ? "Optimized" : "Original"} Version
             </p>
           </div>
           <Button
@@ -80,28 +85,25 @@ export default function Preview({ resume }: PreviewProps) {
         <div className="prose prose-sm sm:prose max-w-none dark:prose-invert">
           <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
             <pre className="whitespace-pre-wrap font-sans text-sm">
-              {resume.optimizedContent || resume.originalContent}
+              {isOptimized ? resume.content : resume.content}
             </pre>
           </div>
         </div>
 
-        {resume.optimizedContent && (
+        {isOptimized && (
           <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h4 className="font-semibold mb-3">Optimization Details</h4>
-            <ul className="space-y-2 text-sm">
-              <li className="flex items-center">
-                <span className="mr-2">•</span>
-                Keywords matched with job description
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2">•</span>
-                Professional formatting applied
-              </li>
-              <li className="flex items-center">
-                <span className="mr-2">•</span>
-                Content tailored to position
-              </li>
-            </ul>
+            <h4 className="font-semibold mb-3">Job Details</h4>
+            <div className="space-y-2 text-sm">
+              <p><strong>Position:</strong> {resume.jobDetails.title}</p>
+              <p><strong>Company:</strong> {resume.jobDetails.company}</p>
+              <p><strong>Location:</strong> {resume.jobDetails.location}</p>
+              {resume.jobDetails.salary && (
+                <p><strong>Salary Range:</strong> {resume.jobDetails.salary}</p>
+              )}
+              {resume.jobDetails.positionLevel && (
+                <p><strong>Position Level:</strong> {resume.jobDetails.positionLevel}</p>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

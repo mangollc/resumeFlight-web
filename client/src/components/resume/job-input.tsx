@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Link } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -43,9 +43,9 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       const res = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, data);
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: OptimizedResume & { optimizationDetails: any }) => {
       setExtractedDetails(data.jobDetails);
-      queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       onOptimized(data);
       toast({
         title: "Success",

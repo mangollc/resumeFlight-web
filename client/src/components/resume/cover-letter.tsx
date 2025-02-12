@@ -3,12 +3,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Resume, CoverLetter } from "@shared/schema";
+import { OptimizedResume, CoverLetter } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Download, FileText, Loader2 } from "lucide-react";
 
 interface CoverLetterProps {
-  resume: Resume;
+  resume: OptimizedResume;
   onGenerated?: (coverLetter: CoverLetter) => void;
 }
 
@@ -20,7 +20,7 @@ export default function CoverLetterComponent({ resume, onGenerated }: CoverLette
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/resume/${resume.id}/cover-letter`);
+      const res = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`);
       return res.json();
     },
     onSuccess: (data) => {
@@ -81,7 +81,7 @@ export default function CoverLetterComponent({ resume, onGenerated }: CoverLette
         </div>
         <Button
           onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending || !resume.jobDescription}
+          disabled={generateMutation.isPending}
         >
           {generateMutation.isPending ? (
             <>

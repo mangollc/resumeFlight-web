@@ -13,17 +13,22 @@ import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetterComponent from "@/components/resume/cover-letter";
 import { useQuery } from "@tanstack/react-query";
-import { UploadedResume } from "@shared/schema";
+import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [selectedResume, setSelectedResume] = useState<UploadedResume | null>(null);
+  const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
 
   const { data: resumes, isLoading } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
   });
+
+  const handleOptimized = (optimized: OptimizedResume) => {
+    setOptimizedResume(optimized);
+  };
 
   const SectionTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
     <h2 className={cn(
@@ -114,7 +119,7 @@ export default function HomePage() {
           {selectedResume && (
             <section className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
               <SectionTitle>Step 2: Add Job Details</SectionTitle>
-              <JobInput resumeId={selectedResume.id} onOptimized={setSelectedResume} />
+              <JobInput resumeId={selectedResume.id} onOptimized={handleOptimized} />
             </section>
           )}
         </div>
@@ -123,13 +128,13 @@ export default function HomePage() {
         <div className="space-y-6 lg:space-y-8">
           <section className="bg-card rounded-lg border-2 border-primary/10 shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
             <SectionTitle>Resume Preview</SectionTitle>
-            <Preview resume={selectedResume} />
+            <Preview resume={optimizedResume || selectedResume} />
           </section>
 
-          {selectedResume && (
+          {optimizedResume && (
             <section className="bg-card rounded-lg border-2 border-primary/10 shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
               <SectionTitle>Cover Letter Generator</SectionTitle>
-              <CoverLetterComponent resume={selectedResume} />
+              <CoverLetterComponent resume={optimizedResume} />
             </section>
           )}
         </div>
