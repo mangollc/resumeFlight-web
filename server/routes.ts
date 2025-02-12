@@ -469,7 +469,7 @@ export function registerRoutes(app: Express): Server {
       // Create a new optimized resume with metrics
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
-        jobDescription: finalJobDescription, // Use the final job description
+        jobDescription: finalJobDescription,
         jobUrl: jobUrl || null,
         jobDetails,
         uploadedResumeId: uploadedResume.id,
@@ -478,7 +478,7 @@ export function registerRoutes(app: Express): Server {
           filename: newFilename,
           optimizedAt: new Date().toISOString()
         },
-        metrics: analysis.metrics // Store the metrics
+        metrics: optimized.metrics // Use metrics from the optimization response
       });
 
       res.json({
