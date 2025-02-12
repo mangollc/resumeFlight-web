@@ -71,32 +71,75 @@ export default function Preview({ resume }: PreviewProps) {
     return "bg-red-500";
   };
 
-  const ComparisonView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Original Version</h3>
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
-            <pre className="whitespace-pre-wrap font-sans text-sm">
-              {(resume as OptimizedResume).originalContent || resume.content}
-            </pre>
-          </div>
-        </div>
-      </div>
-      {isOptimized && (
+  // Helper function to find and highlight differences
+  const highlightDifferences = (original: string, optimized: string): { originalHighlighted: string, optimizedHighlighted: string } => {
+    const originalLines = original.split('\n');
+    const optimizedLines = optimized.split('\n');
+    const maxLength = Math.max(originalLines.length, optimizedLines.length);
+    const originalHighlighted: string[] = [];
+    const optimizedHighlighted: string[] = [];
+
+    for (let i = 0; i < maxLength; i++) {
+      const originalLine = originalLines[i] || '';
+      const optimizedLine = optimizedLines[i] || '';
+
+      if (originalLine !== optimizedLine) {
+        originalHighlighted.push(`<span class="bg-red-100/50 dark:bg-red-900/50 px-1 rounded">${originalLine}</span>`);
+        optimizedHighlighted.push(`<span class="bg-green-100/50 dark:bg-green-900/50 px-1 rounded">${optimizedLine}</span>`);
+      } else {
+        originalHighlighted.push(originalLine);
+        optimizedHighlighted.push(optimizedLine);
+      }
+    }
+
+    return {
+      originalHighlighted: originalHighlighted.join('\n'),
+      optimizedHighlighted: optimizedHighlighted.join('\n')
+    };
+  };
+
+  const ComparisonView = () => {
+    if (!isOptimized) return null;
+
+    const optimizedResume = resume as OptimizedResume;
+    const { originalHighlighted, optimizedHighlighted } = highlightDifferences(
+      optimizedResume.originalContent,
+      optimizedResume.content
+    );
+
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Optimized Version</h3>
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            Original Version
+            <span className="text-xs text-muted-foreground font-normal">(Changes highlighted in red)</span>
+          </h3>
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
-              <pre className="whitespace-pre-wrap font-sans text-sm">
-                {resume.content}
-              </pre>
+              <div 
+                className="whitespace-pre-wrap font-sans text-sm"
+                dangerouslySetInnerHTML={{ __html: originalHighlighted }}
+              />
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
+        <div className="space-y-4">
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            Optimized Version
+            <span className="text-xs text-muted-foreground font-normal">(Changes highlighted in green)</span>
+          </h3>
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
+              <div 
+                className="whitespace-pre-wrap font-sans text-sm"
+                dangerouslySetInnerHTML={{ __html: optimizedHighlighted }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card className="h-full">
