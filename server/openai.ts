@@ -61,19 +61,39 @@ export async function generateCoverLetter(resumeText: string, jobDescription: st
           content: `You are an expert cover letter writer specializing in creating compelling, personalized cover letters. Create a professional cover letter that connects the candidate's experience from their resume to the specific job requirements.
 
 Follow these guidelines:
-1. Use a clear, professional structure:
-   - Opening paragraph: Express enthusiasm and state the position
-   - Body paragraphs: Connect experience to job requirements
-   - Closing paragraph: Call to action and thank you
-2. Highlight relevant achievements from the resume
-3. Address specific job requirements
-4. Maintain a confident yet professional tone
-5. Keep the length to one page
-6. Include specific examples of relevant experience
+1. Use this exact format:
+   [Full Name]
+   [Address]
+   [Phone]
+   [Email]
+
+   [Today's Date in format: 12th Feb 2025]
+
+   Hiring Manager
+   [Company Name]
+   [Company Location]
+
+   Dear Hiring Manager,
+
+   [Body of the letter with 3-4 paragraphs]
+
+   Sincerely,
+   [Full Name]
+
+2. Extract contact details from the resume for the header
+3. Use today's date in the specified format
+4. Include company details from the job description
+5. Body paragraphs should:
+   - Express enthusiasm and state the position
+   - Connect experience to job requirements
+   - Highlight relevant achievements
+   - Include a call to action
+6. Keep the length to one page
+7. Maintain a confident yet professional tone
 
 Return a JSON object with:
 {
-  "coverLetter": "the generated cover letter text with proper formatting",
+  "coverLetter": "the generated cover letter text with exact formatting as specified",
   "highlights": [
     "key qualifications emphasized",
     "specific achievements mentioned",
@@ -84,7 +104,7 @@ Return a JSON object with:
         },
         {
           role: "user",
-          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
+          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}\n\nToday's Date: 12th Feb 2025`
         }
       ],
       response_format: { type: "json_object" }
