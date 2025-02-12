@@ -47,7 +47,7 @@ export default function UploadedResumesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       toast({
         title: "Success",
-        description: "Resume deleted successfully from uploaded resumes",
+        description: "Resume deleted successfully",
       });
     },
     onError: (error: Error) => {
@@ -82,28 +82,36 @@ export default function UploadedResumesPage() {
       {resumes && resumes.length > 0 ? (
         <div className="border rounded-lg overflow-x-auto">
           <Table>
-            <TableHeader className="bg-primary/5 dark:bg-primary/10">
-              <TableRow>
-                <TableHead className="font-bold text-primary w-[50%]">File Name</TableHead>
-                <TableHead className="hidden sm:table-cell font-bold text-primary w-[25%]">Upload Date</TableHead>
-                <TableHead className="w-[100px] font-bold text-primary text-right">Actions</TableHead>
+            <TableHeader className="bg-primary/5">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[55%] py-2 pl-4">
+                  <div className="flex items-center text-xs uppercase tracking-wider font-semibold text-primary">
+                    File Name
+                  </div>
+                </TableHead>
+                <TableHead className="w-[30%] py-2 text-xs uppercase tracking-wider font-semibold text-primary">
+                  Upload Date
+                </TableHead>
+                <TableHead className="w-[15%] py-2 pr-2 text-right text-xs uppercase tracking-wider font-semibold text-primary">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {resumes.map((resume) => (
-                <TableRow key={resume.id} className="even:bg-slate-50 dark:even:bg-slate-800/50">
-                  <TableCell className="max-w-[200px] sm:max-w-[300px] break-words py-2">
-                    <div>
-                      {resume.metadata.filename}
-                      <div className="text-sm text-muted-foreground sm:hidden">
-                        {new Date(resume.createdAt).toLocaleDateString()}
-                      </div>
+                <TableRow key={resume.id} className="hover:bg-muted/50">
+                  <TableCell className="py-2 pl-4">
+                    <div className="flex items-center space-x-2">
+                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium truncate max-w-[300px]">
+                        {resume.metadata.filename}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden sm:table-cell whitespace-nowrap py-2">
+                  <TableCell className="py-2 text-sm text-muted-foreground">
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right py-2 pr-2">
+                  <TableCell className="py-2 pr-2 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
@@ -115,7 +123,7 @@ export default function UploadedResumesPage() {
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem
                           onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
-                          className="flex items-center"
+                          className="flex items-center cursor-pointer"
                         >
                           <FileText className="mr-2 h-4 w-4" />
                           Optimize
@@ -124,7 +132,7 @@ export default function UploadedResumesPage() {
                           <AlertDialogTrigger asChild>
                             <DropdownMenuItem
                               onSelect={(e) => e.preventDefault()}
-                              className="text-destructive focus:text-destructive"
+                              className="text-destructive focus:text-destructive cursor-pointer"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               Delete
@@ -132,11 +140,10 @@ export default function UploadedResumesPage() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Uploaded Resume</AlertDialogTitle>
+                              <AlertDialogTitle>Delete Resume</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will only remove the resume from your uploaded resumes list. 
-                                Any optimized versions will remain available in the Optimized Resumes section.
-                                Are you sure you want to continue?
+                                This will remove the resume from your uploaded resumes. 
+                                This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -165,6 +172,9 @@ export default function UploadedResumesPage() {
           <p className="text-muted-foreground">
             Get started by uploading your first resume
           </p>
+          <Button onClick={() => setLocation("/dashboard")} size="sm">
+            Upload Resume
+          </Button>
         </div>
       )}
     </div>
