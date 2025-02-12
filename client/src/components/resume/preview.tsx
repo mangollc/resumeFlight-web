@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Download, FileText, Maximize2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -71,30 +71,58 @@ export default function Preview({ resume }: PreviewProps) {
     return "bg-red-500";
   };
 
-  // Helper function to find and highlight differences
-  const highlightDifferences = (original: string, optimized: string): { originalHighlighted: string, optimizedHighlighted: string } => {
-    const originalLines = original.split('\n');
-    const optimizedLines = optimized.split('\n');
-    const maxLength = Math.max(originalLines.length, optimizedLines.length);
-    const originalHighlighted: string[] = [];
-    const optimizedHighlighted: string[] = [];
+  // Helper function to find and highlight differences between versions
+  const markDifferences = (original: string, optimized: string) => {
+    const originalWords = original.split(/\s+/);
+    const optimizedWords = optimized.split(/\s+/);
+    const markedOriginal: string[] = [];
+    const markedOptimized: string[] = [];
 
-    for (let i = 0; i < maxLength; i++) {
-      const originalLine = originalLines[i] || '';
-      const optimizedLine = optimizedLines[i] || '';
+    let i = 0, j = 0;
+    while (i < originalWords.length || j < optimizedWords.length) {
+      const origWord = originalWords[i] || '';
+      const optWord = optimizedWords[j] || '';
 
-      if (originalLine !== optimizedLine) {
-        originalHighlighted.push(`<span class="bg-red-100/50 dark:bg-red-900/50 px-1 rounded">${originalLine}</span>`);
-        optimizedHighlighted.push(`<span class="bg-green-100/50 dark:bg-green-900/50 px-1 rounded">${optimizedLine}</span>`);
+      if (origWord === optWord) {
+        markedOriginal.push(origWord);
+        markedOptimized.push(optWord);
+        i++;
+        j++;
       } else {
-        originalHighlighted.push(originalLine);
-        optimizedHighlighted.push(optimizedLine);
+        // Try to find next matching word
+        let found = false;
+        for (let k = 1; k < 3; k++) {
+          if (originalWords[i + k] === optimizedWords[j]) {
+            // Words removed from original
+            for (let l = 0; l < k; l++) {
+              markedOriginal.push(`<span class="bg-red-100 dark:bg-red-900/50 px-1 rounded">${originalWords[i + l]}</span>`);
+            }
+            i += k;
+            found = true;
+            break;
+          } else if (originalWords[i] === optimizedWords[j + k]) {
+            // Words added in optimized
+            for (let l = 0; l < k; l++) {
+              markedOptimized.push(`<span class="bg-green-100 dark:bg-green-900/50 px-1 rounded">${optimizedWords[j + l]}</span>`);
+            }
+            j += k;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          // Mark current words as changed
+          markedOriginal.push(`<span class="bg-red-100 dark:bg-red-900/50 px-1 rounded">${origWord}</span>`);
+          markedOptimized.push(`<span class="bg-green-100 dark:bg-green-900/50 px-1 rounded">${optWord}</span>`);
+          i++;
+          j++;
+        }
       }
     }
 
     return {
-      originalHighlighted: originalHighlighted.join('\n'),
-      optimizedHighlighted: optimizedHighlighted.join('\n')
+      markedOriginal: markedOriginal.join(' '),
+      markedOptimized: markedOptimized.join(' ')
     };
   };
 
@@ -102,7 +130,7 @@ export default function Preview({ resume }: PreviewProps) {
     if (!isOptimized) return null;
 
     const optimizedResume = resume as OptimizedResume;
-    const { originalHighlighted, optimizedHighlighted } = highlightDifferences(
+    const { markedOriginal, markedOptimized } = markDifferences(
       optimizedResume.originalContent,
       optimizedResume.content
     );
@@ -112,13 +140,15 @@ export default function Preview({ resume }: PreviewProps) {
         <div className="space-y-4">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             Original Version
-            <span className="text-xs text-muted-foreground font-normal">(Changes highlighted in red)</span>
+            <span className="text-xs text-muted-foreground font-normal">
+              (Removed content in red)
+            </span>
           </h3>
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
               <div 
                 className="whitespace-pre-wrap font-sans text-sm"
-                dangerouslySetInnerHTML={{ __html: originalHighlighted }}
+                dangerouslySetInnerHTML={{ __html: markedOriginal }}
               />
             </div>
           </div>
@@ -126,13 +156,15 @@ export default function Preview({ resume }: PreviewProps) {
         <div className="space-y-4">
           <h3 className="font-semibold text-lg flex items-center gap-2">
             Optimized Version
-            <span className="text-xs text-muted-foreground font-normal">(Changes highlighted in green)</span>
+            <span className="text-xs text-muted-foreground font-normal">
+              (Added/changed content in green)
+            </span>
           </h3>
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
               <div 
                 className="whitespace-pre-wrap font-sans text-sm"
-                dangerouslySetInnerHTML={{ __html: optimizedHighlighted }}
+                dangerouslySetInnerHTML={{ __html: markedOptimized }}
               />
             </div>
           </div>
@@ -169,7 +201,7 @@ export default function Preview({ resume }: PreviewProps) {
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Maximize2 className="h-4 w-4 mr-2" />
-                      View Full
+                      Compare Versions
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
@@ -210,40 +242,26 @@ export default function Preview({ resume }: PreviewProps) {
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-sm">
                       <span>Overall Match</span>
-                      <div className="flex items-center gap-2">
-                        {resume.metrics?.before && (
-                          <span className="text-muted-foreground">
-                            Before: {resume.metrics.before.overall}%
-                          </span>
-                        )}
-                        <span className="font-medium">
-                          After: {resume.metrics?.after?.overall || 0}%
-                        </span>
-                      </div>
+                      <span className="font-medium">
+                        {(resume as OptimizedResume).metrics.overall}%
+                      </span>
                     </div>
                     <Progress 
-                      value={resume.metrics?.after?.overall || 0}
-                      className={`h-2 ${getMetricsColor(resume.metrics?.after?.overall || 0)}`}
+                      value={(resume as OptimizedResume).metrics.overall}
+                      className={`h-2 ${getMetricsColor((resume as OptimizedResume).metrics.overall)}`}
                     />
                   </div>
                   {['keywords', 'skills', 'experience'].map((metric) => (
                     <div key={metric} className="space-y-2">
                       <div className="flex justify-between items-center text-sm">
                         <span className="capitalize">{metric}</span>
-                        <div className="flex items-center gap-2">
-                          {resume.metrics?.before && (
-                            <span className="text-muted-foreground">
-                              Before: {resume.metrics.before[metric as keyof typeof resume.metrics.before]}%
-                            </span>
-                          )}
-                          <span className="font-medium">
-                            After: {resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}%
-                          </span>
-                        </div>
+                        <span className="font-medium">
+                          {(resume as OptimizedResume).metrics[metric as keyof OptimizedResume['metrics']]}%
+                        </span>
                       </div>
                       <Progress 
-                        value={resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}
-                        className={`h-2 ${getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}`}
+                        value={(resume as OptimizedResume).metrics[metric as keyof OptimizedResume['metrics']]}
+                        className={`h-2 ${getMetricsColor((resume as OptimizedResume).metrics[metric as keyof OptimizedResume['metrics']])}`}
                       />
                     </div>
                   ))}
