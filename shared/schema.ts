@@ -26,6 +26,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   jobUrl: text("job_url"),
   jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
+  metrics: jsonb("metrics"), // New field for storing match metrics
   createdAt: text("created_at").notNull(),
 });
 
@@ -112,9 +113,15 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     location: string;
     salary?: string;
     positionLevel?: string;
-    candidateProfile?: string;
+    keyPoints?: string[]; // New field for bullet points
   };
   jobUrl: string | null;
+  metrics?: {
+    overall: number;
+    keywords: number;
+    skills: number;
+    experience: number;
+  };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 

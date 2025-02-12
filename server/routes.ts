@@ -23,6 +23,7 @@ interface JobDetails {
   description: string;
   positionLevel?: string; // Added fields from AI analysis
   candidateProfile?: string;
+  keyPoints?: string[];
 }
 
 const upload = multer({
@@ -146,7 +147,8 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       location: location || 'Not specified',
       description,
       positionLevel: aiAnalysis.positionLevel,
-      candidateProfile: aiAnalysis.candidateProfile
+      candidateProfile: aiAnalysis.candidateProfile,
+      keyPoints: aiAnalysis.keyPoints
     };
 
     // Validate that we have at least some essential information
@@ -171,17 +173,17 @@ async function analyzeJobDescription(description: string) {
     console.log("[AI Analysis] Analyzing job description:", description.substring(0, 100) + "...");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are a job posting analyzer. Your task is to carefully analyze the provided job description and extract key details.
+          content: `You are a job posting analyzer. Your task is to analyze the job description and extract key information.
 
 Instructions:
-1. Analyze the text thoroughly to identify job title, company, location, and other key details
-2. If information is implied but not explicit, use context clues to make reasonable determinations
-3. For position level, analyze required years of experience and responsibilities
-4. Always return a complete JSON response
+1. Extract the most important requirements and qualifications
+2. Keep the key points concise (max 50 words total)
+3. Return exactly 3-5 bullet points
+4. Analyze the text to determine position level and location
 
 Return the information in this exact format:
 {
@@ -189,7 +191,13 @@ Return the information in this exact format:
   "company": "company name",
   "location": "job location (include Remote if applicable)",
   "positionLevel": "one of: Senior, Mid-level, Junior, Entry-level, or Intern",
-  "candidateProfile": "brief description of ideal candidate (max 100 words)"
+  "keyPoints": ["point 1", "point 2", "point 3"],
+  "metrics": {
+    "keywords": number (0-100),
+    "skills": number (0-100),
+    "experience": number (0-100),
+    "overall": number (0-100)
+  }
 }`
         },
         {
@@ -210,7 +218,13 @@ Return the information in this exact format:
         company: "Not specified",
         location: "Not specified",
         positionLevel: "Not specified",
-        candidateProfile: "Unable to generate candidate profile"
+        keyPoints: ["Unable to extract key points"],
+        metrics: {
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          overall: 0
+        }
       };
     }
 
@@ -221,7 +235,13 @@ Return the information in this exact format:
         company: parsed.company || "Not specified",
         location: parsed.location || "Not specified",
         positionLevel: parsed.positionLevel || "Not specified",
-        candidateProfile: parsed.candidateProfile || "Unable to generate candidate profile"
+        keyPoints: parsed.keyPoints || ["Unable to extract key points"],
+        metrics: parsed.metrics || {
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          overall: 0
+        }
       };
 
       console.log("[AI Analysis] Extracted job details:", result);
@@ -237,7 +257,13 @@ Return the information in this exact format:
       company: "Not specified",
       location: "Not specified",
       positionLevel: "Not specified",
-      candidateProfile: "Unable to generate candidate profile"
+      keyPoints: ["Unable to extract key points"],
+      metrics: {
+        keywords: 0,
+        skills: 0,
+        experience: 0,
+        overall: 0
+      }
     };
   }
 }
@@ -421,7 +447,8 @@ export function registerRoutes(app: Express): Server {
           location: analysis.location,
           description: jobDescription,
           positionLevel: analysis.positionLevel,
-          candidateProfile: analysis.candidateProfile
+          candidateProfile: analysis.candidateProfile,
+          keyPoints: analysis.keyPoints
         };
         console.log("[Manual Input] Extracted job details:", jobDetails);
       }
@@ -439,7 +466,7 @@ export function registerRoutes(app: Express): Server {
       // Create new filename: initials_jobTitle.pdf
       const newFilename = `${initials}_${cleanJobTitle}.pdf`;
 
-      // Create a new optimized resume
+      // Create a new optimized resume with metrics
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
         jobDescription: finalJobDescription, // Use the final job description
@@ -450,7 +477,8 @@ export function registerRoutes(app: Express): Server {
         metadata: {
           filename: newFilename,
           optimizedAt: new Date().toISOString()
-        }
+        },
+        metrics: analysis.metrics // Store the metrics
       });
 
       res.json({
