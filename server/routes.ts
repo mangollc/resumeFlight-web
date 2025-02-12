@@ -357,7 +357,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-    app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
+  app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -418,6 +418,30 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+
+  // Add this new route to handle deletion of optimized resumes
+  app.delete("/api/optimized-resume/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+      if (!optimizedResume) return res.status(404).send("Resume not found");
+      if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
+
+      // Delete the corresponding cover letter first
+      const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
+      for (const coverLetter of coverLetters) {
+        await storage.deleteCoverLetter(coverLetter.id);
+      }
+
+      // Then delete the optimized resume
+      await storage.deleteOptimizedResume(parseInt(req.params.id));
+      res.sendStatus(200);
+    } catch (error: any) {
+      console.error("Delete optimized resume error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

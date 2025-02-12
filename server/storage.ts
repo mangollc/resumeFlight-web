@@ -21,11 +21,14 @@ export interface IStorage {
   getOptimizedResume(id: number): Promise<OptimizedResume | undefined>;
   createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume>;
   getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
+  deleteOptimizedResume(id: number): Promise<void>;
 
   // Cover letter operations
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
   createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter>;
   getCoverLettersByUser(userId: number): Promise<CoverLetter[]>;
+  deleteCoverLetter(id: number): Promise<void>;
+  getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]>;
 
   sessionStore: session.Store;
 }
@@ -133,6 +136,10 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async deleteOptimizedResume(id: number): Promise<void> {
+    await db.delete(optimizedResumes).where(eq(optimizedResumes.id, id));
+  }
+
   // Cover Letter methods
   async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
     const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
@@ -161,6 +168,22 @@ export class DatabaseStorage implements IStorage {
 
   async getCoverLettersByUser(userId: number): Promise<CoverLetter[]> {
     const results = await db.select().from(coverLetters).where(eq(coverLetters.userId, userId));
+    return results.map(result => ({
+      ...result,
+      metadata: result.metadata as CoverLetter['metadata']
+    }));
+  }
+
+  async deleteCoverLetter(id: number): Promise<void> {
+    await db.delete(coverLetters).where(eq(coverLetters.id, id));
+  }
+
+  async getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]> {
+    const results = await db
+      .select()
+      .from(coverLetters)
+      .where(eq(coverLetters.optimizedResumeId, optimizedResumeId));
+
     return results.map(result => ({
       ...result,
       metadata: result.metadata as CoverLetter['metadata']

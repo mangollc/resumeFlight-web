@@ -1,4 +1,5 @@
-import { pgTable, text, serial, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, index } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -27,6 +28,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   createdAt: text("created_at").notNull(),
 });
 
+// Add index to optimized_resume_id for better query performance
 export const coverLetters = pgTable("cover_letters", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -34,9 +36,30 @@ export const coverLetters = pgTable("cover_letters", {
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
   createdAt: text("created_at").notNull(),
-});
+}, (table) => ({
+  optimizedResumeIdIdx: index("cover_letter_optimized_resume_id_idx").on(table.optimizedResumeId),
+}));
 
-// Insert schemas
+// Define relations
+export const optimizedResumesRelations = relations(optimizedResumes, ({ one }) => ({
+  coverLetter: one(coverLetters, {
+    fields: [optimizedResumes.id],
+    references: [coverLetters.optimizedResumeId],
+  }),
+  uploadedResume: one(uploadedResumes, {
+    fields: [optimizedResumes.uploadedResumeId],
+    references: [uploadedResumes.id],
+  }),
+}));
+
+export const coverLettersRelations = relations(coverLetters, ({ one }) => ({
+  optimizedResume: one(optimizedResumes, {
+    fields: [coverLetters.optimizedResumeId],
+    references: [optimizedResumes.id],
+  }),
+}));
+
+// Insert schemas remain the same
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -64,7 +87,7 @@ export const insertCoverLetterSchema = createInsertSchema(coverLetters)
     optimizedResumeId: true,
   });
 
-// Types
+// Types remain the same
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 

@@ -1,7 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Trash2 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -12,8 +25,29 @@ import {
 } from "@/components/ui/table";
 
 export default function OptimizedResumesPage() {
+  const { toast } = useToast();
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+      toast({
+        title: "Success",
+        description: "Resume and its cover letter deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -28,47 +62,85 @@ export default function OptimizedResumesPage() {
   }
 
   return (
-    <div className="flex-1 p-8 space-y-6">
-      <h1 className="text-2xl font-bold">Optimized Resumes</h1>
+    <div className="flex-1 p-4 sm:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold">Optimized Resumes</h1>
+      </div>
 
       {resumes && resumes.length > 0 ? (
-        <div className="border rounded-lg">
+        <div className="border rounded-lg overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[100px]">Date</TableHead>
                 <TableHead>Position</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Salary Range</TableHead>
-                <TableHead>Level</TableHead>
+                <TableHead className="hidden sm:table-cell">Company</TableHead>
+                <TableHead className="hidden md:table-cell">Location</TableHead>
+                <TableHead className="hidden lg:table-cell">Salary Range</TableHead>
+                <TableHead className="hidden xl:table-cell">Level</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {resumes.map((resume) => (
                 <TableRow key={resume.id}>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>{resume.jobDetails?.title || "N/A"}</TableCell>
-                  <TableCell>{resume.jobDetails?.company || "N/A"}</TableCell>
-                  <TableCell>{resume.jobDetails?.location || "N/A"}</TableCell>
-                  <TableCell>{resume.jobDetails?.salary || "Not specified"}</TableCell>
-                  <TableCell>{resume.jobDetails?.positionLevel || "Not specified"}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {resume.jobDetails?.company || "N/A"}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {resume.jobDetails?.location || "N/A"}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {resume.jobDetails?.salary || "Not specified"}
+                  </TableCell>
+                  <TableCell className="hidden xl:table-cell">
+                    {resume.jobDetails?.positionLevel || "Not specified"}
+                  </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/api/resume/${resume.id}/download`} download>
-                        <Download className="mr-2 h-4 w-4" />
-                        Resume
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href={`/api/cover-letter/${resume.id}/download`} download>
-                        <Download className="mr-2 h-4 w-4" />
-                        Cover Letter
-                      </a>
-                    </Button>
+                    <div className="flex justify-end gap-2 flex-wrap">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`/api/optimized-resume/${resume.id}/download`} download>
+                          <Download className="mr-2 h-4 w-4" />
+                          Resume
+                        </a>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`/api/cover-letter/${resume.id}/download`} download>
+                          <Download className="mr-2 h-4 w-4" />
+                          Cover Letter
+                        </a>
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete the optimized resume and its corresponding cover letter.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteMutation.mutate(resume.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -80,7 +152,7 @@ export default function OptimizedResumesPage() {
           <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
           <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
           <p className="text-muted-foreground">
-            Optimize your resume for specific job positions to see them here
+            Upload and optimize a resume to see it here
           </p>
         </div>
       )}
