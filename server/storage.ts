@@ -73,29 +73,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume> {
-    console.log("[Storage] Creating uploaded resume:", {
-      userId: resume.userId,
-      metadata: resume.metadata
-    });
+    const [result] = await db
+      .insert(uploadedResumes)
+      .values({
+        ...resume,
+        createdAt: new Date().toISOString(),
+      })
+      .returning();
 
-    try {
-      const [result] = await db
-        .insert(uploadedResumes)
-        .values({
-          ...resume,
-          createdAt: new Date().toISOString(),
-        })
-        .returning();
-
-      console.log("[Storage] Created resume with ID:", result.id);
-      return {
-        ...result,
-        metadata: result.metadata as UploadedResume['metadata']
-      };
-    } catch (error) {
-      console.error("[Storage] Error creating resume:", error);
-      throw error;
-    }
+    return {
+      ...result,
+      metadata: result.metadata as UploadedResume['metadata']
+    };
   }
 
   async getUploadedResumesByUser(userId: number): Promise<UploadedResume[]> {
@@ -118,7 +107,13 @@ export class DatabaseStorage implements IStorage {
     return {
       ...result,
       metadata: result.metadata as OptimizedResume['metadata'],
-      jobDetails: result.jobDetails as OptimizedResume['jobDetails']
+      jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+      metrics: result.metrics as OptimizedResume['metrics'] || {
+        overall: 0,
+        keywords: 0,
+        skills: 0,
+        experience: 0
+      }
     };
   }
 
@@ -128,13 +123,20 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...resume,
         createdAt: new Date().toISOString(),
+        metrics: resume.metrics || {
+          overall: 0,
+          keywords: 0,
+          skills: 0,
+          experience: 0
+        }
       })
       .returning();
 
     return {
       ...result,
       metadata: result.metadata as OptimizedResume['metadata'],
-      jobDetails: result.jobDetails as OptimizedResume['jobDetails']
+      jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+      metrics: result.metrics as OptimizedResume['metrics']
     };
   }
 
@@ -143,7 +145,13 @@ export class DatabaseStorage implements IStorage {
     return results.map(result => ({
       ...result,
       metadata: result.metadata as OptimizedResume['metadata'],
-      jobDetails: result.jobDetails as OptimizedResume['jobDetails']
+      jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+      metrics: result.metrics as OptimizedResume['metrics'] || {
+        overall: 0,
+        keywords: 0,
+        skills: 0,
+        experience: 0
+      }
     }));
   }
 

@@ -24,7 +24,7 @@ interface JobDetails {
   location: string;
   description: string;
   positionLevel?: string;
-  candidateProfile?: string;
+  keyPoints?: string[];
 }
 
 interface JobInputProps {
@@ -43,16 +43,16 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       const res = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, data);
       return res.json();
     },
-    onSuccess: (data: OptimizedResume & { optimizationDetails: any }) => {
-      // Ensure we include the description field when setting extracted details
+    onSuccess: (data: OptimizedResume) => {
+      // Set extracted details from the optimized resume response
       setExtractedDetails({
         title: data.jobDetails.title,
         company: data.jobDetails.company,
         location: data.jobDetails.location,
-        description: data.jobDescription, // Add the missing description field
+        description: data.jobDescription,
         salary: data.jobDetails.salary,
         positionLevel: data.jobDetails.positionLevel,
-        candidateProfile: data.jobDetails.candidateProfile
+        keyPoints: data.jobDetails.keyPoints
       });
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       onOptimized(data);
@@ -174,19 +174,24 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
                   <TableCell>{extractedDetails.positionLevel}</TableCell>
                 </TableRow>
               )}
+              {extractedDetails.keyPoints && (
+                <TableRow>
+                  <TableCell className="font-medium">Key Requirements</TableCell>
+                  <TableCell>
+                    <ul className="list-disc list-inside space-y-1">
+                      {extractedDetails.keyPoints.map((point, index) => (
+                        <li key={index}>{point}</li>
+                      ))}
+                    </ul>
+                  </TableCell>
+                </TableRow>
+              )}
               <TableRow>
                 <TableCell className="font-medium">Description</TableCell>
                 <TableCell>{extractedDetails.description}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
-
-          {extractedDetails.candidateProfile && (
-            <div className="p-4">
-              <h4 className="font-medium mb-2">Ideal Candidate Profile</h4>
-              <p className="text-sm text-muted-foreground">{extractedDetails.candidateProfile}</p>
-            </div>
-          )}
         </div>
       )}
 
