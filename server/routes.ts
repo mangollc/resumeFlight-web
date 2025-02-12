@@ -210,47 +210,53 @@ Return as JSON: {
   }
 }
 
-// Update the createPDF function
+// Update the createPDF function for better formatting
 async function createPDF(content: string): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
     try {
       const doc = new PDFDocument({
         margin: 50,
         size: 'A4',
+        bufferPages: true,
         info: {
-          Title: 'Cover Letter',
+          Title: 'Generated Document',
           Author: 'Resume Optimizer',
-          Subject: 'Cover Letter'
+          Subject: 'Resume/Cover Letter'
         }
       });
 
       const chunks: Buffer[] = [];
-
-      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-      // Set up fonts and styling
+      // Configure font and basic styling
       doc.font('Helvetica')
          .fontSize(11)
          .lineGap(2);
 
-      // Split content into paragraphs and handle line breaks
+      // Process content paragraphs
       const paragraphs = content.split('\n\n');
+      let isFirstParagraph = true;
 
-      paragraphs.forEach((paragraph, index) => {
-        if (index > 0) {
-          doc.moveDown();
+      paragraphs.forEach(paragraph => {
+        if (!isFirstParagraph) {
+          doc.moveDown(2);
         }
 
-        // Replace single newlines with spaces within paragraphs
-        const formattedParagraph = paragraph.replace(/\n(?!\n)/g, ' ').trim();
-
-        doc.text(formattedParagraph, {
-          align: 'left',
-          lineGap: 5,
-          paragraphGap: 10,
-          columns: 1
+        // Handle line breaks within paragraphs
+        const lines = paragraph.split('\n');
+        lines.forEach((line, lineIndex) => {
+          if (lineIndex > 0) {
+            doc.moveDown(1);
+          }
+          doc.text(line.trim(), {
+            align: 'left',
+            lineGap: 2,
+            width: doc.page.width - 100, // Account for margins
+          });
         });
+
+        isFirstParagraph = false;
       });
 
       doc.end();
@@ -456,6 +462,53 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+
+  // Add new download endpoint for uploaded resumes
+  app.get("/api/uploaded-resume/:id/download", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const resume = await storage.getUploadedResume(parseInt(req.params.id));
+      if (!resume) return res.status(404).send("Resume not found");
+      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+
+      // Get content type from metadata
+      const contentType = resume.metadata.fileType || 'application/octet-stream';
+      const filename = resume.metadata.filename;
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(resume.content);
+    } catch (error: any) {
+      console.error("Download error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add download endpoint for optimized resumes
+  app.get("/api/optimized-resume/:id/download", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const resume = await storage.getOptimizedResume(parseInt(req.params.id));
+      if (!resume) return res.status(404).send("Resume not found");
+      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+
+      // Create PDF for optimized resume
+      const pdfBuffer = await createPDF(resume.content);
+      const filename = resume.metadata.filename.endsWith('.pdf') 
+        ? resume.metadata.filename 
+        : `${resume.metadata.filename}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Download error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // Add this new route to handle deletion of optimized resumes
   app.delete("/api/optimized-resume/:id", async (req, res) => {
