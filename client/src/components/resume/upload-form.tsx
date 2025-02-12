@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Resume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 
 interface UploadFormProps {
   onSuccess: (resume: Resume) => void;
@@ -39,6 +39,7 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
         title: "Success",
         description: "Resume uploaded successfully",
       });
+      setFile(null); // Reset file input after successful upload
     },
     onError: (error: Error) => {
       toast({
@@ -58,31 +59,36 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid w-full max-w-sm items-center gap-1.5">
-        <Input
-          type="file"
-          accept=".pdf,.doc,.docx"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-        />
+      <div className="grid w-full items-center gap-1.5">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="w-full"
+          />
+          <Button
+            type="submit"
+            disabled={!file || uploadMutation.isPending}
+            className="w-full sm:w-auto"
+          >
+            {uploadMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Resume
+              </>
+            )}
+          </Button>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Supported formats: PDF, DOCX
+          Supported formats: PDF, DOC, DOCX (Max 5MB)
         </p>
       </div>
-
-      <Button
-        type="submit"
-        disabled={!file || uploadMutation.isPending}
-        className="w-full"
-      >
-        {uploadMutation.isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Uploading...
-          </>
-        ) : (
-          "Upload Resume"
-        )}
-      </Button>
     </form>
   );
 }
