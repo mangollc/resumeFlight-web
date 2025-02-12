@@ -286,10 +286,23 @@ export function registerRoutes(app: Express): Server {
 
   app.post("/api/resume/upload", upload.single("file"), async (req: MulterRequest, res) => {
     try {
+      console.log("[Upload Route] Authentication status:", req.isAuthenticated());
       if (!req.isAuthenticated()) return res.sendStatus(401);
-      if (!req.file) return res.status(400).send("No file uploaded");
+
+      console.log("[Upload Route] User:", req.user);
+      if (!req.file) {
+        console.log("[Upload Route] No file uploaded");
+        return res.status(400).send("No file uploaded");
+      }
+
+      console.log("[Upload Route] File details:", {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
 
       const content = await parseResume(req.file.buffer, req.file.mimetype);
+      console.log("[Upload Route] Parsed content length:", content.length);
 
       const validatedData = insertUploadedResumeSchema.parse({
         content: content,
@@ -300,14 +313,16 @@ export function registerRoutes(app: Express): Server {
         }
       });
 
+      console.log("[Upload Route] Creating resume for user:", req.user!.id);
       const resume = await storage.createUploadedResume({
         ...validatedData,
         userId: req.user!.id
       });
 
+      console.log("[Upload Route] Resume created:", resume.id);
       res.json(resume);
     } catch (error: any) {
-      console.error("Upload error:", error);
+      console.error("[Upload Route] Error:", error);
       res.status(400).json({ error: error.message });
     }
   });

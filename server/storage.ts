@@ -73,18 +73,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume> {
-    const [result] = await db
-      .insert(uploadedResumes)
-      .values({
-        ...resume,
-        createdAt: new Date().toISOString(),
-      })
-      .returning();
+    console.log("[Storage] Creating uploaded resume:", {
+      userId: resume.userId,
+      metadata: resume.metadata
+    });
 
-    return {
-      ...result,
-      metadata: result.metadata as UploadedResume['metadata']
-    };
+    try {
+      const [result] = await db
+        .insert(uploadedResumes)
+        .values({
+          ...resume,
+          createdAt: new Date().toISOString(),
+        })
+        .returning();
+
+      console.log("[Storage] Created resume with ID:", result.id);
+      return {
+        ...result,
+        metadata: result.metadata as UploadedResume['metadata']
+      };
+    } catch (error) {
+      console.error("[Storage] Error creating resume:", error);
+      throw error;
+    }
   }
 
   async getUploadedResumesByUser(userId: number): Promise<UploadedResume[]> {
