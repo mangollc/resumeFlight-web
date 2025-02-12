@@ -66,8 +66,14 @@ export default function Preview({ resume }: PreviewProps) {
   };
 
   const isOptimized = 'jobDescription' in resume;
-  const beforeContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
-  const afterContent = resume.content;
+  // Ensure we get the original content for optimized resumes
+  const originalContent = isOptimized 
+    ? (resume as OptimizedResume).originalContent 
+    : resume.content;
+  const optimizedContent = resume.content;
+
+  console.log('Original Content:', originalContent?.substring(0, 100)); // Debug log
+  console.log('Optimized Content:', optimizedContent?.substring(0, 100)); // Debug log
 
   const getMetricsColor = (value: number) => {
     if (value >= 80) return "bg-green-600";
@@ -116,8 +122,8 @@ export default function Preview({ resume }: PreviewProps) {
                       </DialogHeader>
                       <div className="mt-4">
                         <DiffView
-                          beforeContent={beforeContent}
-                          afterContent={afterContent}
+                          beforeContent={originalContent}
+                          afterContent={optimizedContent}
                         />
                       </div>
                     </DialogContent>
