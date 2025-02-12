@@ -3,12 +3,12 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Resume } from "@shared/schema";
+import { UploadedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload } from "lucide-react";
 
 interface UploadFormProps {
-  onSuccess: (resume: Resume) => void;
+  onSuccess: (resume: UploadedResume) => void;
 }
 
 export default function UploadForm({ onSuccess }: UploadFormProps) {
@@ -27,13 +27,14 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
       });
 
       if (!res.ok) {
-        throw new Error("Upload failed");
+        const error = await res.json();
+        throw new Error(error.message || "Upload failed");
       }
 
       return res.json();
     },
-    onSuccess: (resume: Resume) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
+    onSuccess: (resume: UploadedResume) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       onSuccess(resume);
       toast({
         title: "Success",
@@ -66,6 +67,7 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
             accept=".pdf,.doc,.docx"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
             className="w-full"
+            aria-label="Upload resume file"
           />
           <Button
             type="submit"
