@@ -44,7 +44,6 @@ import {
 function formatJobDetails(resume: OptimizedResume) {
   return (
     <div className="space-y-6">
-      {/* Show basic information */}
       <div>
         <h3 className="font-semibold text-lg mb-2">Job Details</h3>
         <div className="grid gap-4">
@@ -69,7 +68,6 @@ function formatJobDetails(resume: OptimizedResume) {
         </div>
       </div>
 
-      {/* Show original job description */}
       <div>
         <h3 className="font-semibold text-lg mb-2">Description</h3>
         <div className="text-sm text-muted-foreground whitespace-pre-wrap rounded-md bg-muted p-4">
@@ -85,6 +83,83 @@ const getMetricsColor = (value: number) => {
   if (value >= 60) return "bg-yellow-500";
   return "bg-red-500";
 };
+
+function MetricsDialog({ resume }: { resume: OptimizedResume }) {
+  return (
+    <Dialog>
+      <DialogTrigger className="contents">
+        <TableRow className="cursor-pointer hover:bg-muted/50">
+          <TableCell>{resume.id}</TableCell>
+          <TableCell className="whitespace-nowrap">
+            {new Date(resume.createdAt).toLocaleDateString()}
+          </TableCell>
+          <TableCell>{resume.jobDetails?.title}</TableCell>
+          <TableCell className="hidden sm:table-cell">
+            {resume.jobDetails?.company}
+          </TableCell>
+          <TableCell className="hidden lg:table-cell">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Overall</span>
+                <div className="flex items-center gap-2">
+                  {resume.metrics?.before && (
+                    <span className="text-muted-foreground text-xs">
+                      {resume.metrics.before.overall}% →
+                    </span>
+                  )}
+                  <span className="font-medium">
+                    {resume.metrics?.after?.overall || 0}%
+                  </span>
+                </div>
+              </div>
+              <Progress 
+                value={resume.metrics?.after?.overall || 0}
+                className={`h-2 ${getMetricsColor(resume.metrics?.after?.overall || 0)}`}
+              />
+            </div>
+          </TableCell>
+          <TableCell className="text-right">
+            <MoreVertical className="h-4 w-4 inline-block" />
+          </TableCell>
+        </TableRow>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Resume Match Analysis</DialogTitle>
+          <DialogDescription>
+            <div className="space-y-6 py-4">
+              <div className="space-y-4">
+                <div className="grid gap-4">
+                  {['overall', 'keywords', 'skills', 'experience'].map((metric) => (
+                    <div key={metric} className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="capitalize">{metric}</span>
+                        <div className="flex items-center gap-2">
+                          {resume.metrics?.before && (
+                            <span className="text-muted-foreground">
+                              Before: {resume.metrics.before[metric as keyof typeof resume.metrics.before]}%
+                            </span>
+                          )}
+                          <span className="font-medium">
+                            After: {resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}%
+                          </span>
+                        </div>
+                      </div>
+                      <Progress 
+                        value={resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}
+                        className={`h-2 ${getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function OptimizedResumesPage() {
   const { toast } = useToast();
@@ -143,128 +218,8 @@ export default function OptimizedResumesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {resumes.map((resume, index) => (
-                <TableRow key={resume.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    {new Date(resume.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{resume.jobDetails?.title}</TableCell>
-                  <TableCell className="hidden sm:table-cell">
-                    {resume.jobDetails?.company}
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Overall</span>
-                        <span className="font-medium">{resume.metrics?.overall}%</span>
-                      </div>
-                      <Progress 
-                        value={resume.metrics?.overall} 
-                        className={`h-2 ${getMetricsColor(resume.metrics?.overall ?? 0)}`}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={`/api/optimized-resume/${resume.id}/download`}
-                            download
-                            className="flex items-center"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Resume
-                          </a>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={`/api/optimized-resume/${resume.id}/cover-letter/download`}
-                            download
-                            className="flex items-center"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download Cover Letter
-                          </a>
-                        </DropdownMenuItem>
-                        {resume.jobUrl ? (
-                          <>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={resume.jobUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center"
-                              >
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View Job Posting
-                              </a>
-                            </DropdownMenuItem>
-                          </>
-                        ) : (
-                          <>
-                            <DropdownMenuSeparator />
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <Info className="mr-2 h-4 w-4" />
-                                  View Job Details
-                                </DropdownMenuItem>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                <DialogHeader>
-                                  <DialogTitle>Job Details</DialogTitle>
-                                  <DialogDescription>
-                                    {formatJobDetails(resume)}
-                                  </DialogDescription>
-                                </DialogHeader>
-                              </DialogContent>
-                            </Dialog>
-                          </>
-                        )}
-                        <DropdownMenuSeparator />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <DropdownMenuItem
-                              onSelect={(e) => e.preventDefault()}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete the optimized resume and its corresponding cover letter.
-                                This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(resume.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+              {resumes.map((resume) => (
+                <MetricsDialog key={resume.id} resume={resume} />
               ))}
             </TableBody>
           </Table>

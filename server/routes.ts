@@ -1,3 +1,58 @@
+async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
+  keywords: number;
+  skills: number;
+  experience: number;
+  overall: number;
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+Return ONLY a JSON object with these metrics (as numbers 0-100):
+
+{
+  "keywords": "Score based on matching keywords and phrases",
+  "skills": "Score based on matching required skills and qualifications",
+  "experience": "Score based on matching required experience level and relevance",
+  "overall": "Weighted average of all scores above"
+}`
+        },
+        {
+          role: "user",
+          content: `Resume:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) return getDefaultMetrics();
+
+    const metrics = JSON.parse(content);
+    return {
+      keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+      skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+      experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+      overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+    };
+  } catch (error) {
+    console.error("Error calculating match scores:", error);
+    return getDefaultMetrics();
+  }
+}
+
+function getDefaultMetrics() {
+  return {
+    keywords: 0,
+    skills: 0,
+    experience: 0,
+    overall: 0
+  };
+}
+
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -68,7 +123,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
-    // LinkedIn specific selectors
     const linkedInSelectors = {
       title: ['.top-card-layout__title', '.job-details-jobs-unified-top-card__job-title'],
       company: ['.topcard__org-name-link', '.job-details-jobs-unified-top-card__company-name'],
@@ -77,7 +131,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       description: ['.description__text', '.job-details-jobs-unified-top-card__job-description']
     };
 
-    // Generic job board selectors as fallback
     const genericSelectors = {
       title: ['h1', '.job-title', '[data-testid="job-title"]', '.position-title'],
       company: ['.company-name', '[data-testid="company-name"]', '.employer'],
@@ -91,24 +144,20 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       ]
     };
 
-    // Helper function to find content using multiple selectors with improved text cleaning
     const findContent = (selectors: string[], type: keyof typeof linkedInSelectors): string => {
-      // Try LinkedIn specific selectors first
       for (const selector of linkedInSelectors[type]) {
         const element = $(selector);
         if (element.length) {
           let text = element.text().trim().replace(/\s+/g, ' ');
-          // Clean up location text specifically
           if (type === 'location') {
-            text = text.replace(/\d+\s*applicants?/gi, '')  // Remove applicant counts
-                      .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '') // Remove leading/trailing commas and spaces
+            text = text.replace(/\d+\s*applicants?/gi, '')
+                      .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '')
                       .trim();
           }
           return text;
         }
       }
 
-      // Try generic selectors as fallback
       for (const selector of genericSelectors[type]) {
         const element = $(selector);
         if (element.length) {
@@ -119,21 +168,18 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       return '';
     };
 
-    // Extract job details with better handling
     const title = findContent(genericSelectors.title, 'title');
     const company = findContent(genericSelectors.company, 'company');
     let location = findContent(genericSelectors.location, 'location');
     const salary = findContent(genericSelectors.salary, 'salary');
     let description = findContent(genericSelectors.description, 'description');
 
-    // If description is empty, try to get content from the main job content area
     if (!description) {
       description = $('.job-view-layout').text().trim() || 
                    $('.description__text').text().trim() || 
                    $('main').text().trim();
     }
 
-    // Check for remote indicators with improved detection
     const isRemote = [description, location, $('body').text()].some(text => 
       text.toLowerCase().includes('remote') ||
       text.toLowerCase().includes('work from home') ||
@@ -144,10 +190,8 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       location = location ? `${location} (Remote)` : 'Remote';
     }
 
-    // Analyze job description with AI
     const aiAnalysis = await analyzeJobDescription(description);
 
-    // Validate extracted data
     const jobDetails: JobDetails = {
       title: title || 'Not specified',
       company: company || 'Not specified',
@@ -160,7 +204,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
       metrics: aiAnalysis.metrics
     };
 
-    // Validate that we have at least some essential information
     if (!jobDetails.description || jobDetails.description.length < 50) {
       throw new Error("Could not extract sufficient job details. The page might be dynamically loaded or require authentication.");
     }
@@ -176,7 +219,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
   }
 }
 
-// Update the analyzeJobDescription function
 async function analyzeJobDescription(description: string) {
   try {
     console.log("[AI Analysis] Analyzing job description:", description.substring(0, 100) + "...");
@@ -209,7 +251,7 @@ Extract and respond with ONLY a JSON object containing these fields:
           content: description
         }
       ],
-      temperature: 0.3, // Add lower temperature for more consistent output
+      temperature: 0.3,
       max_tokens: 1000,
     });
 
@@ -222,7 +264,6 @@ Extract and respond with ONLY a JSON object containing these fields:
     }
 
     try {
-      // Find the JSON object in the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         console.warn("[AI Analysis] No JSON found in response");
@@ -254,7 +295,6 @@ Extract and respond with ONLY a JSON object containing these fields:
   }
 }
 
-// Helper function for default analysis
 function getDefaultAnalysis() {
   return {
     title: "Not specified",
@@ -272,7 +312,6 @@ function getDefaultAnalysis() {
   };
 }
 
-// Update the createPDF function for better formatting
 async function createPDF(content: string): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
     try {
@@ -291,12 +330,10 @@ async function createPDF(content: string): Promise<Buffer> {
       doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-      // Configure font and basic styling
       doc.font('Helvetica')
          .fontSize(11)
          .lineGap(2);
 
-      // Process content paragraphs
       const paragraphs = content.split('\n\n');
       let isFirstParagraph = true;
 
@@ -305,7 +342,6 @@ async function createPDF(content: string): Promise<Buffer> {
           doc.moveDown(2);
         }
 
-        // Handle line breaks within paragraphs
         const lines = paragraph.split('\n');
         lines.forEach((line, lineIndex) => {
           if (lineIndex > 0) {
@@ -314,7 +350,7 @@ async function createPDF(content: string): Promise<Buffer> {
           doc.text(line.trim(), {
             align: 'left',
             lineGap: 2,
-            width: doc.page.width - 100, // Account for margins
+            width: doc.page.width - 100,
           });
         });
 
@@ -329,13 +365,10 @@ async function createPDF(content: string): Promise<Buffer> {
   });
 }
 
-// Update the getInitials helper function to be more robust
 function getInitials(text: string): string {
-  // Look for a name pattern at the start of the resume
   const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
   if (!nameMatch) return "NA";
 
-  // Extract initials from the full name
   return nameMatch[0]
     .split(/\s+/)
     .map(name => name[0])
@@ -416,7 +449,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update the resume optimization endpoint to better handle both manual input and URL
   app.post("/api/resume/:id/optimize", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -446,8 +478,7 @@ export function registerRoutes(app: Express): Server {
             description: finalJobDescription,
             positionLevel: analysis.positionLevel,
             keyRequirements: analysis.keyRequirements,
-            skillsAndTools: analysis.skillsAndTools,
-            metrics: analysis.metrics
+            skillsAndTools: analysis.skillsAndTools
           };
         } catch (error: any) {
           console.error("[URL Extraction] Error:", error);
@@ -464,25 +495,28 @@ export function registerRoutes(app: Express): Server {
           description: jobDescription,
           positionLevel: analysis.positionLevel,
           keyRequirements: analysis.keyRequirements,
-          skillsAndTools: analysis.skillsAndTools,
-          metrics: analysis.metrics
+          skillsAndTools: analysis.skillsAndTools
         };
       }
 
+      // Calculate before optimization metrics
+      console.log("[Metrics] Calculating pre-optimization scores");
+      const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
+
       const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
 
-      // Get initials from the resume content
+      // Calculate after optimization metrics
+      console.log("[Metrics] Calculating post-optimization scores");
+      const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
+
       const initials = getInitials(uploadedResume.content);
-      // Clean up job title for filename
       const cleanJobTitle = jobDetails.title
         .replace(/[^a-zA-Z0-9\s]/g, '')
         .replace(/\s+/g, '_')
         .substring(0, 50);
 
-      // Create new filename: initials_jobTitle.pdf
       const newFilename = `${initials}_${cleanJobTitle}.pdf`;
 
-      // Create the optimized resume with proper metrics
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
         jobDescription: finalJobDescription,
@@ -494,7 +528,10 @@ export function registerRoutes(app: Express): Server {
           filename: newFilename,
           optimizedAt: new Date().toISOString()
         },
-        metrics: optimized.metrics
+        metrics: {
+          before: beforeMetrics,
+          after: afterMetrics
+        }
       });
 
       res.json(optimizedResume);
@@ -525,7 +562,6 @@ export function registerRoutes(app: Express): Server {
 
       const generated = await generateCoverLetter(optimizedResume.content, optimizedResume.jobDescription);
 
-      // Ensure filename has .pdf extension
       const filename = `cover_letter_${optimizedResume.metadata.filename}`;
       const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
 
@@ -560,7 +596,6 @@ export function registerRoutes(app: Express): Server {
 
       const pdfBuffer = await createPDF(coverLetter.content);
 
-      // Ensure proper filename with .pdf extension
       const filename = coverLetter.metadata.filename.endsWith('.pdf') 
         ? coverLetter.metadata.filename 
         : `${coverLetter.metadata.filename}.pdf`;
@@ -587,7 +622,6 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Add new download endpoint for uploaded resumes
   app.get("/api/uploaded-resume/:id/download", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -596,7 +630,6 @@ export function registerRoutes(app: Express): Server {
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      // Get content type from metadata
       const contentType = resume.metadata.fileType || 'application/octet-stream';
       const filename = resume.metadata.filename;
 
@@ -609,7 +642,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Update the download endpoints
   app.get("/api/optimized-resume/:id/download", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -618,7 +650,6 @@ export function registerRoutes(app: Express): Server {
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      // Create PDF for optimized resume
       const pdfBuffer = await createPDF(resume.content);
       const filename = resume.metadata.filename.endsWith('.pdf')
         ? resume.metadata.filename
@@ -645,7 +676,7 @@ export function registerRoutes(app: Express): Server {
       const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
       if (!coverLetters.length) return res.status(404).send("Cover letter not found");
 
-      const coverLetter = coverLetters[0]; // Get the first cover letter
+      const coverLetter = coverLetters[0]; 
       const pdfBuffer = await createPDF(coverLetter.content);
 
       const filename = coverLetter.metadata.filename.endsWith('.pdf')
@@ -662,7 +693,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add this new route to handle deletion of optimized resumes
   app.delete("/api/optimized-resume/:id", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -671,13 +701,11 @@ export function registerRoutes(app: Express): Server {
       if (!optimizedResume) return res.status(404).send("Resume not found");
       if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
 
-      // Delete the corresponding cover letter first
       const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
       for (const coverLetter of coverLetters) {
         await storage.deleteCoverLetter(coverLetter.id);
       }
 
-      // Then delete the optimized resume
       await storage.deleteOptimizedResume(parseInt(req.params.id));
       res.sendStatus(200);
     } catch (error: any) {

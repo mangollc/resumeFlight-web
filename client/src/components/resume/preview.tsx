@@ -117,43 +117,79 @@ export default function Preview({ resume }: PreviewProps) {
                 <h4 className="font-semibold">Resume Match Analysis</h4>
                 <div className="grid gap-4">
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between items-center text-sm">
                       <span>Overall Match</span>
-                      <span className="font-medium">{resume.metrics.overall}%</span>
+                      <div className="flex items-center gap-2">
+                        {resume.metrics?.before && (
+                          <span className="text-muted-foreground">
+                            Before: {resume.metrics.before.overall}%
+                          </span>
+                        )}
+                        <span className="font-medium">
+                          After: {resume.metrics?.after?.overall || 0}%
+                        </span>
+                      </div>
                     </div>
                     <Progress 
-                      value={resume.metrics.overall} 
-                      className={`h-2 ${getMetricsColor(resume.metrics.overall)}`}
+                      value={resume.metrics?.after?.overall || 0}
+                      className={`h-2 ${getMetricsColor(resume.metrics?.after?.overall || 0)}`}
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between items-center text-sm">
                       <span>Keywords</span>
-                      <span className="font-medium">{resume.metrics.keywords}%</span>
+                      <div className="flex items-center gap-2">
+                        {resume.metrics?.before && (
+                          <span className="text-muted-foreground">
+                            Before: {resume.metrics.before.keywords}%
+                          </span>
+                        )}
+                        <span className="font-medium">
+                          After: {resume.metrics?.after?.keywords || 0}%
+                        </span>
+                      </div>
                     </div>
                     <Progress 
-                      value={resume.metrics.keywords} 
-                      className={`h-2 ${getMetricsColor(resume.metrics.keywords)}`}
+                      value={resume.metrics?.after?.keywords || 0}
+                      className={`h-2 ${getMetricsColor(resume.metrics?.after?.keywords || 0)}`}
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between items-center text-sm">
                       <span>Skills</span>
-                      <span className="font-medium">{resume.metrics.skills}%</span>
+                      <div className="flex items-center gap-2">
+                        {resume.metrics?.before && (
+                          <span className="text-muted-foreground">
+                            Before: {resume.metrics.before.skills}%
+                          </span>
+                        )}
+                        <span className="font-medium">
+                          After: {resume.metrics?.after?.skills || 0}%
+                        </span>
+                      </div>
                     </div>
                     <Progress 
-                      value={resume.metrics.skills} 
-                      className={`h-2 ${getMetricsColor(resume.metrics.skills)}`}
+                      value={resume.metrics?.after?.skills || 0}
+                      className={`h-2 ${getMetricsColor(resume.metrics?.after?.skills || 0)}`}
                     />
                   </div>
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between items-center text-sm">
                       <span>Experience</span>
-                      <span className="font-medium">{resume.metrics.experience}%</span>
+                      <div className="flex items-center gap-2">
+                        {resume.metrics?.before && (
+                          <span className="text-muted-foreground">
+                            Before: {resume.metrics.before.experience}%
+                          </span>
+                        )}
+                        <span className="font-medium">
+                          After: {resume.metrics?.after?.experience || 0}%
+                        </span>
+                      </div>
                     </div>
                     <Progress 
-                      value={resume.metrics.experience} 
-                      className={`h-2 ${getMetricsColor(resume.metrics.experience)}`}
+                      value={resume.metrics?.after?.experience || 0}
+                      className={`h-2 ${getMetricsColor(resume.metrics?.after?.experience || 0)}`}
                     />
                   </div>
                 </div>
