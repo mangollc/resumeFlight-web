@@ -157,7 +157,7 @@ export default function Preview({ resume }: PreviewProps) {
                         </span>
                       </div>
                     </div>
-                    <Progress 
+                    <Progress
                       value={resume.metrics?.after?.overall || 0}
                       className={`h-2 ${getMetricsColor(resume.metrics?.after?.overall || 0)}`}
                     />
@@ -177,7 +177,7 @@ export default function Preview({ resume }: PreviewProps) {
                           </span>
                         </div>
                       </div>
-                      <Progress 
+                      <Progress
                         value={resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}
                         className={`h-2 ${getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}`}
                       />

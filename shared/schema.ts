@@ -22,16 +22,25 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   userId: integer("user_id").notNull(),
   uploadedResumeId: integer("uploaded_resume_id").notNull(),
   content: text("content").notNull(),
+  originalContent: text("original_content").notNull(),
   jobDescription: text("job_description").notNull(),
   jobUrl: text("job_url"),
   jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
   metrics: jsonb("metrics").default({
-    overall: 0,
-    keywords: 0,
-    skills: 0,
-    experience: 0
-  }), // Add default metrics
+    before: {
+      overall: 0,
+      keywords: 0,
+      skills: 0,
+      experience: 0
+    },
+    after: {
+      overall: 0,
+      keywords: 0,
+      skills: 0,
+      experience: 0
+    }
+  }),
   createdAt: text("created_at").notNull(),
 });
 
@@ -80,6 +89,7 @@ export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
 export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
   .pick({
     content: true,
+    originalContent: true,
     jobDescription: true,
     jobUrl: true,
     jobDetails: true,
@@ -121,11 +131,20 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     keyPoints?: string[];
   };
   jobUrl: string | null;
+  originalContent: string;
   metrics: {
-    overall: number;
-    keywords: number;
-    skills: number;
-    experience: number;
+    before: {
+      overall: number;
+      keywords: number;
+      skills: number;
+      experience: number;
+    };
+    after: {
+      overall: number;
+      keywords: number;
+      skills: number;
+      experience: number;
+    };
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
