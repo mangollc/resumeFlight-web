@@ -165,26 +165,31 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
   }
 }
 
-// Fix the analyzeJobDescription function
+// Update the analyzeJobDescription function
 async function analyzeJobDescription(description: string) {
   try {
+    console.log("[AI Analysis] Analyzing job description:", description.substring(0, 100) + "...");
+
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `Analyze the job description and provide:
-1. The job title
-2. Company name
-3. Location (including if remote)
-4. The position level (e.g., Senior, Mid-level, Junior, Intern, Entry-level)
-5. A concise summary of the ideal candidate profile (skills, experience, and qualifications)
-Return as JSON: {
-  "title": "string",
-  "company": "string",
-  "location": "string",
-  "positionLevel": "string",
-  "candidateProfile": "string (max 100 words)"
+          content: `You are a job posting analyzer. Your task is to carefully analyze the provided job description and extract key details.
+
+Instructions:
+1. Analyze the text thoroughly to identify job title, company, location, and other key details
+2. If information is implied but not explicit, use context clues to make reasonable determinations
+3. For position level, analyze required years of experience and responsibilities
+4. Always return a complete JSON response
+
+Return the information in this exact format:
+{
+  "title": "specific job title",
+  "company": "company name",
+  "location": "job location (include Remote if applicable)",
+  "positionLevel": "one of: Senior, Mid-level, Junior, Entry-level, or Intern",
+  "candidateProfile": "brief description of ideal candidate (max 100 words)"
 }`
         },
         {
@@ -196,7 +201,10 @@ Return as JSON: {
     });
 
     const content = response.choices[0].message.content;
+    console.log("[AI Analysis] Raw OpenAI response:", content);
+
     if (!content) {
+      console.warn("[AI Analysis] No content in OpenAI response");
       return {
         title: "Not specified",
         company: "Not specified",
@@ -206,16 +214,24 @@ Return as JSON: {
       };
     }
 
-    const parsed = JSON.parse(content);
-    return {
-      title: parsed.title,
-      company: parsed.company,
-      location: parsed.location,
-      positionLevel: parsed.positionLevel,
-      candidateProfile: parsed.candidateProfile
-    };
+    try {
+      const parsed = JSON.parse(content);
+      const result = {
+        title: parsed.title || "Not specified",
+        company: parsed.company || "Not specified",
+        location: parsed.location || "Not specified",
+        positionLevel: parsed.positionLevel || "Not specified",
+        candidateProfile: parsed.candidateProfile || "Unable to generate candidate profile"
+      };
+
+      console.log("[AI Analysis] Extracted job details:", result);
+      return result;
+    } catch (parseError) {
+      console.error("[AI Analysis] Error parsing OpenAI response:", parseError);
+      throw new Error("Failed to parse job details from AI response");
+    }
   } catch (error) {
-    console.error("Error analyzing job description:", error);
+    console.error("[AI Analysis] Error during job description analysis:", error);
     return {
       title: "Not specified",
       company: "Not specified",
@@ -370,6 +386,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update the resume optimization endpoint to better handle manual input
   app.post("/api/resume/:id/optimize", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -388,6 +405,7 @@ export function registerRoutes(app: Express): Server {
       if (jobUrl) {
         jobDetails = await extractJobDetails(jobUrl);
       } else {
+        console.log("[Manual Input] Processing manual job description");
         // Use AI to analyze manual job description
         const analysis = await analyzeJobDescription(jobDescription);
         jobDetails = {
@@ -398,6 +416,7 @@ export function registerRoutes(app: Express): Server {
           positionLevel: analysis.positionLevel,
           candidateProfile: analysis.candidateProfile
         };
+        console.log("[Manual Input] Extracted job details:", jobDetails);
       }
 
       const optimized = await optimizeResume(uploadedResume.content, jobDescription);
@@ -407,7 +426,8 @@ export function registerRoutes(app: Express): Server {
       // Clean up job title for filename
       const cleanJobTitle = jobDetails.title
         .replace(/[^a-zA-Z0-9\s]/g, '')
-        .replace(/\s+/g, '_');
+        .replace(/\s+/g, '_')
+        .substring(0, 50); // Limit length
 
       // Create new filename: initials_jobTitle.pdf
       const newFilename = `${initials}_${cleanJobTitle}.pdf`;
