@@ -59,7 +59,7 @@ export const coverLettersRelations = relations(coverLetters, ({ one }) => ({
   }),
 }));
 
-// Insert schemas remain the same
+// Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -81,7 +81,6 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     uploadedResumeId: true,
   });
 
-// Update cover letter schema to require optimizedResumeId
 export const insertCoverLetterSchema = createInsertSchema(coverLetters)
   .pick({
     content: true,
@@ -89,7 +88,7 @@ export const insertCoverLetterSchema = createInsertSchema(coverLetters)
     optimizedResumeId: true,
   });
 
-// Types remain the same
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
