@@ -44,7 +44,16 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       return res.json();
     },
     onSuccess: (data: OptimizedResume & { optimizationDetails: any }) => {
-      setExtractedDetails(data.jobDetails);
+      // Ensure we include the description field when setting extracted details
+      setExtractedDetails({
+        title: data.jobDetails.title,
+        company: data.jobDetails.company,
+        location: data.jobDetails.location,
+        description: data.jobDescription, // Add the missing description field
+        salary: data.jobDetails.salary,
+        positionLevel: data.jobDetails.positionLevel,
+        candidateProfile: data.jobDetails.candidateProfile
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       onOptimized(data);
       toast({
@@ -165,6 +174,10 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
                   <TableCell>{extractedDetails.positionLevel}</TableCell>
                 </TableRow>
               )}
+              <TableRow>
+                <TableCell className="font-medium">Description</TableCell>
+                <TableCell>{extractedDetails.description}</TableCell>
+              </TableRow>
             </TableBody>
           </Table>
 
