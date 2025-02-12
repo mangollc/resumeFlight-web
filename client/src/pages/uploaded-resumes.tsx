@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Resume } from "@shared/schema";
+import { UploadedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { FileText, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -28,16 +28,16 @@ import {
 export default function UploadedResumesPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { data: resumes, isLoading } = useQuery<Resume[]>({
-    queryKey: ["/api/resume"],
+  const { data: resumes, isLoading } = useQuery<UploadedResume[]>({
+    queryKey: ["/api/uploaded-resumes"],
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/resume/${id}`);
+      await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       toast({
         title: "Success",
         description: "Resume deleted successfully from uploaded resumes",
@@ -91,23 +91,17 @@ export default function UploadedResumesPage() {
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    {resume.optimizedContent ? (
-                      <span className="text-primary">Optimized</span>
-                    ) : (
-                      <span className="text-muted-foreground">Original</span>
-                    )}
+                    <span className="text-muted-foreground">Original</span>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    {!resume.optimizedContent && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Optimize
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Optimize
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm">
