@@ -210,25 +210,52 @@ Return as JSON: {
   }
 }
 
-// Fix the createPDF function
+// Update the createPDF function
 async function createPDF(content: string): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({
+        margin: 50,
+        size: 'A4',
+        info: {
+          Title: 'Cover Letter',
+          Author: 'Resume Optimizer',
+          Subject: 'Cover Letter'
+        }
+      });
+
       const chunks: Buffer[] = [];
 
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-      doc.fontSize(12)
-         .font('Helvetica')
-         .text(content, {
-           align: 'left',
-           lineGap: 5
-         });
+      // Set up fonts and styling
+      doc.font('Helvetica')
+         .fontSize(11)
+         .lineGap(2);
+
+      // Split content into paragraphs and handle line breaks
+      const paragraphs = content.split('\n\n');
+
+      paragraphs.forEach((paragraph, index) => {
+        if (index > 0) {
+          doc.moveDown();
+        }
+
+        // Replace single newlines with spaces within paragraphs
+        const formattedParagraph = paragraph.replace(/\n(?!\n)/g, ' ').trim();
+
+        doc.text(formattedParagraph, {
+          align: 'left',
+          lineGap: 5,
+          paragraphGap: 10,
+          columns: 1
+        });
+      });
 
       doc.end();
     } catch (error) {
+      console.error('PDF generation error:', error);
       reject(error);
     }
   });
@@ -368,13 +395,16 @@ export function registerRoutes(app: Express): Server {
 
       const generated = await generateCoverLetter(optimizedResume.content, optimizedResume.jobDescription);
 
-      // Create cover letter with proper optimizedResumeId
+      // Ensure filename has .pdf extension
+      const filename = `cover_letter_${optimizedResume.metadata.filename}`;
+      const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+
       const coverLetter = await storage.createCoverLetter({
         content: generated.coverLetter,
         optimizedResumeId: optimizedResume.id,
         userId: req.user!.id,
         metadata: {
-          filename: `cover_letter_${optimizedResume.metadata.filename}`,
+          filename: pdfFilename,
           generatedAt: new Date().toISOString()
         }
       });
@@ -400,8 +430,14 @@ export function registerRoutes(app: Express): Server {
 
       const pdfBuffer = await createPDF(coverLetter.content);
 
+      // Ensure proper filename with .pdf extension
+      const filename = coverLetter.metadata.filename.endsWith('.pdf') 
+        ? coverLetter.metadata.filename 
+        : `${coverLetter.metadata.filename}.pdf`;
+
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${coverLetter.metadata.filename}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
       res.send(pdfBuffer);
     } catch (error: any) {
       console.error("Download error:", error);
