@@ -18,10 +18,8 @@ function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 flex flex-col ml-64">
-        <div className="container mx-auto px-6 py-8">
-          {children}
-        </div>
+      <main className="flex-1 flex flex-col pl-64 p-8">
+        {children}
       </main>
     </div>
   );

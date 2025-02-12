@@ -20,15 +20,17 @@ export default function UploadedResumesPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4">
-        <div className="h-4 bg-muted rounded w-1/4"></div>
-        <div className="h-32 bg-muted rounded"></div>
+      <div className="flex-1 p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-muted rounded w-1/4"></div>
+          <div className="h-32 bg-muted rounded"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 p-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
         <Button onClick={() => setLocation("/")}>Upload New Resume</Button>

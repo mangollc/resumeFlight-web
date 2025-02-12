@@ -15,7 +15,7 @@ export default function SettingsPage() {
   const { user, logoutMutation } = useAuth();
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 p-8 space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
 
       <div className="max-w-2xl space-y-6">
