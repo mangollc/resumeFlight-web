@@ -13,6 +13,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface NavItem {
   title: string;
@@ -93,16 +99,18 @@ export function Sidebar() {
       <div 
         className={cn(
           "hidden lg:block fixed h-screen transition-all duration-300 ease-in-out z-40",
-          collapsed ? "w-[80px]" : "w-[280px]"
+          collapsed ? "w-[70px]" : "w-[280px]"
         )}
       >
         <nav
           className={cn(
-            "h-full flex flex-col border-r bg-background/95 backdrop-blur-sm p-6",
-            "shadow-lg shadow-blue-500/5"
+            "h-full flex flex-col border-r bg-background/95 backdrop-blur-sm",
+            "shadow-lg shadow-blue-500/5",
+            "py-6",
+            collapsed ? "px-2" : "px-6"
           )}
         >
-          <div className="flex justify-end mb-6">
+          <div className={cn("flex", collapsed ? "justify-center" : "justify-end", "mb-6")}>
             <Button
               variant="ghost"
               size="icon"
@@ -117,29 +125,41 @@ export function Sidebar() {
             </Button>
           </div>
           <div className="space-y-4 py-4">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={location === item.href ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full relative overflow-hidden group transition-all duration-200",
-                    "bg-gradient-to-r from-transparent to-transparent",
-                    "hover:from-blue-500/10 hover:to-blue-500/5",
-                    location === item.href && "bg-gradient-to-r from-blue-500/20 to-blue-500/10",
-                    collapsed ? "justify-center px-2" : "justify-start"
-                  )}
-                  disabled={item.disabled}
-                >
-                  <item.icon className={cn("h-4 w-4", !collapsed && "mr-2")} />
-                  {!collapsed && (
-                    <span className="truncate">{item.title}</span>
-                  )}
+            <TooltipProvider>
+              {navItems.map((item) => (
+                <Tooltip key={item.href} delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Link href={item.href}>
+                      <Button
+                        variant={location === item.href ? "secondary" : "ghost"}
+                        className={cn(
+                          "w-full relative overflow-hidden group transition-all duration-200",
+                          "bg-gradient-to-r from-transparent to-transparent",
+                          "hover:from-blue-500/10 hover:to-blue-500/5",
+                          location === item.href && "bg-gradient-to-r from-blue-500/20 to-blue-500/10",
+                          collapsed ? "justify-center p-2" : "justify-start"
+                        )}
+                        disabled={item.disabled}
+                      >
+                        <item.icon className={cn(
+                          "h-5 w-5 transition-all",
+                          !collapsed && "mr-2",
+                          item.disabled && "opacity-50"
+                        )} />
+                        {!collapsed && (
+                          <span className="truncate">{item.title}</span>
+                        )}
+                      </Button>
+                    </Link>
+                  </TooltipTrigger>
                   {collapsed && (
-                    <span className="sr-only">{item.title}</span>
+                    <TooltipContent side="right">
+                      {item.title}
+                    </TooltipContent>
                   )}
-                </Button>
-              </Link>
-            ))}
+                </Tooltip>
+              ))}
+            </TooltipProvider>
           </div>
         </nav>
       </div>
@@ -148,7 +168,7 @@ export function Sidebar() {
       <div
         className={cn(
           "lg:ml-[280px] transition-all duration-300",
-          collapsed && "lg:ml-[80px]"
+          collapsed && "lg:ml-[70px]"
         )}
       />
     </>
