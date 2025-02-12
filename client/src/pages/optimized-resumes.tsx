@@ -111,7 +111,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   return (
     <>
-      <TableRow className="cursor-pointer hover:bg-muted/50 even:bg-muted/5" onClick={() => setIsExpanded(!isExpanded)}>
+      <TableRow className={`cursor-pointer hover:bg-muted/60 even:bg-muted/10 dark:even:bg-muted/20 ${isExpanded ? 'bg-muted/5 dark:bg-muted/10' : ''}`} onClick={() => setIsExpanded(!isExpanded)}>
         <TableCell>
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
