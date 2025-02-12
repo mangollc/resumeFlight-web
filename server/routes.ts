@@ -26,6 +26,12 @@ interface JobDetails {
   keyPoints?: string[];
   keyRequirements?: string[];
   skillsAndTools?: string[];
+  metrics?: {
+    keywords?: number;
+    skills?: number;
+    experience?: number;
+    overall?: number;
+  };
 }
 
 const upload = multer({
@@ -180,18 +186,32 @@ async function analyzeJobDescription(description: string) {
       messages: [
         {
           role: "system",
-          content: `Analyze the job description and extract key information. Follow these rules strictly:
+          content: `Analyze the job description and extract key information in a structured format. Follow these rules strictly:
 
-1. Extract 3-5 key requirements (each under 50 words)
-2. Extract specific skills, tools, and technologies required
-3. Determine position level based on requirements
-4. Calculate match metrics based on requirements complexity
+1. First analyze and identify:
+   - Job title/position
+   - Company name
+   - Location (include if Remote)
+   - Position level (Senior/Mid-level/Junior/Entry-level/Intern)
+
+2. Then extract:
+   - 3-5 key requirements (each under 50 words)
+   - Required skills and tools (specific technologies, software, programming languages, etc.)
+
+3. Calculate match metrics based on:
+   - Keywords relevance
+   - Required skills match
+   - Experience level match
+   - Overall fit
 
 Return in this exact JSON format:
 {
+  "title": "exact job title",
+  "company": "company name",
+  "location": "job location",
   "positionLevel": "Senior|Mid-level|Junior|Entry-level|Intern",
   "keyRequirements": ["requirement1", "requirement2", "requirement3"],
-  "skillsAndTools": ["skill1", "skill2", "tool1", "tool2"],
+  "skillsAndTools": ["skill1", "skill2", "technology1", "software1"],
   "metrics": {
     "keywords": number 0-100,
     "skills": number 0-100,
@@ -204,7 +224,8 @@ Return in this exact JSON format:
           role: "user",
           content: description
         }
-      ]
+      ],
+      response_format: { type: "json_object" }
     });
 
     const content = response.choices[0].message.content;
@@ -218,6 +239,9 @@ Return in this exact JSON format:
     try {
       const parsed = JSON.parse(content);
       return {
+        title: parsed.title || "Not specified",
+        company: parsed.company || "Not specified",
+        location: parsed.location || "Not specified",
         positionLevel: parsed.positionLevel || "Not specified",
         keyRequirements: parsed.keyRequirements || ["Unable to extract requirements"],
         skillsAndTools: parsed.skillsAndTools || ["No specific skills/tools found"],
@@ -241,6 +265,9 @@ Return in this exact JSON format:
 // Helper function for default analysis
 function getDefaultAnalysis() {
   return {
+    title: "Not specified",
+    company: "Not specified",
+    location: "Not specified",
     positionLevel: "Not specified",
     keyRequirements: ["Unable to extract requirements"],
     skillsAndTools: ["No specific skills/tools found"],
@@ -439,9 +466,9 @@ export function registerRoutes(app: Express): Server {
         finalJobDescription = jobDescription;
         const analysis = await analyzeJobDescription(jobDescription);
         jobDetails = {
-          title: "Manual Input",
-          company: "Not specified",
-          location: "Not specified",
+          title: analysis.title || "Manual Input",
+          company: analysis.company || "Not specified",
+          location: analysis.location || "Not specified",
           description: jobDescription,
           positionLevel: analysis.positionLevel,
           keyRequirements: analysis.keyRequirements,

@@ -37,6 +37,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
+  const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
 
   const optimizeMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
@@ -59,6 +60,9 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
         title: "Success",
         description: "Resume optimized successfully",
       });
+      // Reset input fields
+      setJobUrl("");
+      setJobDescription("");
     },
     onError: (error: Error) => {
       if (error.message.includes("dynamically loaded or require authentication")) {
@@ -68,10 +72,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
           variant: "destructive",
           duration: 6000,
         });
-        const manualTab = document.querySelector('[value="manual"]') as HTMLElement;
-        if (manualTab) {
-          manualTab.click();
-        }
+        setActiveTab("manual");
       } else {
         toast({
           title: "Error",
@@ -94,16 +95,41 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
     }
 
     optimizeMutation.mutate(
-      jobUrl ? { jobUrl } : { jobDescription: jobDescription.trim() }
+      activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
     );
+  };
+
+  const getSkillBadgeColor = (skill: string) => {
+    // Categorize skills and return appropriate color classes
+    const skillTypes = {
+      programming: ["javascript", "python", "java", "c++", "typescript", "react", "node"],
+      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel"],
+      database: ["sql", "mongodb", "postgresql", "mysql", "oracle"],
+      tools: ["git", "docker", "kubernetes", "aws", "azure", "jira"]
+    };
+
+    const lowerSkill = skill.toLowerCase();
+    if (skillTypes.programming.some(s => lowerSkill.includes(s))) {
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
+    }
+    if (skillTypes.software.some(s => lowerSkill.includes(s))) {
+      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100";
+    }
+    if (skillTypes.database.some(s => lowerSkill.includes(s))) {
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
+    }
+    if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
+      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100";
+    }
+    return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100";
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Tabs defaultValue="url" className="w-full">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="url">Job URL</TabsTrigger>
-          <TabsTrigger value="manual">Manual Input</TabsTrigger>
+          <TabsTrigger value="url" disabled={optimizeMutation.isPending || !!jobDescription}>Job URL</TabsTrigger>
+          <TabsTrigger value="manual" disabled={optimizeMutation.isPending || !!jobUrl}>Manual Input</TabsTrigger>
         </TabsList>
 
         <TabsContent value="url" className="space-y-4">
@@ -114,6 +140,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
               value={jobUrl}
               onChange={(e) => setJobUrl(e.target.value)}
               className="w-full"
+              disabled={optimizeMutation.isPending}
             />
             <p className="text-sm text-muted-foreground">
               Enter the URL of the job posting for best results
@@ -128,6 +155,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               className="min-h-[200px] w-full"
+              disabled={optimizeMutation.isPending}
             />
             <p className="text-sm text-muted-foreground">
               Manually enter the job description if URL is not available
@@ -191,7 +219,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
                       {extractedDetails.skillsAndTools.map((skill, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary-foreground"
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSkillBadgeColor(skill)} border border-current/20`}
                         >
                           {skill}
                         </span>
