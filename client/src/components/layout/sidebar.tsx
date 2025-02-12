@@ -55,13 +55,22 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Trigger */}
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetTrigger asChild className="lg:hidden fixed top-4 left-4 z-50">
-          <Button variant="ghost" size="icon" className="bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] text-foreground hover:from-[#FFDFBA] hover:to-[#FFFFBA]">
+      {/* Mobile Menu */}
+      <div className="lg:hidden flex items-center h-16 px-4 border-b bg-background/95 backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
+        <SheetTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] text-foreground hover:from-[#FFDFBA] hover:to-[#FFFFBA]"
+            onClick={() => setIsMobileMenuOpen(true)}
+          >
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
+        <h1 className="text-xl font-semibold ml-4">Dashboard</h1>
+      </div>
+
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent side="left" className="p-0 w-[300px]">
           <nav className="h-full flex flex-col border-r bg-background p-6">
             <div className="space-y-4 py-4">
@@ -76,6 +85,7 @@ export function Sidebar() {
                       location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
                     )}
                     disabled={item.disabled}
+                    onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <item.icon className={cn(
                       "h-5 w-5 mr-3",
@@ -92,34 +102,43 @@ export function Sidebar() {
 
       {/* Desktop Sidebar - Always Visible */}
       <div className="hidden lg:block fixed h-screen w-[240px] z-40">
-        <nav className="h-full flex flex-col border-r bg-background/95 backdrop-blur-sm py-6 px-4">
-          <div className="space-y-4 py-4">
-            {navItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <Button
-                  variant={location === item.href ? "secondary" : "ghost"}
-                  className={cn(
-                    "w-full justify-start relative overflow-hidden group",
-                    "bg-gradient-to-r from-transparent to-transparent",
-                    "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
-                    location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
-                  )}
-                  disabled={item.disabled}
-                >
-                  <item.icon className={cn(
-                    "h-5 w-5 mr-3",
-                    item.disabled && "opacity-50"
-                  )} />
-                  <span className="truncate">{item.title}</span>
-                </Button>
-              </Link>
-            ))}
+        <nav className="h-full flex flex-col border-r bg-background/95 backdrop-blur-sm">
+          <div className="p-6 border-b">
+            <h1 className="text-xl font-semibold bg-gradient-to-r from-[#FFB3BA] to-[#FFDFBA] bg-clip-text text-transparent">
+              Resume Optimizer
+            </h1>
+          </div>
+          <div className="flex-1 px-4 py-6">
+            <div className="space-y-2">
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <Button
+                    variant={location === item.href ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full justify-start relative overflow-hidden group",
+                      "bg-gradient-to-r from-transparent to-transparent",
+                      "hover:from-[#FFB3BA]/10 hover:to-[#FFDFBA]/10",
+                      location === item.href && "bg-gradient-to-r from-[#FFB3BA]/20 to-[#FFDFBA]/20"
+                    )}
+                    disabled={item.disabled}
+                  >
+                    <item.icon className={cn(
+                      "h-5 w-5 mr-3",
+                      item.disabled && "opacity-50"
+                    )} />
+                    <span className="truncate">{item.title}</span>
+                  </Button>
+                </Link>
+              ))}
+            </div>
           </div>
         </nav>
       </div>
 
-      {/* Content Wrapper with Padding */}
-      <div className="lg:ml-[240px]" />
+      {/* Mobile Content Padding */}
+      <div className="lg:hidden h-16" />
+      {/* Desktop Content Padding */}
+      <div className="hidden lg:block lg:pl-[240px]" />
     </>
   );
 }
