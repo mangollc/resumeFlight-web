@@ -82,9 +82,9 @@ export default function UploadedResumesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[200px]">File Name</TableHead>
-                <TableHead className="w-[150px]">Upload Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="w-[40%]">File Name</TableHead>
+                <TableHead className="w-[40%]">Upload Date</TableHead>
+                <TableHead className="w-[20%] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,7 +96,7 @@ export default function UploadedResumesPage() {
                   <TableCell>
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right w-[100px]">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm">
