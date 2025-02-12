@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Maximize2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import ComparisonSlider from "./comparison-slider";
 import {
   Dialog,
   DialogContent,
@@ -71,33 +72,6 @@ export default function Preview({ resume }: PreviewProps) {
     return "bg-red-500";
   };
 
-  const ComparisonView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Original Version</h3>
-        <div className="prose prose-sm max-w-none dark:prose-invert">
-          <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
-            <pre className="whitespace-pre-wrap font-sans text-sm">
-              {(resume as OptimizedResume).originalContent || resume.content}
-            </pre>
-          </div>
-        </div>
-      </div>
-      {isOptimized && (
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg">Optimized Version</h3>
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <div className="max-h-[600px] overflow-y-auto rounded-md bg-muted p-4">
-              <pre className="whitespace-pre-wrap font-sans text-sm">
-                {resume.content}
-              </pre>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <Card className="h-full">
       <CardContent className="p-6">
@@ -126,14 +100,19 @@ export default function Preview({ resume }: PreviewProps) {
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
                       <Maximize2 className="h-4 w-4 mr-2" />
-                      View Full
+                      Compare Versions
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Resume Comparison</DialogTitle>
                     </DialogHeader>
-                    <ComparisonView />
+                    <div className="mt-4">
+                      <ComparisonSlider
+                        beforeContent={(resume as OptimizedResume).originalContent || resume.content}
+                        afterContent={resume.content}
+                      />
+                    </div>
                   </DialogContent>
                 </Dialog>
                 {isOptimized && (
