@@ -114,7 +114,7 @@ export default function Preview({ resume }: PreviewProps) {
           {isOptimized && (
             <div className="mt-6 space-y-6">
               <div className="space-y-4">
-                <h4 className="font-semibold">Match Analysis</h4>
+                <h4 className="font-semibold">Resume Match Analysis</h4>
                 <div className="grid gap-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
@@ -158,16 +158,6 @@ export default function Preview({ resume }: PreviewProps) {
                   </div>
                 </div>
               </div>
-              {resume.jobDetails.keyRequirements && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Key Requirements</h4>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                    {resume.jobDetails.keyRequirements.map((point, index) => (
-                      <li key={index}>{point}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           )}
         </div>
