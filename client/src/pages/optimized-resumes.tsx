@@ -130,7 +130,7 @@ export default function OptimizedResumesPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <a 
-                            href={`/api/cover-letter/${resume.id}/download`}
+                            href={`/api/optimized-resume/${resume.id}/cover-letter/download`}
                             download
                             className="flex items-center"
                           >

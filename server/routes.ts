@@ -524,7 +524,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add download endpoint for optimized resumes
+  // Update the download endpoints
   app.get("/api/optimized-resume/:id/download", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -535,9 +535,37 @@ export function registerRoutes(app: Express): Server {
 
       // Create PDF for optimized resume
       const pdfBuffer = await createPDF(resume.content);
-      const filename = resume.metadata.filename.endsWith('.pdf') 
-        ? resume.metadata.filename 
+      const filename = resume.metadata.filename.endsWith('.pdf')
+        ? resume.metadata.filename
         : `${resume.metadata.filename}.pdf`;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Download error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/optimized-resume/:id/cover-letter/download", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+      if (!optimizedResume) return res.status(404).send("Optimized resume not found");
+      if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
+
+      const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
+      if (!coverLetters.length) return res.status(404).send("Cover letter not found");
+
+      const coverLetter = coverLetters[0]; // Get the first cover letter
+      const pdfBuffer = await createPDF(coverLetter.content);
+
+      const filename = coverLetter.metadata.filename.endsWith('.pdf')
+        ? coverLetter.metadata.filename
+        : `${coverLetter.metadata.filename}.pdf`;
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
