@@ -22,7 +22,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   userId: integer("user_id").notNull(),
   uploadedResumeId: integer("uploaded_resume_id").notNull(),
   content: text("content").notNull(),
-  originalContent: text("original_content").notNull(), // Added field
   jobDescription: text("job_description").notNull(),
   jobUrl: text("job_url"),
   jobDetails: jsonb("job_details").notNull(),
@@ -32,7 +31,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     keywords: 0,
     skills: 0,
     experience: 0
-  }),
+  }), // Add default metrics
   createdAt: text("created_at").notNull(),
 });
 
@@ -81,7 +80,6 @@ export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
 export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
   .pick({
     content: true,
-    originalContent: true, // Added field to insert schema
     jobDescription: true,
     jobUrl: true,
     jobDetails: true,
@@ -120,8 +118,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     location: string;
     salary?: string;
     positionLevel?: string;
-    keyRequirements?: string[];
-    skillsAndTools?: string[];
+    keyPoints?: string[];
   };
   jobUrl: string | null;
   metrics: {
@@ -130,7 +127,6 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     skills: number;
     experience: number;
   };
-  originalContent: string; // Added field to type
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 
