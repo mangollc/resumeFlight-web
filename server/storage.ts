@@ -13,7 +13,8 @@ export interface IStorage {
 
   // Resume operations
   getResume(id: number): Promise<Resume | undefined>;
-  createResume(resume: InsertResume & { userId: number }): Promise<Resume>;
+  createResume(resume: InsertResume & { userId: number, jobDescription: string | null }): Promise<Resume>;
+  updateResume(id: number, updates: Partial<Resume>): Promise<Resume>;
   getResumesByUser(userId: number): Promise<Resume[]>;
 
   sessionStore: session.Store;
@@ -52,7 +53,7 @@ export class DatabaseStorage implements IStorage {
     return resume;
   }
 
-  async createResume(resume: InsertResume & { userId: number }): Promise<Resume> {
+  async createResume(resume: InsertResume & { userId: number, jobDescription: string | null }): Promise<Resume> {
     const [newResume] = await db
       .insert(resumes)
       .values({
@@ -62,6 +63,15 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return newResume;
+  }
+
+  async updateResume(id: number, updates: Partial<Resume>): Promise<Resume> {
+    const [updated] = await db
+      .update(resumes)
+      .set(updates)
+      .where(eq(resumes.id, id))
+      .returning();
+    return updated;
   }
 
   async getResumesByUser(userId: number): Promise<Resume[]> {

@@ -14,22 +14,27 @@ const upload = multer({
 });
 
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
-  if (mimetype === "application/pdf") {
-    const pdfParser = new PDFParser(null);
-    return new Promise((resolve, reject) => {
-      pdfParser.on("pdfParser_dataReady", (pdfData) => {
-        resolve(pdfData.Pages.map(page => 
-          page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
-        ).join("\n"));
+  try {
+    if (mimetype === "application/pdf") {
+      const pdfParser = new PDFParser(null);
+      return new Promise((resolve, reject) => {
+        pdfParser.on("pdfParser_dataReady", (pdfData) => {
+          resolve(pdfData.Pages.map(page => 
+            page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
+          ).join("\n"));
+        });
+        pdfParser.on("pdfParser_dataError", reject);
+        pdfParser.parseBuffer(buffer);
       });
-      pdfParser.on("pdfParser_dataError", reject);
-      pdfParser.parseBuffer(buffer);
-    });
-  } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    const result = await mammoth.extractRawText({ buffer });
-    return result.value;
+    } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    }
+    throw new Error("Unsupported file type");
+  } catch (error) {
+    console.error("Error parsing resume:", error);
+    throw new Error("Failed to parse resume file");
   }
-  throw new Error("Unsupported file type");
 }
 
 export function registerRoutes(app: Express): Server {
@@ -41,11 +46,9 @@ export function registerRoutes(app: Express): Server {
       if (!req.file) return res.status(400).send("No file uploaded");
 
       const content = await parseResume(req.file.buffer, req.file.mimetype);
-      const jobDescription = req.body.jobDescription;
 
       const validatedData = insertResumeSchema.parse({
         originalContent: content,
-        jobDescription,
         metadata: {
           filename: req.file.originalname,
           fileType: req.file.mimetype,
@@ -55,11 +58,13 @@ export function registerRoutes(app: Express): Server {
 
       const resume = await storage.createResume({
         ...validatedData,
+        jobDescription: null,
         userId: req.user!.id
       });
 
       res.json(resume);
     } catch (error: any) {
+      console.error("Upload error:", error);
       res.status(400).json({ error: error.message });
     }
   });
@@ -67,16 +72,26 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/resume/:id/optimize", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
+      const { jobDescription } = req.body;
+      if (!jobDescription) {
+        return res.status(400).json({ error: "Job description is required" });
+      }
 
       const resume = await storage.getResume(parseInt(req.params.id));
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      const optimized = await optimizeResume(resume.originalContent, resume.jobDescription);
-      resume.optimizedContent = optimized.optimizedContent;
+      const optimized = await optimizeResume(resume.originalContent, jobDescription);
 
-      res.json(optimized);
+      // Update resume with optimization results
+      const updated = await storage.updateResume(resume.id, {
+        optimizedContent: optimized.optimizedContent,
+        jobDescription
+      });
+
+      res.json(updated);
     } catch (error: any) {
+      console.error("Optimization error:", error);
       res.status(500).json({ error: error.message });
     }
   });
@@ -87,6 +102,7 @@ export function registerRoutes(app: Express): Server {
       const resumes = await storage.getResumesByUser(req.user!.id);
       res.json(resumes);
     } catch (error: any) {
+      console.error("Get resumes error:", error);
       res.status(500).json({ error: error.message });
     }
   });
