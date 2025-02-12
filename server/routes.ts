@@ -343,7 +343,8 @@ export function registerRoutes(app: Express): Server {
       if (!resume) return res.status(404).send("Resume not found");
       if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
-      await storage.deleteResume(parseInt(req.params.id));
+      // Only delete if it's not optimized or has no associated optimized version
+      await storage.deleteUploadedResume(parseInt(req.params.id));
       res.sendStatus(200);
     } catch (error: any) {
       console.error("Delete resume error:", error);

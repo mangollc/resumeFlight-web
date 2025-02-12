@@ -16,7 +16,7 @@ export interface IStorage {
   createResume(resume: InsertResume & { userId: number, jobDescription: string | null }): Promise<Resume>;
   updateResume(id: number, updates: Partial<Resume>): Promise<Resume>;
   getResumesByUser(userId: number): Promise<Resume[]>;
-  deleteResume(id: number): Promise<void>; // Added deleteResume method
+  deleteUploadedResume(id: number): Promise<void>; 
 
   // Cover letter operations
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
@@ -101,7 +101,7 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async deleteResume(id: number): Promise<void> { // Added deleteResume method implementation
+  async deleteUploadedResume(id: number): Promise<void> { 
     await db.delete(resumes).where(eq(resumes.id, id));
   }
 

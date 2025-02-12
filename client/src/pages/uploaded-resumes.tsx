@@ -40,7 +40,7 @@ export default function UploadedResumesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
       toast({
         title: "Success",
-        description: "Resume deleted successfully",
+        description: "Resume deleted successfully from uploaded resumes",
       });
     },
     onError: (error: Error) => {
@@ -117,9 +117,11 @@ export default function UploadedResumesPage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Resume</AlertDialogTitle>
+                          <AlertDialogTitle>Delete Uploaded Resume</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete this resume? This action cannot be undone.
+                            This will only remove the resume from your uploaded resumes list. 
+                            Any optimized versions will remain available in the Optimized Resumes section.
+                            Are you sure you want to continue?
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
