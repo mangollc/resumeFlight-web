@@ -57,55 +57,97 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
     const response = await axios.get(url);
     const $ = cheerio.load(response.data);
 
-    // Common selectors for different job boards
-    const titleSelectors = ['h1', '.job-title', '[data-testid="job-title"]', '.position-title'];
-    const companySelectors = ['.company-name', '[data-testid="company-name"]', '.employer'];
-    const locationSelectors = ['.location', '[data-testid="location"]', '.job-location'];
-    const salarySelectors = ['.salary', '[data-testid="salary-range"]', '.compensation'];
-    const descriptionSelectors = [
-      '.job-description',
-      '#job-description',
-      '[data-testid="job-description"]',
-      '.description'
-    ];
+    // LinkedIn specific selectors
+    const linkedInSelectors = {
+      title: ['.top-card-layout__title', '.job-details-jobs-unified-top-card__job-title'],
+      company: ['.topcard__org-name-link', '.job-details-jobs-unified-top-card__company-name'],
+      location: ['.topcard__flavor--bullet', '.job-details-jobs-unified-top-card__bullet'],
+      salary: ['.compensation__salary', '.job-details-jobs-unified-top-card__salary-info'],
+      description: ['.description__text', '.job-details-jobs-unified-top-card__job-description']
+    };
 
-    // Helper function to find content using multiple selectors
-    const findContent = (selectors: string[]): string => {
-      for (const selector of selectors) {
+    // Generic job board selectors as fallback
+    const genericSelectors = {
+      title: ['h1', '.job-title', '[data-testid="job-title"]', '.position-title'],
+      company: ['.company-name', '[data-testid="company-name"]', '.employer'],
+      location: ['.location', '[data-testid="location"]', '.job-location'],
+      salary: ['.salary', '[data-testid="salary-range"]', '.compensation'],
+      description: [
+        '.job-description',
+        '#job-description',
+        '[data-testid="job-description"]',
+        '.description'
+      ]
+    };
+
+    // Helper function to find content using multiple selectors with improved text cleaning
+    const findContent = (selectors: string[], type: string): string => {
+      // Try LinkedIn specific selectors first
+      for (const selector of linkedInSelectors[type]) {
         const element = $(selector);
         if (element.length) {
-          return element.text().trim();
+          return element.text().trim().replace(/\s+/g, ' ');
         }
       }
+
+      // Try generic selectors as fallback
+      for (const selector of genericSelectors[type]) {
+        const element = $(selector);
+        if (element.length) {
+          return element.text().trim().replace(/\s+/g, ' ');
+        }
+      }
+
       return '';
     };
 
-    // Extract job details
-    const title = findContent(titleSelectors);
-    const company = findContent(companySelectors);
-    let location = findContent(locationSelectors);
-    const salary = findContent(salarySelectors);
-    const description = findContent(descriptionSelectors);
+    // Extract job details with better handling
+    const title = findContent(genericSelectors.title, 'title');
+    const company = findContent(genericSelectors.company, 'company');
+    let location = findContent(genericSelectors.location, 'location');
+    const salary = findContent(genericSelectors.salary, 'salary');
+    let description = findContent(genericSelectors.description, 'description');
 
-    // Check for remote indicators
-    const isRemote = description.toLowerCase().includes('remote') ||
-                    location.toLowerCase().includes('remote') ||
-                    $('body').text().toLowerCase().includes('remote position');
+    // If description is empty, try to get content from the main job content area
+    if (!description) {
+      description = $('.job-view-layout').text().trim() || 
+                   $('.description__text').text().trim() || 
+                   $('main').text().trim();
+    }
+
+    // Check for remote indicators with improved detection
+    const isRemote = [description, location, $('body').text()].some(text => 
+      text.toLowerCase().includes('remote') ||
+      text.toLowerCase().includes('work from home') ||
+      text.toLowerCase().includes('wfh')
+    );
 
     if (isRemote) {
       location = 'Remote';
     }
 
-    return {
+    // Validate extracted data
+    const jobDetails: JobDetails = {
       title: title || 'Not specified',
       company: company || 'Not specified',
       salary: salary || undefined,
       location: location || 'Not specified',
       description: description || $('body').text().trim()
     };
-  } catch (error) {
+
+    // Validate that we have at least some essential information
+    if (!jobDetails.description || jobDetails.description.length < 50) {
+      throw new Error("Could not extract sufficient job details. The page might be dynamically loaded or require authentication.");
+    }
+
+    return jobDetails;
+  } catch (error: any) {
     console.error("Error extracting job details:", error);
-    throw new Error("Failed to extract job details from URL. Please paste the description manually.");
+    throw new Error(
+      error.message === "Could not extract sufficient job details. The page might be dynamically loaded or require authentication."
+        ? error.message
+        : "Failed to extract job details from URL. Please paste the description manually."
+    );
   }
 }
 

@@ -43,14 +43,6 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
     },
     onSuccess: (data) => {
       setExtractedDetails(data.jobDetails);
-      if (!data.jobDetails.description) {
-        toast({
-          title: "Warning",
-          description: "Could not extract job details. Please check the URL or enter details manually.",
-          variant: "destructive",
-        });
-        return;
-      }
       queryClient.invalidateQueries({ queryKey: ["/api/resume"] });
       onOptimized(data);
       toast({
@@ -59,11 +51,26 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      // Check if it's a LinkedIn authentication error
+      if (error.message.includes("dynamically loaded or require authentication")) {
+        toast({
+          title: "LinkedIn Job Detection",
+          description: "LinkedIn jobs require authentication. Please copy and paste the job description manually.",
+          variant: "destructive",
+          duration: 6000,
+        });
+        // Switch to manual input tab
+        const manualTab = document.querySelector('[value="manual"]') as HTMLElement;
+        if (manualTab) {
+          manualTab.click();
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 
