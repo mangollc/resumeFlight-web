@@ -100,7 +100,6 @@ export function Sidebar() {
             </nav>
           </SheetContent>
         </Sheet>
-        <h1 className="text-xl font-semibold ml-4">Navigation</h1>
       </div>
 
       {/* Desktop Sidebar - Static */}
