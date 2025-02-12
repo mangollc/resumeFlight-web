@@ -79,6 +79,12 @@ export default function HomePage() {
               <h2 className="text-xl font-semibold mb-4">Preview</h2>
               <Preview resume={selectedResume} />
             </section>
+            {selectedResume && (
+              <section className="bg-card rounded-lg p-6">
+                <h2 className="text-xl font-semibold mb-4">Cover Letter</h2>
+                <CoverLetterComponent resume={selectedResume} />
+              </section>
+            )}
           </div>
         </div>
 

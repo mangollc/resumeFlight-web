@@ -18,6 +18,16 @@ export const resumes = pgTable("resumes", {
   createdAt: text("created_at").notNull(),
 });
 
+export const coverLetters = pgTable("cover_letters", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  resumeId: integer("resume_id").notNull(),
+  content: text("content").notNull(),
+  jobDescription: text("job_description").notNull(),
+  metadata: jsonb("metadata").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -32,6 +42,16 @@ export const insertResumeSchema = createInsertSchema(resumes)
     jobDescription: z.string().optional(),
   });
 
+export const insertCoverLetterSchema = createInsertSchema(coverLetters)
+  .pick({
+    content: true,
+    jobDescription: true,
+    metadata: true,
+  })
+  .extend({
+    resumeId: z.number(),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Resume = typeof resumes.$inferSelect & {
@@ -42,3 +62,10 @@ export type Resume = typeof resumes.$inferSelect & {
   };
 };
 export type InsertResume = z.infer<typeof insertResumeSchema>;
+export type CoverLetter = typeof coverLetters.$inferSelect & {
+  metadata: {
+    filename: string;
+    generatedAt: string;
+  };
+};
+export type InsertCoverLetter = z.infer<typeof insertCoverLetterSchema>;

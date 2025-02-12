@@ -36,3 +36,37 @@ export async function optimizeResume(resumeText: string, jobDescription: string)
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
 }
+
+export async function generateCoverLetter(resumeText: string, jobDescription: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert cover letter writer. Create a compelling cover letter based on the candidate's resume and the job description. Return the result as a JSON object with the following structure:
+          {
+            "coverLetter": "the generated cover letter text",
+            "highlights": ["key points emphasized"],
+            "confidence": "percentage confidence in match (0-100)"
+          }`
+        },
+        {
+          role: "user",
+          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No response from OpenAI");
+    }
+
+    return JSON.parse(content);
+  } catch (err) {
+    const error = err as Error;
+    throw new Error(`Failed to generate cover letter: ${error.message}`);
+  }
+}

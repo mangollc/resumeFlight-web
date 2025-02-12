@@ -26,7 +26,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
       const pdfParser = new PDFParser(null);
       return new Promise((resolve, reject) => {
         pdfParser.on("pdfParser_dataReady", (pdfData) => {
-          resolve(pdfData.Pages.map(page => 
+          resolve(pdfData.Pages.map(page =>
             page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
           ).join("\n"));
         });
@@ -120,7 +120,7 @@ export function registerRoutes(app: Express): Server {
 
       const resume = await storage.createResume({
         ...validatedData,
-        jobDescription: "",  // Fixed: Use empty string instead of null
+        jobDescription: "",
         userId: req.user!.id
       });
 
@@ -195,6 +195,70 @@ export function registerRoutes(app: Express): Server {
       res.json(resumes);
     } catch (error: any) {
       console.error("Get resumes error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add these new routes after the existing resume routes
+  app.post("/api/resume/:id/cover-letter", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const resume = await storage.getResume(parseInt(req.params.id));
+      if (!resume) return res.status(404).send("Resume not found");
+      if (resume.userId !== req.user!.id) return res.sendStatus(403);
+      if (!resume.jobDescription) return res.status(400).send("No job description available");
+
+      const generated = await generateCoverLetter(resume.originalContent, resume.jobDescription);
+
+      const coverLetter = await storage.createCoverLetter({
+        content: generated.coverLetter,
+        jobDescription: resume.jobDescription,
+        resumeId: resume.id,
+        userId: req.user!.id,
+        metadata: {
+          filename: `cover-letter-${new Date().toISOString()}.pdf`,
+          generatedAt: new Date().toISOString()
+        }
+      });
+
+      res.json({
+        ...coverLetter,
+        highlights: generated.highlights,
+        confidence: generated.confidence
+      });
+    } catch (error: any) {
+      console.error("Cover letter generation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/cover-letter/:id/download", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const coverLetter = await storage.getCoverLetter(parseInt(req.params.id));
+      if (!coverLetter) return res.status(404).send("Cover letter not found");
+      if (coverLetter.userId !== req.user!.id) return res.sendStatus(403);
+
+      const pdfBuffer = await createPDF(coverLetter.content);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${coverLetter.metadata.filename}"`);
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error("Download error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/cover-letter", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      const coverLetters = await storage.getCoverLettersByUser(req.user!.id);
+      res.json(coverLetters);
+    } catch (error: any) {
+      console.error("Get cover letters error:", error);
       res.status(500).json({ error: error.message });
     }
   });
