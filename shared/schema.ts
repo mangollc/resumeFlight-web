@@ -29,7 +29,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   createdAt: text("created_at").notNull(),
 });
 
-// Add index to optimized_resume_id for better query performance
 export const coverLetters = pgTable("cover_letters", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -82,6 +81,7 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     uploadedResumeId: true,
   });
 
+// Update cover letter schema to require optimizedResumeId
 export const insertCoverLetterSchema = createInsertSchema(coverLetters)
   .pick({
     content: true,

@@ -368,12 +368,13 @@ export function registerRoutes(app: Express): Server {
 
       const generated = await generateCoverLetter(optimizedResume.content, optimizedResume.jobDescription);
 
+      // Create cover letter with proper optimizedResumeId
       const coverLetter = await storage.createCoverLetter({
         content: generated.coverLetter,
         optimizedResumeId: optimizedResume.id,
         userId: req.user!.id,
         metadata: {
-          filename: `cover_letter_${new Date().toISOString()}.pdf`,
+          filename: `cover_letter_${optimizedResume.metadata.filename}`,
           generatedAt: new Date().toISOString()
         }
       });
