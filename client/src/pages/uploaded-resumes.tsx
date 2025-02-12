@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { UploadedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { FileText, Trash2 } from "lucide-react";
+import { FileText, Trash2, MoreVertical } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -16,6 +16,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -77,7 +84,6 @@ export default function UploadedResumesPage() {
               <TableRow>
                 <TableHead className="w-[200px]">File Name</TableHead>
                 <TableHead className="w-[150px]">Upload Date</TableHead>
-                <TableHead className="w-[150px]">Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -90,50 +96,55 @@ export default function UploadedResumesPage() {
                   <TableCell>
                     {new Date(resume.createdAt).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 border border-blue-200 dark:border-blue-800">
-                      <svg className="w-3 h-3 mr-1 fill-current" viewBox="0 0 12 12">
-                        <circle cx="6" cy="6" r="5"/>
-                      </svg>
-                      Original Version
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Optimize
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">Actions</span>
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Uploaded Resume</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will only remove the resume from your uploaded resumes list. 
-                            Any optimized versions will remain available in the Optimized Resumes section.
-                            Are you sure you want to continue?
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMutation.mutate(resume.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
+                          className="flex items-center"
+                        >
+                          <FileText className="mr-2 h-4 w-4" />
+                          Optimize
+                        </DropdownMenuItem>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Uploaded Resume</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will only remove the resume from your uploaded resumes list. 
+                                Any optimized versions will remain available in the Optimized Resumes section.
+                                Are you sure you want to continue?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(resume.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

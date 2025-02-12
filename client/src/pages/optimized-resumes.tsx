@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,12 +94,6 @@ export default function OptimizedResumesPage() {
                 <TableRow key={resume.id}>
                   <TableCell className="whitespace-nowrap">
                     {new Date(resume.createdAt).toLocaleDateString()}
-                    <Badge variant="outline" className="ml-2 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 border border-green-200 dark:border-green-800 font-semibold">
-                      <svg className="w-3 h-3 mr-1 fill-current" viewBox="0 0 12 12">
-                        <path d="M3.293 9.293a1 1 0 0 1 0-1.414L6.586 4.88 3.293 1.586a1 1 0 1 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0z"/>
-                      </svg>
-                      Optimized Version
-                    </Badge>
                   </TableCell>
                   <TableCell>{resume.jobDetails?.title}</TableCell>
                   <TableCell className="hidden sm:table-cell">
