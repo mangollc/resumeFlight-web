@@ -74,8 +74,8 @@ export function Sidebar() {
             variant="ghost"
             className={cn(
               "w-full justify-start h-10",
-              "transition-colors",
-              location === item.href && "bg-muted",
+              "transition-colors hover:bg-accent",
+              location === item.href && "bg-accent/50 hover:bg-accent/60",
               item.disabled && "opacity-50"
             )}
             disabled={item.disabled}
@@ -122,7 +122,7 @@ export function Sidebar() {
       </div>
 
       {/* Desktop Navigation */}
-      <div className="hidden lg:block fixed top-0 left-0 h-screen w-[200px] border-r bg-background">
+      <div className="hidden lg:block fixed top-0 left-0 h-screen w-[200px] border-r bg-background z-50">
         <div className="flex flex-col h-full py-4">
           <div className="px-3 mb-2">
             <NavigationItems items={mainNavItems} />
