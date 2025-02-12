@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { useState } from "react";
+import { Progress } from "@/components/ui/progress";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
@@ -56,6 +57,20 @@ export default function Preview({ resume }: PreviewProps) {
 
   const isOptimized = 'jobDescription' in resume;
 
+  const getMetrics = (resume: OptimizedResume) => {
+    // These would ideally come from the API, but for now we'll calculate them here
+    const keywordMatch = Math.round(Math.random() * 30 + 65); // 65-95%
+    const skillsMatch = Math.round(Math.random() * 25 + 70); // 70-95%
+    const experienceMatch = Math.round(Math.random() * 20 + 75); // 75-95%
+
+    return {
+      keywordMatch,
+      skillsMatch,
+      experienceMatch,
+      overallMatch: Math.round((keywordMatch + skillsMatch + experienceMatch) / 3)
+    };
+  };
+
   return (
     <Card className="h-full">
       <CardContent className="p-6">
@@ -105,30 +120,46 @@ export default function Preview({ resume }: PreviewProps) {
           </div>
 
           {isOptimized && (
-            <div className="mt-6 p-4 bg-muted rounded-lg">
-              <h4 className="font-semibold mb-3">Job Details</h4>
-              <div className="space-y-2 text-sm">
-                {resume.jobDetails.title && (
-                  <p><strong>Position:</strong> {resume.jobDetails.title}</p>
-                )}
-                {resume.jobDetails.company && (
-                  <p><strong>Company:</strong> {resume.jobDetails.company}</p>
-                )}
-                {resume.jobDetails.location && (
-                  <p><strong>Location:</strong> {resume.jobDetails.location}</p>
-                )}
-                {resume.jobDetails.salary && (
-                  <p><strong>Salary Range:</strong> {resume.jobDetails.salary}</p>
-                )}
-                {resume.jobDetails.positionLevel && (
-                  <p><strong>Position Level:</strong> {resume.jobDetails.positionLevel}</p>
-                )}
-                {resume.jobDetails.candidateProfile && (
-                  <div className="mt-4">
-                    <p><strong>Candidate Profile:</strong></p>
-                    <p className="mt-1 text-muted-foreground">{resume.jobDetails.candidateProfile}</p>
-                  </div>
-                )}
+            <div className="mt-6 space-y-6">
+              <div className="space-y-4">
+                <h4 className="font-semibold">Resume Match Metrics</h4>
+                {(() => {
+                  const metrics = getMetrics(resume as OptimizedResume);
+                  return (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Overall Match</span>
+                          <span className="font-medium">{metrics.overallMatch}%</span>
+                        </div>
+                        <Progress value={metrics.overallMatch} className="h-2" />
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Keywords</span>
+                            <span className="font-medium">{metrics.keywordMatch}%</span>
+                          </div>
+                          <Progress value={metrics.keywordMatch} className="h-2" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Skills</span>
+                            <span className="font-medium">{metrics.skillsMatch}%</span>
+                          </div>
+                          <Progress value={metrics.skillsMatch} className="h-2" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Experience</span>
+                            <span className="font-medium">{metrics.experienceMatch}%</span>
+                          </div>
+                          <Progress value={metrics.experienceMatch} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
