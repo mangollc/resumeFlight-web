@@ -15,6 +15,7 @@ import CoverLetterComponent from "@/components/resume/cover-letter";
 import { useQuery } from "@tanstack/react-query";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { ArrowRight, FileText, Upload } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -30,31 +31,36 @@ export default function HomePage() {
     setOptimizedResume(optimized);
   };
 
-  const SectionTitle = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <h2 className={cn(
-      "text-xl font-semibold mb-4",
-      "bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent",
-      className
-    )}>
-      {children}
-    </h2>
+  const SectionTitle = ({ children, className, number }: { children: React.ReactNode; className?: string; number: number }) => (
+    <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold">
+        {number}
+      </div>
+      <h2 className={cn(
+        "text-xl font-semibold",
+        "bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent",
+        className
+      )}>
+        {children}
+      </h2>
+    </div>
   );
 
   return (
-    <div className="min-h-screen">
-      <header className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome to ResumeFlight</h1>
-        <p className="text-muted-foreground">
+    <div className="min-h-screen max-w-[1400px] mx-auto">
+      <header className="mb-12 text-center lg:text-left">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-3">Welcome to ResumeFlight</h1>
+        <p className="text-muted-foreground text-lg">
           Optimize your resume for your dream job using AI-powered insights
         </p>
       </header>
 
-      <div className="grid gap-6 lg:gap-8 lg:grid-cols-2">
-        {/* Left Column */}
-        <div className="space-y-6 lg:space-y-8">
-          <section className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
-            <SectionTitle>Step 1: Select or Upload Resume</SectionTitle>
-            <div className="space-y-4">
+      <div className="grid gap-8 lg:gap-12 lg:grid-cols-[2fr,3fr]">
+        {/* Left Column - Input Section */}
+        <div className="space-y-8">
+          <section className="bg-card rounded-xl border shadow-sm p-6 hover:shadow-md transition-shadow">
+            <SectionTitle number={1}>Select or Upload Resume</SectionTitle>
+            <div className="space-y-6">
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   variant={uploadMode === 'choose' ? "default" : "outline"}
@@ -64,6 +70,7 @@ export default function HomePage() {
                     uploadMode === 'choose' && "bg-primary text-primary-foreground"
                   )}
                 >
+                  <FileText className="mr-2 h-4 w-4" />
                   Choose Existing
                 </Button>
                 <Button
@@ -74,36 +81,45 @@ export default function HomePage() {
                     uploadMode === 'upload' && "bg-primary text-primary-foreground"
                   )}
                 >
+                  <Upload className="mr-2 h-4 w-4" />
                   Upload New
                 </Button>
               </div>
 
               {uploadMode === 'choose' && resumes && resumes.length > 0 ? (
-                <Select
-                  value={selectedResume?.id?.toString()}
-                  onValueChange={(value) => {
-                    const resume = resumes.find(r => r.id.toString() === value);
-                    if (resume) setSelectedResume(resume);
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a resume" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {resumes.map((resume) => (
-                      <SelectItem key={resume.id} value={resume.id.toString()}>
-                        {resume.metadata.filename}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-3">
+                  <Select
+                    value={selectedResume?.id?.toString()}
+                    onValueChange={(value) => {
+                      const resume = resumes.find(r => r.id.toString() === value);
+                      if (resume) setSelectedResume(resume);
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a resume" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {resumes.map((resume) => (
+                        <SelectItem key={resume.id} value={resume.id.toString()}>
+                          {resume.metadata.filename}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedResume && (
+                    <div className="flex items-center justify-end">
+                      <ArrowRight className="h-5 w-5 text-primary animate-bounce-x" />
+                    </div>
+                  )}
+                </div>
               ) : uploadMode === 'choose' ? (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground">No resumes uploaded yet</p>
+                <div className="text-center py-6 bg-muted/30 rounded-lg">
+                  <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground mb-3">No resumes uploaded yet</p>
                   <Button
                     variant="link"
                     onClick={() => setUploadMode('upload')}
-                    className="mt-2"
+                    className="text-primary"
                   >
                     Upload your first resume
                   </Button>
@@ -117,28 +133,42 @@ export default function HomePage() {
           </section>
 
           {selectedResume && (
-            <section className="bg-card rounded-lg border shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
-              <SectionTitle>Step 2: Add Job Details</SectionTitle>
+            <section className="bg-card rounded-xl border shadow-sm p-6 hover:shadow-md transition-shadow">
+              <SectionTitle number={2}>Add Job Details</SectionTitle>
               <JobInput resumeId={selectedResume.id} onOptimized={handleOptimized} />
             </section>
           )}
         </div>
 
-        {/* Right Column */}
-        <div className="space-y-6 lg:space-y-8">
-          <section className="bg-card rounded-lg border-2 border-primary/10 shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
-            <SectionTitle>Resume Preview</SectionTitle>
+        {/* Right Column - Preview Section */}
+        <div className="space-y-8">
+          <section className="bg-card rounded-xl border-2 border-primary/10 shadow-sm p-6 hover:shadow-md transition-shadow">
+            <SectionTitle number={3}>Resume Preview & Analysis</SectionTitle>
             <Preview resume={optimizedResume || selectedResume} />
           </section>
 
           {optimizedResume && (
-            <section className="bg-card rounded-lg border-2 border-primary/10 shadow-sm p-4 sm:p-6 hover:shadow-md transition-shadow">
-              <SectionTitle>Cover Letter Generator</SectionTitle>
+            <section className="bg-card rounded-xl border-2 border-primary/10 shadow-sm p-6 hover:shadow-md transition-shadow">
+              <SectionTitle number={4}>Cover Letter Generator</SectionTitle>
               <CoverLetterComponent resume={optimizedResume} />
             </section>
           )}
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes bounce-x {
+          0%, 100% {
+            transform: translateX(0);
+          }
+          50% {
+            transform: translateX(10px);
+          }
+        }
+        .animate-bounce-x {
+          animation: bounce-x 1s infinite;
+        }
+      `}</style>
     </div>
   );
 }
