@@ -1,17 +1,17 @@
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
-  keywords: number;
-  skills: number;
-  experience: number;
-  overall: number;
+ keywords: number;
+ skills: number;
+ experience: number;
+ overall: number;
 }> {
-  try {
-    console.log("[Match Analysis] Starting analysis...");
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+ try {
+   console.log("[Match Analysis] Starting analysis...");
+   const response = await openai.chat.completions.create({
+     model: "gpt-4",
+     messages: [
+       {
+         role: "system",
+         content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
 Your task is to:
 1. Analyze keyword matches between resume and job requirements
 2. Evaluate skills alignment
@@ -31,51 +31,51 @@ Scoring Guidelines:
 - Skills (0-100): How well the candidate's skills match the required skills
 - Experience (0-100): Relevance and depth of experience compared to requirements
 - Overall (0-100): Weighted average with emphasis on skills and experience`
-        },
-        {
-          role: "user",
-          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
-        }
-      ],
-      temperature: 0.3,
-    });
+       },
+       {
+         role: "user",
+         content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+       }
+     ],
+     temperature: 0.3,
+   });
 
-    const content = response.choices[0].message.content;
-    if (!content) {
-      console.warn("[Match Analysis] Empty response from OpenAI");
-      return getDefaultMetrics();
-    }
+   const content = response.choices[0].message.content;
+   if (!content) {
+     console.warn("[Match Analysis] Empty response from OpenAI");
+     return getDefaultMetrics();
+   }
 
-    try {
-      const metrics = JSON.parse(content);
-      const validatedMetrics = {
-        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-      };
+   try {
+     const metrics = JSON.parse(content);
+     const validatedMetrics = {
+       keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+       skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+       experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+       overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+     };
 
-      console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
-      return validatedMetrics;
-    } catch (parseError) {
-      console.error("[Match Analysis] Error parsing metrics:", parseError);
-      return getDefaultMetrics();
-    }
-  } catch (error) {
-    console.error("[Match Analysis] Error calculating scores:", error);
-    return getDefaultMetrics();
-  }
+     console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
+     return validatedMetrics;
+   } catch (parseError) {
+     console.error("[Match Analysis] Error parsing metrics:", parseError);
+     return getDefaultMetrics();
+   }
+ } catch (error) {
+   console.error("[Match Analysis] Error calculating scores:", error);
+   return getDefaultMetrics();
+ }
 }
 
 async function analyzeJobDescription(description: string) {
-  try {
-    console.log("[Job Analysis] Starting job description analysis...");
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are a job analysis expert. Analyze the job description and extract key information.
+ try {
+   console.log("[Job Analysis] Starting job description analysis...");
+   const response = await openai.chat.completions.create({
+     model: "gpt-4",
+     messages: [
+       {
+         role: "system",
+         content: `You are a job analysis expert. Analyze the job description and extract key information.
 Return a detailed analysis in the following JSON format:
 {
   "title": "Job title extracted from description",
@@ -92,78 +92,78 @@ Return a detailed analysis in the following JSON format:
     "Platforms"
   ]
 }`
-        },
-        {
-          role: "user",
-          content: description
-        }
-      ],
-      temperature: 0.3,
-    });
+       },
+       {
+         role: "user",
+         content: description
+       }
+     ],
+     temperature: 0.3,
+   });
 
-    const content = response.choices[0].message.content;
-    console.log("[Job Analysis] Raw response:", content);
+   const content = response.choices[0].message.content;
+   console.log("[Job Analysis] Raw response:", content);
 
-    if (!content) {
-      console.warn("[Job Analysis] Empty response");
-      return getDefaultAnalysis();
-    }
+   if (!content) {
+     console.warn("[Job Analysis] Empty response");
+     return getDefaultAnalysis();
+   }
 
-    try {
-      const parsed = JSON.parse(content);
-      const validatedAnalysis = {
-        title: parsed.title || "Not specified",
-        company: parsed.company || "Not specified",
-        location: parsed.location || "Not specified",
-        positionLevel: parsed.positionLevel || "Not specified",
-        keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
-        skillsAndTools: Array.isArray(parsed.skillsAndTools) ? 
-          parsed.skillsAndTools.map((skill: string) => skill.split(' ').slice(0, 2).join(' ')) : 
-          ["No specific skills/tools found"],
-        metrics: {
-          keywords: Math.min(100, Math.max(0, Number(parsed.metrics?.keywords) || 0)),
-          skills: Math.min(100, Math.max(0, Number(parsed.metrics?.skills) || 0)),
-          experience: Math.min(100, Math.max(0, Number(parsed.metrics?.experience) || 0)),
-          overall: Math.min(100, Math.max(0, Number(parsed.metrics?.overall) || 0))
-        }
-      };
+   try {
+     const parsed = JSON.parse(content);
+     const validatedAnalysis = {
+       title: parsed.title || "Not specified",
+       company: parsed.company || "Not specified",
+       location: parsed.location || "Not specified",
+       positionLevel: parsed.positionLevel || "Not specified",
+       keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
+       skillsAndTools: Array.isArray(parsed.skillsAndTools) ?
+         parsed.skillsAndTools.map((skill: string) => skill.split(' ').slice(0, 2).join(' ')) :
+         ["No specific skills/tools found"],
+       metrics: {
+         keywords: Math.min(100, Math.max(0, Number(parsed.metrics?.keywords) || 0)),
+         skills: Math.min(100, Math.max(0, Number(parsed.metrics?.skills) || 0)),
+         experience: Math.min(100, Math.max(0, Number(parsed.metrics?.experience) || 0)),
+         overall: Math.min(100, Math.max(0, Number(parsed.metrics?.overall) || 0))
+       }
+     };
 
-      console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
-      return validatedAnalysis;
-    } catch (parseError) {
-      console.error("[Job Analysis] Parse error:", parseError);
-      return getDefaultAnalysis();
-    }
-  } catch (error) {
-    console.error("[Job Analysis] Analysis error:", error);
-    return getDefaultAnalysis();
-  }
+     console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
+     return validatedAnalysis;
+   } catch (parseError) {
+     console.error("[Job Analysis] Parse error:", parseError);
+     return getDefaultAnalysis();
+   }
+ } catch (error) {
+   console.error("[Job Analysis] Analysis error:", error);
+   return getDefaultAnalysis();
+ }
 }
 
 function getDefaultMetrics() {
-  return {
-    keywords: 0,
-    skills: 0,
-    experience: 0,
-    overall: 0
-  };
+ return {
+   keywords: 0,
+   skills: 0,
+   experience: 0,
+   overall: 0
+ };
 }
 
 function getDefaultAnalysis() {
-  return {
-    title: "Not specified",
-    company: "Not specified",
-    location: "Not specified",
-    positionLevel: "Not specified",
-    keyRequirements: ["Unable to extract requirements"],
-    skillsAndTools: ["No specific skills/tools found"],
-    metrics: {
-      keywords: 0,
-      skills: 0,
-      experience: 0,
-      overall: 0
-    }
-  };
+ return {
+   title: "Not specified",
+   company: "Not specified",
+   location: "Not specified",
+   positionLevel: "Not specified",
+   keyRequirements: ["Unable to extract requirements"],
+   skillsAndTools: ["No specific skills/tools found"],
+   metrics: {
+     keywords: 0,
+     skills: 0,
+     experience: 0,
+     overall: 0
+   }
+ };
 }
 
 //Rest of the file
@@ -604,18 +604,22 @@ export function registerRoutes(app: Express): Server {
       if (!optimizedResume) return res.status(404).send("Optimized resume not found");
       if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
 
+      const { version } = req.body;
       const generated = await generateCoverLetter(optimizedResume.content, optimizedResume.jobDescription);
 
-      const filename = `cover_letter_${optimizedResume.metadata.filename}`;
-      const pdfFilename = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+      // Include version in filename if provided
+      const baseFilename = optimizedResume.metadata.filename.replace(/\.pdf$/, '');
+      const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
+      const filename = `cover_letter_${baseFilename}${versionStr}.pdf`;
 
       const coverLetter = await storage.createCoverLetter({
         content: generated.coverLetter,
         optimizedResumeId: optimizedResume.id,
         userId: req.user!.id,
         metadata: {
-          filename: pdfFilename,
-          generatedAt: new Date().toISOString()
+          filename,
+          generatedAt: new Date().toISOString(),
+          version: version || 1.0
         }
       });
 

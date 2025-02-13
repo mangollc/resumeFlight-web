@@ -68,6 +68,10 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isComparingResumes, setIsComparingResumes] = useState(false);
+  const [coverLetterVersion, setCoverLetterVersion] = useState(1.0);
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -111,8 +115,45 @@ export default function Dashboard() {
     if (!completedSteps.includes(4)) {
       setCompletedSteps(prev => [...prev, 4]);
     }
-    setCurrentStep(5);
+    // Remove automatic navigation to step 5
   };
+
+  const handleRegenerateCoverLetter = async () => {
+    if (!optimizedResume?.id) return;
+
+    try {
+      setIsGeneratingCoverLetter(true);
+      const nextVersion = Number((coverLetterVersion + 0.1).toFixed(1));
+      setCoverLetterVersion(nextVersion);
+
+      const response = await apiRequest(
+        "POST",
+        `/api/optimized-resume/${optimizedResume.id}/cover-letter`,
+        { version: nextVersion }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate cover letter');
+      }
+
+      const data = await response.json();
+      setCoverLetter(data);
+
+      toast({
+        title: "Success",
+        description: `Cover letter regenerated (v${nextVersion.toFixed(1)})`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to regenerate cover letter",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCoverLetter(false);
+    }
+  };
+
 
   const handleDownloadPackage = async () => {
     if (!optimizedResume?.id) return;
@@ -459,7 +500,27 @@ export default function Dashboard() {
                 {coverLetter && (
                   <div className="mt-6 space-y-6">
                     <div className="bg-muted/30 rounded-lg p-6">
-                      <h4 className="font-semibold mb-4">Preview</h4>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-semibold">Preview (v{coverLetterVersion.toFixed(1)})</h4>
+                        <Button
+                          onClick={handleRegenerateCoverLetter}
+                          variant="default"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                          disabled={isGeneratingCoverLetter}
+                        >
+                          {isGeneratingCoverLetter ? (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                              Regenerating...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Regenerate Cover Letter
+                            </>
+                          )}
+                        </Button>
+                      </div>
                       <div className="prose prose-sm max-w-none">
                         <pre className="whitespace-pre-wrap">{coverLetter.content}</pre>
                       </div>
@@ -477,6 +538,18 @@ export default function Dashboard() {
                 {renderNavigation()}
               </CardContent>
             </Card>
+
+            {/* Loading Dialogs */}
+            <LoadingDialog
+              open={isGeneratingCoverLetter}
+              title="Generating Cover Letter"
+              description="Please wait while we generate your cover letter using AI..."
+            />
+            <LoadingDialog
+              open={isComparingResumes}
+              title="Analyzing Changes"
+              description="Please wait while we analyze the differences between your original and optimized resumes..."
+            />
           </div>
         ) : null;
 
