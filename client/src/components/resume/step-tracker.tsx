@@ -15,11 +15,11 @@ interface StepTrackerProps {
 
 export default function StepTracker({ currentStep, steps, completedSteps }: StepTrackerProps) {
   return (
-    <div className="w-full">
+    <div className="w-full mb-16"> {/* Increased bottom margin */}
       {/* Steps Container */}
       <div className="relative">
         {/* Progress Bar */}
-        <div className="absolute left-0 top-1/2 h-3 w-full -translate-y-1/2">
+        <div className="absolute left-0 top-1/2 h-2 w-full -translate-y-1/2">
           <div className="h-full bg-muted rounded-full">
             <div
               className="h-full bg-primary transition-all duration-500 ease-in-out rounded-full"
@@ -41,11 +41,11 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                 {/* Step Circle */}
                 <div
                   className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-full",
+                    "flex h-10 w-10 items-center justify-center rounded-full", // Reduced size
                     "transition-all duration-300 ease-in-out",
-                    "border-4",
+                    "border-2", // Reduced border width
                     isActive && 
-                      "border-primary bg-primary text-primary-foreground scale-125 ring-4 ring-primary/20",
+                      "border-primary bg-primary text-primary-foreground scale-110 ring-2 ring-primary/20",
                     isCompleted &&
                       "border-primary bg-primary text-primary-foreground",
                     !isActive && !isCompleted && 
@@ -53,19 +53,19 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                   )}
                 >
                   {isCompleted ? (
-                    <Check className="h-6 w-6" />
+                    <Check className="h-5 w-5" /> // Reduced icon size
                   ) : (
-                    <span className="text-lg font-semibold">
+                    <span className="text-base font-semibold"> {/* Reduced text size */}
                       {step.id}
                     </span>
                   )}
                 </div>
 
                 {/* Step Label */}
-                <div className="absolute mt-16 w-32 -translate-x-1/2 text-center">
+                <div className="absolute mt-12 w-28 -translate-x-1/2 text-center"> {/* Reduced margin-top and width */}
                   <p
                     className={cn(
-                      "text-sm font-medium transition-colors duration-300",
+                      "text-xs font-medium transition-colors duration-300", // Reduced text size
                       isActive && "text-primary font-semibold",
                       isCompleted && "text-foreground",
                       !isActive && !isCompleted && "text-muted-foreground"
@@ -75,7 +75,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                   </p>
                   <p
                     className={cn(
-                      "text-xs mt-1 transition-colors duration-300",
+                      "text-[10px] mt-0.5 transition-colors duration-300", // Reduced text size and margin
                       isActive && "text-muted-foreground",
                       !isActive && "text-muted-foreground/60"
                     )}

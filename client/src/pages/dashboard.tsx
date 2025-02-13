@@ -83,7 +83,7 @@ export default function Dashboard() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="mt-8 transition-all duration-500 ease-in-out">
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <div className="space-y-6">
@@ -205,13 +205,10 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-6">Application Package Summary</h2>
                 <div className="space-y-8">
-                  {/* Optimized Resume Section */}
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Optimized Resume</h3>
                     <Preview resume={optimizedResume} />
                   </div>
-
-                  {/* Cover Letter Section */}
                   {hasCoverLetter && (
                     <div>
                       <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
@@ -222,8 +219,6 @@ export default function Dashboard() {
                       />
                     </div>
                   )}
-
-                  {/* Download Options */}
                   <div className="border-t pt-6">
                     <h3 className="text-xl font-semibold mb-4">Download Options</h3>
                     <div className="flex flex-wrap gap-4">
@@ -250,9 +245,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      {/* Header */}
-      <div className="text-center mb-8">
+    <div className="container mx-auto px-4 pt-4 pb-8 max-w-5xl">
+      <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Resume Optimization
         </h1>
@@ -261,14 +255,12 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Step Tracker */}
       <StepTracker
         currentStep={currentStep}
         steps={steps}
         completedSteps={completedSteps}
       />
 
-      {/* Content Area */}
       <div className="min-h-[400px]">
         {renderCurrentStep()}
       </div>
