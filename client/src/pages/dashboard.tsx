@@ -77,7 +77,7 @@ export default function Dashboard() {
 
   const renderCurrentStep = () => {
     const commonCardProps = {
-      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow"
+      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full max-w-4xl mx-auto"
     };
 
     switch (currentStep) {
@@ -159,8 +159,8 @@ export default function Dashboard() {
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
-                <JobInput 
-                  resumeId={uploadedResume.id} 
+                <JobInput
+                  resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
                 />
               </CardContent>
@@ -184,7 +184,7 @@ export default function Dashboard() {
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Generate Cover Letter</h3>
-                <CoverLetter 
+                <CoverLetter
                   resume={optimizedResume}
                   onGenerated={handleCoverLetterGenerated}
                 />
@@ -206,9 +206,9 @@ export default function Dashboard() {
                   {hasCoverLetter && (
                     <div>
                       <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
-                      <CoverLetter 
+                      <CoverLetter
                         resume={optimizedResume}
-                        onGenerated={() => {}}
+                        onGenerated={() => { }}
                         readOnly
                       />
                     </div>
@@ -239,9 +239,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 pt-4 pb-8 max-w-5xl">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <div className="container mx-auto px-6 pt-8 pb-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Resume Optimization
         </h1>
         <p className="text-muted-foreground text-lg">
@@ -257,7 +257,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="mt-8 min-h-[400px]">
+      <div className="mt-8">
         {renderCurrentStep()}
       </div>
     </div>

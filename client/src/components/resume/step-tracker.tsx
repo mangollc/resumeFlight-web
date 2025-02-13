@@ -15,7 +15,7 @@ interface StepTrackerProps {
 
 export default function StepTracker({ currentStep, steps, completedSteps }: StepTrackerProps) {
   return (
-    <div className="w-full">
+    <div className="w-full pb-20"> {/* Added bottom padding to create space */}
       <div className="relative">
         {/* Progress Bar */}
         <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2">
@@ -36,7 +36,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
             const isCompleted = completedSteps.includes(step.id);
 
             return (
-              <div key={step.id} className="flex flex-col items-center">
+              <div key={step.id} className="relative flex flex-col items-center">
                 {/* Step Circle */}
                 <div
                   className={cn(
@@ -61,7 +61,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                 </div>
 
                 {/* Step Label */}
-                <div className="absolute top-full mt-4 w-24 -translate-x-1/2 text-center">
+                <div className="absolute top-12 w-28 -translate-x-1/2 left-1/2 text-center">
                   <p
                     className={cn(
                       "text-xs font-medium transition-colors duration-300",
