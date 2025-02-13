@@ -109,6 +109,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
     },
   });
 
+  const formatDownloadFilename = (name: string, jobTitle: string, version?: number) => {
+    const nameMatch = name.match(/^(\w+)\s+(\w+)/);
+    const initials = nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}` : 'XX';
+    const cleanJobTitle = jobTitle?.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'position';
+    const versionSuffix = version ? `_v${version.toFixed(1)}` : '';
+    return `${initials}_${cleanJobTitle}${versionSuffix}`;
+  };
+
   return (
     <>
       <TableRow
@@ -161,7 +169,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <a
-                  href={`/api/optimized-resume/${resume.id}/download`}
+                  href={`/api/optimized-resume/${resume.id}/download?filename=${
+                    formatDownloadFilename(
+                      resume.metadata.filename,
+                      resume.jobDetails?.title || '',
+                    )
+                  }`}
                   download
                   className="flex items-center"
                 >
@@ -171,12 +184,18 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a
-                  href={`/api/optimized-resume/${resume.id}/cover-letter/download`}
+                  href={`/api/optimized-resume/${resume.id}/cover-letter/latest/download?filename=${
+                    formatDownloadFilename(
+                      resume.metadata.filename,
+                      resume.jobDetails?.title || '',
+                      undefined
+                    )
+                  }`}
                   download
                   className="flex items-center"
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Download Cover Letter
+                  Download Latest Cover Letter
                 </a>
               </DropdownMenuItem>
               {resume.jobUrl ? (
