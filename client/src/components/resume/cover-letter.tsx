@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OptimizedResume, CoverLetterType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 
 interface CoverLetterProps {
   resume: OptimizedResume;
@@ -17,6 +17,7 @@ interface CoverLetterProps {
 export default function CoverLetterComponent({ resume, onGenerated, generatedCoverLetter, readOnly = false }: CoverLetterProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -39,6 +40,33 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       });
     },
   });
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const response = await fetch(`/api/cover-letter/${generatedCoverLetter?.id}/download`);
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `cover-letter-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download cover letter",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -69,11 +97,22 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       {(generatedCoverLetter || generateMutation.data) && (
         <Card>
           <CardContent className="p-6">
-            <div className="space-y-1 mb-4">
-              <h4 className="font-semibold">Generated Cover Letter</h4>
-              <p className="text-sm text-muted-foreground">
-                Created on {new Date(generatedCoverLetter?.createdAt || generateMutation.data?.createdAt).toLocaleDateString()}
-              </p>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h4 className="font-semibold">Generated Cover Letter</h4>
+                <p className="text-sm text-muted-foreground">
+                  Created on {new Date(generatedCoverLetter?.createdAt || generateMutation.data?.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                disabled={isDownloading}
+              >
+                <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+                {isDownloading ? 'Downloading...' : 'Download PDF'}
+              </Button>
             </div>
 
             <div className="prose prose-sm max-w-none dark:prose-invert">

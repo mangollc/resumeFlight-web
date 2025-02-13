@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const steps: Step[] = [
   {
@@ -53,6 +54,7 @@ export default function Dashboard() {
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<{ url?: string, description?: string } | null>(null);
+  const { toast } = useToast();
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -101,21 +103,35 @@ export default function Dashboard() {
   };
 
   const handleDownloadPackage = async () => {
+    if (!optimizedResume?.id) return;
+
     try {
-      const response = await fetch(`/api/package/download/${optimizedResume?.id}`);
-      if (!response.ok) throw new Error('Failed to download package');
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`);
+      if (!response.ok) {
+        throw new Error('Failed to download package');
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'resume-package.zip';
+      a.download = `resume-package-${Date.now()}.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Package downloaded successfully",
+      });
     } catch (error) {
       console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download package",
+        variant: "destructive",
+      });
     }
   };
 
@@ -281,7 +297,7 @@ export default function Dashboard() {
                     />
                   </div>
                   <div className="border-t pt-6">
-                    <h3 className="text-xl font-semibold mb-4">Download Options</h3>
+                    <h3 className="text-xl font-semibold mb-4">Download Package</h3>
                     <div className="flex justify-center">
                       <Button size="lg" onClick={handleDownloadPackage}>
                         <Download className="h-5 w-5 mr-2" />
