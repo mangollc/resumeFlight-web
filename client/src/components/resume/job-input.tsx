@@ -263,19 +263,8 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="flex justify-end">
-            <Button 
-              onClick={() => onNext()} 
-              size="lg" 
-              className="w-32"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        
       )}
-    </div>
+    
   );
 }
