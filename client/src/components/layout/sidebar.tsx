@@ -151,7 +151,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
 
       {/* Desktop Sidebar */}
       <div className={cn(
-        "hidden lg:flex fixed top-0 left-0 h-screen bg-card border-r shadow-sm z-40 flex-col",
+        "hidden lg:flex fixed top-0 left-0 h-screen bg-card border-r shadow-sm z-[60] flex-col",
         collapsed ? "w-16" : "w-56",
         "transition-all duration-300"
       )}>

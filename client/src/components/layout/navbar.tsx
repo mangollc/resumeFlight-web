@@ -9,7 +9,7 @@ interface NavbarProps {
 export function Navbar({ collapsed }: NavbarProps) {
   return (
     <div className={cn(
-      "h-12 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/60 fixed top-0 right-0 left-0 z-50",
+      "h-12 border-b bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 backdrop-blur supports-[backdrop-filter]:bg-background/60 fixed top-0 right-0 left-0 z-40",
       collapsed ? "lg:left-16" : "lg:left-56",
       "transition-all duration-300"
     )}>
@@ -22,5 +22,5 @@ export function Navbar({ collapsed }: NavbarProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
