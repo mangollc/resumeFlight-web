@@ -71,9 +71,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     // Mark all in-progress steps as cancelled
     setProgressSteps((steps) =>
       steps.map((step) =>
-        step.status === "loading"
-          ? { ...step, status: "cancelled" }
-          : step.status === "pending"
+        step.status === "loading" || step.status === "pending"
           ? { ...step, status: "cancelled" }
           : step
       )
@@ -105,26 +103,22 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         setProgressSteps(INITIAL_STEPS);
         updateStepStatus("extract", "loading");
 
-        const res = await apiRequest(
+        const response = await apiRequest(
           "POST",
           `/api/resume/${resumeId}/optimize`,
           data,
           { signal: abortControllerRef.current.signal }
         );
 
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.message || "Failed to fetch job details");
-        }
-
-        if (abortControllerRef.current.signal.aborted) {
-          throw new Error("cancelled");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to fetch job details");
         }
 
         updateStepStatus("extract", "completed");
         updateStepStatus("analyze", "loading");
 
-        const data = await res.json();
+        const jsonData = await response.json();
 
         if (abortControllerRef.current.signal.aborted) {
           throw new Error("cancelled");
@@ -133,7 +127,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         updateStepStatus("analyze", "completed");
         updateStepStatus("optimize", "loading");
 
-        return data;
+        return jsonData;
       } catch (error) {
         // Check if the error is due to cancellation
         if (
