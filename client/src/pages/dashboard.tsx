@@ -309,7 +309,6 @@ export default function Dashboard() {
       setCurrentStep(prev => {
         const nextStep = prev + 1;
         if (nextStep === 3) {
-          // Use setTimeout to ensure the DOM is updated before scrolling
           setTimeout(() => {
             document.getElementById('optimized-preview')?.scrollIntoView({ 
               behavior: 'smooth',
@@ -349,7 +348,7 @@ export default function Dashboard() {
 
   const renderCurrentStep = () => {
     const commonCardProps = {
-      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto relative"
+      className: "border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95"
     };
 
     const formatDownloadFilename = (filename: string, jobTitle: string, version: number) => {
@@ -367,9 +366,9 @@ export default function Dashboard() {
         return (
           <div className="fade-in">
             <Card {...commonCardProps}>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Choose your uploaded Resume or Upload a new one</h3>
-                <div className="space-y-6">
+              <CardContent className="p-8">
+                <h3 className="text-xl font-semibold mb-6 text-foreground/90">Choose your uploaded Resume or Upload a new one</h3>
+                <div className="space-y-8">
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       variant={uploadMode === 'choose' ? "default" : "outline"}
@@ -448,7 +447,7 @@ export default function Dashboard() {
         return uploadedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
-              <CardContent className="p-6">
+              <CardContent className="p-8">
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
@@ -463,9 +462,9 @@ export default function Dashboard() {
         return optimizedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
-              <CardContent className="p-6">
+              <CardContent className="p-8">
                 <div id="optimized-preview">
-                  <h3 className="text-xl font-semibold mb-4">
+                  <h3 className="text-xl font-semibold mb-6 text-foreground/90">
                     Optimized Resume Preview <span className="text-sm text-muted-foreground">(v{optimizationVersion.toFixed(1)})</span>
                   </h3>
                   <Preview
@@ -513,8 +512,8 @@ export default function Dashboard() {
         return optimizedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Cover Letter Generator</h3>
+              <CardContent className="p-8">
+                <h3 className="text-xl font-semibold mb-6 text-foreground/90">Cover Letter Generator</h3>
                 {!coverLetter ? (
                   <CoverLetter
                     resume={optimizedResume}
@@ -522,10 +521,10 @@ export default function Dashboard() {
                     generatedCoverLetter={coverLetter}
                   />
                 ) : (
-                  <div className="mt-6 space-y-6">
-                    <div className="bg-muted/30 rounded-lg p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-semibold">
+                  <div className="mt-6 space-y-8">
+                    <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-semibold text-foreground/90">
                           Preview {coverLetters?.find(
                             (l) => l.metadata.version.toString() === selectedCoverLetterVersion
                           )?.metadata.version ? `(v${coverLetters.find(
@@ -565,6 +564,7 @@ export default function Dashboard() {
                                 }
                               }}
                               variant="outline"
+                              className="transition-all duration-300 hover:bg-primary/10"
                             >
                               Download Cover Letter
                             </Button>
@@ -572,7 +572,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       {coverLetters && coverLetters.length > 1 && (
-                        <div className="mb-4">
+                        <div className="mb-6">
                           <Select
                             value={selectedCoverLetterVersion}
                             onValueChange={setSelectedCoverLetterVersion}
@@ -593,7 +593,7 @@ export default function Dashboard() {
                           </Select>
                         </div>
                       )}
-                      <div className="prose prose-sm max-w-none">
+                      <div className="prose prose-sm max-w-none text-foreground/80">
                         <pre className="whitespace-pre-wrap">
                           {coverLetters?.find(
                             (l) => l.metadata.version.toString() === selectedCoverLetterVersion
@@ -613,6 +613,7 @@ export default function Dashboard() {
                             }
                           }}
                           variant="outline"
+                          className="transition-all duration-300 hover:bg-primary/10"
                         >
                           Download Version {selectedCoverLetterVersion}
                         </Button>
@@ -634,23 +635,33 @@ export default function Dashboard() {
 
       case 5:
         return optimizedResume && coverLetter ? (
-          <div className="fade-in">
+          <div className="fade-in space-y-8">
             <Card {...commonCardProps}>
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-6">Summary</h2>
-                <div className="space-y-8">
+              <CardContent className="p-8">
+                <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Summary</h2>
+                <div className="space-y-12">
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Optimized Resume</h3>
-                    <Preview
-                      resume={optimizedResume}
-                      coverLetter={coverLetter}
-                    />
+                    <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
+                      <span className="bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
+                        Optimized Resume
+                      </span>
+                    </h3>
+                    <div className="transition-all duration-300">
+                      <Preview
+                        resume={optimizedResume}
+                        coverLetter={coverLetter}
+                      />
+                    </div>
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
-                    <div className="bg-muted/30 rounded-lg p-6">
-                      <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-semibold">
+                    <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
+                      <span className="bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
+                        Cover Letter
+                      </span>
+                    </h3>
+                    <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-semibold text-foreground/90">
                           Preview {coverLetters?.find(
                             (l) => l.metadata.version.toString() === selectedCoverLetterVersion
                           )?.metadata.version ? `(v${coverLetters.find(
@@ -672,6 +683,7 @@ export default function Dashboard() {
                                 }
                               }}
                               variant="outline"
+                              className="transition-all duration-300 hover:bg-primary/10"
                             >
                               Download Cover Letter
                             </Button>
@@ -679,7 +691,7 @@ export default function Dashboard() {
                         </div>
                       </div>
                       {coverLetters && coverLetters.length > 1 && (
-                        <div className="mb-4">
+                        <div className="mb-6">
                           <Select
                             value={selectedCoverLetterVersion}
                             onValueChange={setSelectedCoverLetterVersion}
@@ -700,7 +712,7 @@ export default function Dashboard() {
                           </Select>
                         </div>
                       )}
-                      <div className="prose prose-sm max-w-none">
+                      <div className="prose prose-sm max-w-none text-foreground/80">
                         <pre className="whitespace-pre-wrap">
                           {coverLetters?.find(
                             (l) => l.metadata.version.toString() === selectedCoverLetterVersion
@@ -720,6 +732,7 @@ export default function Dashboard() {
                             }
                           }}
                           variant="outline"
+                          className="transition-all duration-300 hover:bg-primary/10"
                         >
                           Download Version {selectedCoverLetterVersion}
                         </Button>
@@ -744,10 +757,10 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
           Resume Optimization
         </h1>
-        <p className="text-muted-foreground text-lg">
+        <p className="text-muted-foreground/90 text-lg">
           Transform your resume with AI-powered insights
         </p>
       </div>
