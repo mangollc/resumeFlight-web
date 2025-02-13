@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -50,9 +50,24 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     };
   }, []);
 
+  const handleReset = () => {
+    setJobUrl("");
+    setJobDescription("");
+    setExtractedDetails(null);
+    setActiveTab("url");
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsProcessing(false);
+    setIsCollapsed(false);
+  };
+
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
       // Create new AbortController for this request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       abortControllerRef.current = new AbortController();
 
       const res = await apiRequest(
@@ -191,6 +206,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   return (
     <div className="space-y-6">
+      <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
@@ -230,20 +246,32 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           </TabsContent>
         </Tabs>
 
-        <Button
-          type="submit"
-          disabled={(!jobUrl && !jobDescription.trim()) || isProcessing}
-          className="w-full md:w-auto"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            "Fetch Job Info"
-          )}
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            type="submit"
+            disabled={(!jobUrl && !jobDescription.trim()) || isProcessing}
+            className="w-full md:w-auto"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              "Fetch Job Info"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={isProcessing}
+            className="w-full md:w-auto"
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Restart
+          </Button>
+        </div>
       </form>
 
       {extractedDetails && (
@@ -254,11 +282,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           >
             <h3 className="text-lg font-semibold flex items-center gap-2">
               {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              Job Details
+              Extracted Job Details
             </h3>
-            <Badge variant="outline">
-              {extractedDetails.positionLevel || 'Not Specified'}
-            </Badge>
           </div>
 
           <div className={cn("overflow-hidden transition-all", 
@@ -281,6 +306,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                   <p className="font-medium mb-1">Location</p>
                   <p className="text-sm text-muted-foreground">
                     {extractedDetails.location || "Not specified"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Position Level</p>
+                  <p className="text-sm text-muted-foreground">
+                    {extractedDetails.positionLevel || "Not specified"}
                   </p>
                 </div>
               </div>
