@@ -423,7 +423,6 @@ function getInitials(text: string): string {
     return "RES"; // Default fallback
 }
 
-
 export function registerRoutes(app: Express): Server {
     setupAuth(app);
 
@@ -706,11 +705,11 @@ export function registerRoutes(app: Express): Server {
 
             // Use the filename from query if provided, otherwise generate one
             const filename = formatFilename(
-              req.query.filename as string || 
-              `${getInitials(resume.content)}_${
-                resume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-              }_v${resume.metadata.version.toFixed(1)}`,
-              'pdf'
+                req.query.filename as string ||
+                `${getInitials(resume.content)}_${
+                    resume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+                }_v${resume.metadata.version.toFixed(1)}`,
+                'pdf'
             );
 
             res.setHeader('Content-Type', 'application/pdf');
@@ -744,11 +743,11 @@ export function registerRoutes(app: Express): Server {
 
             // Use the filename from query if provided, otherwise generate one
             const filename = formatFilename(
-              req.query.filename as string || 
-              `${getInitials(optimizedResume.content)}_${
-                optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-              }_v${latestCoverLetter.metadata.version.toFixed(1)}_cover`,
-              'pdf'
+                req.query.filename as string ||
+                `${getInitials(optimizedResume.content)}_${
+                    optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+                }_v${latestCoverLetter.metadata.version.toFixed(1)}_cover`,
+                'pdf'
             );
 
             res.setHeader('Content-Type', 'application/pdf');
