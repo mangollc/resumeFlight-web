@@ -64,13 +64,13 @@ export default function Dashboard() {
 
   const renderCurrentStep = () => {
     const commonCardProps = {
-      className: "fade-in border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow"
+      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow"
     };
 
     switch (currentStep) {
       case 1:
         return (
-          <div className="mt-8">
+          <div className="mt-12 transition-all duration-500 ease-in-out">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <UploadForm onSuccess={handleResumeUploaded} />
@@ -80,7 +80,7 @@ export default function Dashboard() {
         );
       case 2:
         return uploadedResume ? (
-          <div className="mt-8 space-y-8">
+          <div className="mt-12 space-y-8 transition-all duration-500 ease-in-out">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Current Resume</h3>
@@ -100,7 +100,7 @@ export default function Dashboard() {
         ) : null;
       case 3:
         return optimizedResume ? (
-          <div className="mt-8">
+          <div className="mt-12 transition-all duration-500 ease-in-out">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Optimized Resume Preview</h3>
@@ -111,7 +111,7 @@ export default function Dashboard() {
         ) : null;
       case 4:
         return optimizedResume ? (
-          <div className="mt-8">
+          <div className="mt-12 transition-all duration-500 ease-in-out">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Generate Cover Letter</h3>
@@ -125,7 +125,7 @@ export default function Dashboard() {
         ) : null;
       case 5:
         return optimizedResume ? (
-          <div className="mt-8 space-y-8">
+          <div className="mt-12 space-y-8 transition-all duration-500 ease-in-out">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-6">Application Package Summary</h2>
@@ -175,13 +175,26 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
+    <div className="container mx-auto px-4 py-12 max-w-5xl">
+      {/* Header */}
+      <div className="text-center mb-12">
+        <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          Resume Optimization
+        </h1>
+        <p className="text-muted-foreground">
+          Transform your resume with AI-powered insights
+        </p>
+      </div>
+
+      {/* Step Tracker */}
       <StepTracker
         currentStep={currentStep}
         steps={steps}
         completedSteps={completedSteps}
       />
-      <div className="mt-12">
+
+      {/* Content Area */}
+      <div className="min-h-[400px]">
         {renderCurrentStep()}
       </div>
     </div>
