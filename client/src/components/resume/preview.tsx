@@ -18,6 +18,13 @@ import { Confetti } from "@/components/ui/confetti";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
+  coverLetter?: {
+    id: number;
+    content: string;
+    metadata: {
+      version: number;
+    };
+  };
 }
 
 // Utility functions
@@ -39,43 +46,7 @@ const getInitials = (text: string): string => {
   return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
 };
 
-const MetricRow = ({ label, before, after }: { label: string, before?: number, after: number }) => (
-  <div className="space-y-2">
-    <div className="flex justify-between items-center text-sm">
-      <span className="font-medium">{label}</span>
-      <div className="flex items-center gap-2">
-        {before !== undefined && (
-          <>
-            <span className="text-muted-foreground">Before: {before}%</span>
-            <span className="text-muted-foreground">→</span>
-          </>
-        )}
-        <span className={cn(
-          "font-medium px-2 py-0.5 rounded text-xs",
-          after >= 80 ? "bg-emerald-100 text-emerald-700" :
-            after >= 60 ? "bg-yellow-100 text-yellow-700" :
-              "bg-red-100 text-red-700"
-        )}>
-          {after}%
-        </span>
-      </div>
-    </div>
-    <div className="relative h-2 overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn(
-          "h-full transition-all duration-500 ease-out rounded-full",
-          getMetricsColor(after)
-        )}
-        style={{ width: `${after}%` }}
-      />
-    </div>
-    <p className="text-xs text-muted-foreground">
-      {getScoreLabel(after)}
-    </p>
-  </div>
-);
-
-export default function Preview({ resume }: PreviewProps) {
+export default function Preview({ resume, coverLetter }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const { toast } = useToast();
@@ -159,6 +130,19 @@ export default function Preview({ resume }: PreviewProps) {
                         Download Resume
                       </Button>
                     </a>
+                    {coverLetter && (
+                      <a
+                        href={`/api/cover-letter/${coverLetter.id}/download?filename=${
+                          formatFilename(version)
+                        }_cover.pdf`}
+                        download
+                      >
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download Cover Letter
+                        </Button>
+                      </a>
+                    )}
                     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
@@ -240,3 +224,39 @@ export default function Preview({ resume }: PreviewProps) {
     </Card>
   );
 }
+
+const MetricRow = ({ label, before, after }: { label: string, before?: number, after: number }) => (
+  <div className="space-y-2">
+    <div className="flex justify-between items-center text-sm">
+      <span className="font-medium">{label}</span>
+      <div className="flex items-center gap-2">
+        {before !== undefined && (
+          <>
+            <span className="text-muted-foreground">Before: {before}%</span>
+            <span className="text-muted-foreground">→</span>
+          </>
+        )}
+        <span className={cn(
+          "font-medium px-2 py-0.5 rounded text-xs",
+          after >= 80 ? "bg-emerald-100 text-emerald-700" :
+            after >= 60 ? "bg-yellow-100 text-yellow-700" :
+              "bg-red-100 text-red-700"
+        )}>
+          {after}%
+        </span>
+      </div>
+    </div>
+    <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+      <div
+        className={cn(
+          "h-full transition-all duration-500 ease-out rounded-full",
+          getMetricsColor(after)
+        )}
+        style={{ width: `${after}%` }}
+      />
+    </div>
+    <p className="text-xs text-muted-foreground">
+      {getScoreLabel(after)}
+    </p>
+  </div>
+);

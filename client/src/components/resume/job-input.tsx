@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -6,17 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export interface JobDetails {
   title: string;
@@ -43,6 +36,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const jobDetailsRef = useRef<HTMLDivElement>(null);
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
@@ -68,13 +63,20 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       setExtractedDetails(details);
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+      setIsCollapsed(false);  // Expand the job details section
 
       toast({
         title: "Success",
         description: "Job details fetched successfully",
       });
+
+      // Scroll to job details after a short delay to ensure rendering
+      setTimeout(() => {
+        jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+
       setIsProcessing(false);
-      onOptimized(data, details); //Call onOptimized callback
+      onOptimized(data, details);
     },
     onError: (error: Error) => {
       if (error.message.includes("dynamically loaded or require authentication")) {
@@ -125,19 +127,19 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     const lowerSkill = skill.toLowerCase();
 
     if (skillTypes.technical.some(s => lowerSkill.includes(s))) {
-      return "default"; 
+      return "default";
     }
     if (skillTypes.database.some(s => lowerSkill.includes(s))) {
-      return "destructive"; 
+      return "destructive";
     }
     if (skillTypes.cloud.some(s => lowerSkill.includes(s))) {
-      return "outline"; 
+      return "outline";
     }
     if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
-      return "secondary"; 
+      return "secondary";
     }
     if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
-      return "outline"; 
+      return "outline";
     }
     return "default";
   };
@@ -200,67 +202,72 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       </form>
 
       {extractedDetails && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-          <h3 className="text-lg font-semibold">Job Details</h3>
-          <Table>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium w-1/4">Title</TableCell>
-                <TableCell>{extractedDetails.title}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Company</TableCell>
-                <TableCell>{extractedDetails.company}</TableCell>
-              </TableRow>
-              {extractedDetails.salary && (
-                <TableRow>
-                  <TableCell className="font-medium">Salary</TableCell>
-                  <TableCell>{extractedDetails.salary}</TableCell>
-                </TableRow>
-              )}
-              <TableRow>
-                <TableCell className="font-medium">Location</TableCell>
-                <TableCell>{extractedDetails.location}</TableCell>
-              </TableRow>
-              {extractedDetails.positionLevel && (
-                <TableRow>
-                  <TableCell className="font-medium">Position Level</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {extractedDetails.positionLevel}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+        <div ref={jobDetailsRef} className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div
+            className="p-4 cursor-pointer flex justify-between items-center"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              Job Details
+            </h3>
+            <Badge variant="outline">
+              {extractedDetails.positionLevel || 'Not Specified'}
+            </Badge>
+          </div>
 
-          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Key Requirements</h4>
-              <ul className="list-disc list-inside space-y-2">
-                {extractedDetails.keyRequirements.map((requirement, index) => (
-                  <li key={index} className="text-muted-foreground">{requirement}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-              <div className="flex flex-wrap gap-2">
-                {extractedDetails.skillsAndTools.map((skill, index) => (
-                  <Badge
-                    key={index}
-                    variant={getSkillBadgeVariant(skill)}
-                  >
-                    {skill}
-                  </Badge>
-                ))}
+          <div className={cn("overflow-hidden transition-all", 
+            isCollapsed ? "max-h-0" : "max-h-[2000px]")}>
+            <div className="p-6 pt-2 space-y-6">
+              <div className="grid gap-4">
+                <div>
+                  <p className="font-medium mb-1">Title</p>
+                  <p className="text-sm text-muted-foreground">
+                    {extractedDetails.title || "Not specified"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Company</p>
+                  <p className="text-sm text-muted-foreground">
+                    {extractedDetails.company || "Not specified"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Location</p>
+                  <p className="text-sm text-muted-foreground">
+                    {extractedDetails.location || "Not specified"}
+                  </p>
+                </div>
               </div>
+
+              {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Key Requirements</h4>
+                  <ul className="list-disc list-inside space-y-2">
+                    {extractedDetails.keyRequirements.map((requirement, index) => (
+                      <li key={index} className="text-muted-foreground">{requirement}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {extractedDetails.skillsAndTools.map((skill, index) => (
+                      <Badge
+                        key={index}
+                        variant={getSkillBadgeVariant(skill)}
+                      >
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

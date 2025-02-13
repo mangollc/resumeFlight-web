@@ -315,6 +315,12 @@ export default function Dashboard() {
       className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto relative"
     };
 
+    const formatDownloadFilename = (filename: string, jobTitle: string, version: number) => {
+      const baseName = filename.substring(0, filename.lastIndexOf('.'));
+      return `${baseName}_${jobTitle}_v${version.toFixed(1)}`;
+    };
+
+
     switch (currentStep) {
       case 1:
         return (
@@ -453,7 +459,10 @@ export default function Dashboard() {
                 <h3 className="text-xl font-semibold mb-4">
                   Optimized Resume Preview <span className="text-sm text-muted-foreground">(v{optimizationVersion.toFixed(1)})</span>
                 </h3>
-                <Preview resume={optimizedResume} />
+                <Preview
+                  resume={optimizedResume}
+                  coverLetter={coverLetter}
+                />
 
                 <div className="mt-6 flex justify-center">
                   <Button
@@ -481,7 +490,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Loading Dialog */}
             <LoadingDialog
               open={isOptimizing}
               title="Reoptimizing Resume"
@@ -513,24 +521,45 @@ export default function Dashboard() {
                             (l) => l.metadata.version.toString() === selectedCoverLetterVersion
                           )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
                         </h4>
-                        <Button
-                          onClick={handleRegenerateCoverLetter}
-                          variant="default"
-                          className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                          disabled={isGeneratingCoverLetter}
-                        >
-                          {isGeneratingCoverLetter ? (
-                            <>
-                              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                              Regenerating...
-                            </>
-                          ) : (
-                            <>
-                              <RefreshCw className="mr-2 h-4 w-4" />
-                              Regenerate Cover Letter
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={handleRegenerateCoverLetter}
+                            variant="default"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                            disabled={isGeneratingCoverLetter}
+                          >
+                            {isGeneratingCoverLetter ? (
+                              <>
+                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                Regenerating...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Regenerate Cover Letter
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              const selectedLetter = coverLetters.find(
+                                (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                              ) || coverLetter;
+                              if (selectedLetter) {
+                                window.location.href = `/api/cover-letter/${selectedLetter.id}/download?filename=${
+                                  formatDownloadFilename(
+                                    selectedLetter.metadata.filename,
+                                    optimizedResume.jobDetails?.title || '',
+                                    selectedLetter.metadata.version
+                                  )
+                                }_cover.pdf`;
+                              }
+                            }}
+                            variant="outline"
+                          >
+                            Download Cover Letter
+                          </Button>
+                        </div>
                       </div>
                       {coverLetters && coverLetters.length > 1 && (
                         <div className="mb-4">
@@ -585,7 +614,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Loading Dialog */}
             <LoadingDialog
               open={isGeneratingCoverLetter}
               title="Generating Cover Letter"
@@ -603,7 +631,10 @@ export default function Dashboard() {
                 <div className="space-y-8">
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Optimized Resume</h3>
-                    <Preview resume={optimizedResume} />
+                    <Preview
+                      resume={optimizedResume}
+                      coverLetter={coverLetter}
+                    />
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
