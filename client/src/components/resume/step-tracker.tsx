@@ -16,7 +16,6 @@ interface StepTrackerProps {
 export default function StepTracker({ currentStep, steps, completedSteps }: StepTrackerProps) {
   return (
     <div className="w-full">
-      {/* Steps Container */}
       <div className="relative">
         {/* Progress Bar */}
         <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2">
@@ -31,7 +30,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
         </div>
 
         {/* Steps */}
-        <div className="relative z-10 flex justify-between">
+        <div className="relative z-10 flex justify-between items-center">
           {steps.map((step) => {
             const isActive = currentStep === step.id;
             const isCompleted = completedSteps.includes(step.id);
@@ -62,7 +61,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                 </div>
 
                 {/* Step Label */}
-                <div className="absolute top-full mt-3 w-24 -translate-x-1/2 text-center">
+                <div className="absolute top-full mt-4 w-24 -translate-x-1/2 text-center">
                   <p
                     className={cn(
                       "text-xs font-medium transition-colors duration-300",

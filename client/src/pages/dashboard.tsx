@@ -155,13 +155,7 @@ export default function Dashboard() {
         );
       case 2:
         return uploadedResume ? (
-          <div className="mt-8 space-y-8 transition-all duration-500 ease-in-out">
-            <Card {...commonCardProps}>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Current Resume</h3>
-                <Preview resume={uploadedResume} />
-              </CardContent>
-            </Card>
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
@@ -175,7 +169,7 @@ export default function Dashboard() {
         ) : null;
       case 3:
         return optimizedResume ? (
-          <div className="mt-8 transition-all duration-500 ease-in-out">
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Optimized Resume Preview</h3>
@@ -186,7 +180,7 @@ export default function Dashboard() {
         ) : null;
       case 4:
         return optimizedResume ? (
-          <div className="mt-8 transition-all duration-500 ease-in-out">
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Generate Cover Letter</h3>
@@ -200,10 +194,10 @@ export default function Dashboard() {
         ) : null;
       case 5:
         return optimizedResume ? (
-          <div className="mt-8 space-y-8 transition-all duration-500 ease-in-out">
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-6">Application Package Summary</h2>
+                <h2 className="text-2xl font-bold mb-6">Summary</h2>
                 <div className="space-y-8">
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Optimized Resume</h3>
