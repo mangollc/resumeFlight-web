@@ -8,10 +8,13 @@ import {
   Settings,
   Plane,
   Menu,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 interface NavItem {
   title: string;
@@ -49,29 +52,48 @@ const navItems: NavItem[] = [
   },
 ];
 
+const ProfileSection = () => (
+  <div className="mt-auto p-4 border-t">
+    <div className="flex items-center space-x-4">
+      <Avatar className="h-10 w-10">
+        <AvatarImage src="/placeholder-avatar.png" alt="Profile" />
+        <AvatarFallback>
+          <User className="h-6 w-6" />
+        </AvatarFallback>
+      </Avatar>
+      <div className="flex flex-col">
+        <span className="font-medium">John Doe</span>
+        <span className="text-sm text-muted-foreground">john@example.com</span>
+      </div>
+    </div>
+  </div>
+);
+
 const NavigationItems = ({ onClick }: { onClick?: () => void }) => {
   const [location] = useLocation();
   return (
-    <div className="flex flex-col p-4 space-y-2">
-      {navItems.map((item) => (
-        <Link key={item.href} href={item.href}>
-          <Button
-            variant="ghost"
-            disabled={item.disabled}
-            className={cn(
-              "w-full justify-start py-6",
-              location === item.href && "bg-primary/10 text-primary font-medium",
-              "hover:bg-primary/5 dark:hover:bg-primary/20",
-              "focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none",
-              "transition-colors duration-200"
-            )}
-            onClick={onClick}
-          >
-            <item.icon className="h-5 w-5 mr-3" />
-            <span className="font-medium">{item.title}</span>
-          </Button>
-        </Link>
-      ))}
+    <div className="flex flex-col flex-1">
+      <div className="flex flex-col p-4 space-y-2">
+        {navItems.map((item) => (
+          <Link key={item.href} href={item.href}>
+            <Button
+              variant="ghost"
+              disabled={item.disabled}
+              className={cn(
+                "w-full justify-start py-6",
+                location === item.href && "bg-primary/10 text-primary font-medium",
+                "hover:bg-primary/5 dark:hover:bg-primary/20",
+                "focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:outline-none",
+                "transition-colors duration-200"
+              )}
+              onClick={onClick}
+            >
+              <item.icon className="h-5 w-5 mr-3" />
+              <span className="font-medium">{item.title}</span>
+            </Button>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 };
@@ -102,21 +124,23 @@ export function Sidebar() {
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0">
+          <SheetContent side="left" className="p-0 flex flex-col">
             <div className="p-6 border-b">
               <AppLogo />
             </div>
             <NavigationItems onClick={() => setOpen(false)} />
+            <ProfileSection />
           </SheetContent>
         </Sheet>
       </div>
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed top-0 left-0 h-screen w-64 bg-card border-r shadow-sm z-40">
+      <div className="hidden lg:flex fixed top-0 left-0 h-screen w-64 bg-card border-r shadow-sm z-40 flex-col">
         <div className="p-6 border-b">
           <AppLogo />
         </div>
         <NavigationItems />
+        <ProfileSection />
       </div>
     </>
   );
