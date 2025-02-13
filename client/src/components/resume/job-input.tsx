@@ -263,8 +263,15 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
                 </div>
               </div>
             )}
-        
+
+            <div className="flex justify-end mt-6">
+              <Button onClick={onNext} size="lg">
+                Next
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
-    
+    </div>
   );
 }
