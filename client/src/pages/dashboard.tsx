@@ -8,6 +8,7 @@ import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLet
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingDialog } from "@/components/ui/loading-dialog";
 import {
   Select,
   SelectContent,
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const [optimizationVersion, setOptimizationVersion] = useState(1.0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -188,6 +190,7 @@ export default function Dashboard() {
     if (!uploadedResume?.id || !jobDetails) return;
 
     try {
+      setIsOptimizing(true); // Show loading state
       const data = {
         jobUrl: jobDetails.url,
         jobDescription: jobDetails.description,
@@ -212,6 +215,8 @@ export default function Dashboard() {
         description: "Failed to reoptimize resume",
         variant: "destructive",
       });
+    } finally {
+      setIsOptimizing(false); // Hide loading state
     }
   };
 
@@ -409,17 +414,34 @@ export default function Dashboard() {
                   <Button 
                     onClick={handleReoptimize}
                     variant="default"
-                    className="w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="w-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     size="lg"
+                    disabled={isOptimizing}
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Optimize Again
+                    {isOptimizing ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Optimizing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Optimize Again
+                      </>
+                    )}
                   </Button>
                 </div>
 
                 {renderNavigation()}
               </CardContent>
             </Card>
+
+            {/* Loading Dialog */}
+            <LoadingDialog
+              open={isOptimizing}
+              title="Reoptimizing Resume"
+              description="Please wait while we optimize your resume using AI..."
+            />
           </div>
         ) : null;
 
