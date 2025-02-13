@@ -338,6 +338,7 @@ export default function Dashboard() {
         <Button
           onClick={handleNext}
           disabled={!canGoNext}
+          variant="gradient"
         >
           Next
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -371,29 +372,22 @@ export default function Dashboard() {
                 <div className="space-y-8">
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
-                      variant={uploadMode === 'choose' ? "default" : "outline"}
+                      variant={uploadMode === 'choose' ? "gradient" : "outline"}
                       onClick={() => setUploadMode('choose')}
-                      className={cn(
-                        "w-full sm:w-auto",
-                        uploadMode === 'choose' && "bg-primary text-primary-foreground hover:bg-primary/90"
-                      )}
+                      className="w-full sm:w-auto"
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Choose Existing
                     </Button>
                     <Button
-                      variant={uploadMode === 'upload' ? "default" : "outline"}
+                      variant={uploadMode === 'upload' ? "gradient" : "outline"}
                       onClick={() => setUploadMode('upload')}
-                      className={cn(
-                        "w-full sm:w-auto",
-                        uploadMode === 'upload' && "bg-primary text-primary-foreground hover:bg-primary/90"
-                      )}
+                      className="w-full sm:w-auto"
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload New
                     </Button>
                   </div>
-
                   {uploadMode === 'choose' && resumes && resumes.length > 0 ? (
                     <div className="relative z-50 w-full">
                       <Select
