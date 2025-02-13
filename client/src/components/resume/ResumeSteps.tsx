@@ -73,9 +73,10 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
         {/* Mobile step carousel */}
         <div className="relative h-44 overflow-hidden my-6">
           <div 
-            className="absolute left-1/2 flex transition-transform duration-500 ease-out"
+            className="absolute flex transition-transform duration-500 ease-out"
             style={{ 
-              transform: `translateX(calc(-50% - ${currentStep * (viewportWidth * 0.7)}px))`,
+              transform: `translateX(calc(50vw - ${currentStep * 70}vw - 35vw))`,
+              left: 0,
             }}
           >
             {steps.map((step, index) => {
