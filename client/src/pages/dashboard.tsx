@@ -101,8 +101,8 @@ export default function Dashboard() {
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
   const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false); 
-  
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -306,7 +306,19 @@ export default function Dashboard() {
 
   const handleNext = () => {
     if (canGoNext) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep(prev => {
+        const nextStep = prev + 1;
+        if (nextStep === 3) {
+          // Use setTimeout to ensure the DOM is updated before scrolling
+          setTimeout(() => {
+            document.getElementById('optimized-preview')?.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }, 100);
+        }
+        return nextStep;
+      });
       if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => [...prev, currentStep]);
       }
@@ -442,40 +454,6 @@ export default function Dashboard() {
                   onOptimized={handleOptimizationComplete}
                   initialJobDetails={jobDetails}
                 />
-                {optimizedResume && (
-                  <div className="mt-4">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Info className="mr-2 h-4 w-4" />
-                          View Job Details
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                          <DialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => {
-                              e.preventDefault();
-                              setIsDialogOpen(true);
-                            }}>
-                              View Details
-                            </DropdownMenuItem>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Job Details</DialogTitle>
-                              <DialogDescription>
-                                <div className="whitespace-pre-wrap">
-                                  {formatJobDetails(optimizedResume)}
-                                </div>
-                              </DialogDescription>
-                            </DialogHeader>
-                          </DialogContent>
-                        </Dialog>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
                 {renderNavigation()}
               </CardContent>
             </Card>
@@ -486,34 +464,36 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">
-                  Optimized Resume Preview <span className="text-sm text-muted-foreground">(v{optimizationVersion.toFixed(1)})</span>
-                </h3>
-                <Preview
-                  resume={optimizedResume}
-                  coverLetter={coverLetter}
-                />
+                <div id="optimized-preview">
+                  <h3 className="text-xl font-semibold mb-4">
+                    Optimized Resume Preview <span className="text-sm text-muted-foreground">(v{optimizationVersion.toFixed(1)})</span>
+                  </h3>
+                  <Preview
+                    resume={optimizedResume}
+                    coverLetter={coverLetter}
+                  />
 
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    onClick={handleReoptimize}
-                    variant="default"
-                    className="w-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                    size="lg"
-                    disabled={isOptimizing}
-                  >
-                    {isOptimizing ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Optimizing...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Optimize Again
-                      </>
-                    )}
-                  </Button>
+                  <div className="mt-6 flex justify-center">
+                    <Button
+                      onClick={handleReoptimize}
+                      variant="default"
+                      className="w-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      size="lg"
+                      disabled={isOptimizing}
+                    >
+                      {isOptimizing ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Optimizing...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Optimize Again
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {renderNavigation()}
@@ -524,6 +504,7 @@ export default function Dashboard() {
               open={isOptimizing}
               title="Reoptimizing Resume"
               description="Please wait while we optimize your resume using AI..."
+              onOpenChange={() => setIsOptimizing(false)}
             />
           </div>
         ) : null;
