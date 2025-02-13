@@ -208,7 +208,7 @@ export default function Dashboard() {
                   </div>
 
                   {uploadMode === 'choose' && resumes && resumes.length > 0 ? (
-                    <div className="space-y-3 relative">
+                    <div className="relative z-50 w-full">
                       <Select
                         value={uploadedResume?.id?.toString()}
                         onValueChange={(value) => {
@@ -223,11 +223,7 @@ export default function Dashboard() {
                           <SelectValue placeholder="Select a resume" />
                         </SelectTrigger>
                         <SelectContent
-                          position="popper"
-                          className="w-full z-50"
-                          align="start"
-                          side="bottom"
-                          sideOffset={4}
+                          className="absolute w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]"
                         >
                           {resumes.map((resume) => (
                             <SelectItem key={resume.id} value={resume.id.toString()}>
