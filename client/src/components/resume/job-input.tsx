@@ -94,8 +94,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         return res.json();
       } catch (error) {
+        // Check if the error is due to cancellation (either through AbortController or manual cancellation)
         if (error instanceof Error && 
-            (error.name === 'AbortError' || error.message === 'cancelled')) {
+            (error.name === 'AbortError' || error.message === 'cancelled' || error.message === 'Request aborted by client')) {
           throw new Error('cancelled');
         }
         throw error;
@@ -134,30 +135,26 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
     },
     onError: (error: Error) => {
-      if (error.message === 'cancelled') {
-        toast({
-          title: "Cancelled",
-          description: "Job fetching process was cancelled",
-        });
-        setExtractedDetails(null);
-        return;
+      // Only show error toast for non-cancellation errors
+      if (error.message !== 'cancelled' && 
+          error.message !== 'Request aborted by client') {
+        if (error.message.includes("dynamically loaded or require authentication")) {
+          toast({
+            title: "LinkedIn Job Detection",
+            description: "LinkedIn jobs require authentication. Please paste the description manually.",
+            variant: "destructive",
+            duration: 6000,
+          });
+          setActiveTab("manual");
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
       }
-
-      if (error.message.includes("dynamically loaded or require authentication")) {
-        toast({
-          title: "LinkedIn Job Detection",
-          description: "LinkedIn jobs require authentication. Please paste the description manually.",
-          variant: "destructive",
-          duration: 6000,
-        });
-        setActiveTab("manual");
-      } else {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      setExtractedDetails(null);
     },
     onSettled: () => {
       if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
