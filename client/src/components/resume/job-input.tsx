@@ -50,6 +50,19 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     };
   }, []);
 
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsProcessing(false);
+    setExtractedDetails(null);
+    if (activeTab === "url") {
+      setJobUrl("");
+    } else {
+      setJobDescription("");
+    }
+  };
+
   const handleReset = () => {
     setJobUrl("");
     setJobDescription("");
@@ -70,18 +83,25 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
       abortControllerRef.current = new AbortController();
 
-      const res = await apiRequest(
-        "POST",
-        `/api/resume/${resumeId}/optimize`,
-        data,
-        { signal: abortControllerRef.current.signal }
-      );
+      try {
+        const res = await apiRequest(
+          "POST",
+          `/api/resume/${resumeId}/optimize`,
+          data,
+          { signal: abortControllerRef.current.signal }
+        );
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to fetch job details');
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.message || 'Failed to fetch job details');
+        }
+        return res.json();
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('cancelled');
+        }
+        throw error;
       }
-      return res.json();
     },
     onSuccess: (data: OptimizedResume) => {
       const details: JobDetails = {
@@ -115,11 +135,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     },
     onError: (error: Error) => {
       // Don't show error toast if it was cancelled
-      if (error.name === 'AbortError') {
+      if (error.message === 'cancelled') {
         toast({
           title: "Cancelled",
           description: "Job fetching process was cancelled",
         });
+        setExtractedDetails(null);
         return;
       }
 
@@ -144,19 +165,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       abortControllerRef.current = null;
     }
   });
-
-  const handleCancel = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    setIsProcessing(false);
-    setExtractedDetails(null);
-    if (activeTab === "url") {
-      setJobUrl("");
-    } else {
-      setJobDescription("");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,7 +214,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">

@@ -412,7 +412,6 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
