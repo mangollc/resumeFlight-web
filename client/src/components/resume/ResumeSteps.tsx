@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import {
-  Upload,
+  LayoutDashboard,
   FileText,
   Settings,
   CheckCircle,
   Download,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
 } from "lucide-react";
 
 interface StepProps {
@@ -20,7 +20,7 @@ interface StepProps {
 }
 
 const steps = [
-  { title: "Upload Resume", icon: Upload },
+  { title: "Upload Resume", icon: LayoutDashboard },
   { title: "Review Content", icon: FileText },
   { title: "Customize", icon: Settings },
   { title: "Generate", icon: CheckCircle },
@@ -28,6 +28,21 @@ const steps = [
 ];
 
 export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepProps) {
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const [carouselWidth, setCarouselWidth] = useState(0);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (carouselRef.current) {
+        setCarouselWidth(carouselRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
   return (
     <div className="w-full space-y-4">
       {/* Mobile step indicator */}
@@ -39,35 +54,44 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
         <Progress value={((currentStep + 1) / totalSteps) * 100} className="h-2" />
 
         {/* Mobile step carousel */}
-        <div className="relative overflow-hidden h-20">
+        <div className="relative h-24 overflow-hidden" ref={carouselRef}>
           <div 
-            className="flex transition-transform duration-300 ease-in-out absolute left-1/2"
+            className="absolute flex transition-transform duration-300 ease-in-out"
             style={{ 
-              transform: `translateX(calc(-50% - ${currentStep * 100}px))`,
-              width: `${steps.length * 100}px`
+              transform: `translateX(${carouselWidth ? (carouselWidth / 2) - (currentStep * (carouselWidth / 3)) - (carouselWidth / 6) : 0}px)`,
+              width: 'fit-content'
             }}
           >
             {steps.map((step, index) => {
               const StepIcon = step.icon;
+              const isCurrent = currentStep === index;
+              const isPast = currentStep > index;
+              const isFuture = currentStep < index;
+
               return (
                 <div
                   key={step.title}
                   className={cn(
-                    "w-[100px] flex-shrink-0 flex flex-col items-center transition-all duration-300",
-                    currentStep === index ? "opacity-100 scale-110" : "opacity-50 scale-90"
+                    "w-[120px] px-2 flex flex-col items-center justify-center transition-all duration-300",
+                    isCurrent ? "opacity-100 scale-110" : "opacity-50 scale-90",
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-full border mb-2",
-                      currentStep === index && "border-primary bg-primary/10",
-                      currentStep > index && "border-primary bg-primary text-primary-foreground",
-                      currentStep < index && "border-muted bg-muted"
+                      "flex h-12 w-12 items-center justify-center rounded-full border mb-2 transition-colors",
+                      isCurrent && "border-primary bg-primary/10 text-primary",
+                      isPast && "border-primary bg-primary text-primary-foreground",
+                      isFuture && "border-muted bg-muted text-muted-foreground"
                     )}
                   >
                     <StepIcon className="h-6 w-6" />
                   </div>
-                  <span className="text-xs font-medium text-center">
+                  <span className={cn(
+                    "text-xs font-medium text-center transition-colors line-clamp-1",
+                    isCurrent && "text-primary",
+                    isPast && "text-primary",
+                    isFuture && "text-muted-foreground"
+                  )}>
                     {step.title}
                   </span>
                 </div>
