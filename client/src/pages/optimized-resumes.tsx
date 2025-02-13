@@ -183,6 +183,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     formatDownloadFilename(
                       resume.metadata.filename,
                       resume.jobDetails?.title || '',
+                      resume.metadata.version
                     )
                   }.pdf`}
                   download
@@ -198,9 +199,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     formatDownloadFilename(
                       resume.metadata.filename,
                       resume.jobDetails?.title || '',
-                      undefined
+                      resume.metadata.version
                     )
-                  }.pdf`}
+                  }_cover.pdf`}
                   download
                   className="flex items-center"
                 >

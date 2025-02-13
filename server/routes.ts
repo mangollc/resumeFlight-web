@@ -1,3 +1,7 @@
+function formatFilename(base: string, extension: string): string {
+  return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
+}
+
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
     keywords: number;
     skills: number;
@@ -419,9 +423,6 @@ function getInitials(text: string): string {
     return "RES"; // Default fallback
 }
 
-function formatFilename(base: string, extension: string): string {
-  return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
-}
 
 export function registerRoutes(app: Express): Server {
     setupAuth(app);
@@ -673,7 +674,6 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-
     app.get("/api/uploaded-resume/:id/download", async (req, res) => {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -709,7 +709,7 @@ export function registerRoutes(app: Express): Server {
               req.query.filename as string || 
               `${getInitials(resume.content)}_${
                 resume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-              }`,
+              }_v${resume.metadata.version.toFixed(1)}`,
               'pdf'
             );
 
@@ -747,7 +747,7 @@ export function registerRoutes(app: Express): Server {
               req.query.filename as string || 
               `${getInitials(optimizedResume.content)}_${
                 optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-              }_v${latestCoverLetter.metadata.version.toFixed(1)}`,
+              }_v${latestCoverLetter.metadata.version.toFixed(1)}_cover`,
               'pdf'
             );
 
