@@ -3,8 +3,6 @@ import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Maximize2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import DiffView from "./diff-view";
 import {
   Dialog,
   DialogContent,
@@ -156,53 +154,33 @@ export default function Preview({ resume, onOptimized, jobDescription }: Preview
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {isOptimized && (
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Maximize2 className="h-4 w-4 mr-2" />
-                        Compare Versions
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Resume Comparison</DialogTitle>
-                        <DialogDescription>
-                          Compare the original and optimized versions of your resume side by side.
-                          Highlighted sections show improvements and optimizations.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="mt-4">
-                        {isDialogOpen && (
-                          <DiffView
-                            beforeContent={originalContent}
-                            afterContent={optimizedContent}
-                            resumeId={(resume as OptimizedResume).id}
-                          />
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                >
-                  <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-                  {isDownloading ? 'Downloading...' : 'Download'}
-                </Button>
-              </div>
-              {jobDescription && !isOptimized && (
-                <Button
-                  onClick={handleOptimize}
-                  disabled={isOptimizing}
-                  size="lg"
-                >
-                  {isOptimizing ? "Optimizing..." : "Optimize Resume"}
-                </Button>
+              {isOptimized && (
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Compare Versions
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Resume Comparison</DialogTitle>
+                      <DialogDescription>
+                        Compare the original and optimized versions of your resume side by side.
+                        Highlighted sections show improvements and optimizations.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                      {isDialogOpen && (
+                        <DiffView
+                          beforeContent={originalContent}
+                          afterContent={optimizedContent}
+                          resumeId={(resume as OptimizedResume).id}
+                        />
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
           </div>
@@ -214,6 +192,18 @@ export default function Preview({ resume, onOptimized, jobDescription }: Preview
               </pre>
             </div>
           </div>
+
+          {jobDescription && !isOptimized && (
+            <div className="flex justify-center mt-6">
+              <Button
+                onClick={handleOptimize}
+                disabled={isOptimizing}
+                size="lg"
+              >
+                {isOptimizing ? "Optimizing..." : "Optimize Resume"}
+              </Button>
+            </div>
+          )}
 
           {isOptimized && (resume as OptimizedResume).metrics && (
             <div className="mt-6 space-y-6">
