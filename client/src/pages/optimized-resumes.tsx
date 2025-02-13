@@ -5,12 +5,23 @@ import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDo
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { useState, useMemo } from "react";
-import { VersionTimeline } from "@/components/resume/version-timeline";
+import { useState } from "react";
 import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,21 +34,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function formatJobDetails(resume: OptimizedResume) {
   return (
@@ -81,7 +84,6 @@ const getMetricsColor = (value: number) => {
   if (value >= 60) return "bg-yellow-500";
   return "bg-red-500";
 };
-
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -329,211 +331,10 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   );
 }
 
-function ResumeVersionGroup({ resumes }: { resumes: OptimizedResume[] }) {
-  const [selectedVersion, setSelectedVersion] = useState<OptimizedResume>(resumes[0]);
-  const [isTimelineOpen, setIsTimelineOpen] = useState(true);
-  const { toast } = useToast();
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      toast({
-        title: "Success",
-        description: "Resume deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  return (
-    <Card>
-      <CardContent className="p-6 space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-xl font-semibold">{selectedVersion.jobDetails?.title}</h2>
-            <p className="text-sm text-muted-foreground">{selectedVersion.jobDetails?.company}</p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsTimelineOpen(!isTimelineOpen)}
-            className="flex items-center gap-2"
-          >
-            {isTimelineOpen ? (
-              <>
-                Hide Timeline
-                <ChevronDown className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Show Timeline
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </div>
-
-        {isTimelineOpen && (
-          <div className="pt-4">
-            <VersionTimeline
-              versions={resumes}
-              onVersionSelect={setSelectedVersion}
-              selectedVersion={selectedVersion}
-            />
-          </div>
-        )}
-
-        <div className="pt-4">
-          <div className="flex justify-end space-x-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <MoreVertical className="h-4 w-4 mr-2" />
-                  Actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Version Actions</DropdownMenuLabel>
-                <DropdownMenuItem asChild>
-                  <a
-                    href={`/api/optimized-resume/${selectedVersion.id}/download`}
-                    download
-                    className="flex items-center"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Resume
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a
-                    href={`/api/optimized-resume/${selectedVersion.id}/cover-letter/latest/download`}
-                    download
-                    className="flex items-center"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Cover Letter
-                  </a>
-                </DropdownMenuItem>
-                {selectedVersion.jobUrl && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <a
-                        href={selectedVersion.jobUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center"
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        View Job Posting
-                      </a>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuSeparator />
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                      <Info className="mr-2 h-4 w-4" />
-                      View Job Details
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Job Details</DialogTitle>
-                      <DialogDescription>
-                        <div className="space-y-4 mt-4">
-                          <div>
-                            <h4 className="font-medium">Company</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {selectedVersion.jobDetails?.company}
-                            </p>
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Location</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {selectedVersion.jobDetails?.location || "Not specified"}
-                            </p>
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Job Description</h4>
-                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                              {selectedVersion.jobDescription}
-                            </p>
-                          </div>
-                        </div>
-                      </DialogDescription>
-                    </DialogHeader>
-                  </DialogContent>
-                </Dialog>
-                <DropdownMenuSeparator />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <DropdownMenuItem
-                      onSelect={(e) => e.preventDefault()}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete Version
-                    </DropdownMenuItem>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Resume Version</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this version? This action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => deleteMutation.mutate(selectedVersion.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Delete
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function OptimizedResumesPage() {
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
   });
-
-  const resumeGroups = useMemo(() => {
-    if (!resumes) return [];
-
-    const groups = resumes.reduce((acc, resume) => {
-      const uploadedResumeId = resume.uploadedResumeId;
-      if (!acc[uploadedResumeId]) {
-        acc[uploadedResumeId] = [];
-      }
-      acc[uploadedResumeId].push(resume);
-      return acc;
-    }, {} as Record<number, OptimizedResume[]>);
-
-    return Object.values(groups).map(group =>
-      group.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    );
-  }, [resumes]);
 
   if (isLoading) {
     return (
@@ -548,13 +349,29 @@ export default function OptimizedResumesPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-8 space-y-6">
-      <h1 className="text-2xl font-bold">Resume Versions</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold">Optimized Resumes</h1>
+      </div>
 
-      {resumeGroups.length > 0 ? (
-        <div className="space-y-6">
-          {resumeGroups.map((group, index) => (
-            <ResumeVersionGroup key={index} resumes={group} />
-          ))}
+      {resumes && resumes.length > 0 ? (
+        <div className="border rounded-lg overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-primary/5 dark:bg-primary/10">
+              <TableRow>
+                <TableHead className="w-[30px]"></TableHead>
+                <TableHead className="w-[100px] font-bold text-primary">Date</TableHead>
+                <TableHead className="font-bold text-primary w-[30%]">Position</TableHead>
+                <TableHead className="hidden sm:table-cell font-bold text-primary w-[20%]">Company</TableHead>
+                <TableHead className="hidden lg:table-cell font-bold text-primary w-[20%]">Match Score</TableHead>
+                <TableHead className="text-right font-bold text-primary w-[60px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {resumes.map((resume) => (
+                <ResumeRow key={resume.id} resume={resume} />
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="text-center py-12">
