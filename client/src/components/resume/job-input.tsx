@@ -32,11 +32,11 @@ export interface JobDetails {
 
 interface JobInputProps {
   resumeId: number;
-  onNext: () => void;
+  onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
   initialJobDetails?: JobDetails;
 }
 
-export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInputProps) {
+export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
@@ -74,6 +74,7 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
         description: "Job details fetched successfully",
       });
       setIsProcessing(false);
+      onOptimized(data, details); //Call onOptimized callback
     },
     onError: (error: Error) => {
       if (error.message.includes("dynamically loaded or require authentication")) {
@@ -124,19 +125,19 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
     const lowerSkill = skill.toLowerCase();
 
     if (skillTypes.technical.some(s => lowerSkill.includes(s))) {
-      return "default"; // Blue for technical skills
+      return "default"; 
     }
     if (skillTypes.database.some(s => lowerSkill.includes(s))) {
-      return "destructive"; // Red for database skills
+      return "destructive"; 
     }
     if (skillTypes.cloud.some(s => lowerSkill.includes(s))) {
-      return "outline"; // Outlined for cloud/infrastructure
+      return "outline"; 
     }
     if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
-      return "secondary"; // Gray for testing
+      return "secondary"; 
     }
     if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
-      return "outline"; // Outlined for development tools
+      return "outline"; 
     }
     return "default";
   };
@@ -260,16 +261,6 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
               </div>
             </div>
           )}
-
-          <div className="flex justify-end pt-4">
-            <Button 
-              onClick={onNext}
-              size="lg"
-              className="w-32"
-            >
-              Next
-            </Button>
-          </div>
         </div>
       )}
     </div>

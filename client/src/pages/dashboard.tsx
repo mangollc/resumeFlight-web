@@ -100,7 +100,6 @@ export default function Dashboard() {
     if (!completedSteps.includes(2)) {
       setCompletedSteps(prev => [...prev, 2]);
     }
-    setCurrentStep(3);
   };
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
