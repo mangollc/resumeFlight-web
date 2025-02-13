@@ -10,6 +10,7 @@ import { Loader2, ChevronDown, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { LoadingDialog } from "@/components/ui/loading-dialog";
 
 export interface JobDetails {
   title: string;
@@ -270,6 +271,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           </div>
         </div>
       )}
+
+      <LoadingDialog
+        open={isProcessing}
+        title="Fetching Job Details"
+        description="Please wait while we analyze the job posting and optimize your resume..."
+      />
     </div>
   );
 }
