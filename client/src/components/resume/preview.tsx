@@ -13,52 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import DiffView from "./diff-view";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
-  onOptimized?: (resume: OptimizedResume) => void;
-  jobDescription?: string;
 }
 
-export default function Preview({ resume, onOptimized, jobDescription }: PreviewProps) {
+export default function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [isOptimizing, setIsOptimizing] = useState(false);
-
-  const optimizeMutation = useMutation({
-    mutationFn: async () => {
-      if (!resume || !jobDescription) return null;
-      const res = await apiRequest("POST", `/api/resume/${resume.id}/optimize`, {
-        jobDescription
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Failed to optimize resume');
-      }
-      return res.json();
-    },
-    onSuccess: (data) => {
-      if (data && onOptimized) {
-        onOptimized(data);
-        queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-        toast({
-          title: "Success",
-          description: "Resume optimized successfully",
-        });
-      }
-      setIsOptimizing(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsOptimizing(false);
-    },
-  });
 
   if (!resume) {
     return (
@@ -129,11 +92,6 @@ export default function Preview({ resume, onOptimized, jobDescription }: Preview
     </div>
   );
 
-  const handleOptimize = () => {
-    setIsOptimizing(true);
-    optimizeMutation.mutate();
-  };
-
   return (
     <Card className="h-full">
       <CardContent className="p-6">
@@ -192,18 +150,6 @@ export default function Preview({ resume, onOptimized, jobDescription }: Preview
               </pre>
             </div>
           </div>
-
-          {jobDescription && !isOptimized && (
-            <div className="flex justify-center mt-6">
-              <Button
-                onClick={handleOptimize}
-                disabled={isOptimizing}
-                size="lg"
-              >
-                {isOptimizing ? "Optimizing..." : "Optimize Resume"}
-              </Button>
-            </div>
-          )}
 
           {isOptimized && (resume as OptimizedResume).metrics && (
             <div className="mt-6 space-y-6">

@@ -33,12 +33,11 @@ export interface JobDetails {
 
 interface JobInputProps {
   resumeId: number;
-  onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
-  initialJobDetails?: JobDetails;
   onNext?: () => void;
+  initialJobDetails?: JobDetails;
 }
 
-export default function JobInput({ resumeId, onOptimized, initialJobDetails, onNext }: JobInputProps) {
+export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
@@ -46,15 +45,14 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onN
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const optimizeMutation = useMutation({
+  const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
       const res = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, data);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || 'Failed to optimize resume');
+        throw new Error(error.message || 'Failed to fetch job details');
       }
-      const responseData = await res.json();
-      return responseData;
+      return res.json();
     },
     onSuccess: (data: OptimizedResume) => {
       const details: JobDetails = {
@@ -71,7 +69,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onN
 
       setExtractedDetails(details);
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      onOptimized(data, details);
 
       toast({
         title: "Success",
@@ -111,7 +108,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onN
     }
 
     setIsProcessing(true);
-    optimizeMutation.mutate(
+    fetchJobMutation.mutate(
       activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
     );
   };
@@ -189,7 +186,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onN
           {isProcessing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Fetching Info...
+              Processing...
             </>
           ) : (
             "Fetch Job Info"
