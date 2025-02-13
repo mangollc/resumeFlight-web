@@ -158,7 +158,6 @@ export default function Dashboard() {
     }
   };
 
-
   const handleDownloadPackage = async () => {
     if (!optimizedResume?.id) return;
 
@@ -507,7 +506,13 @@ export default function Dashboard() {
                   <div className="mt-6 space-y-6">
                     <div className="bg-muted/30 rounded-lg p-6">
                       <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-semibold">Preview (v{coverLetterVersion.toFixed(1)})</h4>
+                        <h4 className="font-semibold">
+                          Preview {coverLetters?.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.metadata.version ? `(v${coverLetters.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
+                        </h4>
                         <Button
                           onClick={handleRegenerateCoverLetter}
                           variant="default"
@@ -570,7 +575,7 @@ export default function Dashboard() {
                           }}
                           variant="outline"
                         >
-                          Download Selected Version
+                          Download Version {selectedCoverLetterVersion}
                         </Button>
                       </div>
                     )}
@@ -580,7 +585,7 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Loading Dialogs */}
+            {/* Loading Dialog */}
             <LoadingDialog
               open={isGeneratingCoverLetter}
               title="Generating Cover Letter"
@@ -603,8 +608,62 @@ export default function Dashboard() {
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
                     <div className="bg-muted/30 rounded-lg p-6">
-                      <pre className="whitespace-pre-wrap">{coverLetter.content}</pre>
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-semibold">
+                          Preview {coverLetters?.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.metadata.version ? `(v${coverLetters.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
+                        </h4>
+                      </div>
+                      {coverLetters && coverLetters.length > 1 && (
+                        <div className="mb-4">
+                          <Select
+                            value={selectedCoverLetterVersion}
+                            onValueChange={setSelectedCoverLetterVersion}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue placeholder="Select version" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {coverLetters.map((letter) => (
+                                <SelectItem
+                                  key={letter.metadata.version}
+                                  value={letter.metadata.version.toString()}
+                                >
+                                  Version {letter.metadata.version.toFixed(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="prose prose-sm max-w-none">
+                        <pre className="whitespace-pre-wrap">
+                          {coverLetters?.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.content || coverLetter.content}
+                        </pre>
+                      </div>
                     </div>
+                    {coverLetters && coverLetters.length > 1 && (
+                      <div className="flex justify-end mt-4">
+                        <Button
+                          onClick={() => {
+                            const selectedLetter = coverLetters.find(
+                              (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                            );
+                            if (selectedLetter) {
+                              window.location.href = `/api/cover-letter/${selectedLetter.id}/download`;
+                            }
+                          }}
+                          variant="outline"
+                        >
+                          Download Version {selectedCoverLetterVersion}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {renderNavigation()}
