@@ -167,10 +167,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         const jsonData = await response.json();
 
-        if (abortControllerRef.current.signal.aborted) {
-          throw new Error("cancelled");
-        }
-
         updateStepStatus("analyze", "completed");
         updateStepStatus("optimize", "loading");
 
@@ -235,7 +231,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           });
         }
       }
-      setExtractedDetails(null); //Added to handle error cases
     },
     onSettled: () => {
       if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
