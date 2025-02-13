@@ -4,9 +4,9 @@ import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetter from "@/components/resume/cover-letter";
-import { type UploadedResume, type OptimizedResume } from "@shared/schema";
+import { type UploadedResume, type OptimizedResume, type CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FileText, Upload, ArrowLeft, ArrowRight } from "lucide-react";
+import { FileText, Upload, ArrowLeft, ArrowRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -50,8 +50,9 @@ export default function Dashboard() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
-  const [hasCoverLetter, setHasCoverLetter] = useState(false);
+  const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
+  const [jobDetails, setJobDetails] = useState<{ url?: string, description?: string } | null>(null);
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -63,14 +64,15 @@ export default function Dashboard() {
     setCurrentStep(2);
   };
 
-  const handleOptimizationComplete = (resume: OptimizedResume) => {
+  const handleOptimizationComplete = (resume: OptimizedResume, details: { url?: string, description?: string }) => {
     setOptimizedResume(resume);
+    setJobDetails(details);
     setCompletedSteps(prev => [...prev, 2]);
-    setCurrentStep(3);  // Now goes to step 3 instead of 4
+    setCurrentStep(3);
   };
 
-  const handleCoverLetterGenerated = () => {
-    setHasCoverLetter(true);
+  const handleCoverLetterGenerated = (letter: CoverLetterType) => {
+    setCoverLetter(letter);
     setCompletedSteps(prev => [...prev, 4]);
     setCurrentStep(5);
   };
@@ -80,7 +82,7 @@ export default function Dashboard() {
     (currentStep === 1 && uploadedResume) ||
     (currentStep === 2 && optimizedResume) ||
     (currentStep === 3) ||
-    (currentStep === 4 && hasCoverLetter)
+    (currentStep === 4 && coverLetter)
   );
 
   const handleBack = () => {
@@ -95,6 +97,25 @@ export default function Dashboard() {
       if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => [...prev, currentStep]);
       }
+    }
+  };
+
+  const handleDownloadPackage = async () => {
+    try {
+      const response = await fetch(`/api/package/download/${optimizedResume?.id}`);
+      if (!response.ok) throw new Error('Failed to download package');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'resume-package.zip';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
     }
   };
 
@@ -205,6 +226,7 @@ export default function Dashboard() {
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
+                  initialJobDetails={jobDetails}
                 />
                 {renderNavigation()}
               </CardContent>
@@ -228,10 +250,11 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Generate Cover Letter</h3>
+                <h3 className="text-xl font-semibold mb-4">Cover Letter Generator</h3>
                 <CoverLetter
                   resume={optimizedResume}
                   onGenerated={handleCoverLetterGenerated}
+                  generatedCoverLetter={coverLetter}
                 />
                 {renderNavigation()}
               </CardContent>
@@ -239,7 +262,7 @@ export default function Dashboard() {
           </div>
         ) : null;
       case 5:
-        return optimizedResume ? (
+        return optimizedResume && coverLetter ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
@@ -249,29 +272,21 @@ export default function Dashboard() {
                     <h3 className="text-xl font-semibold mb-4">Optimized Resume</h3>
                     <Preview resume={optimizedResume} />
                   </div>
-                  {hasCoverLetter && (
-                    <div>
-                      <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
-                      <CoverLetter
-                        resume={optimizedResume}
-                        onGenerated={() => { }}
-                        readOnly
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
+                    <CoverLetter
+                      resume={optimizedResume}
+                      generatedCoverLetter={coverLetter}
+                      readOnly
+                    />
+                  </div>
                   <div className="border-t pt-6">
                     <h3 className="text-xl font-semibold mb-4">Download Options</h3>
-                    <div className="flex flex-wrap gap-4">
-                      <Button size="lg" className="bg-primary hover:bg-primary/90">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Resume (PDF)
+                    <div className="flex justify-center">
+                      <Button size="lg" onClick={handleDownloadPackage}>
+                        <Download className="h-5 w-5 mr-2" />
+                        Download Complete Package (ZIP)
                       </Button>
-                      {hasCoverLetter && (
-                        <Button size="lg" variant="outline" className="border-primary hover:bg-primary/10">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Download Cover Letter (PDF)
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -286,7 +301,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-8 pb-12">
+    <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Resume Optimization
@@ -304,7 +319,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="mt-8">
+      <div className="mt-16">
         {renderCurrentStep()}
       </div>
     </div>
