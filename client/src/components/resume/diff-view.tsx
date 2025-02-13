@@ -24,39 +24,45 @@ function computeDiff(before: string, after: string) {
       continue;
     }
 
-    // Split paragraphs into words for more granular comparison
-    const beforeWords = beforePara.split(/(\s+)/);
-    const afterWords = afterPara.split(/(\s+)/);
-    let diffText = '';
+    // Split paragraphs into words and punctuation
+    const wordPattern = /([a-zA-Z0-9]+|[^a-zA-Z0-9\s]+|\s+)/g;
+    const beforeTokens = beforePara.match(wordPattern) || [];
+    const afterTokens = afterPara.match(wordPattern) || [];
+
+    let currentSegment = '';
     let lastHighlighted = false;
+    let j = 0;
 
-    for (let j = 0; j < afterWords.length; j++) {
-      const word = afterWords[j];
-      const beforeWord = beforeWords[j] || '';
+    // Compare tokens one by one
+    while (j < afterTokens.length) {
+      const afterToken = afterTokens[j];
+      const beforeToken = beforeTokens[j] || '';
+      const isChanged = afterToken !== beforeToken;
 
-      // Check if this word changed
-      const isChanged = word !== beforeWord;
-
-      // If highlighting status changed or it's the first word
-      if (isChanged !== lastHighlighted || j === 0) {
-        if (diffText) {
-          result.push({ text: diffText, highlight: lastHighlighted });
+      // If highlighting status changed or it's the first token
+      if (isChanged !== lastHighlighted || currentSegment === '') {
+        if (currentSegment) {
+          result.push({ text: currentSegment, highlight: lastHighlighted });
+          currentSegment = '';
         }
-        diffText = word;
+        currentSegment = afterToken;
         lastHighlighted = isChanged;
       } else {
         // Continue building the current segment
-        diffText += word;
+        currentSegment += afterToken;
       }
+      j++;
     }
 
-    // Add the last segment
-    if (diffText) {
-      result.push({ text: diffText, highlight: lastHighlighted });
+    // Add the last segment of the paragraph
+    if (currentSegment) {
+      result.push({ text: currentSegment, highlight: lastHighlighted });
     }
 
-    // Add paragraph separator
-    result.push({ text: '\n\n', highlight: false });
+    // Add paragraph separator unless it's the last paragraph
+    if (i < maxParagraphs - 1) {
+      result.push({ text: '\n\n', highlight: false });
+    }
   }
 
   return result;
