@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Laptop } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ResumeSideBySideCompareProps {
   originalResume: string;
@@ -8,16 +9,11 @@ interface ResumeSideBySideCompareProps {
 }
 
 export function ResumeSideBySideCompare({ originalResume, optimizedResume }: ResumeSideBySideCompareProps) {
-  const [showMobileDialog, setShowMobileDialog] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
-      const isMobileView = window.innerWidth < 1024;
-      setIsMobile(isMobileView);
-      if (isMobileView) {
-        setShowMobileDialog(true);
-      }
+      setIsMobile(window.innerWidth < 1024);
     };
 
     checkMobile();
@@ -27,7 +23,12 @@ export function ResumeSideBySideCompare({ originalResume, optimizedResume }: Res
 
   if (isMobile) {
     return (
-      <Dialog open={showMobileDialog} onOpenChange={setShowMobileDialog}>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="w-full">
+            Compare Versions
+          </Button>
+        </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -37,8 +38,8 @@ export function ResumeSideBySideCompare({ originalResume, optimizedResume }: Res
           </DialogHeader>
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
-              The resume comparison feature is optimized for larger screens. 
-              Please use a tablet or desktop device to access this feature for the best experience.
+              The resume comparison feature requires a larger screen for optimal viewing. 
+              Please use a tablet or desktop device to access the side-by-side comparison.
             </p>
           </div>
         </DialogContent>
@@ -47,7 +48,7 @@ export function ResumeSideBySideCompare({ originalResume, optimizedResume }: Res
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 h-full">
+    <div className="hidden lg:grid grid-cols-2 gap-4 h-full">
       <div className="border rounded-lg p-4 bg-card">
         <h3 className="text-lg font-semibold mb-4">Original Resume</h3>
         <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: originalResume }} />

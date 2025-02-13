@@ -46,16 +46,18 @@ export function StepContentSection({ children, className }: StepContentProps) {
 
 export function FileNameDisplay({ fileName }: { fileName: string }) {
   return (
-    <div className="text-sm sm:text-base break-all">
-      <span className="font-medium">File:</span>
-      <span className="ml-2 text-muted-foreground">{fileName}</span>
+    <div className="p-2 bg-muted rounded-md">
+      <p className="text-xs sm:text-sm font-medium mb-1">File Name:</p>
+      <p className="text-xs sm:text-sm text-muted-foreground break-all line-clamp-2">
+        {fileName}
+      </p>
     </div>
   );
 }
 
 export function ActionButtonGroup({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap gap-2 sm:gap-3 items-center mt-4">
+    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4">
       {children}
     </div>
   );
