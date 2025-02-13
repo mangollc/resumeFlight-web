@@ -4,9 +4,9 @@ import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetter from "@/components/resume/cover-letter";
-import { type UploadedResume, type OptimizedResume, type CoverLetterType } from "@shared/schema";
+import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Upload, ArrowLeft, ArrowRight, Download, Loader2 } from "lucide-react";
+import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 const steps: Step[] = [
   {
@@ -62,8 +63,7 @@ export default function Dashboard() {
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
-  const [sessionId] = useState(() => Date.now().toString()); // Used to track optimization session
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [optimizationVersion, setOptimizationVersion] = useState(1.0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -100,6 +100,8 @@ export default function Dashboard() {
     if (!completedSteps.includes(2)) {
       setCompletedSteps(prev => [...prev, 2]);
     }
+    // Increment version for each optimization
+    setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
   };
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
@@ -180,6 +182,37 @@ export default function Dashboard() {
     setCoverLetter(null);
     setJobDetails(null);
     setUploadMode('choose');
+  };
+
+  const handleReoptimize = async () => {
+    if (!uploadedResume?.id || !jobDetails) return;
+
+    try {
+      const data = {
+        jobUrl: jobDetails.url,
+        jobDescription: jobDetails.description,
+        version: optimizationVersion + 0.1
+      };
+
+      const response = await apiRequest("POST", `/api/resume/${uploadedResume.id}/optimize`, data);
+      if (!response.ok) {
+        throw new Error('Failed to reoptimize resume');
+      }
+
+      const optimizedData = await response.json();
+      handleOptimizationComplete(optimizedData, jobDetails);
+
+      toast({
+        title: "Success",
+        description: `Resume optimized (v${optimizationVersion.toFixed(1)})`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reoptimize resume",
+        variant: "destructive",
+      });
+    }
   };
 
   const canGoBack = currentStep > 1;
@@ -367,21 +400,19 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">Optimized Resume Preview</h3>
+                <h3 className="text-xl font-semibold mb-4">
+                  Optimized Resume Preview <span className="text-sm text-muted-foreground">(v{optimizationVersion.toFixed(1)})</span>
+                </h3>
                 <Preview resume={optimizedResume} />
 
-                {/* Add Optimize Again button */}
                 <div className="mt-6 flex justify-center">
                   <Button 
-                    onClick={() => {
-                      if (uploadedResume && jobDetails) {
-                        handleOptimizationComplete(uploadedResume, jobDetails);
-                      }
-                    }}
-                    variant="outline"
-                    className="w-auto"
+                    onClick={handleReoptimize}
+                    variant="default"
+                    className="w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                    size="lg"
                   >
-                    <ArrowRight className="mr-2 h-4 w-4" />
+                    <RefreshCw className="mr-2 h-4 w-4" />
                     Optimize Again
                   </Button>
                 </div>
@@ -438,6 +469,10 @@ export default function Dashboard() {
         return null;
     }
   };
+
+  const [sessionId] = useState(() => Date.now().toString()); // Used to track optimization session
+  const [isDownloading, setIsDownloading] = useState(false);
+
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">

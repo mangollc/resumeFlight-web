@@ -1,17 +1,17 @@
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
- keywords: number;
- skills: number;
- experience: number;
- overall: number;
+  keywords: number;
+  skills: number;
+  experience: number;
+  overall: number;
 }> {
- try {
-   console.log("[Match Analysis] Starting analysis...");
-   const response = await openai.chat.completions.create({
-     model: "gpt-4",
-     messages: [
-       {
-         role: "system",
-         content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+  try {
+    console.log("[Match Analysis] Starting analysis...");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
 Your task is to:
 1. Analyze keyword matches between resume and job requirements
 2. Evaluate skills alignment
@@ -31,40 +31,40 @@ Scoring Guidelines:
 - Skills (0-100): How well the candidate's skills match the required skills
 - Experience (0-100): Relevance and depth of experience compared to requirements
 - Overall (0-100): Weighted average with emphasis on skills and experience`
-       },
-       {
-         role: "user",
-         content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
-       }
-     ],
-     temperature: 0.3,
-   });
+        },
+        {
+          role: "user",
+          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+        }
+      ],
+      temperature: 0.3,
+    });
 
-   const content = response.choices[0].message.content;
-   if (!content) {
-     console.warn("[Match Analysis] Empty response from OpenAI");
-     return getDefaultMetrics();
-   }
+    const content = response.choices[0].message.content;
+    if (!content) {
+      console.warn("[Match Analysis] Empty response from OpenAI");
+      return getDefaultMetrics();
+    }
 
-   try {
-     const metrics = JSON.parse(content);
-     const validatedMetrics = {
-       keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-       skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-       experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-       overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-     };
+    try {
+      const metrics = JSON.parse(content);
+      const validatedMetrics = {
+        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+      };
 
-     console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
-     return validatedMetrics;
-   } catch (parseError) {
-     console.error("[Match Analysis] Error parsing metrics:", parseError);
-     return getDefaultMetrics();
-   }
- } catch (error) {
-   console.error("[Match Analysis] Error calculating scores:", error);
-   return getDefaultMetrics();
- }
+      console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
+      return validatedMetrics;
+    } catch (parseError) {
+      console.error("[Match Analysis] Error parsing metrics:", parseError);
+      return getDefaultMetrics();
+    }
+  } catch (error) {
+    console.error("[Match Analysis] Error calculating scores:", error);
+    return getDefaultMetrics();
+  }
 }
 
 async function analyzeJobDescription(description: string) {
@@ -141,12 +141,12 @@ Return a detailed analysis in the following JSON format:
 }
 
 function getDefaultMetrics() {
- return {
-  keywords: 0,
-  skills: 0,
-  experience: 0,
-  overall: 0
- };
+  return {
+    keywords: 0,
+    skills: 0,
+    experience: 0,
+    overall: 0
+  };
 }
 
 function getDefaultAnalysis() {
@@ -181,156 +181,156 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 
 interface MulterRequest extends Request {
- file?: Express.Multer.File;
+  file?: Express.Multer.File;
 }
 
 interface JobDetails {
- title: string;
- company: string;
- salary?: string;
- location: string;
- description: string;
- positionLevel?: string;
- candidateProfile?: string;
- keyPoints?: string[];
- keyRequirements?: string[];
- skillsAndTools?: string[];
- metrics?: {
-  keywords?: number;
-  skills?: number;
-  experience?: number;
-  overall?: number;
- };
+  title: string;
+  company: string;
+  salary?: string;
+  location: string;
+  description: string;
+  positionLevel?: string;
+  candidateProfile?: string;
+  keyPoints?: string[];
+  keyRequirements?: string[];
+  skillsAndTools?: string[];
+  metrics?: {
+    keywords?: number;
+    skills?: number;
+    experience?: number;
+    overall?: number;
+  };
 }
 
 const upload = multer({
- storage: multer.memoryStorage(),
- limits: { fileSize: 5 * 1024 * 1024 }
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
- try {
-  if (mimetype === "application/pdf") {
-   const pdfParser = new PDFParser(null);
-   return new Promise((resolve, reject) => {
-    pdfParser.on("pdfParser_dataReady", (pdfData) => {
-     resolve(pdfData.Pages.map(page =>
-      page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
-     ).join("\n"));
-    });
-    pdfParser.on("pdfParser_dataError", reject);
-    pdfParser.parseBuffer(buffer);
-   });
-  } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-   const result = await mammoth.extractRawText({ buffer });
-   return result.value;
+  try {
+    if (mimetype === "application/pdf") {
+      const pdfParser = new PDFParser(null);
+      return new Promise((resolve, reject) => {
+        pdfParser.on("pdfParser_dataReady", (pdfData) => {
+          resolve(pdfData.Pages.map(page =>
+            page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
+          ).join("\n"));
+        });
+        pdfParser.on("pdfParser_dataError", reject);
+        pdfParser.parseBuffer(buffer);
+      });
+    } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const result = await mammoth.extractRawText({ buffer });
+      return result.value;
+    }
+    throw new Error("Unsupported file type");
+  } catch (error) {
+    console.error("Error parsing resume:", error);
+    throw new Error("Failed to parse resume file");
   }
-  throw new Error("Unsupported file type");
- } catch (error) {
-  console.error("Error parsing resume:", error);
-  throw new Error("Failed to parse resume file");
- }
 }
 
 async function extractJobDetails(url: string): Promise<JobDetails> {
- try {
-  const response = await axios.get(url);
-  const $ = cheerio.load(response.data);
+  try {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
 
-  const linkedInSelectors = {
-   title: ['.top-card-layout__title', '.job-details-jobs-unified-top-card__job-title'],
-   company: ['.topcard__org-name-link', '.job-details-jobs-unified-top-card__company-name'],
-   location: ['.topcard__flavor:not(:contains("applicants"))', '.job-details-jobs-unified-top-card__bullet:not(:contains("applicants"))'],
-   salary: ['.compensation__salary', '.job-details-jobs-unified-top-card__salary-info'],
-   description: ['.description__text', '.job-details-jobs-unified-top-card__job-description']
-  };
+    const linkedInSelectors = {
+      title: ['.top-card-layout__title', '.job-details-jobs-unified-top-card__job-title'],
+      company: ['.topcard__org-name-link', '.job-details-jobs-unified-top-card__company-name'],
+      location: ['.topcard__flavor:not(:contains("applicants"))', '.job-details-jobs-unified-top-card__bullet:not(:contains("applicants"))'],
+      salary: ['.compensation__salary', '.job-details-jobs-unified-top-card__salary-info'],
+      description: ['.description__text', '.job-details-jobs-unified-top-card__job-description']
+    };
 
-  const genericSelectors = {
-   title: ['h1', '.job-title', '[data-testid="job-title"]', '.position-title'],
-   company: ['.company-name', '[data-testid="company-name"]', '.employer'],
-   location: ['.location', '[data-testid="location"]', '.job-location'],
-   salary: ['.salary', '[data-testid="salary-range"]', '.compensation'],
-   description: [
-    '.job-description',
-    '#job-description',
-    '[data-testid="job-description"]',
-    '.description'
-   ]
-  };
+    const genericSelectors = {
+      title: ['h1', '.job-title', '[data-testid="job-title"]', '.position-title'],
+      company: ['.company-name', '[data-testid="company-name"]', '.employer'],
+      location: ['.location', '[data-testid="location"]', '.job-location'],
+      salary: ['.salary', '[data-testid="salary-range"]', '.compensation'],
+      description: [
+        '.job-description',
+        '#job-description',
+        '[data-testid="job-description"]',
+        '.description'
+      ]
+    };
 
-  const findContent = (selectors: string[], type: keyof typeof linkedInSelectors): string => {
-   for (const selector of linkedInSelectors[type]) {
-    const element = $(selector);
-    if (element.length) {
-     let text = element.text().trim().replace(/\s+/g, ' ');
-     if (type === 'location') {
-      text = text.replace(/\d+\s*applicants?/gi, '')
-       .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '')
-       .trim();
-     }
-     return text;
+    const findContent = (selectors: string[], type: keyof typeof linkedInSelectors): string => {
+      for (const selector of linkedInSelectors[type]) {
+        const element = $(selector);
+        if (element.length) {
+          let text = element.text().trim().replace(/\s+/g, ' ');
+          if (type === 'location') {
+            text = text.replace(/\d+\s*applicants?/gi, '')
+              .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '')
+              .trim();
+          }
+          return text;
+        }
+      }
+
+      for (const selector of genericSelectors[type]) {
+        const element = $(selector);
+        if (element.length) {
+          return element.text().trim().replace(/\s+/g, ' ');
+        }
+      }
+
+      return '';
+    };
+
+    const title = findContent(genericSelectors.title, 'title');
+    const company = findContent(genericSelectors.company, 'company');
+    let location = findContent(genericSelectors.location, 'location');
+    const salary = findContent(genericSelectors.salary, 'salary');
+    let description = findContent(genericSelectors.description, 'description');
+
+    if (!description) {
+      description = $('.job-view-layout').text().trim() ||
+        $('.description__text').text().trim() ||
+        $('main').text().trim();
     }
-   }
 
-   for (const selector of genericSelectors[type]) {
-    const element = $(selector);
-    if (element.length) {
-     return element.text().trim().replace(/\s+/g, ' ');
+    const isRemote = [description, location, $('body').text()].some(text =>
+      text.toLowerCase().includes('remote') ||
+      text.toLowerCase().includes('work from home') ||
+      text.toLowerCase().includes('wfh')
+    );
+
+    if (isRemote) {
+      location = location ? `${location} (Remote)` : 'Remote';
     }
-   }
 
-   return '';
-  };
+    const aiAnalysis = await analyzeJobDescription(description);
 
-  const title = findContent(genericSelectors.title, 'title');
-  const company = findContent(genericSelectors.company, 'company');
-  let location = findContent(genericSelectors.location, 'location');
-  const salary = findContent(genericSelectors.salary, 'salary');
-  let description = findContent(genericSelectors.description, 'description');
+    const jobDetails: JobDetails = {
+      title: title || 'Not specified',
+      company: company || 'Not specified',
+      salary: salary || undefined,
+      location: location || 'Not specified',
+      description,
+      positionLevel: aiAnalysis.positionLevel,
+      keyRequirements: aiAnalysis.keyRequirements,
+      skillsAndTools: aiAnalysis.skillsAndTools,
+      metrics: aiAnalysis.metrics
+    };
 
-  if (!description) {
-   description = $('.job-view-layout').text().trim() ||
-    $('.description__text').text().trim() ||
-    $('main').text().trim();
+    if (!jobDetails.description || jobDetails.description.length < 50) {
+      throw new Error("Could not extract sufficient job details. The page might be dynamically loaded or require authentication.");
+    }
+
+    return jobDetails;
+  } catch (error: any) {
+    console.error("Error extracting job details:", error);
+    throw new Error(
+      error.message === "Could not extract sufficient job details. The page might be dynamically loaded or require authentication."
+        ? error.message
+        : "Failed to extract job details from URL. Please paste the description manually."
+    );
   }
-
-  const isRemote = [description, location, $('body').text()].some(text =>
-   text.toLowerCase().includes('remote') ||
-   text.toLowerCase().includes('work from home') ||
-   text.toLowerCase().includes('wfh')
-  );
-
-  if (isRemote) {
-   location = location ? `${location} (Remote)` : 'Remote';
-  }
-
-  const aiAnalysis = await analyzeJobDescription(description);
-
-  const jobDetails: JobDetails = {
-   title: title || 'Not specified',
-   company: company || 'Not specified',
-   salary: salary || undefined,
-   location: location || 'Not specified',
-   description,
-   positionLevel: aiAnalysis.positionLevel,
-   keyRequirements: aiAnalysis.keyRequirements,
-   skillsAndTools: aiAnalysis.skillsAndTools,
-   metrics: aiAnalysis.metrics
-  };
-
-  if (!jobDetails.description || jobDetails.description.length < 50) {
-   throw new Error("Could not extract sufficient job details. The page might be dynamically loaded or require authentication.");
-  }
-
-  return jobDetails;
- } catch (error: any) {
-  console.error("Error extracting job details:", error);
-  throw new Error(
-   error.message === "Could not extract sufficient job details. The page might be dynamically loaded or require authentication."
-    ? error.message
-    : "Failed to extract job details from URL. Please paste the description manually."
-  );
- }
 }
 
 
@@ -355,8 +355,8 @@ async function createPDF(content: string): Promise<Buffer> {
 
       // Set up professional formatting
       doc.font('Helvetica')
-         .fontSize(11)
-         .lineGap(2);
+        .fontSize(11)
+        .lineGap(2);
 
       // Process the content by paragraphs
       const paragraphs = content.split('\n\n');
@@ -395,14 +395,28 @@ async function createPDF(content: string): Promise<Buffer> {
 }
 
 function getInitials(text: string): string {
+  // First try to find a name at the start of the resume
   const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-  if (!nameMatch) return "NA";
+  if (nameMatch) {
+    return nameMatch[0]
+      .split(/\s+/)
+      .map(name => name[0])
+      .join('')
+      .toUpperCase();
+  }
 
-  return nameMatch[0]
-    .split(/\s+/)
-    .map(name => name[0])
-    .join('')
-    .toUpperCase();
+  // Fallback: Look for a name anywhere in the first paragraph
+  const firstParagraph = text.split('\n\n')[0];
+  const anyNameMatch = firstParagraph.match(/[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
+  if (anyNameMatch) {
+    return anyNameMatch[0]
+      .split(/\s+/)
+      .map(name => name[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  return "RES"; // Default fallback
 }
 
 export function registerRoutes(app: Express): Server {
@@ -481,7 +495,7 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/resume/:id/optimize", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
-      const { jobUrl, jobDescription } = req.body;
+      const { jobUrl, jobDescription, version } = req.body;
 
       if (!jobUrl && !jobDescription) {
         return res.status(400).json({ error: "Please provide either a job URL or description" });
@@ -533,18 +547,17 @@ export function registerRoutes(app: Express): Server {
       const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
 
       const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
-
-      // Calculate after optimization metrics
-      console.log("[Metrics] Calculating post-optimization scores");
       const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
 
       const initials = getInitials(uploadedResume.content);
       const cleanJobTitle = jobDetails.title
         .replace(/[^a-zA-Z0-9\s]/g, '')
         .replace(/\s+/g, '_')
-        .substring(0, 50);
+        .substring(0, 30); // Shortened for better filenames
 
-      const newFilename = `${initials}_${cleanJobTitle}.pdf`;
+      // Include version in filename
+      const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
+      const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
 
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
@@ -556,7 +569,8 @@ export function registerRoutes(app: Express): Server {
         userId: req.user!.id,
         metadata: {
           filename: newFilename,
-          optimizedAt: new Date().toISOString()
+          optimizedAt: new Date().toISOString(),
+          version: version || 1.0 // Store version in metadata
         },
         metrics: {
           before: beforeMetrics,
