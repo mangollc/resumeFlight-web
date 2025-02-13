@@ -6,7 +6,7 @@ import Preview from "@/components/resume/preview";
 import CoverLetter from "@/components/resume/cover-letter";
 import { type UploadedResume, type OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { Download, FileText, Upload } from "lucide-react";
+import { Download, FileText, Upload, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -65,8 +65,8 @@ export default function Dashboard() {
 
   const handleOptimizationComplete = (resume: OptimizedResume) => {
     setOptimizedResume(resume);
-    setCompletedSteps(prev => [...prev, 2, 3]);
-    setCurrentStep(4);
+    setCompletedSteps(prev => [...prev, 2]);
+    setCurrentStep(3);  // Now goes to step 3 instead of 4
   };
 
   const handleCoverLetterGenerated = () => {
@@ -75,10 +75,53 @@ export default function Dashboard() {
     setCurrentStep(5);
   };
 
+  const canGoBack = currentStep > 1;
+  const canGoNext = currentStep < 5 && (
+    (currentStep === 1 && uploadedResume) ||
+    (currentStep === 2 && optimizedResume) ||
+    (currentStep === 3) ||
+    (currentStep === 4 && hasCoverLetter)
+  );
+
+  const handleBack = () => {
+    if (canGoBack) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (canGoNext) {
+      setCurrentStep(prev => prev + 1);
+      if (!completedSteps.includes(currentStep)) {
+        setCompletedSteps(prev => [...prev, currentStep]);
+      }
+    }
+  };
+
   const renderCurrentStep = () => {
     const commonCardProps = {
-      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full max-w-4xl mx-auto"
+      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto"
     };
+
+    const renderNavigation = () => (
+      <div className="flex justify-between mt-6 pt-6 border-t">
+        <Button
+          variant="outline"
+          onClick={handleBack}
+          disabled={!canGoBack}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+        <Button
+          onClick={handleNext}
+          disabled={!canGoNext}
+        >
+          Next
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </div>
+    );
 
     switch (currentStep) {
       case 1:
@@ -115,7 +158,6 @@ export default function Dashboard() {
                           if (resume) {
                             setUploadedResume(resume);
                             setCompletedSteps(prev => [...prev, 1]);
-                            setCurrentStep(2);
                           }
                         }}
                       >
@@ -149,6 +191,7 @@ export default function Dashboard() {
                     <UploadForm onSuccess={handleResumeUploaded} />
                   )}
                 </div>
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
@@ -163,6 +206,7 @@ export default function Dashboard() {
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
                 />
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
@@ -174,6 +218,7 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Optimized Resume Preview</h3>
                 <Preview resume={optimizedResume} />
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
@@ -188,6 +233,7 @@ export default function Dashboard() {
                   resume={optimizedResume}
                   onGenerated={handleCoverLetterGenerated}
                 />
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
@@ -229,6 +275,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
@@ -239,7 +286,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container mx-auto px-6 pt-8 pb-12">
+    <div className="max-w-7xl mx-auto px-6 pt-8 pb-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Resume Optimization
