@@ -114,11 +114,11 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
 
   const getSkillBadgeVariant = (skill: string): "default" | "secondary" | "destructive" | "outline" => {
     const skillTypes = {
-      technical: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css", "api", "rest", "graphql", "sql", "nosql", "git", "aws", "azure", "docker", "kubernetes", "ci/cd", "frontend", "backend", "fullstack"],
-      database: ["mongodb", "postgresql", "mysql", "oracle", "redis", "elasticsearch", "dynamodb", "database"],
-      cloud: ["aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2", "heroku"],
+      technical: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css", "api", "rest", "graphql", "frontend", "backend", "fullstack"],
+      database: ["sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis", "elasticsearch", "dynamodb", "database"],
+      cloud: ["aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2", "heroku", "docker", "kubernetes", "ci/cd"],
       testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing", "qa"],
-      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel", "word", "powerpoint", "jira", "confluence", "slack", "teams"]
+      tools: ["git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack", "teams"]
     };
 
     const lowerSkill = skill.toLowerCase();
@@ -130,10 +130,13 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
       return "destructive"; // Red for database skills
     }
     if (skillTypes.cloud.some(s => lowerSkill.includes(s))) {
-      return "outline"; // Outlined for cloud skills
+      return "outline"; // Outlined for cloud/infrastructure
     }
     if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
       return "secondary"; // Gray for testing
+    }
+    if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
+      return "outline"; // Outlined for development tools
     }
     return "default";
   };
@@ -263,7 +266,11 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={onNext} size="lg" className="w-32">
+            <Button 
+              onClick={() => onNext()} 
+              size="lg" 
+              className="w-32"
+            >
               Next
             </Button>
           </div>

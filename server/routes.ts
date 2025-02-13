@@ -1,17 +1,17 @@
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
-  keywords: number;
-  skills: number;
-  experience: number;
-  overall: number;
+ keywords: number;
+ skills: number;
+ experience: number;
+ overall: number;
 }> {
-  try {
-    console.log("[Match Analysis] Starting analysis...");
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+ try {
+   console.log("[Match Analysis] Starting analysis...");
+   const response = await openai.chat.completions.create({
+     model: "gpt-4",
+     messages: [
+       {
+         role: "system",
+         content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
 Your task is to:
 1. Analyze keyword matches between resume and job requirements
 2. Evaluate skills alignment
@@ -31,40 +31,40 @@ Scoring Guidelines:
 - Skills (0-100): How well the candidate's skills match the required skills
 - Experience (0-100): Relevance and depth of experience compared to requirements
 - Overall (0-100): Weighted average with emphasis on skills and experience`
-        },
-        {
-          role: "user",
-          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
-        }
-      ],
-      temperature: 0.3,
-    });
+       },
+       {
+         role: "user",
+         content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+       }
+     ],
+     temperature: 0.3,
+   });
 
-    const content = response.choices[0].message.content;
-    if (!content) {
-      console.warn("[Match Analysis] Empty response from OpenAI");
-      return getDefaultMetrics();
-    }
+   const content = response.choices[0].message.content;
+   if (!content) {
+     console.warn("[Match Analysis] Empty response from OpenAI");
+     return getDefaultMetrics();
+   }
 
-    try {
-      const metrics = JSON.parse(content);
-      const validatedMetrics = {
-        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-      };
+   try {
+     const metrics = JSON.parse(content);
+     const validatedMetrics = {
+       keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+       skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+       experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+       overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+     };
 
-      console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
-      return validatedMetrics;
-    } catch (parseError) {
-      console.error("[Match Analysis] Error parsing metrics:", parseError);
-      return getDefaultMetrics();
-    }
-  } catch (error) {
-    console.error("[Match Analysis] Error calculating scores:", error);
-    return getDefaultMetrics();
-  }
+     console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
+     return validatedMetrics;
+   } catch (parseError) {
+     console.error("[Match Analysis] Error parsing metrics:", parseError);
+     return getDefaultMetrics();
+   }
+ } catch (error) {
+   console.error("[Match Analysis] Error calculating scores:", error);
+   return getDefaultMetrics();
+ }
 }
 
 async function analyzeJobDescription(description: string) {
@@ -84,11 +84,14 @@ Return a detailed analysis in the following JSON format:
   "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
   "keyRequirements": ["3-5 key requirements, each under 50 words"],
   "skillsAndTools": [
-    "Technical skills (specific programming languages, frameworks, APIs)",
-    "Database technologies (specific database names, SQL/NoSQL)",
-    "Cloud and DevOps tools (specific platform names, CI/CD tools)",
-    "Testing frameworks and methodologies",
-    "Required software tools and platforms"
+    "Programming languages (JavaScript, Python, etc.)",
+    "Frontend frameworks (React, Vue, etc.)",
+    "Backend technologies (Node.js, Django, etc.)",
+    "Database systems (PostgreSQL, MongoDB, etc.)",
+    "Cloud platforms (AWS, Azure, etc.)",
+    "DevOps tools (Docker, Kubernetes, etc.)",
+    "Testing frameworks (Jest, Cypress, etc.)",
+    "Development tools (Git, JIRA, etc.)"
   ]
 }`
         },
