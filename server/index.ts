@@ -37,70 +37,29 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  try {
-    log("[Startup] Registering routes...");
-    const server = registerRoutes(app);
+  const server = registerRoutes(app);
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      res.status(status).json({ message });
-      throw err;
-    });
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-    log("[Startup] Initializing environment...");
-    if (app.get("env") === "development") {
-      log("[Startup] Setting up Vite for development...");
-      await setupVite(app, server);
-      log("[Startup] Vite setup complete");
-    } else {
-      log("[Startup] Serving static files for production...");
-      serveStatic(app);
-    }
+    res.status(status).json({ message });
+    throw err;
+  });
 
-    const PORT = 5000;
-    const MAX_PORT_ATTEMPTS = 10;
-    let currentPort = PORT;
-    let serverStarted = false;
-
-    log("[Startup] Beginning server start sequence...");
-    while (!serverStarted && currentPort < PORT + MAX_PORT_ATTEMPTS) {
-      try {
-        await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error(`Server startup timed out on port ${currentPort}`));
-          }, 5000);
-
-          server.listen(currentPort, "0.0.0.0", () => {
-            clearTimeout(timeout);
-            log(`[express] Server started successfully on port ${currentPort}`);
-            serverStarted = true;
-            resolve();
-          }).on('error', (err: any) => {
-            clearTimeout(timeout);
-            if (err.code === 'EADDRINUSE') {
-              log(`[express] Port ${currentPort} is in use`);
-              currentPort++;
-              resolve(); // Continue to next port
-            } else {
-              reject(err);
-            }
-          });
-        });
-      } catch (error: any) {
-        log(`[express] Failed to start server on port ${currentPort}: ${error.message}`);
-        if (currentPort >= PORT + MAX_PORT_ATTEMPTS - 1) {
-          throw error;
-        }
-        currentPort++;
-      }
-    }
-
-    if (!serverStarted) {
-      throw new Error(`Failed to start server after trying ports ${PORT} through ${currentPort}`);
-    }
-  } catch (error) {
-    log(`[express] Fatal error starting server: ${error}`);
-    process.exit(1);
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
   }
+
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client
+  const PORT = 5000;
+  server.listen(PORT, "0.0.0.0", () => {
+    log(`serving on port ${PORT}`);
+  });
 })();

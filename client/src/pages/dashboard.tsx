@@ -18,14 +18,6 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
-export type JobDetails = {
-  url?: string;
-  description?: string;
-  title?: string;
-  company?: string;
-  location?: string;
-};
-
 const steps: Step[] = [
   {
     id: 1,
@@ -53,6 +45,14 @@ const steps: Step[] = [
     description: "Download your optimized documents"
   }
 ];
+
+export type JobDetails = {
+  url?: string;
+  description?: string;
+  title?: string;
+  company?: string;
+  location?: string;
+};
 
 export default function Dashboard() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -349,15 +349,14 @@ export default function Dashboard() {
                             <td className="text-muted-foreground">{jobDetails.location}</td>
                           </tr>
                         )}
-                        
                       </tbody>
                     </table>
                   </div>
                 )}
                 <JobInput
                   resumeId={uploadedResume.id}
-                  onNext={handleNext}
-                  initialJobDetails={jobDetails || undefined}
+                  onOptimized={handleOptimizationComplete}
+                  initialJobDetails={jobDetails}
                 />
                 {renderNavigation()}
               </CardContent>

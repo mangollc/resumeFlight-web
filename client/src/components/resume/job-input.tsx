@@ -33,14 +33,14 @@ export interface JobDetails {
 interface JobInputProps {
   resumeId: number;
   onNext: () => void;
-  initialJobDetails?: Partial<JobDetails>;
+  initialJobDetails?: JobDetails;
 }
 
 export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
-  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails as JobDetails || null);
+  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -113,6 +113,31 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
   };
 
   const getSkillBadgeVariant = (skill: string): "default" | "secondary" | "destructive" | "outline" => {
+    const skillTypes = {
+      technical: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css", "api", "rest", "graphql", "frontend", "backend", "fullstack"],
+      database: ["sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis", "elasticsearch", "dynamodb", "database"],
+      cloud: ["aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2", "heroku", "docker", "kubernetes", "ci/cd"],
+      testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing", "qa"],
+      tools: ["git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack", "teams"]
+    };
+
+    const lowerSkill = skill.toLowerCase();
+
+    if (skillTypes.technical.some(s => lowerSkill.includes(s))) {
+      return "default"; // Blue for technical skills
+    }
+    if (skillTypes.database.some(s => lowerSkill.includes(s))) {
+      return "destructive"; // Red for database skills
+    }
+    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) {
+      return "outline"; // Outlined for cloud/infrastructure
+    }
+    if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
+      return "secondary"; // Gray for testing
+    }
+    if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
+      return "outline"; // Outlined for development tools
+    }
     return "default";
   };
 
@@ -238,12 +263,16 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
                 </div>
               </div>
             )}
+          </div>
 
-            <div className="flex justify-end mt-6">
-              <Button onClick={onNext} size="lg">
-                Next
-              </Button>
-            </div>
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => onNext()} 
+              size="lg" 
+              className="w-32"
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}

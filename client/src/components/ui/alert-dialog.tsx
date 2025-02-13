@@ -44,9 +44,6 @@ const AlertDialogContent = React.forwardRef<
       <div id="alert-dialog-content" className="flex flex-col gap-4">
         {children}
       </div>
-      <AlertDialogDescription className="sr-only">
-        Alert Dialog Content
-      </AlertDialogDescription>
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
 ))
