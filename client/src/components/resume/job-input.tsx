@@ -87,12 +87,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const getSkillBadgeVariant = (
     skill: string
-  ): "default" | "secondary" | "destructive" | "outline" => {
+  ): "language" | "framework" | "database" | "cloud" | "tool" | "soft" => {
     const skillTypes = {
       technical: [
-        "javascript", "python", "java", "c++", "typescript", "react", "node",
-        "html", "css", "api", "rest", "graphql", "frontend", "backend", "fullstack",
-        "vue", "angular", "svelte", "next", "express", "django", "flask"
+        "javascript", "python", "java", "c++", "typescript", "html", "css", 
+        "api", "rest", "graphql", "frontend", "backend", "fullstack"
+      ],
+      framework: [
+        "react", "node", "vue", "angular", "svelte", "next", "express", 
+        "django", "flask"
       ],
       database: [
         "sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis",
@@ -101,10 +104,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       cloud: [
         "aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2",
         "heroku", "docker", "kubernetes", "cicd", "devops", "terraform"
-      ],
-      testing: [
-        "jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing",
-        "qa", "tdd", "bdd"
       ],
       tools: [
         "git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack",
@@ -119,24 +118,24 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     const lowerSkill = skill.toLowerCase();
 
     if (skillTypes.technical.some((s) => lowerSkill.includes(s))) {
-      return "default";
+      return "language";
+    }
+    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) {
+      return "framework";
     }
     if (skillTypes.database.some((s) => lowerSkill.includes(s))) {
-      return "destructive";
+      return "database";
     }
     if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) {
-      return "outline";
-    }
-    if (skillTypes.testing.some((s) => lowerSkill.includes(s))) {
-      return "secondary";
+      return "cloud";
     }
     if (skillTypes.tools.some((s) => lowerSkill.includes(s))) {
-      return "outline";
+      return "tool";
     }
     if (skillTypes.soft.some((s) => lowerSkill.includes(s))) {
-      return "destructive";
+      return "soft";
     }
-    return "default";
+    return "language";
   };
 
   const fetchJobMutation = useMutation({
