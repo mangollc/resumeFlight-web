@@ -28,22 +28,66 @@ interface PreviewProps {
 }
 
 // Utility functions
-const getMetricsColor = (value: number) => {
-  if (value >= 80) return "bg-emerald-500";
-  if (value >= 60) return "bg-yellow-500";
-  return "bg-red-500";
+const getMetricsColor = (value: number): string => {
+  if (value >= 80) return "bg-emerald-500 dark:bg-emerald-400";
+  if (value >= 60) return "bg-yellow-500 dark:bg-yellow-400";
+  return "bg-red-500 dark:bg-red-400";
 };
 
-const getScoreLabel = (score: number) => {
+const getScoreLabel = (score: number): string => {
   if (score >= 80) return "Excellent Match";
   if (score >= 60) return "Good Match";
   if (score >= 40) return "Fair Match";
   return "Needs Improvement";
 };
 
-const getInitials = (text: string): string => {
-  const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
-  return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
+const MetricRow = ({ label, before, after }: { label: string; before?: number; after: number }) => {
+  const scoreLabel = getScoreLabel(after);
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between items-center text-sm">
+        <span className="font-medium">{label}</span>
+        <div className="flex items-center gap-2">
+          {before !== undefined && (
+            <>
+              <span className="text-muted-foreground">Before: {before}%</span>
+              <span className="text-muted-foreground" aria-hidden="true">→</span>
+            </>
+          )}
+          <span 
+            className={cn(
+              "font-medium px-2 py-0.5 rounded text-xs",
+              after >= 80 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-100" :
+                after >= 60 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100" :
+                  "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100"
+            )}
+            aria-label={`Current score: ${after}%`}
+          >
+            {after}%
+          </span>
+        </div>
+      </div>
+      <div 
+        className="relative h-2 overflow-hidden rounded-full bg-muted"
+        role="progressbar"
+        aria-valuenow={after}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${label} progress: ${after}%`}
+      >
+        <div
+          className={cn(
+            "h-full transition-all duration-500 ease-out rounded-full",
+            getMetricsColor(after)
+          )}
+          style={{ width: `${after}%` }}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground" aria-label={scoreLabel}>
+        {scoreLabel}
+      </p>
+    </div>
+  );
 };
 
 export default function Preview({ resume, coverLetter }: PreviewProps) {
@@ -94,6 +138,12 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
     const versionStr = v ? `_v${v.toFixed(1)}` : '';
     return `${initials}_${jobTitle}${versionStr}`;
   };
+
+  const getInitials = (text: string): string => {
+    const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
+    return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
+  };
+
 
   return (
     <Card className="h-full">
@@ -224,39 +274,3 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
     </Card>
   );
 }
-
-const MetricRow = ({ label, before, after }: { label: string, before?: number, after: number }) => (
-  <div className="space-y-2">
-    <div className="flex justify-between items-center text-sm">
-      <span className="font-medium">{label}</span>
-      <div className="flex items-center gap-2">
-        {before !== undefined && (
-          <>
-            <span className="text-muted-foreground">Before: {before}%</span>
-            <span className="text-muted-foreground">→</span>
-          </>
-        )}
-        <span className={cn(
-          "font-medium px-2 py-0.5 rounded text-xs",
-          after >= 80 ? "bg-emerald-100 text-emerald-700" :
-            after >= 60 ? "bg-yellow-100 text-yellow-700" :
-              "bg-red-100 text-red-700"
-        )}>
-          {after}%
-        </span>
-      </div>
-    </div>
-    <div className="relative h-2 overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn(
-          "h-full transition-all duration-500 ease-out rounded-full",
-          getMetricsColor(after)
-        )}
-        style={{ width: `${after}%` }}
-      />
-    </div>
-    <p className="text-xs text-muted-foreground">
-      {getScoreLabel(after)}
-    </p>
-  </div>
-);

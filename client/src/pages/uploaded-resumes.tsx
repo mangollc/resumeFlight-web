@@ -72,14 +72,12 @@ export default function UploadedResumesPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-8 space-y-6">
-      {/* Title section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center">
         <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
       </div>
 
       {resumes && resumes.length > 0 ? (
         <div className="space-y-4">
-          {/* Button container aligned with table */}
           <div className="w-full sm:w-[70%]">
             <div className="flex justify-end mb-2">
               <Button onClick={() => setLocation("/dashboard")} size="sm">
@@ -93,15 +91,19 @@ export default function UploadedResumesPage() {
               <TableHeader className="bg-primary/5">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-[40%] py-2 pl-4">
-                    <div className="flex items-center text-xs uppercase tracking-wider font-semibold text-primary">
+                    <span className="text-xs uppercase tracking-wider font-semibold text-primary">
                       File Name
-                    </div>
+                    </span>
                   </TableHead>
-                  <TableHead className="w-[35%] py-2 text-xs uppercase tracking-wider font-semibold text-primary">
-                    Upload Date
+                  <TableHead className="w-[35%] py-2">
+                    <span className="text-xs uppercase tracking-wider font-semibold text-primary">
+                      Upload Date
+                    </span>
                   </TableHead>
-                  <TableHead className="w-[25%] py-2 pr-2 text-right text-xs uppercase tracking-wider font-semibold text-primary">
-                    Actions
+                  <TableHead className="w-[25%] py-2 pr-2 text-right">
+                    <span className="text-xs uppercase tracking-wider font-semibold text-primary">
+                      Actions
+                    </span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -124,7 +126,7 @@ export default function UploadedResumesPage() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                             <MoreVertical className="h-4 w-4" />
-                            <span className="sr-only">Actions</span>
+                            <span className="sr-only">Open menu</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-[160px]">
@@ -150,8 +152,8 @@ export default function UploadedResumesPage() {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Resume</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove the resume from your uploaded resumes.
-                                  This action cannot be undone.
+                                  Are you sure you want to delete this resume? This action cannot be undone, 
+                                  and the resume will be permanently removed from your uploaded resumes.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -177,11 +179,13 @@ export default function UploadedResumesPage() {
       ) : (
         <div className="text-center py-12">
           <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No resumes uploaded</h3>
-          <p className="text-muted-foreground">
-            Get started by uploading your first resume
-          </p>
-          <Button onClick={() => setLocation("/dashboard")} size="sm">
+          <div className="mt-4">
+            <h2 className="text-lg font-semibold">No resumes uploaded</h2>
+            <div className="mt-2 text-muted-foreground">
+              Get started by uploading your first resume
+            </div>
+          </div>
+          <Button onClick={() => setLocation("/dashboard")} size="sm" className="mt-4">
             Upload Resume
           </Button>
         </div>
