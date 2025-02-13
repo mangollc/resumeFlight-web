@@ -15,7 +15,6 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import React, { useState } from 'react';
 
-// Assuming 'cn' is a classname concatenation utility function.  Replace with your actual implementation if different.
 const cn = (...args: (string | undefined)[]) => args.filter(Boolean).join(' ');
 
 function Layout({ children }: { children: React.ReactNode }) {
@@ -27,10 +26,15 @@ function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1">
         <Navbar collapsed={sidebarCollapsed} />
         <main className={cn(
-          "px-4 sm:px-6 lg:px-8 py-4 mt-12",
-          sidebarCollapsed ? "lg:ml-16" : "lg:ml-56"
+          "px-4 sm:px-6 lg:px-8",
+          "py-4 lg:py-6",
+          "mt-14 lg:mt-12", 
+          sidebarCollapsed ? "lg:ml-16" : "lg:ml-56",
+          "transition-all duration-300 ease-in-out"
         )}>
-          {children}
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

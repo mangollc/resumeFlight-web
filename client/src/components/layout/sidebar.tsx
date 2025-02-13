@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -57,13 +57,13 @@ const navItems: NavItem[] = [
 const ProfileSection = () => (
   <div className="mt-auto p-3 border-t">
     <div className="flex items-center space-x-3">
-      <Avatar className="h-8 w-8">
+      <Avatar className="h-8 w-8 shrink-0">
         <AvatarImage src="/placeholder-avatar.png" alt="Profile" />
         <AvatarFallback>
           <User className="h-5 w-5" />
         </AvatarFallback>
       </Avatar>
-      <div className="flex flex-col min-w-0">
+      <div className="flex flex-col min-w-0 flex-1">
         <span className="text-sm font-medium truncate">John Doe</span>
         <span className="text-xs text-muted-foreground truncate">john@example.com</span>
       </div>
@@ -87,12 +87,13 @@ const NavigationItems = ({ onClick, collapsed }: { onClick?: () => void, collaps
                 location === item.href && "bg-primary/10 text-primary font-medium",
                 "hover:bg-primary/5 dark:hover:bg-primary/20",
                 "focus:ring-1 focus:ring-primary focus:ring-offset-1 focus:outline-none",
-                "transition-colors duration-200"
+                "active:scale-95 touch-none",
+                "transition-all duration-200"
               )}
               onClick={onClick}
             >
-              <item.icon className={cn("h-5 w-5", !collapsed && "mr-3")} />
-              {!collapsed && <span className="text-sm font-medium">{item.title}</span>}
+              <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} />
+              {!collapsed && <span className="text-sm font-medium truncate">{item.title}</span>}
             </Button>
           </Link>
         ))}
@@ -102,7 +103,7 @@ const NavigationItems = ({ onClick, collapsed }: { onClick?: () => void, collaps
 };
 
 const AppLogo = ({ collapsed }: { collapsed?: boolean }) => (
-  <Link href="/dashboard" className="flex items-center space-x-2">
+  <Link href="/dashboard" className="flex items-center space-x-2 shrink-0">
     <div className="p-2 rounded-lg bg-primary/10">
       <Plane className="h-5 w-5 text-primary rotate-45" />
     </div>
@@ -122,6 +123,19 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
+  // Auto-collapse on smaller screens
+  useEffect(() => {
+    const handleResize = () => {
+      const shouldCollapse = window.innerWidth < 1280;
+      setCollapsed(shouldCollapse);
+      onCollapsedChange?.(shouldCollapse);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [onCollapsedChange]);
+
   const handleCollapsedChange = (newCollapsed: boolean) => {
     setCollapsed(newCollapsed);
     onCollapsedChange?.(newCollapsed);
@@ -130,16 +144,23 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
   return (
     <>
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-12 px-4 border-b bg-background/80 backdrop-blur-sm flex items-center justify-between z-50">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-14 px-4 border-b bg-background/80 backdrop-blur-sm flex items-center justify-between z-50">
         <AppLogo />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="active:scale-95 transition-transform"
+            >
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 flex flex-col w-64">
+          <SheetContent 
+            side="left" 
+            className="p-0 flex flex-col w-80 sm:w-96 lg:w-72"
+          >
             <div className="p-4 border-b">
               <AppLogo />
             </div>
@@ -153,14 +174,14 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
       <div className={cn(
         "hidden lg:flex fixed top-0 left-0 h-screen bg-card border-r shadow-sm z-[60] flex-col",
         collapsed ? "w-16" : "w-56",
-        "transition-all duration-300"
+        "transition-all duration-300 ease-in-out"
       )}>
         <div className="p-4 border-b flex items-center justify-between">
           <AppLogo collapsed={collapsed} />
           <Button
             variant="ghost"
             size="icon"
-            className="ml-2"
+            className="ml-2 active:scale-95 transition-transform"
             onClick={() => handleCollapsedChange(!collapsed)}
           >
             {collapsed ? (
