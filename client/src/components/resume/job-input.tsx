@@ -199,80 +199,76 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
       </form>
 
       {extractedDetails && (
-        <div className="space-y-6">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Job Details</h3>
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium w-1/4">Title</TableCell>
-                    <TableCell>{extractedDetails.title}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Company</TableCell>
-                    <TableCell>{extractedDetails.company}</TableCell>
-                  </TableRow>
-                  {extractedDetails.salary && (
-                    <TableRow>
-                      <TableCell className="font-medium">Salary</TableCell>
-                      <TableCell>{extractedDetails.salary}</TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow>
-                    <TableCell className="font-medium">Location</TableCell>
-                    <TableCell>{extractedDetails.location}</TableCell>
-                  </TableRow>
-                  {extractedDetails.positionLevel && (
-                    <TableRow>
-                      <TableCell className="font-medium">Position Level</TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {extractedDetails.positionLevel}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2">Key Requirements</h4>
-                <ul className="list-disc list-inside space-y-2">
-                  {extractedDetails.keyRequirements.map((requirement, index) => (
-                    <li key={index} className="text-muted-foreground">{requirement}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-                <div className="flex flex-wrap gap-2">
-                  {extractedDetails.skillsAndTools.map((skill, index) => (
-                    <Badge
-                      key={index}
-                      variant={getSkillBadgeVariant(skill)}
-                    >
-                      {skill}
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
+          <h3 className="text-lg font-semibold">Job Details</h3>
+          <Table>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium w-1/4">Title</TableCell>
+                <TableCell>{extractedDetails.title}</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">Company</TableCell>
+                <TableCell>{extractedDetails.company}</TableCell>
+              </TableRow>
+              {extractedDetails.salary && (
+                <TableRow>
+                  <TableCell className="font-medium">Salary</TableCell>
+                  <TableCell>{extractedDetails.salary}</TableCell>
+                </TableRow>
+              )}
+              <TableRow>
+                <TableCell className="font-medium">Location</TableCell>
+                <TableCell>{extractedDetails.location}</TableCell>
+              </TableRow>
+              {extractedDetails.positionLevel && (
+                <TableRow>
+                  <TableCell className="font-medium">Position Level</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {extractedDetails.positionLevel}
                     </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
 
-            <div className="flex justify-end">
-              <Button 
-                onClick={onNext} 
-                size="lg"
-                className="w-32"
-              >
-                Next
-              </Button>
+          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Key Requirements</h4>
+              <ul className="list-disc list-inside space-y-2">
+                {extractedDetails.keyRequirements.map((requirement, index) => (
+                  <li key={index} className="text-muted-foreground">{requirement}</li>
+                ))}
+              </ul>
             </div>
+          )}
+
+          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+              <div className="flex flex-wrap gap-2">
+                {extractedDetails.skillsAndTools.map((skill, index) => (
+                  <Badge
+                    key={index}
+                    variant={getSkillBadgeVariant(skill)}
+                  >
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4">
+            <Button 
+              onClick={onNext}
+              size="lg"
+              className="w-32"
+            >
+              Next
+            </Button>
           </div>
         </div>
       )}
