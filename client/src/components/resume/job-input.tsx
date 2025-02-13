@@ -40,7 +40,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.description || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
-  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
+  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -73,13 +73,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       )
     );
     setIsProcessing(false);
-    setExtractedDetails(null);
     fetchJobMutation.reset();
   };
 
   const handleReset = () => {
     setJobUrl("");
     setJobDescription("");
+    setExtractedDetails(null);
     setActiveTab("url");
     handleCancel();
     setProgressSteps(INITIAL_STEPS);
@@ -235,7 +235,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           });
         }
       }
-      setExtractedDetails(null);
+      setExtractedDetails(null); //Added to handle error cases
     },
     onSettled: () => {
       if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
