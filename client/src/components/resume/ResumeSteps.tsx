@@ -64,11 +64,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
               </div>
               <span
                 className={cn(
-                  "absolute text-center w-full px-2",
-                  "text-sm font-medium",
-                  "whitespace-nowrap overflow-hidden text-ellipsis",
-                  // Adjust top spacing and add padding for better mobile display
-                  "top-14 max-w-[120px] mx-auto",
+                  "absolute text-sm font-medium top-14",
                   currentStep === index && "text-primary",
                   currentStep > index && "text-primary",
                   currentStep < index && "text-muted-foreground"
