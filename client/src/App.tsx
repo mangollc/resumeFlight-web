@@ -13,15 +13,23 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
-import React from 'react';
+import React, { useState } from 'react';
+
+// Assuming 'cn' is a classname concatenation utility function.  Replace with your actual implementation if different.
+const cn = (...args: (string | undefined)[]) => args.filter(Boolean).join(' ');
 
 function Layout({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar onCollapsedChange={setSidebarCollapsed} />
       <div className="flex-1">
-        <Navbar />
-        <main className="px-4 sm:px-6 lg:px-8 py-4 lg:ml-64 mt-12">
+        <Navbar collapsed={sidebarCollapsed} />
+        <main className={cn(
+          "px-4 sm:px-6 lg:px-8 py-4 mt-12",
+          sidebarCollapsed ? "lg:ml-16" : "lg:ml-56"
+        )}>
           {children}
         </main>
       </div>

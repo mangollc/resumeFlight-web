@@ -114,9 +114,18 @@ const AppLogo = ({ collapsed }: { collapsed?: boolean }) => (
   </Link>
 );
 
-export function Sidebar() {
+interface SidebarProps {
+  onCollapsedChange?: (collapsed: boolean) => void;
+}
+
+export function Sidebar({ onCollapsedChange }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleCollapsedChange = (newCollapsed: boolean) => {
+    setCollapsed(newCollapsed);
+    onCollapsedChange?.(newCollapsed);
+  };
 
   return (
     <>
@@ -152,7 +161,7 @@ export function Sidebar() {
             variant="ghost"
             size="icon"
             className="ml-2"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={() => handleCollapsedChange(!collapsed)}
           >
             {collapsed ? (
               <ChevronRight className="h-4 w-4" />
