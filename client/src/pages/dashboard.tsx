@@ -19,6 +19,17 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Loader2,
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
 
 const steps: Step[] = [
   {
@@ -402,45 +413,6 @@ export default function Dashboard() {
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
-                {jobDetails && (
-                  <div className="mb-6 bg-muted/50 rounded-lg p-4">
-                    <h4 className="font-medium mb-2">Current Job Details</h4>
-                    <table className="w-full text-sm">
-                      <tbody>
-                        {jobDetails.url && (
-                          <tr>
-                            <td className="font-medium pr-4 py-1">URL:</td>
-                            <td className="text-muted-foreground">{jobDetails.url}</td>
-                          </tr>
-                        )}
-                        {jobDetails.description && (
-                          <tr>
-                            <td className="font-medium pr-4 py-1 align-top">Description:</td>
-                            <td className="text-muted-foreground whitespace-pre-wrap">{jobDetails.description}</td>
-                          </tr>
-                        )}
-                        {jobDetails.title && (
-                          <tr>
-                            <td className="font-medium pr-4 py-1">Title:</td>
-                            <td className="text-muted-foreground">{jobDetails.title}</td>
-                          </tr>
-                        )}
-                        {jobDetails.company && (
-                          <tr>
-                            <td className="font-medium pr-4 py-1">Company:</td>
-                            <td className="text-muted-foreground">{jobDetails.company}</td>
-                          </tr>
-                        )}
-                        {jobDetails.location && (
-                          <tr>
-                            <td className="font-medium pr-4 py-1">Location:</td>
-                            <td className="text-muted-foreground">{jobDetails.location}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
