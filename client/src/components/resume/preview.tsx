@@ -2,7 +2,7 @@ import { useState } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Maximize2 } from "lucide-react";
+import { FileText, Maximize2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import DiffView from "./diff-view";
 import {
@@ -15,15 +15,52 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
+  onOptimized?: (resume: OptimizedResume) => void;
+  jobDescription?: string;
 }
 
-export default function Preview({ resume }: PreviewProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
+export default function Preview({ resume, onOptimized, jobDescription }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [isOptimizing, setIsOptimizing] = useState(false);
+
+  const optimizeMutation = useMutation({
+    mutationFn: async () => {
+      if (!resume || !jobDescription) return null;
+      const res = await apiRequest("POST", `/api/resume/${resume.id}/optimize`, {
+        jobDescription
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to optimize resume');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      if (data && onOptimized) {
+        onOptimized(data);
+        queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+        toast({
+          title: "Success",
+          description: "Resume optimized successfully",
+        });
+      }
+      setIsOptimizing(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsOptimizing(false);
+    },
+  });
 
   if (!resume) {
     return (
@@ -40,41 +77,6 @@ export default function Preview({ resume }: PreviewProps) {
       </Card>
     );
   }
-
-  const handleDownload = async () => {
-    try {
-      setIsDownloading(true);
-      const isOptimized = 'jobDescription' in resume;
-      const endpoint = isOptimized ? `/api/optimized-resume/${resume.id}/download` : `/api/resume/${resume.id}/download`;
-
-      const response = await fetch(endpoint);
-      if (!response.ok) throw new Error('Download failed');
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = resume.metadata.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Success",
-        description: "Resume downloaded successfully",
-      });
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download resume",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   const isOptimized = 'jobDescription' in resume;
   const originalContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
@@ -107,8 +109,8 @@ export default function Preview({ resume }: PreviewProps) {
           <span className={cn(
             "font-medium px-2 py-0.5 rounded text-xs",
             after >= 80 ? "bg-emerald-100 text-emerald-700" :
-            after >= 60 ? "bg-yellow-100 text-yellow-700" :
-            "bg-red-100 text-red-700"
+              after >= 60 ? "bg-yellow-100 text-yellow-700" :
+                "bg-red-100 text-red-700"
           )}>
             {after}%
           </span>
@@ -128,6 +130,11 @@ export default function Preview({ resume }: PreviewProps) {
       </p>
     </div>
   );
+
+  const handleOptimize = () => {
+    setIsOptimizing(true);
+    optimizeMutation.mutate();
+  };
 
   return (
     <Card className="h-full">
@@ -188,6 +195,15 @@ export default function Preview({ resume }: PreviewProps) {
                   {isDownloading ? 'Downloading...' : 'Download'}
                 </Button>
               </div>
+              {jobDescription && !isOptimized && (
+                <Button
+                  onClick={handleOptimize}
+                  disabled={isOptimizing}
+                  size="lg"
+                >
+                  {isOptimizing ? "Optimizing..." : "Optimize Resume"}
+                </Button>
+              )}
             </div>
           </div>
 

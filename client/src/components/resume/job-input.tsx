@@ -35,9 +35,10 @@ interface JobInputProps {
   resumeId: number;
   onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
   initialJobDetails?: JobDetails;
+  onNext?: () => void;
 }
 
-export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
+export default function JobInput({ resumeId, onOptimized, initialJobDetails, onNext }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
@@ -74,7 +75,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       toast({
         title: "Success",
-        description: "Resume optimized successfully. You can optimize again with the same input if needed.",
+        description: "Job details fetched successfully",
       });
       setIsProcessing(false);
     },
@@ -82,7 +83,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       if (error.message.includes("dynamically loaded or require authentication")) {
         toast({
           title: "LinkedIn Job Detection",
-          description: "LinkedIn jobs require authentication. Please copy and paste the job description manually.",
+          description: "LinkedIn jobs require authentication. Please paste the description manually.",
           variant: "destructive",
           duration: 6000,
         });
@@ -98,7 +99,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!jobUrl && !jobDescription.trim()) {
       toast({
@@ -140,126 +141,138 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="url" disabled={isProcessing || !!jobDescription}>Job URL</TabsTrigger>
-          <TabsTrigger value="manual" disabled={isProcessing || !!jobUrl}>Manual Input</TabsTrigger>
-        </TabsList>
+    <div className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+            <TabsTrigger value="url" disabled={isProcessing || !!jobDescription}>Job URL</TabsTrigger>
+            <TabsTrigger value="manual" disabled={isProcessing || !!jobUrl}>Manual Input</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="url" className="space-y-4">
-          <div className="flex flex-col space-y-2">
-            <Input
-              type="url"
-              placeholder="Paste job posting URL here..."
-              value={jobUrl}
-              onChange={(e) => setJobUrl(e.target.value)}
-              className="w-full"
-              disabled={isProcessing}
-            />
-            <p className="text-sm text-muted-foreground">
-              Enter the URL of the job posting for best results
-            </p>
-          </div>
-        </TabsContent>
+          <TabsContent value="url" className="space-y-4">
+            <div className="flex flex-col space-y-2">
+              <Input
+                type="url"
+                placeholder="Paste job posting URL here..."
+                value={jobUrl}
+                onChange={(e) => setJobUrl(e.target.value)}
+                className="w-full"
+                disabled={isProcessing}
+              />
+              <p className="text-sm text-muted-foreground">
+                Enter the URL of the job posting for best results
+              </p>
+            </div>
+          </TabsContent>
 
-        <TabsContent value="manual" className="space-y-4">
-          <div className="flex flex-col space-y-2">
-            <Textarea
-              placeholder="Or paste job description here..."
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              className="min-h-[200px] w-full"
-              disabled={isProcessing}
-            />
-            <p className="text-sm text-muted-foreground">
-              Manually enter the job description if URL is not available
-            </p>
-          </div>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="manual" className="space-y-4">
+            <div className="flex flex-col space-y-2">
+              <Textarea
+                placeholder="Or paste job description here..."
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                className="min-h-[200px] w-full"
+                disabled={isProcessing}
+              />
+              <p className="text-sm text-muted-foreground">
+                Manually enter the job description if URL is not available
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <Button
+          type="submit"
+          disabled={(!jobUrl && !jobDescription.trim()) || isProcessing}
+          className="w-full md:w-auto"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Fetching Info...
+            </>
+          ) : (
+            "Fetch Job Info"
+          )}
+        </Button>
+      </form>
 
       {extractedDetails && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Job Details</h3>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium w-1/4">Title</TableCell>
-                  <TableCell>{extractedDetails.title}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">Company</TableCell>
-                  <TableCell>{extractedDetails.company}</TableCell>
-                </TableRow>
-                {extractedDetails.salary && (
+        <div className="space-y-6">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Job Details</h3>
+              <Table>
+                <TableBody>
                   <TableRow>
-                    <TableCell className="font-medium">Salary</TableCell>
-                    <TableCell>{extractedDetails.salary}</TableCell>
+                    <TableCell className="font-medium w-1/4">Title</TableCell>
+                    <TableCell>{extractedDetails.title}</TableCell>
                   </TableRow>
-                )}
-                <TableRow>
-                  <TableCell className="font-medium">Location</TableCell>
-                  <TableCell>{extractedDetails.location}</TableCell>
-                </TableRow>
-                {extractedDetails.positionLevel && (
                   <TableRow>
-                    <TableCell className="font-medium">Position Level</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {extractedDetails.positionLevel}
-                      </Badge>
-                    </TableCell>
+                    <TableCell className="font-medium">Company</TableCell>
+                    <TableCell>{extractedDetails.company}</TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  {extractedDetails.salary && (
+                    <TableRow>
+                      <TableCell className="font-medium">Salary</TableCell>
+                      <TableCell>{extractedDetails.salary}</TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell className="font-medium">Location</TableCell>
+                    <TableCell>{extractedDetails.location}</TableCell>
+                  </TableRow>
+                  {extractedDetails.positionLevel && (
+                    <TableRow>
+                      <TableCell className="font-medium">Position Level</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {extractedDetails.positionLevel}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Key Requirements</h4>
+                <ul className="list-disc list-inside space-y-2">
+                  {extractedDetails.keyRequirements.map((requirement, index) => (
+                    <li key={index} className="text-muted-foreground">{requirement}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
+              <div>
+                <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+                <div className="flex flex-wrap gap-2">
+                  {extractedDetails.skillsAndTools.map((skill, index) => (
+                    <Badge
+                      key={index}
+                      variant={getSkillBadgeVariant(skill)}
+                    >
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Key Requirements</h4>
-              <ul className="list-disc list-inside space-y-2">
-                {extractedDetails.keyRequirements.map((requirement, index) => (
-                  <li key={index} className="text-muted-foreground">{requirement}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-              <div className="flex flex-wrap gap-2">
-                {extractedDetails.skillsAndTools.map((skill, index) => (
-                  <Badge
-                    key={index}
-                    variant={getSkillBadgeVariant(skill)}
-                  >
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
+          {onNext && (
+            <div className="flex justify-end">
+              <Button onClick={onNext}>
+                Next
+              </Button>
             </div>
           )}
         </div>
       )}
-
-      <Button
-        type="submit"
-        disabled={(!jobUrl && !jobDescription.trim()) || isProcessing}
-        className="w-full md:w-auto"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Optimizing...
-          </>
-        ) : (
-          extractedDetails ? "Optimize Again" : "Optimize Resume"
-        )}
-      </Button>
-    </form>
+    </div>
   );
 }
