@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Maximize2 } from "lucide-react";
+import { FileText, Maximize2, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +56,23 @@ export default function Preview({ resume }: PreviewProps) {
   const originalContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
   const optimizedContent = resume.content;
 
+  const formatFilename = (version?: number) => {
+    const initials = getInitials(originalContent);
+    const jobTitle = isOptimized
+      ? (resume as OptimizedResume).jobDetails?.title?.replace(/[^a-zA-Z0-9\s]/g, '')
+          .replace(/\s+/g, '_')
+          .toLowerCase()
+          .substring(0, 30)
+      : 'resume';
+    const versionStr = version ? `_v${version.toFixed(1)}` : '';
+    return `${initials}_${jobTitle}${versionStr}`;
+  };
+
+  const getInitials = (text: string): string => {
+    const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
+    return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
+  };
+
   const getMetricsColor = (value: number) => {
     if (value >= 80) return "bg-emerald-500";
     if (value >= 60) return "bg-yellow-500";
@@ -68,42 +85,6 @@ export default function Preview({ resume }: PreviewProps) {
     if (score >= 40) return "Fair Match";
     return "Needs Improvement";
   };
-
-  const MetricRow = ({ label, before, after }: { label: string, before?: number, after: number }) => (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center text-sm">
-        <span className="font-medium">{label}</span>
-        <div className="flex items-center gap-2">
-          {before !== undefined && (
-            <>
-              <span className="text-muted-foreground">Before: {before}%</span>
-              <span className="text-muted-foreground">→</span>
-            </>
-          )}
-          <span className={cn(
-            "font-medium px-2 py-0.5 rounded text-xs",
-            after >= 80 ? "bg-emerald-100 text-emerald-700" :
-              after >= 60 ? "bg-yellow-100 text-yellow-700" :
-                "bg-red-100 text-red-700"
-          )}>
-            {after}%
-          </span>
-        </div>
-      </div>
-      <div className="relative h-2 overflow-hidden rounded-full bg-muted">
-        <div
-          className={cn(
-            "h-full transition-all duration-500 ease-out rounded-full",
-            getMetricsColor(after)
-          )}
-          style={{ width: `${after}%` }}
-        />
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {getScoreLabel(after)}
-      </p>
-    </div>
-  );
 
   return (
     <Card className="h-full">
@@ -126,34 +107,49 @@ export default function Preview({ resume }: PreviewProps) {
                   </span>
                 )}
               </div>
-              {isOptimized && (
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Maximize2 className="h-4 w-4 mr-2" />
-                      Compare Versions
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Resume Comparison</DialogTitle>
-                      <DialogDescription>
-                        Compare the original and optimized versions of your resume side by side.
-                        Highlighted sections show improvements and optimizations.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="mt-4">
-                      {isDialogOpen && (
-                        <DiffView
-                          beforeContent={originalContent}
-                          afterContent={optimizedContent}
-                          resumeId={(resume as OptimizedResume).id}
-                        />
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              )}
+              <div className="flex items-center gap-2">
+                {isOptimized && (
+                  <>
+                    <a
+                      href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
+                        formatFilename((resume as OptimizedResume).metadata.version)
+                      }.pdf`}
+                      download
+                    >
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Resume
+                      </Button>
+                    </a>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Maximize2 className="h-4 w-4 mr-2" />
+                          Compare Versions
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Resume Comparison</DialogTitle>
+                          <DialogDescription>
+                            Compare the original and optimized versions of your resume side by side.
+                            Highlighted sections show improvements and optimizations.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4">
+                          {isDialogOpen && (
+                            <DiffView
+                              beforeContent={originalContent}
+                              afterContent={optimizedContent}
+                              resumeId={(resume as OptimizedResume).id}
+                            />
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -206,3 +202,39 @@ export default function Preview({ resume }: PreviewProps) {
     </Card>
   );
 }
+
+const MetricRow = ({ label, before, after }: { label: string, before?: number, after: number }) => (
+  <div className="space-y-2">
+    <div className="flex justify-between items-center text-sm">
+      <span className="font-medium">{label}</span>
+      <div className="flex items-center gap-2">
+        {before !== undefined && (
+          <>
+            <span className="text-muted-foreground">Before: {before}%</span>
+            <span className="text-muted-foreground">→</span>
+          </>
+        )}
+        <span className={cn(
+          "font-medium px-2 py-0.5 rounded text-xs",
+          after >= 80 ? "bg-emerald-100 text-emerald-700" :
+            after >= 60 ? "bg-yellow-100 text-yellow-700" :
+              "bg-red-100 text-red-700"
+        )}>
+          {after}%
+        </span>
+      </div>
+    </div>
+    <div className="relative h-2 overflow-hidden rounded-full bg-muted">
+      <div
+        className={cn(
+          "h-full transition-all duration-500 ease-out rounded-full",
+          getMetricsColor(after)
+        )}
+        style={{ width: `${after}%` }}
+      />
+    </div>
+    <p className="text-xs text-muted-foreground">
+      {getScoreLabel(after)}
+    </p>
+  </div>
+);
