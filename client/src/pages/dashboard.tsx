@@ -77,7 +77,6 @@ export default function Dashboard() {
       if (!completedSteps.includes(1)) {
         setCompletedSteps(prev => [...prev, 1]);
       }
-      setCurrentStep(2);
       await queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       setUploadMode('choose');
 
@@ -186,10 +185,10 @@ export default function Dashboard() {
 
   const canGoBack = currentStep > 1;
   const canGoNext = currentStep < 5 && (
-    (currentStep === 1 && uploadedResume) ||
-    (currentStep === 2 && optimizedResume) ||
+    (currentStep === 1 && !!uploadedResume) ||
+    (currentStep === 2 && !!optimizedResume) ||
     (currentStep === 3) ||
-    (currentStep === 4 && coverLetter)
+    (currentStep === 4 && !!coverLetter)
   );
 
   const handleBack = () => {
