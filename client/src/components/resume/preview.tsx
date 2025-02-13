@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import DiffView from "./diff-view";
+import { DiffView } from "./diff-view";
 
 const handleDownload = async (id: number) => {
   try {
