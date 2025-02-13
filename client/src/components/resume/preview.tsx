@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import DiffView from "./diff-view";
+import { Confetti } from "@/components/ui/confetti";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
@@ -21,7 +22,19 @@ interface PreviewProps {
 
 export default function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Show confetti for high optimization scores
+    if (isOptimized && (resume as OptimizedResume).metrics?.after?.overall >= 80) {
+      setShowConfetti(true);
+      toast({
+        title: "Outstanding Achievement! 🎉",
+        description: "Your resume has achieved excellent optimization scores.",
+      });
+    }
+  }, [resume]);
 
   if (!resume) {
     return (
@@ -94,6 +107,7 @@ export default function Preview({ resume }: PreviewProps) {
 
   return (
     <Card className="h-full">
+      <Confetti trigger={showConfetti} />
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex flex-col space-y-4">
