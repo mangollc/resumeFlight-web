@@ -115,24 +115,28 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
 
   const getSkillBadgeVariant = (skill: string): "default" | "secondary" | "destructive" | "outline" => {
     const skillTypes = {
-      programming: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css"],
-      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel", "word"],
-      database: ["sql", "mongodb", "postgresql", "mysql", "oracle", "redis"],
-      tools: ["git", "docker", "kubernetes", "aws", "azure", "jira", "slack"]
+      technical: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css", "api", "rest", "graphql", "sql", "nosql", "git", "aws", "azure", "docker", "kubernetes", "ci/cd"],
+      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel", "word", "powerpoint", "jira", "confluence", "slack", "teams"],
+      database: ["mongodb", "postgresql", "mysql", "oracle", "redis", "elasticsearch", "dynamodb"],
+      cloud: ["aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2", "heroku"],
+      testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing"]
     };
 
     const lowerSkill = skill.toLowerCase();
-    if (skillTypes.programming.some(s => lowerSkill.includes(s))) {
-      return "default";
+    if (skillTypes.technical.some(s => lowerSkill.includes(s))) {
+      return "default"; // Blue
     }
     if (skillTypes.software.some(s => lowerSkill.includes(s))) {
-      return "secondary";
+      return "secondary"; // Gray
     }
     if (skillTypes.database.some(s => lowerSkill.includes(s))) {
-      return "destructive";
+      return "destructive"; // Red
     }
-    if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
-      return "outline";
+    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) {
+      return "outline"; // Outlined
+    }
+    if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
+      return "secondary"; // Gray
     }
     return "default";
   };
@@ -263,7 +267,7 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
 
           {onNext && (
             <div className="flex justify-end">
-              <Button onClick={onNext}>
+              <Button onClick={onNext} size="lg">
                 Next
               </Button>
             </div>
