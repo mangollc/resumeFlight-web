@@ -63,15 +63,12 @@ export default function Dashboard() {
   });
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
-    // Update the state
     setUploadedResume(resume);
     setCompletedSteps(prev => [...prev, 1]);
     setCurrentStep(2);
 
-    // Invalidate and refetch uploaded resumes to update the dropdown
     await queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
 
-    // Switch back to choose mode to show the updated dropdown
     setUploadMode('choose');
 
     toast({
@@ -181,7 +178,7 @@ export default function Dashboard() {
 
   const renderCurrentStep = () => {
     const commonCardProps = {
-      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto relative z-10"
+      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto relative"
     };
 
     switch (currentStep) {
@@ -211,7 +208,7 @@ export default function Dashboard() {
                   </div>
 
                   {uploadMode === 'choose' && resumes && resumes.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-3 relative">
                       <Select
                         value={uploadedResume?.id?.toString()}
                         onValueChange={(value) => {
@@ -225,7 +222,13 @@ export default function Dashboard() {
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select a resume" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent
+                          position="popper"
+                          className="w-full z-50"
+                          align="start"
+                          side="bottom"
+                          sideOffset={4}
+                        >
                           {resumes.map((resume) => (
                             <SelectItem key={resume.id} value={resume.id.toString()}>
                               {resume.metadata.filename}
