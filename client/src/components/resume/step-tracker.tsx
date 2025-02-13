@@ -15,11 +15,11 @@ interface StepTrackerProps {
 
 export default function StepTracker({ currentStep, steps, completedSteps }: StepTrackerProps) {
   return (
-    <div className="w-full mb-16"> {/* Increased bottom margin */}
+    <div className="w-full">
       {/* Steps Container */}
       <div className="relative">
         {/* Progress Bar */}
-        <div className="absolute left-0 top-1/2 h-2 w-full -translate-y-1/2">
+        <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2">
           <div className="h-full bg-muted rounded-full">
             <div
               className="h-full bg-primary transition-all duration-500 ease-in-out rounded-full"
@@ -41,9 +41,9 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                 {/* Step Circle */}
                 <div
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full", // Reduced size
+                    "flex h-8 w-8 items-center justify-center rounded-full",
                     "transition-all duration-300 ease-in-out",
-                    "border-2", // Reduced border width
+                    "border-2",
                     isActive && 
                       "border-primary bg-primary text-primary-foreground scale-110 ring-2 ring-primary/20",
                     isCompleted &&
@@ -53,19 +53,19 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                   )}
                 >
                   {isCompleted ? (
-                    <Check className="h-5 w-5" /> // Reduced icon size
+                    <Check className="h-4 w-4" />
                   ) : (
-                    <span className="text-base font-semibold"> {/* Reduced text size */}
+                    <span className="text-sm font-semibold">
                       {step.id}
                     </span>
                   )}
                 </div>
 
                 {/* Step Label */}
-                <div className="absolute mt-12 w-28 -translate-x-1/2 text-center"> {/* Reduced margin-top and width */}
+                <div className="absolute top-full mt-3 w-24 -translate-x-1/2 text-center">
                   <p
                     className={cn(
-                      "text-xs font-medium transition-colors duration-300", // Reduced text size
+                      "text-xs font-medium transition-colors duration-300",
                       isActive && "text-primary font-semibold",
                       isCompleted && "text-foreground",
                       !isActive && !isCompleted && "text-muted-foreground"
@@ -75,7 +75,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                   </p>
                   <p
                     className={cn(
-                      "text-[10px] mt-0.5 transition-colors duration-300", // Reduced text size and margin
+                      "text-[10px] mt-0.5 transition-colors duration-300 leading-tight",
                       isActive && "text-muted-foreground",
                       !isActive && "text-muted-foreground/60"
                     )}

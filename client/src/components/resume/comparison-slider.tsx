@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ComparisonSliderProps {
   beforeContent: string;
   afterContent: string;
+  isLoading?: boolean;
 }
 
-export default function ComparisonSlider({ beforeContent, afterContent }: ComparisonSliderProps) {
+export default function ComparisonSlider({ beforeContent, afterContent, isLoading = false }: ComparisonSliderProps) {
   const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState(50);
   const rangeRef = useRef<HTMLDivElement>(null);
@@ -44,6 +45,15 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
     };
   }, [isResizing]);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] h-full w-full bg-background/50 rounded-lg border">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-sm text-muted-foreground">Generating comparison...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col space-y-2">
       {/* Labels Header */}
@@ -58,7 +68,7 @@ export default function ComparisonSlider({ beforeContent, afterContent }: Compar
 
       {/* Comparison Container */}
       <div 
-        className="relative w-full min-h-[400px] overflow-hidden rounded-lg border bg-background"
+        className="relative w-full h-[400px] overflow-hidden rounded-lg border bg-background"
         ref={rangeRef}
       >
         {/* Original Content (Left Side) */}

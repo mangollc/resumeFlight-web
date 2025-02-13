@@ -30,7 +30,7 @@ const steps: Step[] = [
   },
   {
     id: 3,
-    title: "Review Optimization",
+    title: "Review",
     description: "Review your AI-optimized resume"
   },
   {
@@ -40,8 +40,8 @@ const steps: Step[] = [
   },
   {
     id: 5,
-    title: "Download Package",
-    description: "Download your optimized resume and cover letter"
+    title: "Summary",
+    description: "Download your optimized documents"
   }
 ];
 
@@ -246,7 +246,7 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 pt-4 pb-8 max-w-5xl">
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
           Resume Optimization
         </h1>
@@ -255,13 +255,15 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <StepTracker
-        currentStep={currentStep}
-        steps={steps}
-        completedSteps={completedSteps}
-      />
+      <div className="mb-16">
+        <StepTracker
+          currentStep={currentStep}
+          steps={steps}
+          completedSteps={completedSteps}
+        />
+      </div>
 
-      <div className="min-h-[400px]">
+      <div className="mt-8 min-h-[400px]">
         {renderCurrentStep()}
       </div>
     </div>
