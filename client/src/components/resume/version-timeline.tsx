@@ -22,7 +22,7 @@ export function VersionTimeline({ versions, onVersionSelect, selectedVersion }: 
   const [expandedVersion, setExpandedVersion] = useState<number | null>(null);
 
   const sortedVersions = [...versions].sort((a, b) => 
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   return (
@@ -31,13 +31,14 @@ export function VersionTimeline({ versions, onVersionSelect, selectedVersion }: 
         <Clock className="h-5 w-5" />
         Version History
       </h3>
-      
+
       <div className="space-y-3">
         <AnimatePresence>
           {sortedVersions.map((version, index) => {
             const isExpanded = expandedVersion === version.id;
             const isSelected = selectedVersion?.id === version.id;
-            
+            const versionNumber = version.metadata?.version || 1.0;
+
             return (
               <motion.div
                 key={version.id}
@@ -58,7 +59,7 @@ export function VersionTimeline({ versions, onVersionSelect, selectedVersion }: 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium">
-                        Version {version.metadata.version.toFixed(1)}
+                        Version {versionNumber.toFixed(1)}
                       </span>
                       <span className="text-sm text-muted-foreground">
                         {new Date(version.createdAt).toLocaleDateString()}
@@ -73,7 +74,7 @@ export function VersionTimeline({ versions, onVersionSelect, selectedVersion }: 
                           version.metrics?.after?.overall >= 60 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100" :
                           "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100"
                         )}>
-                          {version.metrics?.after?.overall}%
+                          {version.metrics?.after?.overall || 0}%
                         </span>
                       </div>
                       {isExpanded ? (
@@ -111,7 +112,7 @@ export function VersionTimeline({ versions, onVersionSelect, selectedVersion }: 
                             )
                           ))}
                         </div>
-                        
+
                         <div className="flex justify-end gap-2 pt-2">
                           <Button
                             variant="outline"

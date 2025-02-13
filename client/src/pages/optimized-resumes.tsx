@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDown, ChevronRight } from "lucide-react";
@@ -8,21 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import { useState, useMemo } from "react";
 import { VersionTimeline } from "@/components/resume/version-timeline";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Card,
+  CardContent,
+} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,14 +23,21 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 function formatJobDetails(resume: OptimizedResume) {
   return (
@@ -334,6 +329,190 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   );
 }
 
+function ResumeVersionGroup({ resumes }: { resumes: OptimizedResume[] }) {
+  const [selectedVersion, setSelectedVersion] = useState<OptimizedResume>(resumes[0]);
+  const [isTimelineOpen, setIsTimelineOpen] = useState(true);
+  const { toast } = useToast();
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+      toast({
+        title: "Success",
+        description: "Resume deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-semibold">{selectedVersion.jobDetails?.title}</h2>
+            <p className="text-sm text-muted-foreground">{selectedVersion.jobDetails?.company}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsTimelineOpen(!isTimelineOpen)}
+            className="flex items-center gap-2"
+          >
+            {isTimelineOpen ? (
+              <>
+                Hide Timeline
+                <ChevronDown className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                Show Timeline
+                <ChevronRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        {isTimelineOpen && (
+          <div className="pt-4">
+            <VersionTimeline
+              versions={resumes}
+              onVersionSelect={setSelectedVersion}
+              selectedVersion={selectedVersion}
+            />
+          </div>
+        )}
+
+        <div className="pt-4">
+          <div className="flex justify-end space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreVertical className="h-4 w-4 mr-2" />
+                  Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Version Actions</DropdownMenuLabel>
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`/api/optimized-resume/${selectedVersion.id}/download`}
+                    download
+                    className="flex items-center"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Resume
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href={`/api/optimized-resume/${selectedVersion.id}/cover-letter/latest/download`}
+                    download
+                    className="flex items-center"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Cover Letter
+                  </a>
+                </DropdownMenuItem>
+                {selectedVersion.jobUrl && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <a
+                        href={selectedVersion.jobUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center"
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Job Posting
+                      </a>
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuSeparator />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Info className="mr-2 h-4 w-4" />
+                      View Job Details
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Job Details</DialogTitle>
+                      <DialogDescription>
+                        <div className="space-y-4 mt-4">
+                          <div>
+                            <h4 className="font-medium">Company</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedVersion.jobDetails?.company}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Location</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedVersion.jobDetails?.location || "Not specified"}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-medium">Job Description</h4>
+                            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                              {selectedVersion.jobDescription}
+                            </p>
+                          </div>
+                        </div>
+                      </DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+                <DropdownMenuSeparator />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete Version
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Resume Version</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this version? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteMutation.mutate(selectedVersion.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function OptimizedResumesPage() {
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
@@ -387,53 +566,5 @@ export default function OptimizedResumesPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function ResumeVersionGroup({ resumes }: { resumes: OptimizedResume[] }) {
-  const [selectedVersion, setSelectedVersion] = useState<OptimizedResume>(resumes[0]);
-  const [isTimelineOpen, setIsTimelineOpen] = useState(true);
-
-  const latestVersion = resumes[0];
-
-  return (
-    <Card>
-      <CardContent className="p-6 space-y-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h2 className="text-xl font-semibold">{latestVersion.jobDetails?.title}</h2>
-            <p className="text-sm text-muted-foreground">{latestVersion.jobDetails?.company}</p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsTimelineOpen(!isTimelineOpen)}
-            className="flex items-center gap-2"
-          >
-            {isTimelineOpen ? (
-              <>
-                Hide Timeline
-                <ChevronDown className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Show Timeline
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </div>
-
-        {isTimelineOpen && (
-          <div className="pt-4">
-            <VersionTimeline
-              versions={resumes}
-              onVersionSelect={setSelectedVersion}
-              selectedVersion={selectedVersion}
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
