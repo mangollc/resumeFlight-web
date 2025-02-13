@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { OptimizedResume, JobDetails } from "@shared/schema";
+import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +16,20 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+export interface JobDetails {
+  title: string;
+  company: string;
+  salary?: string;
+  location: string;
+  url?: string;
+  description?: string;
+  positionLevel?: string;
+  keyRequirements?: string[];
+  skillsAndTools?: string[];
+}
 
 interface JobInputProps {
   resumeId: number;
@@ -48,6 +62,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         title: data.jobDetails.title,
         company: data.jobDetails.company,
         location: data.jobDetails.location,
+        salary: data.jobDetails.salary,
+        positionLevel: data.jobDetails.positionLevel,
+        keyRequirements: data.jobDetails.keyRequirements,
+        skillsAndTools: data.jobDetails.skillsAndTools
       };
 
       setExtractedDetails(details);
@@ -97,8 +115,32 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     );
   };
 
+  const getSkillBadgeVariant = (skill: string): "default" | "secondary" | "destructive" | "outline" => {
+    const skillTypes = {
+      programming: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css"],
+      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel", "word"],
+      database: ["sql", "mongodb", "postgresql", "mysql", "oracle", "redis"],
+      tools: ["git", "docker", "kubernetes", "aws", "azure", "jira", "slack"]
+    };
+
+    const lowerSkill = skill.toLowerCase();
+    if (skillTypes.programming.some(s => lowerSkill.includes(s))) {
+      return "default";
+    }
+    if (skillTypes.software.some(s => lowerSkill.includes(s))) {
+      return "secondary";
+    }
+    if (skillTypes.database.some(s => lowerSkill.includes(s))) {
+      return "destructive";
+    }
+    if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
+      return "outline";
+    }
+    return "default";
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="url" disabled={isProcessing || !!jobDescription}>Job URL</TabsTrigger>
@@ -138,32 +180,69 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       </Tabs>
 
       {extractedDetails && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead colSpan={2} className="text-center">
-                  Job Details
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">Title</TableCell>
-                <TableCell>{extractedDetails.title}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Company</TableCell>
-                <TableCell>{extractedDetails.company}</TableCell>
-              </TableRow>
-              {extractedDetails.location && (
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Job Details</h3>
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium w-1/4">Title</TableCell>
+                  <TableCell>{extractedDetails.title}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">Company</TableCell>
+                  <TableCell>{extractedDetails.company}</TableCell>
+                </TableRow>
+                {extractedDetails.salary && (
+                  <TableRow>
+                    <TableCell className="font-medium">Salary</TableCell>
+                    <TableCell>{extractedDetails.salary}</TableCell>
+                  </TableRow>
+                )}
                 <TableRow>
                   <TableCell className="font-medium">Location</TableCell>
                   <TableCell>{extractedDetails.location}</TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                {extractedDetails.positionLevel && (
+                  <TableRow>
+                    <TableCell className="font-medium">Position Level</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {extractedDetails.positionLevel}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Key Requirements</h4>
+              <ul className="list-disc list-inside space-y-2">
+                {extractedDetails.keyRequirements.map((requirement, index) => (
+                  <li key={index} className="text-muted-foreground">{requirement}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+              <div className="flex flex-wrap gap-2">
+                {extractedDetails.skillsAndTools.map((skill, index) => (
+                  <Badge
+                    key={index}
+                    variant={getSkillBadgeVariant(skill)}
+                  >
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

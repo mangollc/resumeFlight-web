@@ -128,8 +128,16 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     company: string;
     location: string;
     salary?: string;
+    description?: string;
     positionLevel?: string;
-    keyPoints?: string[];
+    keyRequirements?: string[];
+    skillsAndTools?: string[];
+    metrics?: {
+      keywords: number;
+      skills: number;
+      experience: number;
+      overall: number;
+    };
   };
   metrics: {
     before: {

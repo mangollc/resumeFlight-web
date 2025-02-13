@@ -1,16 +1,17 @@
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
- keywords: number;
- skills: number;
- experience: number;
- overall: number;
+  keywords: number;
+  skills: number;
+  experience: number;
+  overall: number;
 }> {
- try {
-  const response = await openai.chat.completions.create({
-   model: "gpt-4",
-   messages: [
-    {
-     role: "system",
-     content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+  try {
+    console.log("[Match Analysis] Starting analysis...");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
 Your task is to:
 1. Analyze keyword matches between resume and job requirements
 2. Evaluate skills alignment
@@ -30,51 +31,110 @@ Scoring Guidelines:
 - Skills (0-100): How well the candidate's skills match the required skills
 - Experience (0-100): Relevance and depth of experience compared to requirements
 - Overall (0-100): Weighted average with emphasis on skills and experience`
-    },
-    {
-     role: "user",
-     content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+        },
+        {
+          role: "user",
+          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+        }
+      ],
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      console.warn("[Match Analysis] Empty response from OpenAI");
+      return getDefaultMetrics();
     }
-   ],
-   response_format: { type: "json_object" },
-   temperature: 0.3,
-  });
 
-  const content = response.choices[0].message.content;
-  if (!content) {
-   console.warn("Empty response from OpenAI");
-   return getDefaultMetrics();
-  }
+    try {
+      const metrics = JSON.parse(content);
+      const validatedMetrics = {
+        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+      };
 
-  try {
-   // Parse and validate the metrics
-   const metrics = JSON.parse(content);
-   const validatedMetrics = {
-    keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-    skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-    experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-    overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-   };
-
-   // Ensure we have all required metrics
-   const hasAllMetrics = Object.values(validatedMetrics).every(value =>
-    typeof value === 'number' && !isNaN(value)
-   );
-
-   if (!hasAllMetrics) {
-    console.warn("Invalid metrics in response:", metrics);
+      console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
+      return validatedMetrics;
+    } catch (parseError) {
+      console.error("[Match Analysis] Error parsing metrics:", parseError);
+      return getDefaultMetrics();
+    }
+  } catch (error) {
+    console.error("[Match Analysis] Error calculating scores:", error);
     return getDefaultMetrics();
-   }
-
-   return validatedMetrics;
-  } catch (parseError) {
-   console.error("Error parsing metrics response:", parseError, "\nContent:", content);
-   return getDefaultMetrics();
   }
- } catch (error) {
-  console.error("Error calculating match scores:", error);
-  return getDefaultMetrics();
- }
+}
+
+async function analyzeJobDescription(description: string) {
+  try {
+    console.log("[Job Analysis] Starting job description analysis...");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `You are a job analysis expert. Analyze the job description and extract key information.
+Return a detailed analysis in the following JSON format:
+{
+  "title": "Job title extracted from description",
+  "company": "Company name if found, otherwise 'Not specified'",
+  "location": "Job location if found, otherwise 'Not specified'",
+  "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
+  "keyRequirements": ["3-5 key requirements, each under 50 words"],
+  "skillsAndTools": ["List of specific technologies, programming languages, software, tools required"],
+  "metrics": {
+    "keywords": number between 0-100,
+    "skills": number between 0-100,
+    "experience": number between 0-100,
+    "overall": number between 0-100
+  }
+}`
+        },
+        {
+          role: "user",
+          content: description
+        }
+      ],
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0].message.content;
+    console.log("[Job Analysis] Raw response:", content);
+
+    if (!content) {
+      console.warn("[Job Analysis] Empty response");
+      return getDefaultAnalysis();
+    }
+
+    try {
+      const parsed = JSON.parse(content);
+      const validatedAnalysis = {
+        title: parsed.title || "Not specified",
+        company: parsed.company || "Not specified",
+        location: parsed.location || "Not specified",
+        positionLevel: parsed.positionLevel || "Not specified",
+        keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
+        skillsAndTools: Array.isArray(parsed.skillsAndTools) ? parsed.skillsAndTools : ["No specific skills/tools found"],
+        metrics: {
+          keywords: Math.min(100, Math.max(0, Number(parsed.metrics?.keywords) || 0)),
+          skills: Math.min(100, Math.max(0, Number(parsed.metrics?.skills) || 0)),
+          experience: Math.min(100, Math.max(0, Number(parsed.metrics?.experience) || 0)),
+          overall: Math.min(100, Math.max(0, Number(parsed.metrics?.overall) || 0))
+        }
+      };
+
+      console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
+      return validatedAnalysis;
+    } catch (parseError) {
+      console.error("[Job Analysis] Parse error:", parseError);
+      return getDefaultAnalysis();
+    }
+  } catch (error) {
+    console.error("[Job Analysis] Analysis error:", error);
+    return getDefaultAnalysis();
+  }
 }
 
 function getDefaultMetrics() {
@@ -86,6 +146,24 @@ function getDefaultMetrics() {
  };
 }
 
+function getDefaultAnalysis() {
+  return {
+    title: "Not specified",
+    company: "Not specified",
+    location: "Not specified",
+    positionLevel: "Not specified",
+    keyRequirements: ["Unable to extract requirements"],
+    skillsAndTools: ["No specific skills/tools found"],
+    metrics: {
+      keywords: 0,
+      skills: 0,
+      experience: 0,
+      overall: 0
+    }
+  };
+}
+
+//Rest of the file
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -252,95 +330,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
  }
 }
 
-async function analyzeJobDescription(description: string) {
-  try {
-    console.log("[AI Analysis] Analyzing job description:", description.substring(0, 100) + "...");
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are a job analysis expert. Analyze the job description and extract key information.
-Your response must be a valid JSON object with the following properties:
-{
-  "title": "Job title extracted from description",
-  "company": "Company name if found, otherwise 'Not specified'",
-  "location": "Job location if found, otherwise 'Not specified'",
-  "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
-  "keyRequirements": ["3-5 key requirements, each under 50 words"],
-  "skillsAndTools": ["List of specific technologies, programming languages, software, tools required"],
-  "metrics": {
-    "keywords": number between 0-100,
-    "skills": number between 0-100,
-    "experience": number between 0-100,
-    "overall": number between 0-100
-  }
-}`
-        },
-        {
-          role: "user",
-          content: description
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-    });
-
-    const content = response.choices[0].message.content;
-    console.log("[AI Analysis] Raw OpenAI response:", content);
-
-    if (!content) {
-      console.warn("[AI Analysis] No content in OpenAI response");
-      return getDefaultAnalysis();
-    }
-
-    try {
-      const parsed = JSON.parse(content);
-      // Validate metrics
-      const metrics = parsed.metrics || {};
-      parsed.metrics = {
-        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-      };
-
-      return {
-        title: parsed.title || "Not specified",
-        company: parsed.company || "Not specified",
-        location: parsed.location || "Not specified",
-        positionLevel: parsed.positionLevel || "Not specified",
-        keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
-        skillsAndTools: Array.isArray(parsed.skillsAndTools) ? parsed.skillsAndTools : ["No specific skills/tools found"],
-        metrics: parsed.metrics
-      };
-    } catch (parseError) {
-      console.error("[AI Analysis] Error parsing OpenAI response:", parseError);
-      return getDefaultAnalysis();
-    }
-  } catch (error) {
-    console.error("[AI Analysis] Error during job description analysis:", error);
-    return getDefaultAnalysis();
-  }
-}
-
-function getDefaultAnalysis() {
-  return {
-    title: "Not specified",
-    company: "Not specified",
-    location: "Not specified",
-    positionLevel: "Not specified",
-    keyRequirements: ["Unable to extract requirements"],
-    skillsAndTools: ["No specific skills/tools found"],
-    metrics: {
-      keywords: 0,
-      skills: 0,
-      experience: 0,
-      overall: 0
-    }
-  };
-}
 
 async function createPDF(content: string): Promise<Buffer> {
   return new Promise<Buffer>((resolve, reject) => {
