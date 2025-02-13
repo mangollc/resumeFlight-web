@@ -15,11 +15,28 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import DiffView from "./diff-view";
 
+const handleDownload = async (id: number) => {
+  try {
+    const response = await fetch(`/api/optimized-resume/${id}/download`);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `optimized-resume-${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Download failed:', error);
+  }
+};
+
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
 }
 
-export default function Preview({ resume }: PreviewProps) {
+export function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -115,7 +132,7 @@ export default function Preview({ resume }: PreviewProps) {
               {isOptimized && (
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)}>
                       <Maximize2 className="h-4 w-4 mr-2" />
                       Compare Versions
                     </Button>
@@ -134,6 +151,7 @@ export default function Preview({ resume }: PreviewProps) {
                           beforeContent={originalContent}
                           afterContent={optimizedContent}
                           resumeId={(resume as OptimizedResume).id}
+                          onDownload={handleDownload}
                         />
                       )}
                     </div>
