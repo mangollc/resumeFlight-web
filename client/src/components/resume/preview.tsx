@@ -54,12 +54,14 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
               <span className="text-muted-foreground" aria-hidden="true">→</span>
             </>
           )}
-          <span 
+          <span
             className={cn(
               "font-medium px-2 py-0.5 rounded text-xs",
-              after >= 80 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-100" :
-                after >= 60 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100" :
-                  "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100"
+              after >= 80
+                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-100"
+                : after >= 60
+                ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100"
+                : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100"
             )}
             aria-label={`Current score: ${after}%`}
           >
@@ -67,7 +69,7 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
           </span>
         </div>
       </div>
-      <div 
+      <div
         className="relative h-2 overflow-hidden rounded-full bg-muted"
         role="progressbar"
         aria-valuenow={after}
@@ -122,7 +124,7 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
     );
   }
 
-  const isOptimized = 'jobDescription' in resume;
+  const isOptimized = "jobDescription" in resume;
   const originalContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
   const optimizedContent = resume.content;
   const version = isOptimized ? (resume as OptimizedResume).metadata?.version || 1.0 : undefined;
@@ -130,20 +132,19 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
   const formatFilename = (v?: number) => {
     const initials = getInitials(originalContent);
     const jobTitle = isOptimized
-      ? (resume as OptimizedResume).jobDetails?.title?.replace(/[^a-zA-Z0-9\s]/g, '')
-          .replace(/\s+/g, '_')
+      ? (resume as OptimizedResume).jobDetails?.title?.replace(/[^a-zA-Z0-9\s]/g, "")
+          .replace(/\s+/g, "_")
           .toLowerCase()
           .substring(0, 30)
-      : 'resume';
-    const versionStr = v ? `_v${v.toFixed(1)}` : '';
+      : "resume";
+    const versionStr = v ? `_v${v.toFixed(1)}` : "";
     return `${initials}_${jobTitle}${versionStr}`;
   };
 
   const getInitials = (text: string): string => {
     const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
-    return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
+    return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
   };
-
 
   return (
     <Card className="h-full">
@@ -187,7 +188,7 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                         }_cover.pdf`}
                         download
                       >
-                        <Button variant="outline" size="sm">
+                        <Button variant="primary" size="sm">
                           <Download className="h-4 w-4 mr-2" />
                           Download Cover Letter
                         </Button>
@@ -224,7 +225,6 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
               </div>
             </div>
           </div>
-
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
               <pre className="whitespace-pre-wrap font-sans text-sm">
@@ -232,7 +232,6 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
               </pre>
             </div>
           </div>
-
           {isOptimized && (resume as OptimizedResume).metrics && (
             <div className="mt-6 space-y-6">
               <div className="space-y-4">

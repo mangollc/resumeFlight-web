@@ -87,6 +87,7 @@ const getMetricsColor = (value: number) => {
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const deleteMutation = useMutation({
@@ -227,7 +228,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
               ) : (
                 <>
                   <DropdownMenuSeparator />
-                  <Dialog>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                         <Info className="mr-2 h-4 w-4" />
