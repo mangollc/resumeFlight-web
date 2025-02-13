@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
@@ -41,11 +40,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
-  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const jobDetailsRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
 
@@ -68,7 +64,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    // Mark all in-progress steps as cancelled
     setProgressSteps((steps) =>
       steps.map((step) =>
         step.status === "loading" || step.status === "pending"
@@ -77,17 +72,14 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       )
     );
     setIsProcessing(false);
-    setExtractedDetails(null);
     fetchJobMutation.reset();
   };
 
   const handleReset = () => {
     setJobUrl("");
     setJobDescription("");
-    setExtractedDetails(null);
     setActiveTab("url");
     handleCancel();
-    setIsCollapsed(false);
     setProgressSteps(INITIAL_STEPS);
   };
 
@@ -99,7 +91,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         }
         abortControllerRef.current = new AbortController();
 
-        // Reset and start progress tracking
         setProgressSteps(INITIAL_STEPS);
         updateStepStatus("extract", "loading");
 
@@ -129,7 +120,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         return jsonData;
       } catch (error) {
-        // Check if the error is due to cancellation
         if (
           error instanceof Error &&
           (error.name === "AbortError" ||
@@ -142,7 +132,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
     },
     onSuccess: (data: OptimizedResume) => {
-      // Only process if not aborted
       if (!abortControllerRef.current?.signal.aborted) {
         updateStepStatus("optimize", "completed");
 
@@ -158,25 +147,18 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           skillsAndTools: data.jobDetails.skillsAndTools,
         };
 
-        setExtractedDetails(details);
         queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-        setIsCollapsed(false);
 
         toast({
           title: "Success",
           description: "Resume optimized successfully",
         });
 
-        setTimeout(() => {
-          jobDetailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 100);
-
         setIsProcessing(false);
         onOptimized(data, details);
       }
     },
     onError: (error: Error) => {
-      // Only show error toast for non-cancellation errors
       if (
         error.message !== "cancelled" &&
         error.message !== "Request aborted by client"
@@ -198,7 +180,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           });
         }
       }
-      setExtractedDetails(null);
     },
     onSettled: () => {
       if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
@@ -223,77 +204,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     fetchJobMutation.mutate(
       activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
     );
-  };
-
-  const getSkillBadgeVariant = (
-    skill: string
-  ): "default" | "secondary" | "destructive" | "outline" => {
-    const skillTypes = {
-      technical: [
-        "javascript",
-        "python",
-        "java",
-        "c++",
-        "typescript",
-        "react",
-        "node",
-        "html",
-        "css",
-        "api",
-        "rest",
-        "graphql",
-        "frontend",
-        "backend",
-        "fullstack",
-      ],
-      database: [
-        "sql",
-        "nosql",
-        "mongodb",
-        "postgresql",
-        "mysql",
-        "oracle",
-        "redis",
-        "elasticsearch",
-        "dynamodb",
-        "database",
-      ],
-      cloud: [
-        "aws",
-        "azure",
-        "gcp",
-        "cloud",
-        "serverless",
-        "lambda",
-        "s3",
-        "ec2",
-        "heroku",
-        "docker",
-        "kubernetes",
-        "ci/cd",
-      ],
-      testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing", "qa"],
-      tools: ["git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack", "teams"],
-    };
-
-    const lowerSkill = skill.toLowerCase();
-
-    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) {
-      return "default";
-    }
-    if (skillTypes.database.some((s) => lowerSkill.includes(s))) {
-      return "destructive";
-    }
-    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) {
-      return "outline";
-    }
-    if (skillTypes.testing.some((s) => lowerSkill.includes(s))) {
-      return "secondary";
-    }
-    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) {
-      return "outline";
-    }
-    return "default";
   };
 
   return (
@@ -380,7 +290,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 Processing...
               </>
             ) : (
-              "Fetch Job Info"
+              "Optimize Resume"
             )}
           </Button>
           <Button
@@ -395,84 +305,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           </Button>
         </div>
       </form>
-
-      {extractedDetails && (
-        <div ref={jobDetailsRef} className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div
-            className="p-4 cursor-pointer flex justify-between items-center"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              Extracted Job Details
-            </h3>
-          </div>
-
-          <div
-            className={cn(
-              "overflow-hidden transition-all",
-              isCollapsed ? "max-h-0" : "max-h-[2000px]"
-            )}
-          >
-            <div className="p-6 pt-2 space-y-6">
-              <div className="grid gap-4">
-                <div>
-                  <p className="font-medium mb-1">Title</p>
-                  <p className="text-sm text-muted-foreground">
-                    {extractedDetails.title || "Not specified"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium mb-1">Company</p>
-                  <p className="text-sm text-muted-foreground">
-                    {extractedDetails.company || "Not specified"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium mb-1">Location</p>
-                  <p className="text-sm text-muted-foreground">
-                    {extractedDetails.location || "Not specified"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium mb-1">Position Level</p>
-                  <p className="text-sm text-muted-foreground">
-                    {extractedDetails.positionLevel || "Not specified"}
-                  </p>
-                </div>
-              </div>
-
-              {extractedDetails.keyRequirements &&
-                extractedDetails.keyRequirements.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Key Requirements</h4>
-                    <ul className="list-disc list-inside space-y-2">
-                      {extractedDetails.keyRequirements.map((requirement, index) => (
-                        <li key={index} className="text-muted-foreground">
-                          {requirement}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-              {extractedDetails.skillsAndTools &&
-                extractedDetails.skillsAndTools.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {extractedDetails.skillsAndTools.map((skill, index) => (
-                        <Badge key={index} variant={getSkillBadgeVariant(skill)}>
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-            </div>
-          </div>
-        </div>
-      )}
 
       <LoadingDialog
         open={isProcessing}
