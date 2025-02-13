@@ -87,14 +87,18 @@ Return a detailed analysis in the following JSON format:
  "location": "Job location if found, otherwise 'Not specified'",
  "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
  "keyRequirements": ["3-5 key requirements, each under 50 words"],
- "skillsAndTools": [
-   "Keep each skill/tool to 1-2 words max",
-   "Focus on technical skills",
-   "Programming languages",
-   "Frameworks",
-   "Tools",
-   "Platforms"
- ]
+ "skillsAndTools": {
+   "programming": ["Programming languages like JavaScript, Python, etc."],
+   "frameworks": ["Frameworks and libraries like React, Node.js, etc."],
+   "databases": ["Database technologies like PostgreSQL, MongoDB, etc."],
+   "cloud": ["Cloud platforms and services like AWS, Azure, etc."],
+   "tools": ["Development tools like Git, Docker, etc."],
+   "soft": ["Soft skills like communication, leadership, etc."],
+   "testing": ["Testing frameworks and methodologies"],
+   "architecture": ["Architecture patterns and principles"],
+   "security": ["Security-related skills and tools"],
+   "other": ["Other relevant technical skills"]
+ }
 }`
                 },
                 {
@@ -115,15 +119,21 @@ Return a detailed analysis in the following JSON format:
 
         try {
             const parsed = JSON.parse(content);
+            const skillsArray = Object.entries(parsed.skillsAndTools || {}).flatMap(([category, skills]) =>
+                (skills as string[]).map(skill => ({
+                    name: skill,
+                    category
+                }))
+            );
+
             const validatedAnalysis = {
                 title: parsed.title || "Not specified",
                 company: parsed.company || "Not specified",
                 location: parsed.location || "Not specified",
                 positionLevel: parsed.positionLevel || "Not specified",
                 keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
-                skillsAndTools: Array.isArray(parsed.skillsAndTools) ?
-                    parsed.skillsAndTools.map((skill: string) => skill.split(' ').slice(0, 2).join(' ')) :
-                    ["No specific skills/tools found"],
+                skillsAndTools: skillsArray.map(skill => skill.name),
+                skillCategories: skillsArray.map(skill => skill.category),
                 metrics: {
                     keywords: Math.min(100, Math.max(0, Number(parsed.metrics?.keywords) || 0)),
                     skills: Math.min(100, Math.max(0, Number(parsed.metrics?.skills) || 0)),
@@ -161,6 +171,7 @@ function getDefaultAnalysis() {
         positionLevel: "Not specified",
         keyRequirements: ["Unable to extract requirements"],
         skillsAndTools: ["No specific skills/tools found"],
+        skillCategories: [],
         metrics: {
             keywords: 0,
             skills: 0,
@@ -399,7 +410,6 @@ async function createPDF(content: string): Promise<Buffer> {
 }
 
 function getInitials(text: string): string {
-    // First try to find a name at the start of the resume
     const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
     if (nameMatch) {
         return nameMatch[0]
@@ -409,7 +419,6 @@ function getInitials(text: string): string {
             .toUpperCase();
     }
 
-    // Fallback: Look for a name anywhere in the first paragraph
     const firstParagraph = text.split('\n\n')[0];
     const anyNameMatch = firstParagraph.match(/[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
     if (anyNameMatch) {
@@ -420,7 +429,7 @@ function getInitials(text: string): string {
             .toUpperCase();
     }
 
-    return "RES"; // Default fallback
+    return "RES";
 }
 
 export function registerRoutes(app: Express): Server {
@@ -509,7 +518,6 @@ export function registerRoutes(app: Express): Server {
             if (!uploadedResume) return res.status(404).send("Resume not found");
             if (uploadedResume.userId !== req.user!.id) return res.sendStatus(403);
 
-            // Add event handler for request abort
             const aborted = new Promise((_, reject) => {
                 req.on('close', () => {
                     reject(new Error('Request aborted by client'));
@@ -588,7 +596,6 @@ export function registerRoutes(app: Express): Server {
                 });
             };
 
-            // Race between processing and abort
             const optimizedResume = await Promise.race([
                 processJob(),
                 aborted
@@ -598,7 +605,6 @@ export function registerRoutes(app: Express): Server {
         } catch (error: any) {
             console.error("Optimization error:", error);
             if (error.message === 'Request aborted by client') {
-                // Don't send response if client aborted
                 return;
             }
             res.status(500).json({ error: error.message });
@@ -627,7 +633,6 @@ export function registerRoutes(app: Express): Server {
             const { version } = req.body;
             const generated = await generateCoverLetter(optimizedResume.content, optimizedResume.jobDescription);
 
-            // Include version in filename if provided
             const baseFilename = optimizedResume.metadata.filename.replace(/\.pdf$/, '');
             const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
             const filename = `cover_letter_${baseFilename}${versionStr}.pdf`;
@@ -719,7 +724,6 @@ export function registerRoutes(app: Express): Server {
 
             const pdfBuffer = await createPDF(resume.content);
 
-            // Use the filename from query if provided, otherwise generate one
             const filename = formatFilename(
                 req.query.filename as string ||
                 `${getInitials(resume.content)}_${
@@ -746,18 +750,15 @@ export function registerRoutes(app: Express): Server {
             if (!optimizedResume) return res.status(404).send("Optimized resume not found");
             if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
 
-            // Get all cover letters for this resume, sorted by version
             const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
             if (!coverLetters.length) return res.status(404).send("No cover letters found");
 
-            // Get the latest version
             const latestCoverLetter = coverLetters.reduce((latest, current) => {
                 return (!latest || current.metadata.version > latest.metadata.version) ? current : latest;
             }, coverLetters[0]);
 
             const pdfBuffer = await createPDF(latestCoverLetter.content);
 
-            // Use the filename from query if provided, otherwise generate one
             const filename = formatFilename(
                 req.query.filename as string ||
                 `${getInitials(optimizedResume.content)}_${
@@ -797,7 +798,6 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    // Add new route for analyzing differences
     app.get("/api/optimized-resume/:id/differences", async (req, res) => {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
