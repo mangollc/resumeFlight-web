@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDown, ChevronRight } from "lucide-react";
@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
 
 function formatJobDetails(resume: OptimizedResume) {
   return (
@@ -86,278 +87,6 @@ const getMetricsColor = (value: number) => {
   return "bg-red-500";
 };
 
-function ResumeGroup({ resumes }: { resumes: OptimizedResume[] }) {
-  const [selectedVersion, setSelectedVersion] = useState<OptimizedResume>(resumes[0]);
-  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
-  const { toast } = useToast();
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      toast({
-        title: "Success",
-        description: "Resume and its cover letter deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const formatDownloadFilename = (name: string, jobTitle: string, version?: number) => {
-    const nameMatch = name.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
-    const initials = nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
-    const cleanJobTitle = jobTitle
-      ?.replace(/[^a-zA-Z0-9\s]/g, '')
-      .replace(/\s+/g, '_')
-      .toLowerCase()
-      .substring(0, 30);
-    const versionSuffix = version ? `_v${version.toFixed(1)}` : '';
-    return `${initials}_${cleanJobTitle}${versionSuffix}`;
-  };
-
-  return (
-    <div className="space-y-4 border rounded-lg p-4">
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-lg font-semibold">{selectedVersion.jobDetails?.title}</h3>
-          <p className="text-sm text-muted-foreground">{selectedVersion.jobDetails?.company}</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsTimelineOpen(!isTimelineOpen)}
-        >
-          {isTimelineOpen ? "Hide Timeline" : "Show Timeline"}
-          {isTimelineOpen ? (
-            <ChevronDown className="ml-2 h-4 w-4" />
-          ) : (
-            <ChevronRight className="ml-2 h-4 w-4" />
-          )}
-        </Button>
-      </div>
-
-      {isTimelineOpen && (
-        <VersionTimeline
-          versions={resumes}
-          onVersionSelect={setSelectedVersion}
-          selectedVersion={selectedVersion}
-        />
-      )}
-
-      <div className="border rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader className="bg-primary/5">
-            <TableRow>
-              <TableHead className="font-bold text-primary">Version</TableHead>
-              <TableHead className="font-bold text-primary">Date</TableHead>
-              <TableHead className="hidden lg:table-cell font-bold text-primary">Match Score</TableHead>
-              <TableHead className="text-right font-bold text-primary">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell>{selectedVersion.metadata.version.toFixed(1)}</TableCell>
-              <TableCell>{new Date(selectedVersion.createdAt).toLocaleDateString()}</TableCell>
-              <TableCell className="hidden lg:table-cell">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Overall Match</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        {selectedVersion.metrics?.after?.overall || 0}%
-                      </span>
-                    </div>
-                  </div>
-                  <Progress
-                    value={selectedVersion.metrics?.after?.overall || 0}
-                    className={`h-2 ${getMetricsColor(selectedVersion.metrics?.after?.overall || 0)}`}
-                  />
-                </div>
-              </TableCell>
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                      <span className="sr-only">Actions</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <DropdownMenuItem asChild>
-                      <a
-                        href={`/api/optimized-resume/${selectedVersion.id}/download?filename=${
-                          formatDownloadFilename(
-                            selectedVersion.metadata.filename,
-                            selectedVersion.jobDetails?.title || '',
-                            selectedVersion.metadata.version
-                          )
-                        }.pdf`}
-                        download
-                        className="flex items-center"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Resume
-                      </a>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <a
-                        href={`/api/optimized-resume/${selectedVersion.id}/cover-letter/latest/download?filename=${
-                          formatDownloadFilename(
-                            selectedVersion.metadata.filename,
-                            selectedVersion.jobDetails?.title || '',
-                            selectedVersion.metadata.version
-                          )
-                        }_cover.pdf`}
-                        download
-                        className="flex items-center"
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Latest Cover Letter
-                      </a>
-                    </DropdownMenuItem>
-                    {selectedVersion.jobUrl ? (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <a
-                            href={selectedVersion.jobUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center"
-                          >
-                            <ExternalLink className="mr-2 h-4 w-4" />
-                            View Job Posting
-                          </a>
-                        </DropdownMenuItem>
-                      </>
-                    ) : (
-                      <>
-                        <DropdownMenuSeparator />
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              <Info className="mr-2 h-4 w-4" />
-                              View Job Details
-                            </DropdownMenuItem>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                            <DialogHeader>
-                              <DialogTitle>Job Details</DialogTitle>
-                              <DialogDescription>
-                                {formatJobDetails(selectedVersion)}
-                              </DialogDescription>
-                            </DialogHeader>
-                          </DialogContent>
-                        </Dialog>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem
-                          onSelect={(e) => e.preventDefault()}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently delete this version of the optimized resume and its corresponding cover letter.
-                            This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteMutation.mutate(selectedVersion.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}
-
-export default function OptimizedResumesPage() {
-  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
-    queryKey: ["/api/optimized-resumes"],
-  });
-
-  const resumeGroups = useMemo(() => {
-    if (!resumes) return [];
-
-    const groups = resumes.reduce((acc, resume) => {
-      const uploadedResumeId = resume.uploadedResumeId;
-      if (!acc[uploadedResumeId]) {
-        acc[uploadedResumeId] = [];
-      }
-      acc[uploadedResumeId].push(resume);
-      return acc;
-    }, {} as Record<number, OptimizedResume[]>);
-
-    return Object.values(groups).map(group => 
-      group.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    );
-  }, [resumes]);
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-muted rounded w-1/4"></div>
-          <div className="h-32 bg-muted rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 p-4 sm:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold">Optimized Resumes</h1>
-      </div>
-
-      {resumeGroups.length > 0 ? (
-        <div className="space-y-6">
-          {resumeGroups.map((group, index) => (
-            <ResumeGroup key={index} resumes={group} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
-          <p className="text-muted-foreground">
-            Upload and optimize a resume to see it here
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -602,5 +331,109 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
         </TableRow>
       )}
     </>
+  );
+}
+
+export default function OptimizedResumesPage() {
+  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
+    queryKey: ["/api/optimized-resumes"],
+  });
+
+  const resumeGroups = useMemo(() => {
+    if (!resumes) return [];
+
+    const groups = resumes.reduce((acc, resume) => {
+      const uploadedResumeId = resume.uploadedResumeId;
+      if (!acc[uploadedResumeId]) {
+        acc[uploadedResumeId] = [];
+      }
+      acc[uploadedResumeId].push(resume);
+      return acc;
+    }, {} as Record<number, OptimizedResume[]>);
+
+    return Object.values(groups).map(group =>
+      group.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    );
+  }, [resumes]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 p-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-4 bg-muted rounded w-1/4"></div>
+          <div className="h-32 bg-muted rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 p-4 sm:p-8 space-y-6">
+      <h1 className="text-2xl font-bold">Resume Versions</h1>
+
+      {resumeGroups.length > 0 ? (
+        <div className="space-y-6">
+          {resumeGroups.map((group, index) => (
+            <ResumeVersionGroup key={index} resumes={group} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
+          <p className="text-muted-foreground">
+            Upload and optimize a resume to see it here
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResumeVersionGroup({ resumes }: { resumes: OptimizedResume[] }) {
+  const [selectedVersion, setSelectedVersion] = useState<OptimizedResume>(resumes[0]);
+  const [isTimelineOpen, setIsTimelineOpen] = useState(true);
+
+  const latestVersion = resumes[0];
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-semibold">{latestVersion.jobDetails?.title}</h2>
+            <p className="text-sm text-muted-foreground">{latestVersion.jobDetails?.company}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsTimelineOpen(!isTimelineOpen)}
+            className="flex items-center gap-2"
+          >
+            {isTimelineOpen ? (
+              <>
+                Hide Timeline
+                <ChevronDown className="h-4 w-4" />
+              </>
+            ) : (
+              <>
+                Show Timeline
+                <ChevronRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        {isTimelineOpen && (
+          <div className="pt-4">
+            <VersionTimeline
+              versions={resumes}
+              onVersionSelect={setSelectedVersion}
+              selectedVersion={selectedVersion}
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
