@@ -160,6 +160,7 @@ export type CoverLetter = typeof coverLetters.$inferSelect & {
   metadata: {
     filename: string;
     generatedAt: string;
+    version: number;
   };
 };
 export type InsertCoverLetter = z.infer<typeof insertCoverLetterSchema>;

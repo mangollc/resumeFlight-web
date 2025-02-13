@@ -3,8 +3,8 @@ import StepTracker, { Step } from "@/components/resume/step-tracker";
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
-import CoverLetter from "@/components/resume/cover-letter";
-import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
+import CoverLetter, { CoverLetterType } from "@/components/resume/cover-letter";
+import { type UploadedResume, type OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,8 @@ export default function Dashboard() {
   const [isComparingResumes, setIsComparingResumes] = useState(false);
   const [coverLetterVersion, setCoverLetterVersion] = useState(1.0);
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+  const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
+  const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
 
 
   const { data: resumes } = useQuery<UploadedResume[]>({
@@ -112,10 +114,11 @@ export default function Dashboard() {
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
     setCoverLetter(letter);
+    setCoverLetters(prev => [...prev, letter]); //add new letter to array.
     if (!completedSteps.includes(4)) {
       setCompletedSteps(prev => [...prev, 4]);
     }
-    // Remove automatic navigation to step 5
+    setSelectedCoverLetterVersion(letter.metadata.version.toString());
   };
 
   const handleRegenerateCoverLetter = async () => {
@@ -138,6 +141,7 @@ export default function Dashboard() {
 
       const data = await response.json();
       setCoverLetter(data);
+      setCoverLetters(prev => [...prev, data]); // Add new version to array.
 
       toast({
         title: "Success",
@@ -225,6 +229,7 @@ export default function Dashboard() {
     setCoverLetter(null);
     setJobDetails(null);
     setUploadMode('choose');
+    setCoverLetters([]); // Clear cover letter versions
   };
 
   const handleReoptimize = async () => {
@@ -492,12 +497,13 @@ export default function Dashboard() {
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Cover Letter Generator</h3>
-                <CoverLetter
-                  resume={optimizedResume}
-                  onGenerated={handleCoverLetterGenerated}
-                  generatedCoverLetter={coverLetter}
-                />
-                {coverLetter && (
+                {!coverLetter ? (
+                  <CoverLetter
+                    resume={optimizedResume}
+                    onGenerated={handleCoverLetterGenerated}
+                    generatedCoverLetter={coverLetter}
+                  />
+                ) : (
                   <div className="mt-6 space-y-6">
                     <div className="bg-muted/30 rounded-lg p-6">
                       <div className="flex justify-between items-center mb-4">
@@ -521,18 +527,53 @@ export default function Dashboard() {
                           )}
                         </Button>
                       </div>
+                      {coverLetters && coverLetters.length > 1 && (
+                        <div className="mb-4">
+                          <Select
+                            value={selectedCoverLetterVersion}
+                            onValueChange={setSelectedCoverLetterVersion}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue placeholder="Select version" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {coverLetters.map((letter) => (
+                                <SelectItem
+                                  key={letter.metadata.version}
+                                  value={letter.metadata.version.toString()}
+                                >
+                                  Version {letter.metadata.version.toFixed(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="prose prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap">{coverLetter.content}</pre>
+                        <pre className="whitespace-pre-wrap">
+                          {coverLetters?.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.content || coverLetter.content}
+                        </pre>
                       </div>
                     </div>
-                    <div className="flex justify-end">
-                      <Button
-                        onClick={() => window.location.href = `/api/cover-letter/${coverLetter.id}/download`}
-                        variant="outline"
-                      >
-                        Download Cover Letter
-                      </Button>
-                    </div>
+                    {coverLetters && coverLetters.length > 1 && (
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => {
+                            const selectedLetter = coverLetters.find(
+                              (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                            );
+                            if (selectedLetter) {
+                              window.location.href = `/api/cover-letter/${selectedLetter.id}/download`;
+                            }
+                          }}
+                          variant="outline"
+                        >
+                          Download Selected Version
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {renderNavigation()}
@@ -544,11 +585,6 @@ export default function Dashboard() {
               open={isGeneratingCoverLetter}
               title="Generating Cover Letter"
               description="Please wait while we generate your cover letter using AI..."
-            />
-            <LoadingDialog
-              open={isComparingResumes}
-              title="Analyzing Changes"
-              description="Please wait while we analyze the differences between your original and optimized resumes..."
             />
           </div>
         ) : null;
@@ -566,11 +602,9 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
-                    <CoverLetter
-                      resume={optimizedResume}
-                      generatedCoverLetter={coverLetter}
-                      readOnly
-                    />
+                    <div className="bg-muted/30 rounded-lg p-6">
+                      <pre className="whitespace-pre-wrap">{coverLetter.content}</pre>
+                    </div>
                   </div>
                 </div>
                 {renderNavigation()}
