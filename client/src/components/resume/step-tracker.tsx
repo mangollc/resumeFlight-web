@@ -21,7 +21,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
         <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2">
           <div className="h-full bg-muted rounded-full">
             <div
-              className="h-full bg-primary transition-all duration-500 ease-in-out rounded-full"
+              className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500 ease-in-out rounded-full"
               style={{
                 width: `${(Math.max(0, currentStep - 1) / (steps.length - 1)) * 100}%`,
               }}
@@ -44,9 +44,9 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                     "transition-all duration-300 ease-in-out",
                     "border-2",
                     isActive && 
-                      "border-primary bg-primary text-primary-foreground scale-110 ring-2 ring-primary/20",
+                      "border-violet-500 bg-gradient-to-r from-violet-500 to-indigo-500 text-white scale-110 ring-2 ring-violet-500/20",
                     isCompleted &&
-                      "border-primary bg-primary text-primary-foreground",
+                      "border-violet-500 bg-gradient-to-r from-violet-500 to-indigo-500 text-white",
                     !isActive && !isCompleted && 
                       "border-muted bg-background"
                   )}
@@ -65,7 +65,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
                   <p
                     className={cn(
                       "text-xs font-medium transition-colors duration-300",
-                      isActive && "text-primary font-semibold",
+                      isActive && "text-violet-600 font-semibold",
                       isCompleted && "text-foreground",
                       !isActive && !isCompleted && "text-muted-foreground"
                     )}
