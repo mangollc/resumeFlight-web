@@ -1,6 +1,6 @@
 {
   "variant": "professional",
   "primary": "oklch(50% 0.25 250)",
-  "appearance": "system",
+  "appearance": "light",
   "radius": 0.75
 }

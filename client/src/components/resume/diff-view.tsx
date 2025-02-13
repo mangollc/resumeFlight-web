@@ -7,19 +7,56 @@ interface DiffViewProps {
 }
 
 function computeDiff(before: string, after: string) {
-  const beforeLines = before.split('\n');
-  const afterLines = after.split('\n');
+  // Split into paragraphs first
+  const beforeParagraphs = before.split('\n\n');
+  const afterParagraphs = after.split('\n\n');
   const result = [];
 
-  for (let i = 0; i < afterLines.length; i++) {
-    const line = afterLines[i];
-    const beforeLine = beforeLines[i] || '';
+  const maxParagraphs = Math.max(beforeParagraphs.length, afterParagraphs.length);
 
-    if (line !== beforeLine) {
-      result.push({ line, highlight: true });
-    } else {
-      result.push({ line, highlight: false });
+  for (let i = 0; i < maxParagraphs; i++) {
+    const beforePara = beforeParagraphs[i] || '';
+    const afterPara = afterParagraphs[i] || '';
+
+    // If paragraphs are identical, add without highlighting
+    if (beforePara === afterPara) {
+      result.push({ text: afterPara, highlight: false });
+      continue;
     }
+
+    // Split paragraphs into words for more granular comparison
+    const beforeWords = beforePara.split(/(\s+)/);
+    const afterWords = afterPara.split(/(\s+)/);
+    let diffText = '';
+    let lastHighlighted = false;
+
+    for (let j = 0; j < afterWords.length; j++) {
+      const word = afterWords[j];
+      const beforeWord = beforeWords[j] || '';
+
+      // Check if this word changed
+      const isChanged = word !== beforeWord;
+
+      // If highlighting status changed or it's the first word
+      if (isChanged !== lastHighlighted || j === 0) {
+        if (diffText) {
+          result.push({ text: diffText, highlight: lastHighlighted });
+        }
+        diffText = word;
+        lastHighlighted = isChanged;
+      } else {
+        // Continue building the current segment
+        diffText += word;
+      }
+    }
+
+    // Add the last segment
+    if (diffText) {
+      result.push({ text: diffText, highlight: lastHighlighted });
+    }
+
+    // Add paragraph separator
+    result.push({ text: '\n\n', highlight: false });
   }
 
   return result;
@@ -57,17 +94,17 @@ export default function DiffView({ beforeContent, afterContent }: DiffViewProps)
         <div className="rounded-lg border bg-green-50/5 dark:bg-green-900/5 p-4 overflow-auto">
           <div className="space-y-1">
             {diffResult.map((item, index) => (
-              <div 
-                key={index} 
+              <span
+                key={index}
                 className={cn(
-                  "px-2 -mx-2 rounded",
-                  item.highlight && "bg-green-100 dark:bg-green-900/30"
+                  "inline",
+                  item.highlight && "bg-green-100 dark:bg-green-900/30 rounded px-1"
                 )}
               >
-                <pre className="whitespace-pre-wrap font-sans text-sm">
-                  {item.line}
+                <pre className="whitespace-pre-wrap font-sans text-sm inline">
+                  {item.text}
                 </pre>
-              </div>
+              </span>
             ))}
           </div>
         </div>
