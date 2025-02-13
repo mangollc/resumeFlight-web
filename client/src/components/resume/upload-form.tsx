@@ -25,7 +25,7 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
       const res = await fetch("/api/resume/upload", {
         method: "POST",
         body: formData,
-        credentials: "include",
+        credentials: "include"
       });
 
       if (!res.ok) {
@@ -33,7 +33,8 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
         throw new Error(error.message || "Upload failed");
       }
 
-      return res.json();
+      const data = await res.json();
+      return data as UploadedResume;
     },
     onSuccess: (resume: UploadedResume) => {
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
@@ -42,12 +43,13 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
         title: "Success",
         description: "Resume uploaded successfully",
       });
-      setFile(null); // Reset file input after successful upload
+      setFile(null);
     },
     onError: (error: Error) => {
+      console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to upload resume",
         variant: "destructive",
       });
     },
@@ -74,8 +76,16 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
     e.preventDefault();
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile) {
+    if (droppedFile && (droppedFile.type === 'application/pdf' || 
+        droppedFile.type === 'application/msword' || 
+        droppedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
       setFile(droppedFile);
+    } else {
+      toast({
+        title: "Invalid File",
+        description: "Please upload a PDF or Word document",
+        variant: "destructive",
+      });
     }
   };
 
@@ -95,7 +105,12 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
         <input
           type="file"
           accept=".pdf,.doc,.docx"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          onChange={(e) => {
+            const selectedFile = e.target.files?.[0];
+            if (selectedFile) {
+              setFile(selectedFile);
+            }
+          }}
           className={cn(
             "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
             "file:cursor-pointer"
