@@ -496,7 +496,7 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    app.post("/api/resume/:id/optimize", async (req, res) => {
+    app.post("/api/resume/:id/optimize", async (req: Request, res) => {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
             const { jobUrl, jobDescription, version } = req.body;
@@ -509,82 +509,98 @@ export function registerRoutes(app: Express): Server {
             if (!uploadedResume) return res.status(404).send("Resume not found");
             if (uploadedResume.userId !== req.user!.id) return res.sendStatus(403);
 
+            // Add event handler for request abort
+            const aborted = new Promise((_, reject) => {
+                req.on('close', () => {
+                    reject(new Error('Request aborted by client'));
+                });
+            });
+
             let jobDetails: JobDetails;
             let finalJobDescription: string;
 
-            if (jobUrl) {
-                try {
-                    const extractedDetails = await extractJobDetails(jobUrl);
-                    finalJobDescription = extractedDetails.description;
-                    const analysis = await analyzeJobDescription(finalJobDescription);
+            const processJob = async () => {
+                if (jobUrl) {
+                    try {
+                        const extractedDetails = await extractJobDetails(jobUrl);
+                        finalJobDescription = extractedDetails.description;
+                        const analysis = await analyzeJobDescription(finalJobDescription);
+                        jobDetails = {
+                            title: extractedDetails.title,
+                            company: extractedDetails.company,
+                            location: extractedDetails.location,
+                            salary: extractedDetails.salary,
+                            description: finalJobDescription,
+                            positionLevel: analysis.positionLevel,
+                            keyRequirements: analysis.keyRequirements,
+                            skillsAndTools: analysis.skillsAndTools
+                        };
+                    } catch (error: any) {
+                        console.error("[URL Extraction] Error:", error);
+                        throw error;
+                    }
+                } else {
+                    console.log("[Manual Input] Processing manual job description");
+                    finalJobDescription = jobDescription;
+                    const analysis = await analyzeJobDescription(jobDescription);
                     jobDetails = {
-                        title: extractedDetails.title,
-                        company: extractedDetails.company,
-                        location: extractedDetails.location,
-                        salary: extractedDetails.salary,
-                        description: finalJobDescription,
+                        title: analysis.title || "Manual Input",
+                        company: analysis.company || "Not specified",
+                        location: analysis.location || "Not specified",
+                        description: jobDescription,
                         positionLevel: analysis.positionLevel,
                         keyRequirements: analysis.keyRequirements,
                         skillsAndTools: analysis.skillsAndTools
                     };
-                } catch (error: any) {
-                    console.error("[URL Extraction] Error:", error);
-                    return res.status(400).json({ error: error.message });
                 }
-            } else {
-                console.log("[Manual Input] Processing manual job description");
-                finalJobDescription = jobDescription;
-                const analysis = await analyzeJobDescription(jobDescription);
-                jobDetails = {
-                    title: analysis.title || "Manual Input",
-                    company: analysis.company || "Not specified",
-                    location: analysis.location || "Not specified",
-                    description: jobDescription,
-                    positionLevel: analysis.positionLevel,
-                    keyRequirements: analysis.keyRequirements,
-                    skillsAndTools: analysis.skillsAndTools
-                };
-            }
 
-            // Calculate before optimization metrics
-            console.log("[Metrics] Calculating pre-optimization scores");
-            const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
+                console.log("[Metrics] Calculating pre-optimization scores");
+                const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
+                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
+                const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
 
-            const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
-            const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
+                const initials = getInitials(uploadedResume.content);
+                const cleanJobTitle = jobDetails.title
+                    .replace(/[^a-zA-Z0-9\s]/g, '')
+                    .replace(/\s+/g, '_')
+                    .substring(0, 30);
 
-            const initials = getInitials(uploadedResume.content);
-            const cleanJobTitle = jobDetails.title
-                .replace(/[^a-zA-Z0-9\s]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 30); // Shortened for better filenames
+                const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
+                const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
 
-            // Include version in filename
-            const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
-            const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
+                return await storage.createOptimizedResume({
+                    content: optimized.optimizedContent,
+                    originalContent: uploadedResume.content,
+                    jobDescription: finalJobDescription,
+                    jobUrl: jobUrl || null,
+                    jobDetails,
+                    uploadedResumeId: uploadedResume.id,
+                    userId: req.user!.id,
+                    metadata: {
+                        filename: newFilename,
+                        optimizedAt: new Date().toISOString(),
+                        version: version || 1.0
+                    },
+                    metrics: {
+                        before: beforeMetrics,
+                        after: afterMetrics
+                    }
+                });
+            };
 
-            const optimizedResume = await storage.createOptimizedResume({
-                content: optimized.optimizedContent,
-                originalContent: uploadedResume.content,
-                jobDescription: finalJobDescription,
-                jobUrl: jobUrl || null,
-                jobDetails,
-                uploadedResumeId: uploadedResume.id,
-                userId: req.user!.id,
-                metadata: {
-                    filename: newFilename,
-                    optimizedAt: new Date().toISOString(),
-                    version: version || 1.0 // Store version in metadata
-                },
-                metrics: {
-                    before: beforeMetrics,
-                    after: afterMetrics
-                }
-            });
+            // Race between processing and abort
+            const optimizedResume = await Promise.race([
+                processJob(),
+                aborted
+            ]);
 
             res.json(optimizedResume);
         } catch (error: any) {
             console.error("Optimization error:", error);
+            if (error.message === 'Request aborted by client') {
+                // Don't send response if client aborted
+                return;
+            }
             res.status(500).json({ error: error.message });
         }
     });

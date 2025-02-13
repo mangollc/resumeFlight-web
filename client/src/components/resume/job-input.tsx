@@ -41,7 +41,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const jobDetailsRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -71,12 +70,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      abortControllerRef.current = new AbortController();
-
       try {
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        abortControllerRef.current = new AbortController();
+
         const res = await apiRequest(
           "POST",
           `/api/resume/${resumeId}/optimize`,
@@ -88,42 +87,51 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           const error = await res.json();
           throw new Error(error.message || 'Failed to fetch job details');
         }
+
+        if (abortControllerRef.current.signal.aborted) {
+          throw new Error('cancelled');
+        }
+
         return res.json();
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (error instanceof Error && 
+            (error.name === 'AbortError' || error.message === 'cancelled')) {
           throw new Error('cancelled');
         }
         throw error;
       }
     },
     onSuccess: (data: OptimizedResume) => {
-      const details: JobDetails = {
-        url: jobUrl || undefined,
-        description: jobDescription || undefined,
-        title: data.jobDetails.title,
-        company: data.jobDetails.company,
-        location: data.jobDetails.location,
-        salary: data.jobDetails.salary,
-        positionLevel: data.jobDetails.positionLevel,
-        keyRequirements: data.jobDetails.keyRequirements,
-        skillsAndTools: data.jobDetails.skillsAndTools
-      };
+      // Only process if not aborted
+      if (!abortControllerRef.current?.signal.aborted) {
+        const details: JobDetails = {
+          url: jobUrl || undefined,
+          description: jobDescription || undefined,
+          title: data.jobDetails.title,
+          company: data.jobDetails.company,
+          location: data.jobDetails.location,
+          salary: data.jobDetails.salary,
+          positionLevel: data.jobDetails.positionLevel,
+          keyRequirements: data.jobDetails.keyRequirements,
+          skillsAndTools: data.jobDetails.skillsAndTools
+        };
 
-      setExtractedDetails(details);
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      setIsCollapsed(false);
+        setExtractedDetails(details);
+        queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+        setIsCollapsed(false);
 
-      toast({
-        title: "Success",
-        description: "Job details fetched successfully",
-      });
+        toast({
+          title: "Success",
+          description: "Job details fetched successfully",
+        });
 
-      setTimeout(() => {
-        jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+        setTimeout(() => {
+          jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
 
-      setIsProcessing(false);
-      onOptimized(data, details);
+        setIsProcessing(false);
+        onOptimized(data, details);
+      }
     },
     onError: (error: Error) => {
       if (error.message === 'cancelled') {
@@ -152,7 +160,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
     },
     onSettled: () => {
-      if (!fetchJobMutation.isSuccess) {
+      if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
         setIsProcessing(false);
         abortControllerRef.current = null;
       }
