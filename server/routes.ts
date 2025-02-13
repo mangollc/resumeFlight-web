@@ -62,11 +62,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { optimizeResume, generateCoverLetter, openai } from "./openai"; // Import openai
+import { optimizeResume, generateCoverLetter, openai, analyzeResumeDifferences } from "./openai"; 
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
-import { insertUploadedResumeSchema } from "@shared/schema"; // Assuming this is the correct import
+import { insertUploadedResumeSchema } from "@shared/schema"; 
 import axios from "axios";
 import * as cheerio from "cheerio";
 
@@ -80,7 +80,7 @@ interface JobDetails {
  salary?: string;
  location: string;
  description: string;
- positionLevel?: string; // Added fields from AI analysis
+ positionLevel?: string; 
  candidateProfile?: string;
  keyPoints?: string[];
  keyRequirements?: string[];
@@ -95,7 +95,7 @@ interface JobDetails {
 
 const upload = multer({
  storage: multer.memoryStorage(),
- limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+ limits: { fileSize: 5 * 1024 * 1024 } 
 });
 
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
@@ -517,7 +517,7 @@ export function registerRoutes(app: Express): Server {
 
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
-        originalContent: uploadedResume.content, // Ensure original content is set
+        originalContent: uploadedResume.content, 
         jobDescription: finalJobDescription,
         jobUrl: jobUrl || null,
         jobDetails,
@@ -709,6 +709,27 @@ export function registerRoutes(app: Express): Server {
       res.sendStatus(200);
     } catch (error: any) {
       console.error("Delete optimized resume error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Add new route for analyzing differences
+  app.get("/api/optimized-resume/:id/differences", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+      if (!optimizedResume) return res.status(404).send("Resume not found");
+      if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
+
+      const differences = await analyzeResumeDifferences(
+        optimizedResume.originalContent,
+        optimizedResume.content
+      );
+
+      res.json(differences);
+    } catch (error: any) {
+      console.error("Get differences error:", error);
       res.status(500).json({ error: error.message });
     }
   });

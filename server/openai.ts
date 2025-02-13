@@ -3,6 +3,46 @@ import OpenAI from "openai";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+export async function analyzeResumeDifferences(originalContent: string, optimizedContent: string) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes.
+Return a JSON object with the following structure:
+{
+  "changes": [
+    {
+      "original": "text from original resume",
+      "optimized": "corresponding text from optimized resume",
+      "type": "improvement type (e.g., 'clarity', 'keywords', 'structure', 'accomplishments')",
+      "reason": "brief explanation of why this change improves the resume"
+    }
+  ]
+}`
+        },
+        {
+          role: "user",
+          content: `Original Resume:\n${originalContent}\n\nOptimized Resume:\n${optimizedContent}`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No response from OpenAI");
+    }
+
+    return JSON.parse(content);
+  } catch (err) {
+    const error = err as Error;
+    throw new Error(`Failed to analyze resume differences: ${error.message}`);
+  }
+}
+
 export async function optimizeResume(resumeText: string, jobDescription: string) {
   try {
     const response = await openai.chat.completions.create({
@@ -11,7 +51,6 @@ export async function optimizeResume(resumeText: string, jobDescription: string)
         {
           role: "system",
           content: `You are an expert resume optimizer with years of experience in professional resume writing and ATS optimization. Your task is to analyze and optimize the provided resume to match the job description while maintaining authenticity and professionalism.
-
 Follow these guidelines:
 1. Analyze the job requirements and identify key skills and qualifications
 2. Restructure and enhance the resume content to highlight relevant experience

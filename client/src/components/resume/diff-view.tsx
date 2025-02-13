@@ -1,75 +1,84 @@
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
 
 interface DiffViewProps {
   beforeContent: string;
   afterContent: string;
+  resumeId: number;
 }
 
-function computeDiff(before: string, after: string) {
-  // Split into paragraphs first
-  const beforeParagraphs = before.split('\n\n');
-  const afterParagraphs = after.split('\n\n');
-  const result = [];
+function findAndHighlight(text: string, changes: Array<{ original: string; optimized: string; type: string; reason: string }>) {
+  let result = text;
+  const segments = [];
+  let lastIndex = 0;
 
-  const maxParagraphs = Math.max(beforeParagraphs.length, afterParagraphs.length);
+  // Sort changes by length (longest first) to avoid nested matches
+  const sortedChanges = [...changes].sort((a, b) => b.optimized.length - a.optimized.length);
 
-  for (let i = 0; i < maxParagraphs; i++) {
-    const beforePara = beforeParagraphs[i] || '';
-    const afterPara = afterParagraphs[i] || '';
-
-    // If paragraphs are identical, add without highlighting
-    if (beforePara === afterPara) {
-      result.push({ text: afterPara, highlight: false });
-      continue;
-    }
-
-    // Split paragraphs into words and punctuation
-    const wordPattern = /([a-zA-Z0-9]+|[^a-zA-Z0-9\s]+|\s+)/g;
-    const beforeTokens = beforePara.match(wordPattern) || [];
-    const afterTokens = afterPara.match(wordPattern) || [];
-
-    let currentSegment = '';
-    let lastHighlighted = false;
-    let j = 0;
-
-    // Compare tokens one by one
-    while (j < afterTokens.length) {
-      const afterToken = afterTokens[j];
-      const beforeToken = beforeTokens[j] || '';
-      const isChanged = afterToken !== beforeToken;
-
-      // If highlighting status changed or it's the first token
-      if (isChanged !== lastHighlighted || currentSegment === '') {
-        if (currentSegment) {
-          result.push({ text: currentSegment, highlight: lastHighlighted });
-          currentSegment = '';
-        }
-        currentSegment = afterToken;
-        lastHighlighted = isChanged;
-      } else {
-        // Continue building the current segment
-        currentSegment += afterToken;
+  for (const change of sortedChanges) {
+    const index = result.indexOf(change.optimized, lastIndex);
+    if (index !== -1) {
+      // Add non-highlighted text before the change
+      if (index > lastIndex) {
+        segments.push({
+          text: result.substring(lastIndex, index),
+          highlight: false
+        });
       }
-      j++;
-    }
-
-    // Add the last segment of the paragraph
-    if (currentSegment) {
-      result.push({ text: currentSegment, highlight: lastHighlighted });
-    }
-
-    // Add paragraph separator unless it's the last paragraph
-    if (i < maxParagraphs - 1) {
-      result.push({ text: '\n\n', highlight: false });
+      // Add highlighted text with metadata
+      segments.push({
+        text: change.optimized,
+        highlight: true,
+        type: change.type,
+        reason: change.reason,
+        original: change.original
+      });
+      lastIndex = index + change.optimized.length;
     }
   }
 
-  return result;
+  // Add remaining text
+  if (lastIndex < result.length) {
+    segments.push({
+      text: result.substring(lastIndex),
+      highlight: false
+    });
+  }
+
+  return segments;
 }
 
-export default function DiffView({ beforeContent, afterContent }: DiffViewProps) {
-  const diffResult = useMemo(() => computeDiff(beforeContent, afterContent), [beforeContent, afterContent]);
+export default function DiffView({ beforeContent, afterContent, resumeId }: DiffViewProps) {
+  const { data: differences, isLoading } = useQuery({
+    queryKey: [`/api/optimized-resume/${resumeId}/differences`],
+    enabled: !!resumeId
+  });
+
+  const highlightedSegments = useMemo(() => 
+    differences ? findAndHighlight(afterContent, differences.changes) : [],
+    [afterContent, differences]
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="space-y-4 w-full max-w-md">
+          <div className="h-4 bg-muted animate-pulse rounded" />
+          <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+          <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col space-y-2">
@@ -98,21 +107,47 @@ export default function DiffView({ beforeContent, afterContent }: DiffViewProps)
 
         {/* Optimized Content */}
         <div className="rounded-lg border bg-green-50/5 dark:bg-green-900/5 p-4 overflow-auto">
-          <div className="space-y-1">
-            {diffResult.map((item, index) => (
-              <span
-                key={index}
-                className={cn(
-                  "inline",
-                  item.highlight && "bg-green-100 dark:bg-green-900/30 rounded px-1"
-                )}
-              >
-                <pre className="whitespace-pre-wrap font-sans text-sm inline">
-                  {item.text}
-                </pre>
-              </span>
-            ))}
-          </div>
+          <TooltipProvider>
+            <div className="space-y-1">
+              {highlightedSegments.map((segment, index) => (
+                segment.highlight ? (
+                  <Tooltip key={index}>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn(
+                          "inline rounded px-1",
+                          "bg-green-100 dark:bg-green-900/30",
+                          "cursor-help"
+                        )}
+                      >
+                        <pre className="whitespace-pre-wrap font-sans text-sm inline">
+                          {segment.text}
+                        </pre>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-sm">
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="capitalize">
+                          {segment.type}
+                        </Badge>
+                        <p className="text-sm">{segment.reason}</p>
+                        <div className="pt-2 border-t text-xs text-muted-foreground">
+                          <p className="font-medium">Original:</p>
+                          <p className="italic">{segment.original}</p>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span key={index} className="inline">
+                    <pre className="whitespace-pre-wrap font-sans text-sm inline">
+                      {segment.text}
+                    </pre>
+                  </span>
+                )
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
       </div>
     </div>

@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
@@ -66,8 +67,8 @@ export default function Preview({ resume }: PreviewProps) {
   };
 
   const isOptimized = 'jobDescription' in resume;
-  const originalContent = isOptimized 
-    ? (resume as OptimizedResume).originalContent 
+  const originalContent = isOptimized
+    ? (resume as OptimizedResume).originalContent
     : resume.content;
   const optimizedContent = resume.content;
 
@@ -114,13 +115,17 @@ export default function Preview({ resume }: PreviewProps) {
                         <DialogTitle>Resume Comparison</DialogTitle>
                         <DialogDescription>
                           Compare the original and optimized versions of your resume side by side.
+                          Highlighted sections show improvements and optimizations.
                         </DialogDescription>
                       </DialogHeader>
                       <div className="mt-4">
-                        <DiffView
-                          beforeContent={originalContent}
-                          afterContent={optimizedContent}
-                        />
+                        {isDialogOpen && (
+                          <DiffView
+                            beforeContent={originalContent}
+                            afterContent={optimizedContent}
+                            resumeId={(resume as OptimizedResume).id}
+                          />
+                        )}
                       </div>
                     </DialogContent>
                   </Dialog>
