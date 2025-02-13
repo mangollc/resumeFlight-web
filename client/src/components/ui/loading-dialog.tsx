@@ -11,15 +11,17 @@ interface LoadingDialogProps {
   open: boolean;
   title?: string;
   description?: string;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function LoadingDialog({ 
   open, 
   title = "Processing", 
-  description = "Please wait while we process your request..." 
+  description = "Please wait while we process your request...",
+  onOpenChange
 }: LoadingDialogProps) {
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

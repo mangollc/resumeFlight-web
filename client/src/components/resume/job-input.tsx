@@ -71,7 +71,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      // Create new AbortController for this request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -119,7 +118,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         description: "Job details fetched successfully",
       });
 
-      // Scroll to job details after a short delay to ensure rendering
       setTimeout(() => {
         jobDetailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
@@ -128,7 +126,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       onOptimized(data, details);
     },
     onError: (error: Error) => {
-      // Don't show error toast if it was cancelled
       if (error.message === 'cancelled') {
         toast({
           title: "Cancelled",
@@ -382,7 +379,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         title="Fetching Job Details"
         description="Please wait while we analyze the job posting and optimize your resume..."
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && isProcessing) {
             handleCancel();
           }
         }}
