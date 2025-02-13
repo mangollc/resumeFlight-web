@@ -369,11 +369,29 @@ export default function Dashboard() {
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Optimized Resume Preview</h3>
                 <Preview resume={optimizedResume} />
+
+                {/* Add Optimize Again button */}
+                <div className="mt-6 flex justify-center">
+                  <Button 
+                    onClick={() => {
+                      if (uploadedResume && jobDetails) {
+                        handleOptimizationComplete(uploadedResume, jobDetails);
+                      }
+                    }}
+                    variant="outline"
+                    className="w-auto"
+                  >
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Optimize Again
+                  </Button>
+                </div>
+
                 {renderNavigation()}
               </CardContent>
             </Card>
           </div>
         ) : null;
+
       case 4:
         return optimizedResume ? (
           <div className="fade-in">
@@ -390,6 +408,7 @@ export default function Dashboard() {
             </Card>
           </div>
         ) : null;
+
       case 5:
         return optimizedResume && coverLetter ? (
           <div className="fade-in">
@@ -408,24 +427,6 @@ export default function Dashboard() {
                       generatedCoverLetter={coverLetter}
                       readOnly
                     />
-                  </div>
-                  <div className="border-t pt-6">
-                    <h3 className="text-xl font-semibold mb-4">Download Package</h3>
-                    <div className="flex justify-center">
-                      <Button size="lg" onClick={handleDownloadPackage} disabled={isDownloading}>
-                        {isDownloading ? (
-                          <>
-                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                            Downloading...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="h-5 w-5 mr-2" />
-                            Download Complete Package (ZIP)
-                          </>
-                        )}
-                      </Button>
-                    </div>
                   </div>
                 </div>
                 {renderNavigation()}
