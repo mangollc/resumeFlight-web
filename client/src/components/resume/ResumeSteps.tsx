@@ -54,7 +54,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
         <Progress value={((currentStep + 1) / totalSteps) * 100} className="h-2" />
 
         {/* Mobile step carousel */}
-        <div className="relative h-24 overflow-hidden" ref={carouselRef}>
+        <div className="relative h-32 overflow-hidden my-4" ref={carouselRef}>
           <div 
             className="absolute flex transition-transform duration-300 ease-in-out"
             style={{ 
@@ -72,22 +72,22 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
                 <div
                   key={step.title}
                   className={cn(
-                    "w-[120px] px-2 flex flex-col items-center justify-center transition-all duration-300",
+                    "w-[140px] px-3 flex flex-col items-center justify-center transition-all duration-300",
                     isCurrent ? "opacity-100 scale-110" : "opacity-50 scale-90",
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-full border mb-2 transition-colors",
+                      "flex h-16 w-16 items-center justify-center rounded-full border-2 mb-3 transition-colors",
                       isCurrent && "border-primary bg-primary/10 text-primary",
                       isPast && "border-primary bg-primary text-primary-foreground",
                       isFuture && "border-muted bg-muted text-muted-foreground"
                     )}
                   >
-                    <StepIcon className="h-6 w-6" />
+                    <StepIcon className="h-8 w-8" />
                   </div>
                   <span className={cn(
-                    "text-xs font-medium text-center transition-colors line-clamp-1",
+                    "text-sm font-medium text-center transition-colors line-clamp-2 px-2",
                     isCurrent && "text-primary",
                     isPast && "text-primary",
                     isFuture && "text-muted-foreground"
