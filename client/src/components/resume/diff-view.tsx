@@ -15,50 +15,10 @@ interface DiffViewProps {
   beforeContent: string;
   afterContent: string;
   resumeId: number;
+  onDownload?: (id: number) => Promise<void>;
 }
 
-function findAndHighlight(text: string, changes: Array<{ original: string; optimized: string; type: string; reason: string }>) {
-  let result = text;
-  const segments = [];
-  let lastIndex = 0;
-
-  // Sort changes by length (longest first) to avoid nested matches
-  const sortedChanges = [...changes].sort((a, b) => b.optimized.length - a.optimized.length);
-
-  for (const change of sortedChanges) {
-    const index = result.indexOf(change.optimized, lastIndex);
-    if (index !== -1) {
-      // Add non-highlighted text before the change
-      if (index > lastIndex) {
-        segments.push({
-          text: result.substring(lastIndex, index),
-          highlight: false
-        });
-      }
-      // Add highlighted text with metadata
-      segments.push({
-        text: change.optimized,
-        highlight: true,
-        type: change.type,
-        reason: change.reason,
-        original: change.original
-      });
-      lastIndex = index + change.optimized.length;
-    }
-  }
-
-  // Add remaining text
-  if (lastIndex < result.length) {
-    segments.push({
-      text: result.substring(lastIndex),
-      highlight: false
-    });
-  }
-
-  return segments;
-}
-
-export default function DiffView({ beforeContent, afterContent, resumeId }: DiffViewProps) {
+export default function DiffView({ beforeContent, afterContent, resumeId, onDownload }: DiffViewProps) {
   const { data: differences, isLoading } = useQuery<ResumeDifferences>({
     queryKey: [`/api/optimized-resume/${resumeId}/differences`],
     enabled: !!resumeId
@@ -153,4 +113,45 @@ export default function DiffView({ beforeContent, afterContent, resumeId }: Diff
       </div>
     </div>
   );
+}
+
+function findAndHighlight(text: string, changes: Array<{ original: string; optimized: string; type: string; reason: string }>) {
+  let result = text;
+  const segments = [];
+  let lastIndex = 0;
+
+  // Sort changes by length (longest first) to avoid nested matches
+  const sortedChanges = [...changes].sort((a, b) => b.optimized.length - a.optimized.length);
+
+  for (const change of sortedChanges) {
+    const index = result.indexOf(change.optimized, lastIndex);
+    if (index !== -1) {
+      // Add non-highlighted text before the change
+      if (index > lastIndex) {
+        segments.push({
+          text: result.substring(lastIndex, index),
+          highlight: false
+        });
+      }
+      // Add highlighted text with metadata
+      segments.push({
+        text: change.optimized,
+        highlight: true,
+        type: change.type,
+        reason: change.reason,
+        original: change.original
+      });
+      lastIndex = index + change.optimized.length;
+    }
+  }
+
+  // Add remaining text
+  if (lastIndex < result.length) {
+    segments.push({
+      text: result.substring(lastIndex),
+      highlight: false
+    });
+  }
+
+  return segments;
 }
