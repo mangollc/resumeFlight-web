@@ -338,12 +338,16 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Choose your uploaded Resume or Upload a new one</h3>
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row gap-3">
                     <Button
                       variant={uploadMode === 'choose' ? "default" : "outline"}
                       onClick={() => setUploadMode('choose')}
-                      className="w-full sm:w-auto"
+                      className={cn(
+                        "w-full sm:w-auto",
+                        uploadMode === 'choose' && "bg-primary text-primary-foreground hover:bg-primary/90"
+                      )}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Choose Existing
@@ -351,7 +355,10 @@ export default function Dashboard() {
                     <Button
                       variant={uploadMode === 'upload' ? "default" : "outline"}
                       onClick={() => setUploadMode('upload')}
-                      className="w-full sm:w-auto"
+                      className={cn(
+                        "w-full sm:w-auto",
+                        uploadMode === 'upload' && "bg-primary text-primary-foreground hover:bg-primary/90"
+                      )}
                     >
                       <Upload className="mr-2 h-4 w-4" />
                       Upload New
@@ -412,6 +419,7 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Provide Job Details</h3> {/* Added header */}
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}

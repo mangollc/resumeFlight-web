@@ -214,11 +214,28 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   return (
     <div className="space-y-6">
+      <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            <TabsTrigger value="url" disabled={isProcessing || !!jobDescription}>Job URL</TabsTrigger>
-            <TabsTrigger value="manual" disabled={isProcessing || !!jobUrl}>Manual Input</TabsTrigger>
+            <TabsTrigger 
+              value="url" 
+              disabled={isProcessing || !!jobDescription}
+              className={cn(
+                activeTab === "url" && "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              Job URL
+            </TabsTrigger>
+            <TabsTrigger 
+              value="manual" 
+              disabled={isProcessing || !!jobUrl}
+              className={cn(
+                activeTab === "manual" && "bg-primary text-primary-foreground hover:bg-primary/90"
+              )}
+            >
+              Manual Input
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="url" className="space-y-4">
@@ -231,9 +248,14 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 className="w-full"
                 disabled={isProcessing}
               />
-              <p className="text-sm text-muted-foreground">
-                Enter the URL of the job posting for best results
-              </p>
+              <div className="text-sm space-y-1">
+                <p className="text-muted-foreground">
+                  Enter the URL of the job posting for best results
+                </p>
+                <p className="text-xs text-muted-foreground italic">
+                  Example: https://www.linkedin.com/jobs/view/4120138359/
+                </p>
+              </div>
             </div>
           </TabsContent>
 
