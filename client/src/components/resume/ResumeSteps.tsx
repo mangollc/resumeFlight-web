@@ -30,13 +30,42 @@ const steps = [
 export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepProps) {
   return (
     <div className="w-full space-y-4">
-      {/* Progress indicator for mobile */}
+      {/* Mobile step indicator */}
       <div className="lg:hidden space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">Step {currentStep + 1} of {totalSteps}</span>
           <span className="text-muted-foreground">{steps[currentStep].title}</span>
         </div>
-        <Progress value={((currentStep + 1) / totalSteps) * 100} />
+        <Progress value={((currentStep + 1) / totalSteps) * 100} className="h-2" />
+
+        {/* Mobile step carousel */}
+        <div className="relative mt-4 overflow-hidden">
+          <div 
+            className="flex transition-transform duration-300 ease-in-out"
+            style={{ transform: `translateX(-${currentStep * 100}%)` }}
+          >
+            {steps.map((step, index) => {
+              const StepIcon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className="flex-shrink-0 w-full flex flex-col items-center"
+                >
+                  <div
+                    className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-full border",
+                      currentStep === index && "border-primary bg-primary/10",
+                      currentStep > index && "border-primary bg-primary text-primary-foreground",
+                      currentStep < index && "border-muted bg-muted"
+                    )}
+                  >
+                    <StepIcon className="h-6 w-6" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Desktop steps */}
@@ -64,7 +93,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
               </div>
               <span
                 className={cn(
-                  "absolute text-sm font-medium top-14",
+                  "absolute text-sm font-medium top-14 hidden lg:block",
                   currentStep === index && "text-primary",
                   currentStep > index && "text-primary",
                   currentStep < index && "text-muted-foreground"

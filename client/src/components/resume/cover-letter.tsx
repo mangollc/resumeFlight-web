@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { OptimizedResume, CoverLetterType } from "@shared/schema";
+import { OptimizedResume, CoverLetter as CoverLetterType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Download } from "lucide-react";
 
@@ -96,11 +96,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
       {(generatedCoverLetter || generateMutation.data) && (
         <Card>
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center mb-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
                 <h4 className="font-semibold">Generated Cover Letter</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Created on {new Date(generatedCoverLetter?.createdAt || generateMutation.data?.createdAt).toLocaleDateString()}
                 </p>
               </div>
@@ -109,6 +109,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
                 size="sm"
                 onClick={handleDownload}
                 disabled={isDownloading}
+                className="w-full sm:w-auto"
               >
                 <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
                 {isDownloading ? 'Downloading...' : 'Download PDF'}
@@ -116,7 +117,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
             </div>
 
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
+              <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
                 <pre className="whitespace-pre-wrap font-sans text-sm">
                   {generatedCoverLetter?.content || generateMutation.data?.content}
                 </pre>

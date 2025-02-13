@@ -25,8 +25,8 @@ export function StepContent({ children, className }: StepContentProps) {
 
 export function StepContentHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold">{children}</h2>
+    <div className="mb-4 sm:mb-6">
+      <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold break-words">{children}</h2>
     </div>
   );
 }
@@ -34,10 +34,28 @@ export function StepContentHeader({ children }: { children: React.ReactNode }) {
 export function StepContentSection({ children, className }: StepContentProps) {
   return (
     <div className={cn(
-      "space-y-4",
-      "py-4",
+      "space-y-3 sm:space-y-4",
+      "py-3 sm:py-4",
+      "overflow-x-hidden",
       className
     )}>
+      {children}
+    </div>
+  );
+}
+
+export function FileNameDisplay({ fileName }: { fileName: string }) {
+  return (
+    <div className="text-sm sm:text-base break-all">
+      <span className="font-medium">File:</span>
+      <span className="ml-2 text-muted-foreground">{fileName}</span>
+    </div>
+  );
+}
+
+export function ActionButtonGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap gap-2 sm:gap-3 items-center mt-4">
       {children}
     </div>
   );
