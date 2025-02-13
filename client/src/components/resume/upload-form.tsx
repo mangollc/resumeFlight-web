@@ -22,27 +22,35 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/resume/upload", {
+      // Use custom headers for multipart/form-data
+      const response = await fetch("/api/resume/upload", {
         method: "POST",
         body: formData,
-        credentials: "include"
+        credentials: "include",
       });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Upload failed");
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to upload resume");
       }
 
-      const data = await res.json();
+      const data = await response.json();
       return data as UploadedResume;
     },
-    onSuccess: (resume: UploadedResume) => {
+    onSuccess: (data) => {
+      // Update the cache with the new resume
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
-      onSuccess(resume);
+
+      // Call the success callback with the uploaded resume
+      onSuccess(data);
+
+      // Show success message
       toast({
         title: "Success",
-        description: "Resume uploaded successfully",
+        description: "Resume uploaded successfully"
       });
+
+      // Reset form
       setFile(null);
     },
     onError: (error: Error) => {
@@ -50,12 +58,12 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to upload resume",
-        variant: "destructive",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (file) {
       uploadMutation.mutate(file);
@@ -76,15 +84,18 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
     e.preventDefault();
     setIsDragging(false);
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.type === 'application/pdf' || 
-        droppedFile.type === 'application/msword' || 
-        droppedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+
+    if (droppedFile && (
+      droppedFile.type === 'application/pdf' || 
+      droppedFile.type === 'application/msword' || 
+      droppedFile.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )) {
       setFile(droppedFile);
     } else {
       toast({
         title: "Invalid File",
         description: "Please upload a PDF or Word document",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
