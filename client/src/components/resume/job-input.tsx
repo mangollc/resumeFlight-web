@@ -214,12 +214,17 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   return (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
+      <div className="space-y-2">
+        <h3 className="text-xl font-semibold">Enter Job Details</h3>
+        <p className="text-sm text-muted-foreground">
+          Provide your job post URL or manually paste text in the manual input box
+        </p>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            <TabsTrigger 
-              value="url" 
+            <TabsTrigger
+              value="url"
               disabled={isProcessing || !!jobDescription}
               className={cn(
                 activeTab === "url" && "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -227,8 +232,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             >
               Job URL
             </TabsTrigger>
-            <TabsTrigger 
-              value="manual" 
+            <TabsTrigger
+              value="manual"
               disabled={isProcessing || !!jobUrl}
               className={cn(
                 activeTab === "manual" && "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -315,7 +320,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             </h3>
           </div>
 
-          <div className={cn("overflow-hidden transition-all", 
+          <div className={cn("overflow-hidden transition-all",
             isCollapsed ? "max-h-0" : "max-h-[2000px]")}>
             <div className="p-6 pt-2 space-y-6">
               <div className="grid gap-4">
