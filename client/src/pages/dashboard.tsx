@@ -66,38 +66,50 @@ export default function Dashboard() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="mt-8">
-            <UploadForm onUploadComplete={handleResumeUploaded} />
+          <div className="mt-8 fade-in">
+            <Card>
+              <CardContent className="p-6">
+                <UploadForm onUploadComplete={handleResumeUploaded} />
+              </CardContent>
+            </Card>
           </div>
         );
       case 2:
         return uploadedResume ? (
-          <div className="mt-8 space-y-8">
+          <div className="mt-8 space-y-8 fade-in">
             <Preview resume={uploadedResume} />
-            <JobInput 
-              uploadedResumeId={uploadedResume.id} 
-              onOptimizationComplete={handleOptimizationComplete}
-            />
+            <Card>
+              <CardContent className="p-6">
+                <JobInput 
+                  uploadedResumeId={uploadedResume.id} 
+                  onOptimizationComplete={handleOptimizationComplete}
+                />
+              </CardContent>
+            </Card>
           </div>
         ) : null;
       case 3:
         return optimizedResume ? (
-          <div className="mt-8">
+          <div className="mt-8 fade-in">
             <Preview resume={optimizedResume} />
           </div>
         ) : null;
       case 4:
         return optimizedResume ? (
-          <div className="mt-8">
-            <CoverLetter 
-              optimizedResumeId={optimizedResume.id}
-              onGenerated={handleCoverLetterGenerated}
-            />
+          <div className="mt-8 fade-in">
+            <Card>
+              <CardContent className="p-6">
+                <CoverLetter 
+                  optimizedResumeId={optimizedResume.id}
+                  onGenerated={handleCoverLetterGenerated}
+                />
+              </CardContent>
+            </Card>
           </div>
         ) : null;
       case 5:
         return optimizedResume ? (
-          <div className="mt-8 space-y-8">
+          <div className="mt-8 space-y-8 fade-in">
             <Card>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-6">Application Package Summary</h2>
