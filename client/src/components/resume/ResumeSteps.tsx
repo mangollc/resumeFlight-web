@@ -71,11 +71,12 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
         <Progress value={((currentStep + 1) / totalSteps) * 100} className="h-2" />
 
         {/* Mobile step carousel */}
-        <div className="relative h-44 overflow-hidden my-6">
+        <div className="relative h-48 overflow-hidden my-8">
           <div 
             className="absolute flex transition-transform duration-500 ease-out"
             style={{ 
-              transform: `translateX(calc(50vw - ${currentStep * 70}vw - 35vw))`,
+              transform: `translateX(calc(50% - ${currentStep * 100}%))`,
+              width: `${steps.length * 100}%`,
               left: 0,
             }}
           >
@@ -89,25 +90,25 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
                 <div
                   key={step.title}
                   className={cn(
-                    "w-[70vw] px-4 flex flex-col items-center justify-center",
+                    "flex-1 px-4 flex flex-col items-center justify-center",
                     "transition-all duration-500 ease-out",
-                    isCurrent ? "opacity-100 scale-100" : "opacity-40 scale-90",
+                    isCurrent ? "opacity-100 scale-100" : "opacity-40 scale-90"
                   )}
                 >
                   <div
                     className={cn(
-                      "flex h-16 w-16 items-center justify-center rounded-full border-2 mb-4",
-                      "transition-all duration-500 ease-out",
-                      isCurrent && "border-primary bg-primary/10 text-primary",
+                      "flex h-20 w-20 items-center justify-center rounded-full border-2 mb-6",
+                      "transition-all duration-500 ease-out shadow-lg",
+                      isCurrent && "border-primary bg-primary/10 text-primary scale-110",
                       isPast && "border-primary bg-primary text-primary-foreground",
                       isFuture && "border-muted bg-muted text-muted-foreground"
                     )}
                   >
-                    <StepIcon className="h-8 w-8" />
+                    <StepIcon className="h-10 w-10" />
                   </div>
                   <div className="text-center space-y-2 max-w-[200px]">
                     <span className={cn(
-                      "text-sm font-medium block",
+                      "text-base font-medium block",
                       "transition-colors duration-500",
                       isCurrent && "text-primary",
                       isPast && "text-primary",
@@ -116,7 +117,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
                       {step.title}
                     </span>
                     <span className={cn(
-                      "text-xs block",
+                      "text-sm block",
                       "transition-colors duration-500",
                       isCurrent && "text-muted-foreground",
                       isPast && "text-muted-foreground/80",
