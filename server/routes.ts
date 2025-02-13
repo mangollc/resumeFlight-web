@@ -83,13 +83,13 @@ Return a detailed analysis in the following JSON format:
   "location": "Job location if found, otherwise 'Not specified'",
   "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
   "keyRequirements": ["3-5 key requirements, each under 50 words"],
-  "skillsAndTools": ["List of specific technologies, programming languages, software, tools required"],
-  "metrics": {
-    "keywords": number between 0-100,
-    "skills": number between 0-100,
-    "experience": number between 0-100,
-    "overall": number between 0-100
-  }
+  "skillsAndTools": [
+    "List of specific technical skills (programming languages, frameworks)",
+    "Database technologies (SQL, NoSQL, specific databases)",
+    "Cloud platforms and tools (AWS, Azure, DevOps tools)",
+    "Testing frameworks and methodologies",
+    "Software and collaboration tools"
+  ]
 }`
         },
         {

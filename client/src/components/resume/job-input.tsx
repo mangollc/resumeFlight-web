@@ -33,7 +33,7 @@ export interface JobDetails {
 
 interface JobInputProps {
   resumeId: number;
-  onNext?: () => void;
+  onNext: () => void;
   initialJobDetails?: JobDetails;
 }
 
@@ -124,19 +124,19 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
 
     const lowerSkill = skill.toLowerCase();
     if (skillTypes.technical.some(s => lowerSkill.includes(s))) {
-      return "default"; // Blue
-    }
-    if (skillTypes.software.some(s => lowerSkill.includes(s))) {
-      return "secondary"; // Gray
+      return "default"; // Blue for technical skills
     }
     if (skillTypes.database.some(s => lowerSkill.includes(s))) {
-      return "destructive"; // Red
+      return "destructive"; // Red for database skills
     }
     if (skillTypes.cloud.some(s => lowerSkill.includes(s))) {
-      return "outline"; // Outlined
+      return "outline"; // Outlined for cloud skills
     }
     if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
-      return "secondary"; // Gray
+      return "secondary"; // Gray for testing
+    }
+    if (skillTypes.software.some(s => lowerSkill.includes(s))) {
+      return "secondary"; // Gray for software tools
     }
     return "default";
   };
@@ -265,13 +265,11 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
             )}
           </div>
 
-          {onNext && (
-            <div className="flex justify-end">
-              <Button onClick={onNext} size="lg">
-                Next
-              </Button>
-            </div>
-          )}
+          <div className="flex justify-end">
+            <Button onClick={onNext} size="lg" className="w-32">
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </div>
