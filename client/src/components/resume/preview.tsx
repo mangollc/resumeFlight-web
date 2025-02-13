@@ -188,7 +188,7 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                         }_cover.pdf`}
                         download
                       >
-                        <Button variant="primary" size="sm">
+                        <Button variant="default" size="sm">
                           <Download className="h-4 w-4 mr-2" />
                           Download Cover Letter
                         </Button>

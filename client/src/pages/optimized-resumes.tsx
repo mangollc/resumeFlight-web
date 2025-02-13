@@ -230,7 +230,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   <DropdownMenuSeparator />
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                      <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setIsDialogOpen(true);
+                        }}
+                      >
                         <Info className="mr-2 h-4 w-4" />
                         View Job Details
                       </DropdownMenuItem>
