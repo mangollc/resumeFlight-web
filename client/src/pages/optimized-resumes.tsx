@@ -110,10 +110,20 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   });
 
   const formatDownloadFilename = (name: string, jobTitle: string, version?: number) => {
-    const nameMatch = name.match(/^(\w+)\s+(\w+)/);
-    const initials = nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}` : 'XX';
-    const cleanJobTitle = jobTitle?.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'position';
+    // Extract initials properly
+    const nameMatch = name.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
+    const initials = nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
+
+    // Clean and format job title
+    const cleanJobTitle = jobTitle
+      ?.replace(/[^a-zA-Z0-9\s]/g, '')
+      .replace(/\s+/g, '_')
+      .toLowerCase()
+      .substring(0, 30); // Limit length
+
+    // Add version if provided
     const versionSuffix = version ? `_v${version.toFixed(1)}` : '';
+
     return `${initials}_${cleanJobTitle}${versionSuffix}`;
   };
 
@@ -174,7 +184,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       resume.metadata.filename,
                       resume.jobDetails?.title || '',
                     )
-                  }`}
+                  }.pdf`}
                   download
                   className="flex items-center"
                 >
@@ -190,7 +200,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       resume.jobDetails?.title || '',
                       undefined
                     )
-                  }`}
+                  }.pdf`}
                   download
                   className="flex items-center"
                 >
