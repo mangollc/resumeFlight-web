@@ -2,6 +2,18 @@ function formatFilename(base: string, extension: string): string {
   return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
 }
 
+function formatSkill(skill: string): string {
+  // Remove any parentheses and their contents
+  skill = skill.replace(/\([^)]*\)/g, '');
+
+  // Remove special characters and extra spaces
+  skill = skill.replace(/[^\w\s-]/g, '').trim();
+
+  // Limit to maximum 2 words
+  const words = skill.split(/\s+/);
+  return words.slice(0, 2).join(' ');
+}
+
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
     keywords: number;
     skills: number;
@@ -88,16 +100,16 @@ Return a detailed analysis in the following JSON format:
  "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
  "keyRequirements": ["3-5 key requirements, each under 50 words"],
  "skillsAndTools": {
-   "programming": ["Programming languages like JavaScript, Python, etc."],
-   "frameworks": ["Frameworks and libraries like React, Node.js, etc."],
-   "databases": ["Database technologies like PostgreSQL, MongoDB, etc."],
-   "cloud": ["Cloud platforms and services like AWS, Azure, etc."],
-   "tools": ["Development tools like Git, Docker, etc."],
-   "soft": ["Soft skills like communication, leadership, etc."],
-   "testing": ["Testing frameworks and methodologies"],
-   "architecture": ["Architecture patterns and principles"],
-   "security": ["Security-related skills and tools"],
-   "other": ["Other relevant technical skills"]
+   "programming": ["Keep each skill to maximum 2 words, e.g., 'JavaScript', 'Python Flask'"],
+   "frameworks": ["React Native", "Next.js"],
+   "databases": ["PostgreSQL", "MongoDB"],
+   "cloud": ["AWS Lambda", "Azure"],
+   "tools": ["Git", "Docker"],
+   "soft": ["Team Leadership", "Communication"],
+   "testing": ["Unit Testing", "Jest"],
+   "architecture": ["Microservices", "REST"],
+   "security": ["OAuth", "JWT"],
+   "other": ["Agile", "CI/CD"]
  }
 }`
                 },
@@ -121,7 +133,7 @@ Return a detailed analysis in the following JSON format:
             const parsed = JSON.parse(content);
             const skillsArray = Object.entries(parsed.skillsAndTools || {}).flatMap(([category, skills]) =>
                 (skills as string[]).map(skill => ({
-                    name: skill,
+                    name: formatSkill(skill),
                     category
                 }))
             );

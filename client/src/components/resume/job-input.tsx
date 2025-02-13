@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -38,12 +38,11 @@ const INITIAL_STEPS: ProgressStep[] = [
 
 export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
-  const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
+  const [jobUrl, setJobUrl] = useState(initialJobDetails?.description || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
 
@@ -81,11 +80,63 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const handleReset = () => {
     setJobUrl("");
     setJobDescription("");
-    setExtractedDetails(null);
     setActiveTab("url");
     handleCancel();
-    setIsCollapsed(false);
     setProgressSteps(INITIAL_STEPS);
+  };
+
+  const getSkillBadgeVariant = (
+    skill: string
+  ): "default" | "secondary" | "destructive" | "outline" => {
+    const skillTypes = {
+      technical: [
+        "javascript", "python", "java", "c++", "typescript", "react", "node",
+        "html", "css", "api", "rest", "graphql", "frontend", "backend", "fullstack",
+        "vue", "angular", "svelte", "next", "express", "django", "flask"
+      ],
+      database: [
+        "sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis",
+        "elasticsearch", "dynamodb", "database", "cassandra", "sqlite"
+      ],
+      cloud: [
+        "aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2",
+        "heroku", "docker", "kubernetes", "cicd", "devops", "terraform"
+      ],
+      testing: [
+        "jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing",
+        "qa", "tdd", "bdd"
+      ],
+      tools: [
+        "git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack",
+        "teams", "vscode", "intellij", "webpack", "babel", "npm", "yarn"
+      ],
+      soft: [
+        "communication", "leadership", "teamwork", "agile", "scrum", "kanban",
+        "management", "analytical", "problem-solving"
+      ]
+    };
+
+    const lowerSkill = skill.toLowerCase();
+
+    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) {
+      return "default";
+    }
+    if (skillTypes.database.some((s) => lowerSkill.includes(s))) {
+      return "destructive";
+    }
+    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) {
+      return "outline";
+    }
+    if (skillTypes.testing.some((s) => lowerSkill.includes(s))) {
+      return "secondary";
+    }
+    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) {
+      return "outline";
+    }
+    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) {
+      return "destructive";
+    }
+    return "default";
   };
 
   const fetchJobMutation = useMutation({
@@ -141,8 +192,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         updateStepStatus("optimize", "completed");
 
         const details: JobDetails = {
-          url: jobUrl || undefined,
-          description: jobDescription || undefined,
           title: data.jobDetails.title,
           company: data.jobDetails.company,
           location: data.jobDetails.location,
@@ -211,60 +260,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     fetchJobMutation.mutate(
       activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
     );
-  };
-
-  const getSkillBadgeVariant = (
-    skill: string
-  ): "default" | "secondary" | "destructive" | "outline" => {
-    const skillTypes = {
-      technical: [
-        "javascript", "python", "java", "c++", "typescript", "react", "node",
-        "html", "css", "api", "rest", "graphql", "frontend", "backend", "fullstack",
-        "vue", "angular", "svelte", "next.js", "express", "django", "flask"
-      ],
-      database: [
-        "sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis",
-        "elasticsearch", "dynamodb", "database", "cassandra", "sqlite"
-      ],
-      cloud: [
-        "aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2",
-        "heroku", "docker", "kubernetes", "ci/cd", "devops", "terraform"
-      ],
-      testing: [
-        "jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing",
-        "qa", "tdd", "bdd", "unit testing", "integration testing"
-      ],
-      tools: [
-        "git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack",
-        "teams", "vscode", "intellij", "webpack", "babel", "npm", "yarn"
-      ],
-      soft: [
-        "communication", "leadership", "teamwork", "agile", "scrum", "kanban",
-        "project management", "problem solving", "analytical"
-      ]
-    };
-
-    const lowerSkill = skill.toLowerCase();
-
-    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) {
-      return "default";
-    }
-    if (skillTypes.database.some((s) => lowerSkill.includes(s))) {
-      return "destructive";
-    }
-    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) {
-      return "outline";
-    }
-    if (skillTypes.testing.some((s) => lowerSkill.includes(s))) {
-      return "secondary";
-    }
-    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) {
-      return "outline";
-    }
-    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) {
-      return "destructive";
-    }
-    return "default";
   };
 
   return (
