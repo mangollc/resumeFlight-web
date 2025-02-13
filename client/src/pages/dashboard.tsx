@@ -63,18 +63,39 @@ export default function Dashboard() {
   });
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
-    setUploadedResume(resume);
-    setCompletedSteps(prev => [...prev, 1]);
-    setCurrentStep(2);
+    try {
+      // Update the local state with the new resume
+      setUploadedResume(resume);
 
-    await queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
+      // Add step 1 to completed steps if not already present
+      setCompletedSteps(prev => {
+        if (!prev.includes(1)) {
+          return [...prev, 1];
+        }
+        return prev;
+      });
 
-    setUploadMode('choose');
+      // Move to next step
+      setCurrentStep(2);
 
-    toast({
-      title: "Success",
-      description: "Resume uploaded successfully",
-    });
+      // Refresh the resumes list
+      await queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
+
+      // Switch back to choose mode
+      setUploadMode('choose');
+
+      toast({
+        title: "Success",
+        description: "Resume uploaded successfully",
+      });
+    } catch (error) {
+      console.error('Error handling resume upload:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process uploaded resume",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleOptimizationComplete = (resume: OptimizedResume, details: { url?: string, description?: string }) => {
