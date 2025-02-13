@@ -40,173 +40,240 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new PostgresSessionStore({ 
       pool,
       createTableIfMissing: true,
+      tableName: 'session', 
+      pruneSessionInterval: 24 * 60 * 60 * 1000, 
     });
   }
 
+  // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error('Error getting user:', error);
+      throw new Error('Failed to get user');
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error('Error getting user by username:', error);
+      throw new Error('Failed to get user by username');
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
+    try {
+      const [user] = await db
+        .insert(users)
+        .values(insertUser)
+        .returning();
+      return user;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Failed to create user');
+    }
   }
 
-  // Uploaded Resume methods
+  // Resume methods
   async getUploadedResume(id: number): Promise<UploadedResume | undefined> {
-    const [result] = await db.select().from(uploadedResumes).where(eq(uploadedResumes.id, id));
-    if (!result) return undefined;
+    try {
+      const [result] = await db.select().from(uploadedResumes).where(eq(uploadedResumes.id, id));
+      if (!result) return undefined;
 
-    return {
-      ...result,
-      metadata: result.metadata as UploadedResume['metadata']
-    };
+      return {
+        ...result,
+        metadata: result.metadata as UploadedResume['metadata']
+      };
+    } catch (error) {
+      console.error('Error getting uploaded resume:', error);
+      throw new Error('Failed to get uploaded resume');
+    }
   }
 
   async createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume> {
-    const [result] = await db
-      .insert(uploadedResumes)
-      .values({
-        ...resume,
-        createdAt: new Date().toISOString(),
-      })
-      .returning();
+    try {
+      const [result] = await db
+        .insert(uploadedResumes)
+        .values({
+          ...resume,
+          createdAt: new Date().toISOString(),
+        })
+        .returning();
 
-    return {
-      ...result,
-      metadata: result.metadata as UploadedResume['metadata']
-    };
+      return {
+        ...result,
+        metadata: result.metadata as UploadedResume['metadata']
+      };
+    } catch (error) {
+      console.error('Error creating uploaded resume:', error);
+      throw new Error('Failed to create uploaded resume');
+    }
   }
 
   async getUploadedResumesByUser(userId: number): Promise<UploadedResume[]> {
-    const results = await db.select().from(uploadedResumes).where(eq(uploadedResumes.userId, userId));
-    return results.map(result => ({
-      ...result,
-      metadata: result.metadata as UploadedResume['metadata']
-    }));
+    try {
+      const results = await db.select().from(uploadedResumes).where(eq(uploadedResumes.userId, userId));
+      return results.map(result => ({
+        ...result,
+        metadata: result.metadata as UploadedResume['metadata']
+      }));
+    } catch (error) {
+      console.error('Error getting uploaded resumes by user:', error);
+      throw new Error('Failed to get uploaded resumes');
+    }
   }
 
   async deleteUploadedResume(id: number): Promise<void> {
-    await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
+    try {
+      await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
+    } catch (error) {
+      console.error('Error deleting uploaded resume:', error);
+      throw new Error('Failed to delete uploaded resume');
+    }
   }
 
   // Optimized Resume methods
   async getOptimizedResume(id: number): Promise<OptimizedResume | undefined> {
-    const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
-    if (!result) return undefined;
+    try {
+      const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
+      if (!result) return undefined;
 
-    return {
-      ...result,
-      metadata: result.metadata as OptimizedResume['metadata'],
-      jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-      metrics: result.metrics as OptimizedResume['metrics'] || {
-        overall: 0,
-        keywords: 0,
-        skills: 0,
-        experience: 0
-      }
-    };
+      return {
+        ...result,
+        metadata: result.metadata as OptimizedResume['metadata'],
+        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+        metrics: result.metrics as OptimizedResume['metrics']
+      };
+    } catch (error) {
+      console.error('Error getting optimized resume:', error);
+      throw new Error('Failed to get optimized resume');
+    }
   }
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
-    const [result] = await db
-      .insert(optimizedResumes)
-      .values({
-        ...resume,
-        createdAt: new Date().toISOString(),
-        metrics: resume.metrics || {
-          overall: 0,
-          keywords: 0,
-          skills: 0,
-          experience: 0
-        }
-      })
-      .returning();
+    try {
+      const [result] = await db
+        .insert(optimizedResumes)
+        .values({
+          ...resume,
+          createdAt: new Date().toISOString(),
+        })
+        .returning();
 
-    return {
-      ...result,
-      metadata: result.metadata as OptimizedResume['metadata'],
-      jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-      metrics: result.metrics as OptimizedResume['metrics']
-    };
+      return {
+        ...result,
+        metadata: result.metadata as OptimizedResume['metadata'],
+        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+        metrics: result.metrics as OptimizedResume['metrics']
+      };
+    } catch (error) {
+      console.error('Error creating optimized resume:', error);
+      throw new Error('Failed to create optimized resume');
+    }
   }
 
   async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
-    const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
-    return results.map(result => ({
-      ...result,
-      metadata: result.metadata as OptimizedResume['metadata'],
-      jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-      metrics: result.metrics as OptimizedResume['metrics'] || {
-        overall: 0,
-        keywords: 0,
-        skills: 0,
-        experience: 0
-      }
-    }));
+    try {
+      const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
+      return results.map(result => ({
+        ...result,
+        metadata: result.metadata as OptimizedResume['metadata'],
+        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+        metrics: result.metrics as OptimizedResume['metrics']
+      }));
+    } catch (error) {
+      console.error('Error getting optimized resumes by user:', error);
+      throw new Error('Failed to get optimized resumes');
+    }
   }
 
   async deleteOptimizedResume(id: number): Promise<void> {
-    await db.delete(optimizedResumes).where(eq(optimizedResumes.id, id));
+    try {
+      await db.delete(optimizedResumes).where(eq(optimizedResumes.id, id));
+    } catch (error) {
+      console.error('Error deleting optimized resume:', error);
+      throw new Error('Failed to delete optimized resume');
+    }
   }
 
   // Cover Letter methods
   async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
-    const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
-    if (!result) return undefined;
+    try {
+      const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
+      if (!result) return undefined;
 
-    return {
-      ...result,
-      metadata: result.metadata as CoverLetter['metadata']
-    };
+      return {
+        ...result,
+        metadata: result.metadata as CoverLetter['metadata']
+      };
+    } catch (error) {
+      console.error('Error getting cover letter:', error);
+      throw new Error('Failed to get cover letter');
+    }
   }
 
   async createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter> {
-    const [result] = await db
-      .insert(coverLetters)
-      .values({
-        ...coverLetter,
-        createdAt: new Date().toISOString(),
-      })
-      .returning();
+    try {
+      const [result] = await db
+        .insert(coverLetters)
+        .values({
+          ...coverLetter,
+          createdAt: new Date().toISOString(),
+        })
+        .returning();
 
-    return {
-      ...result,
-      metadata: result.metadata as CoverLetter['metadata']
-    };
+      return {
+        ...result,
+        metadata: result.metadata as CoverLetter['metadata']
+      };
+    } catch (error) {
+      console.error('Error creating cover letter:', error);
+      throw new Error('Failed to create cover letter');
+    }
   }
 
   async getCoverLettersByUser(userId: number): Promise<CoverLetter[]> {
-    const results = await db.select().from(coverLetters).where(eq(coverLetters.userId, userId));
-    return results.map(result => ({
-      ...result,
-      metadata: result.metadata as CoverLetter['metadata']
-    }));
+    try {
+      const results = await db.select().from(coverLetters).where(eq(coverLetters.userId, userId));
+      return results.map(result => ({
+        ...result,
+        metadata: result.metadata as CoverLetter['metadata']
+      }));
+    } catch (error) {
+      console.error('Error getting cover letters by user:', error);
+      throw new Error('Failed to get cover letters');
+    }
   }
 
   async deleteCoverLetter(id: number): Promise<void> {
-    await db.delete(coverLetters).where(eq(coverLetters.id, id));
+    try {
+      await db.delete(coverLetters).where(eq(coverLetters.id, id));
+    } catch (error) {
+      console.error('Error deleting cover letter:', error);
+      throw new Error('Failed to delete cover letter');
+    }
   }
 
   async getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]> {
-    const results = await db
-      .select()
-      .from(coverLetters)
-      .where(eq(coverLetters.optimizedResumeId, optimizedResumeId));
+    try {
+      const results = await db
+        .select()
+        .from(coverLetters)
+        .where(eq(coverLetters.optimizedResumeId, optimizedResumeId));
 
-    return results.map(result => ({
-      ...result,
-      metadata: result.metadata as CoverLetter['metadata']
-    }));
+      return results.map(result => ({
+        ...result,
+        metadata: result.metadata as CoverLetter['metadata']
+      }));
+    } catch (error) {
+      console.error('Error getting cover letters by optimized resume ID:', error);
+      throw new Error('Failed to get cover letters by optimized resume ID');
+    }
   }
 }
 
