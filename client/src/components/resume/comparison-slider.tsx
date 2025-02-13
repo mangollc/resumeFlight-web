@@ -58,22 +58,22 @@ export default function ComparisonSlider({ beforeContent, afterContent, isLoadin
     <div className="flex flex-col space-y-2">
       {/* Labels Header */}
       <div className="flex justify-between px-6">
-        <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold">
+        <div className="rounded-full bg-red-500/10 text-red-500 px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-red-500/20">
           Original
         </div>
-        <div className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold">
+        <div className="rounded-full bg-green-500/10 text-green-500 px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ring-green-500/20">
           Optimized
         </div>
       </div>
 
       {/* Comparison Container */}
       <div 
-        className="relative w-full h-[400px] overflow-hidden rounded-lg border bg-background"
+        className="relative w-full h-[400px] overflow-hidden rounded-lg border bg-background shadow-lg"
         ref={rangeRef}
       >
         {/* Original Content (Left Side) */}
         <div 
-          className="absolute inset-0 w-full h-full bg-background"
+          className="absolute inset-0 w-full h-full bg-red-50/5"
           style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
         >
           <div className="h-full overflow-auto p-4">
@@ -85,7 +85,7 @@ export default function ComparisonSlider({ beforeContent, afterContent, isLoadin
 
         {/* Optimized Content (Right Side) */}
         <div 
-          className="absolute inset-0 w-full h-full bg-primary/5"
+          className="absolute inset-0 w-full h-full bg-green-50/5"
           style={{ clipPath: `inset(0 0 0 ${position}%)` }}
         >
           <div className="h-full overflow-auto p-4">
@@ -97,22 +97,29 @@ export default function ComparisonSlider({ beforeContent, afterContent, isLoadin
 
         {/* Slider Handle */}
         <div
-          className="absolute inset-y-0 z-10"
+          className="absolute inset-y-0 z-10 transition-transform duration-200 ease-in-out"
           style={{ left: `${position}%` }}
           onMouseDown={() => setIsResizing(true)}
           onTouchStart={() => setIsResizing(true)}
         >
-          <div className="absolute inset-y-0 -left-px w-0.5 bg-primary" />
+          <div className="absolute inset-y-0 -left-px w-0.5 bg-primary shadow-[0_0_10px_rgba(0,0,0,0.1)]" />
           <div
             className={cn(
               "absolute top-1/2 -translate-x-1/2 -translate-y-1/2",
               "flex h-12 w-12 items-center justify-center",
               "rounded-full border-2 border-primary bg-background shadow-xl",
               "cursor-ew-resize touch-none select-none",
-              isResizing && "scale-110"
+              "transition-all duration-200 ease-in-out",
+              isResizing && "scale-110 shadow-2xl",
+              "after:absolute after:inset-0 after:rounded-full after:shadow-[0_0_0_12px_rgba(var(--primary),.1)]",
+              "after:transition-transform after:duration-200",
+              isResizing && "after:scale-110"
             )}
           >
-            <ArrowLeftRight className="h-6 w-6 text-primary" />
+            <ArrowLeftRight className={cn(
+              "h-6 w-6 text-primary transition-all duration-200",
+              isResizing && "scale-110"
+            )} />
           </div>
         </div>
       </div>

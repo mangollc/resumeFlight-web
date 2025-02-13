@@ -46,6 +46,14 @@ const steps: Step[] = [
   }
 ];
 
+export type JobDetails = {
+  url?: string;
+  description?: string;
+  title?: string;
+  company?: string;
+  location?: string;
+};
+
 export default function Dashboard() {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -53,7 +61,8 @@ export default function Dashboard() {
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
-  const [jobDetails, setJobDetails] = useState<{ url?: string, description?: string } | null>(null);
+  const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
+  const [sessionId] = useState(() => Date.now().toString()); // Used to track optimization session
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -64,24 +73,12 @@ export default function Dashboard() {
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
     try {
-      // Update the local state with the new resume
       setUploadedResume(resume);
-
-      // Add step 1 to completed steps if not already present
-      setCompletedSteps(prev => {
-        if (!prev.includes(1)) {
-          return [...prev, 1];
-        }
-        return prev;
-      });
-
-      // Move to next step
+      if (!completedSteps.includes(1)) {
+        setCompletedSteps(prev => [...prev, 1]);
+      }
       setCurrentStep(2);
-
-      // Refresh the resumes list
       await queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
-
-      // Switch back to choose mode
       setUploadMode('choose');
 
       toast({
@@ -98,17 +95,93 @@ export default function Dashboard() {
     }
   };
 
-  const handleOptimizationComplete = (resume: OptimizedResume, details: { url?: string, description?: string }) => {
+  const handleOptimizationComplete = (resume: OptimizedResume, details: JobDetails) => {
     setOptimizedResume(resume);
-    setJobDetails(details);
-    setCompletedSteps(prev => [...prev, 2]);
+    setJobDetails(prev => ({ ...prev, ...details }));
+    if (!completedSteps.includes(2)) {
+      setCompletedSteps(prev => [...prev, 2]);
+    }
     setCurrentStep(3);
   };
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
     setCoverLetter(letter);
-    setCompletedSteps(prev => [...prev, 4]);
+    if (!completedSteps.includes(4)) {
+      setCompletedSteps(prev => [...prev, 4]);
+    }
     setCurrentStep(5);
+  };
+
+  const handleDownloadPackage = async () => {
+    if (!optimizedResume?.id) return;
+
+    try {
+      setIsDownloading(true);
+
+      // Create a FormData object to send the session data
+      const formData = new FormData();
+      formData.append('sessionId', sessionId);
+      if (jobDetails) {
+        formData.append('jobDetails', JSON.stringify(jobDetails));
+      }
+
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/zip',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download package');
+      }
+
+      // Get the filename from the Content-Disposition header if available
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `resume-package-${Date.now()}.zip`;
+      if (contentDisposition) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: "Package downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download package",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Clear session data when starting over
+  const handleStartOver = () => {
+    setCurrentStep(1);
+    setCompletedSteps([]);
+    setUploadedResume(null);
+    setOptimizedResume(null);
+    setCoverLetter(null);
+    setJobDetails(null);
+    setUploadMode('choose');
   };
 
   const canGoBack = currentStep > 1;
@@ -131,47 +204,6 @@ export default function Dashboard() {
       if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => [...prev, currentStep]);
       }
-    }
-  };
-
-  const handleDownloadPackage = async () => {
-    if (!optimizedResume?.id) return;
-
-    try {
-      setIsDownloading(true);
-      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`, {
-        headers: {
-          'Accept': 'application/zip',
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download package');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `resume-package-${Date.now()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success",
-        description: "Package downloaded successfully",
-      });
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download package",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -298,6 +330,24 @@ export default function Dashboard() {
                           <tr>
                             <td className="font-medium pr-4 py-1 align-top">Description:</td>
                             <td className="text-muted-foreground whitespace-pre-wrap">{jobDetails.description}</td>
+                          </tr>
+                        )}
+                        {jobDetails.title && (
+                          <tr>
+                            <td className="font-medium pr-4 py-1">Title:</td>
+                            <td className="text-muted-foreground">{jobDetails.title}</td>
+                          </tr>
+                        )}
+                        {jobDetails.company && (
+                          <tr>
+                            <td className="font-medium pr-4 py-1">Company:</td>
+                            <td className="text-muted-foreground">{jobDetails.company}</td>
+                          </tr>
+                        )}
+                        {jobDetails.location && (
+                          <tr>
+                            <td className="font-medium pr-4 py-1">Location:</td>
+                            <td className="text-muted-foreground">{jobDetails.location}</td>
                           </tr>
                         )}
                       </tbody>
