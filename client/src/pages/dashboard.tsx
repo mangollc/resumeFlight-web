@@ -22,8 +22,8 @@ const steps: Step[] = [
   },
   {
     id: 3,
-    title: "Optimize",
-    description: "Review your optimized resume"
+    title: "Review Optimization",
+    description: "Review your AI-optimized resume"
   },
   {
     id: 4,
@@ -32,8 +32,8 @@ const steps: Step[] = [
   },
   {
     id: 5,
-    title: "Summary",
-    description: "Review and download your optimized documents"
+    title: "Download Package",
+    description: "Download your optimized resume and cover letter"
   }
 ];
 
@@ -57,17 +57,21 @@ export default function Dashboard() {
   };
 
   const handleCoverLetterGenerated = () => {
-    setCompletedSteps(prev => [...prev, 4]);
     setHasCoverLetter(true);
+    setCompletedSteps(prev => [...prev, 4]);
     setCurrentStep(5);
   };
 
   const renderCurrentStep = () => {
+    const commonCardProps = {
+      className: "fade-in border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow"
+    };
+
     switch (currentStep) {
       case 1:
         return (
-          <div className="mt-8 fade-in">
-            <Card>
+          <div className="mt-8">
+            <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <UploadForm onSuccess={handleResumeUploaded} />
               </CardContent>
@@ -76,10 +80,16 @@ export default function Dashboard() {
         );
       case 2:
         return uploadedResume ? (
-          <div className="mt-8 space-y-8 fade-in">
-            <Preview resume={uploadedResume} />
-            <Card>
+          <div className="mt-8 space-y-8">
+            <Card {...commonCardProps}>
               <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Current Resume</h3>
+                <Preview resume={uploadedResume} />
+              </CardContent>
+            </Card>
+            <Card {...commonCardProps}>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
                 <JobInput 
                   resumeId={uploadedResume.id} 
                   onOptimized={handleOptimizationComplete}
@@ -90,15 +100,21 @@ export default function Dashboard() {
         ) : null;
       case 3:
         return optimizedResume ? (
-          <div className="mt-8 fade-in">
-            <Preview resume={optimizedResume} />
+          <div className="mt-8">
+            <Card {...commonCardProps}>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Optimized Resume Preview</h3>
+                <Preview resume={optimizedResume} />
+              </CardContent>
+            </Card>
           </div>
         ) : null;
       case 4:
         return optimizedResume ? (
-          <div className="mt-8 fade-in">
-            <Card>
+          <div className="mt-8">
+            <Card {...commonCardProps}>
               <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">Generate Cover Letter</h3>
                 <CoverLetter 
                   resume={optimizedResume}
                   onGenerated={handleCoverLetterGenerated}
@@ -109,39 +125,39 @@ export default function Dashboard() {
         ) : null;
       case 5:
         return optimizedResume ? (
-          <div className="mt-8 space-y-8 fade-in">
-            <Card>
+          <div className="mt-8 space-y-8">
+            <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h2 className="text-2xl font-bold mb-6">Application Package Summary</h2>
                 <div className="space-y-8">
                   {/* Optimized Resume Section */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Optimized Resume</h3>
+                    <h3 className="text-xl font-semibold mb-4">Optimized Resume</h3>
                     <Preview resume={optimizedResume} />
                   </div>
 
                   {/* Cover Letter Section */}
                   {hasCoverLetter && (
                     <div>
-                      <h3 className="text-lg font-semibold mb-4">Cover Letter</h3>
+                      <h3 className="text-xl font-semibold mb-4">Cover Letter</h3>
                       <CoverLetter 
                         resume={optimizedResume}
                         onGenerated={() => {}}
-                        viewOnly
+                        readOnly
                       />
                     </div>
                   )}
 
                   {/* Download Options */}
                   <div className="border-t pt-6">
-                    <h3 className="text-lg font-semibold mb-4">Download Options</h3>
+                    <h3 className="text-xl font-semibold mb-4">Download Options</h3>
                     <div className="flex flex-wrap gap-4">
-                      <Button variant="outline" size="lg">
+                      <Button size="lg" className="bg-primary hover:bg-primary/90">
                         <Download className="h-4 w-4 mr-2" />
                         Download Resume (PDF)
                       </Button>
                       {hasCoverLetter && (
-                        <Button variant="outline" size="lg">
+                        <Button size="lg" variant="outline" className="border-primary hover:bg-primary/10">
                           <FileText className="h-4 w-4 mr-2" />
                           Download Cover Letter (PDF)
                         </Button>
@@ -159,7 +175,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 max-w-5xl">
       <StepTracker
         currentStep={currentStep}
         steps={steps}
