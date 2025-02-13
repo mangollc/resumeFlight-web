@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
-import HomePage from "@/pages/home-page";
+import Dashboard from "@/pages/dashboard";
 import UploadedResumesPage from "@/pages/uploaded-resumes";
 import OptimizedResumesPage from "@/pages/optimized-resumes";
 import SubscriptionPage from "@/pages/subscription";
@@ -41,7 +41,7 @@ function Router() {
       <Route path="/">
         <Redirect to="/dashboard" />
       </Route>
-      <ProtectedRoute path="/dashboard" component={() => <ProtectedLayout component={HomePage} />} />
+      <ProtectedRoute path="/dashboard" component={() => <ProtectedLayout component={Dashboard} />} />
       <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayout component={UploadedResumesPage} />} />
       <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayout component={OptimizedResumesPage} />} />
       <ProtectedRoute path="/subscription" component={() => <ProtectedLayout component={SubscriptionPage} />} />
