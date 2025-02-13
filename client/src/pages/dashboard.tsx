@@ -3,8 +3,8 @@ import StepTracker, { Step } from "@/components/resume/step-tracker";
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
-import CoverLetter, { CoverLetterType } from "@/components/resume/cover-letter";
-import { type UploadedResume, type OptimizedResume } from "@shared/schema";
+import CoverLetter from "@/components/resume/cover-letter";
+import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,6 +42,7 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronRight,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +101,8 @@ export default function Dashboard() {
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
   const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
-
+  const [isDialogOpen, setIsDialogOpen] = useState(false); 
+  
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -119,13 +137,12 @@ export default function Dashboard() {
     if (!completedSteps.includes(2)) {
       setCompletedSteps(prev => [...prev, 2]);
     }
-    // Increment version for each optimization
     setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
   };
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
     setCoverLetter(letter);
-    setCoverLetters(prev => [...prev, letter]); //add new letter to array.
+    setCoverLetters(prev => [...prev, letter]); 
     if (!completedSteps.includes(4)) {
       setCompletedSteps(prev => [...prev, 4]);
     }
@@ -152,7 +169,7 @@ export default function Dashboard() {
 
       const data = await response.json();
       setCoverLetter(data);
-      setCoverLetters(prev => [...prev, data]); // Add new version to array.
+      setCoverLetters(prev => [...prev, data]); 
 
       toast({
         title: "Success",
@@ -175,7 +192,6 @@ export default function Dashboard() {
     try {
       setIsDownloading(true);
 
-      // Create a FormData object to send the session data
       const formData = new FormData();
       formData.append('sessionId', sessionId);
       if (jobDetails) {
@@ -194,7 +210,6 @@ export default function Dashboard() {
         throw new Error('Failed to download package');
       }
 
-      // Get the filename from the Content-Disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `resume-package-${Date.now()}.zip`;
       if (contentDisposition) {
@@ -230,7 +245,6 @@ export default function Dashboard() {
     }
   };
 
-  // Clear session data when starting over
   const handleStartOver = () => {
     setCurrentStep(1);
     setCompletedSteps([]);
@@ -239,14 +253,14 @@ export default function Dashboard() {
     setCoverLetter(null);
     setJobDetails(null);
     setUploadMode('choose');
-    setCoverLetters([]); // Clear cover letter versions
+    setCoverLetters([]); 
   };
 
   const handleReoptimize = async () => {
     if (!uploadedResume?.id || !jobDetails) return;
 
     try {
-      setIsOptimizing(true); // Show loading state
+      setIsOptimizing(true); 
       const data = {
         jobUrl: jobDetails.url,
         jobDescription: jobDetails.description,
@@ -272,7 +286,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
     } finally {
-      setIsOptimizing(false); // Hide loading state
+      setIsOptimizing(false); 
     }
   };
 
@@ -331,6 +345,10 @@ export default function Dashboard() {
       return `${baseName}_${jobTitle}_v${version.toFixed(1)}`;
     };
 
+    const formatJobDetails = (resume: OptimizedResume | null): string => {
+      if (!resume || !resume.jobDetails) return "No job details available.";
+      return `Title: ${resume.jobDetails.title || 'N/A'}\nCompany: ${resume.jobDetails.company || 'N/A'}\nLocation: ${resume.jobDetails.location || 'N/A'}\nURL: ${resume.jobDetails.url || 'N/A'}\nDescription: ${resume.jobDetails.description || 'N/A'}`;
+    };
 
     switch (currentStep) {
       case 1:
@@ -424,6 +442,40 @@ export default function Dashboard() {
                   onOptimized={handleOptimizationComplete}
                   initialJobDetails={jobDetails}
                 />
+                {optimizedResume && (
+                  <div className="mt-4">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Info className="mr-2 h-4 w-4" />
+                          View Job Details
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                          <DialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => {
+                              e.preventDefault();
+                              setIsDialogOpen(true);
+                            }}>
+                              View Details
+                            </DropdownMenuItem>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Job Details</DialogTitle>
+                              <DialogDescription>
+                                <div className="whitespace-pre-wrap">
+                                  {formatJobDetails(optimizedResume)}
+                                </div>
+                              </DialogDescription>
+                            </DialogHeader>
+                          </DialogContent>
+                        </Dialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
                 {renderNavigation()}
               </CardContent>
             </Card>
@@ -518,25 +570,24 @@ export default function Dashboard() {
                               </>
                             )}
                           </Button>
-                          <Button
-                            onClick={() => {
-                              const selectedLetter = coverLetters.find(
-                                (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                              ) || coverLetter;
-                              if (selectedLetter) {
-                                window.location.href = `/api/cover-letter/${selectedLetter.id}/download?filename=${
-                                  formatDownloadFilename(
-                                    selectedLetter.metadata.filename,
-                                    optimizedResume.jobDetails?.title || '',
-                                    selectedLetter.metadata.version
-                                  )
-                                }_cover.pdf`;
-                              }
-                            }}
-                            variant="outline"
-                          >
-                            Download Cover Letter
-                          </Button>
+                          {coverLetters.length <= 1 && (
+                            <Button
+                              onClick={() => {
+                                if (coverLetter) {
+                                  window.location.href = `/api/cover-letter/${coverLetter.id}/download?filename=${
+                                    formatDownloadFilename(
+                                      coverLetter.metadata.filename,
+                                      optimizedResume.jobDetails?.title || '',
+                                      coverLetter.metadata.version
+                                    )
+                                  }_cover.pdf`;
+                                }
+                              }}
+                              variant="outline"
+                            >
+                              Download Cover Letter
+                            </Button>
+                          )}
                         </div>
                       </div>
                       {coverLetters && coverLetters.length > 1 && (
@@ -625,6 +676,26 @@ export default function Dashboard() {
                             (l) => l.metadata.version.toString() === selectedCoverLetterVersion
                           )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
                         </h4>
+                        <div className="flex items-center gap-2">
+                          {coverLetters.length <= 1 ? (
+                            <Button
+                              onClick={() => {
+                                if (coverLetter) {
+                                  window.location.href = `/api/cover-letter/${coverLetter.id}/download?filename=${
+                                    formatDownloadFilename(
+                                      coverLetter.metadata.filename,
+                                      optimizedResume.jobDetails?.title || '',
+                                      coverLetter.metadata.version
+                                    )
+                                  }_cover.pdf`;
+                                }
+                              }}
+                              variant="outline"
+                            >
+                              Download Cover Letter
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
                       {coverLetters && coverLetters.length > 1 && (
                         <div className="mb-4">
@@ -685,7 +756,7 @@ export default function Dashboard() {
     }
   };
 
-  const [sessionId] = useState(() => Date.now().toString()); // Used to track optimization session
+  const [sessionId] = useState(() => Date.now().toString()); 
   const [isDownloading, setIsDownloading] = useState(false);
 
 
