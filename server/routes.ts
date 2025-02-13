@@ -6,40 +6,69 @@ async function calculateMatchScores(resumeContent: string, jobDescription: strin
 }> {
  try {
   const response = await openai.chat.completions.create({
-   model: "gpt-4o",
+   model: "gpt-4",
    messages: [
     {
      role: "system",
      content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
-Your response should be a valid JSON string in the following format ONLY:
+Your task is to:
+1. Analyze keyword matches between resume and job requirements
+2. Evaluate skills alignment
+3. Assess experience relevance
+4. Calculate an overall match score
+
+Return ONLY a JSON object in this exact format:
 {
   "keywords": <number between 0-100>,
   "skills": <number between 0-100>,
   "experience": <number between 0-100>,
   "overall": <number between 0-100>
 }
-Do not include any explanations, just the JSON object.`
+
+Scoring Guidelines:
+- Keywords (0-100): Percentage of important keywords from job description found in resume
+- Skills (0-100): How well the candidate's skills match the required skills
+- Experience (0-100): Relevance and depth of experience compared to requirements
+- Overall (0-100): Weighted average with emphasis on skills and experience`
     },
     {
      role: "user",
-     content: `Resume:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+     content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
     }
-   ]
+   ],
+   response_format: { type: "json_object" },
+   temperature: 0.3,
   });
 
   const content = response.choices[0].message.content;
-  if (!content) return getDefaultMetrics();
+  if (!content) {
+   console.warn("Empty response from OpenAI");
+   return getDefaultMetrics();
+  }
 
   try {
+   // Parse and validate the metrics
    const metrics = JSON.parse(content);
-   return {
+   const validatedMetrics = {
     keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
     skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
     experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
     overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
    };
+
+   // Ensure we have all required metrics
+   const hasAllMetrics = Object.values(validatedMetrics).every(value =>
+    typeof value === 'number' && !isNaN(value)
+   );
+
+   if (!hasAllMetrics) {
+    console.warn("Invalid metrics in response:", metrics);
+    return getDefaultMetrics();
+   }
+
+   return validatedMetrics;
   } catch (parseError) {
-   console.error("Error parsing metrics response:", parseError);
+   console.error("Error parsing metrics response:", parseError, "\nContent:", content);
    return getDefaultMetrics();
   }
  } catch (error) {
@@ -62,11 +91,11 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { optimizeResume, generateCoverLetter, openai, analyzeResumeDifferences } from "./openai"; 
+import { optimizeResume, generateCoverLetter, openai, analyzeResumeDifferences } from "./openai";
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
-import { insertUploadedResumeSchema } from "@shared/schema"; 
+import { insertUploadedResumeSchema } from "@shared/schema";
 import axios from "axios";
 import * as cheerio from "cheerio";
 
@@ -80,7 +109,7 @@ interface JobDetails {
  salary?: string;
  location: string;
  description: string;
- positionLevel?: string; 
+ positionLevel?: string;
  candidateProfile?: string;
  keyPoints?: string[];
  keyRequirements?: string[];
@@ -95,7 +124,7 @@ interface JobDetails {
 
 const upload = multer({
  storage: multer.memoryStorage(),
- limits: { fileSize: 5 * 1024 * 1024 } 
+ limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
@@ -155,8 +184,8 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
      let text = element.text().trim().replace(/\s+/g, ' ');
      if (type === 'location') {
       text = text.replace(/\d+\s*applicants?/gi, '')
-        .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '')
-        .trim();
+       .replace(/^\s*[,\s]+|\s*[,\s]+$/g, '')
+       .trim();
      }
      return text;
     }
@@ -228,12 +257,12 @@ async function analyzeJobDescription(description: string) {
     console.log("[AI Analysis] Analyzing job description:", description.substring(0, 100) + "...");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
           content: `You are a job analysis expert. Analyze the job description and extract key information.
-Your response must be a valid JSON string in the following format ONLY:
+Your response must be a valid JSON object with the following properties:
 {
   "title": "Job title extracted from description",
   "company": "Company name if found, otherwise 'Not specified'",
@@ -242,21 +271,20 @@ Your response must be a valid JSON string in the following format ONLY:
   "keyRequirements": ["3-5 key requirements, each under 50 words"],
   "skillsAndTools": ["List of specific technologies, programming languages, software, tools required"],
   "metrics": {
-    "keywords": <number between 0-100>,
-    "skills": <number between 0-100>,
-    "experience": <number between 0-100>,
-    "overall": <number between 0-100>
+    "keywords": number between 0-100,
+    "skills": number between 0-100,
+    "experience": number between 0-100,
+    "overall": number between 0-100
   }
-}
-Do not include any explanations, just the JSON object.`
+}`
         },
         {
           role: "user",
           content: description
         }
       ],
+      response_format: { type: "json_object" },
       temperature: 0.3,
-      max_tokens: 1000,
     });
 
     const content = response.choices[0].message.content;
@@ -269,19 +297,23 @@ Do not include any explanations, just the JSON object.`
 
     try {
       const parsed = JSON.parse(content);
+      // Validate metrics
+      const metrics = parsed.metrics || {};
+      parsed.metrics = {
+        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+      };
+
       return {
         title: parsed.title || "Not specified",
         company: parsed.company || "Not specified",
         location: parsed.location || "Not specified",
         positionLevel: parsed.positionLevel || "Not specified",
-        keyRequirements: parsed.keyRequirements || ["Unable to extract requirements"],
-        skillsAndTools: parsed.skillsAndTools || ["No specific skills/tools found"],
-        metrics: parsed.metrics || {
-          keywords: 0,
-          skills: 0,
-          experience: 0,
-          overall: 0
-        }
+        keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
+        skillsAndTools: Array.isArray(parsed.skillsAndTools) ? parsed.skillsAndTools : ["No specific skills/tools found"],
+        metrics: parsed.metrics
       };
     } catch (parseError) {
       console.error("[AI Analysis] Error parsing OpenAI response:", parseError);
@@ -524,7 +556,7 @@ export function registerRoutes(app: Express): Server {
 
       const optimizedResume = await storage.createOptimizedResume({
         content: optimized.optimizedContent,
-        originalContent: uploadedResume.content, 
+        originalContent: uploadedResume.content,
         jobDescription: finalJobDescription,
         jobUrl: jobUrl || null,
         jobDetails,

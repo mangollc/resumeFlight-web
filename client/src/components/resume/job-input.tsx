@@ -4,7 +4,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { OptimizedResume } from "@shared/schema";
+import { OptimizedResume, JobDetails } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,46 +17,43 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-interface JobDetails {
-  title: string;
-  company: string;
-  salary?: string;
-  location: string;
-  positionLevel?: string;
-  keyRequirements?: string[];
-  skillsAndTools?: string[];
-}
-
 interface JobInputProps {
   resumeId: number;
-  onOptimized: (resume: OptimizedResume) => void;
+  onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
+  initialJobDetails?: JobDetails;
 }
 
-export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
+export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
-  const [jobUrl, setJobUrl] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
+  const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
+  const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
+  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
 
   const optimizeMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
       const res = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, data);
-      return res.json();
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to optimize resume');
+      }
+      const responseData = await res.json();
+      return responseData;
     },
     onSuccess: (data: OptimizedResume) => {
-      setExtractedDetails({
+      const details: JobDetails = {
+        url: jobUrl || undefined,
+        description: jobDescription || undefined,
         title: data.jobDetails.title,
         company: data.jobDetails.company,
         location: data.jobDetails.location,
-        salary: data.jobDetails.salary,
-        positionLevel: data.jobDetails.positionLevel,
-        keyRequirements: data.jobDetails.keyRequirements,
-        skillsAndTools: data.jobDetails.skillsAndTools
-      });
+      };
+
+      setExtractedDetails(details);
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      onOptimized(data);
+      onOptimized(data, details);
+
       toast({
         title: "Success",
         description: "Resume optimized successfully. You can optimize again with the same input if needed.",
@@ -100,31 +97,6 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
     );
   };
 
-  const getSkillBadgeColor = (skill: string) => {
-    // Categorize skills and return appropriate color classes
-    const skillTypes = {
-      programming: ["javascript", "python", "java", "c++", "typescript", "react", "node"],
-      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel"],
-      database: ["sql", "mongodb", "postgresql", "mysql", "oracle"],
-      tools: ["git", "docker", "kubernetes", "aws", "azure", "jira"]
-    };
-
-    const lowerSkill = skill.toLowerCase();
-    if (skillTypes.programming.some(s => lowerSkill.includes(s))) {
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100";
-    }
-    if (skillTypes.software.some(s => lowerSkill.includes(s))) {
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100";
-    }
-    if (skillTypes.database.some(s => lowerSkill.includes(s))) {
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100";
-    }
-    if (skillTypes.tools.some(s => lowerSkill.includes(s))) {
-      return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100";
-    }
-    return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100";
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "url" | "manual")} className="w-full">
@@ -166,7 +138,7 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
       </Tabs>
 
       {extractedDetails && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm space-y-4">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4 space-y-4">
           <Table>
             <TableHeader>
               <TableRow>
@@ -184,49 +156,10 @@ export default function JobInput({ resumeId, onOptimized }: JobInputProps) {
                 <TableCell className="font-medium">Company</TableCell>
                 <TableCell>{extractedDetails.company}</TableCell>
               </TableRow>
-              {extractedDetails.salary && (
+              {extractedDetails.location && (
                 <TableRow>
-                  <TableCell className="font-medium">Salary</TableCell>
-                  <TableCell>{extractedDetails.salary}</TableCell>
-                </TableRow>
-              )}
-              <TableRow>
-                <TableCell className="font-medium">Location</TableCell>
-                <TableCell>{extractedDetails.location}</TableCell>
-              </TableRow>
-              {extractedDetails.positionLevel && (
-                <TableRow>
-                  <TableCell className="font-medium">Position Level</TableCell>
-                  <TableCell>{extractedDetails.positionLevel}</TableCell>
-                </TableRow>
-              )}
-              {extractedDetails.keyRequirements && (
-                <TableRow>
-                  <TableCell className="font-medium">Key Requirements</TableCell>
-                  <TableCell>
-                    <ul className="list-disc list-inside space-y-1">
-                      {extractedDetails.keyRequirements.map((requirement, index) => (
-                        <li key={index}>{requirement}</li>
-                      ))}
-                    </ul>
-                  </TableCell>
-                </TableRow>
-              )}
-              {extractedDetails.skillsAndTools && (
-                <TableRow>
-                  <TableCell className="font-medium">Skills & Tools</TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-2">
-                      {extractedDetails.skillsAndTools.map((skill, index) => (
-                        <span
-                          key={index}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSkillBadgeColor(skill)} border border-current/20`}
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </TableCell>
+                  <TableCell className="font-medium">Location</TableCell>
+                  <TableCell>{extractedDetails.location}</TableCell>
                 </TableRow>
               )}
             </TableBody>
