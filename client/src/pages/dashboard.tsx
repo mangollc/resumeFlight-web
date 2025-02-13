@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 const steps: Step[] = [
@@ -56,15 +56,28 @@ export default function Dashboard() {
   const [jobDetails, setJobDetails] = useState<{ url?: string, description?: string } | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
   });
 
-  const handleResumeUploaded = (resume: UploadedResume) => {
+  const handleResumeUploaded = async (resume: UploadedResume) => {
+    // Update the state
     setUploadedResume(resume);
     setCompletedSteps(prev => [...prev, 1]);
     setCurrentStep(2);
+
+    // Invalidate and refetch uploaded resumes to update the dropdown
+    await queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
+
+    // Switch back to choose mode to show the updated dropdown
+    setUploadMode('choose');
+
+    toast({
+      title: "Success",
+      description: "Resume uploaded successfully",
+    });
   };
 
   const handleOptimizationComplete = (resume: OptimizedResume, details: { url?: string, description?: string }) => {
