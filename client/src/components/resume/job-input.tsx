@@ -39,10 +39,29 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const jobDetailsRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      const res = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, data);
+      // Create new AbortController for this request
+      abortControllerRef.current = new AbortController();
+
+      const res = await apiRequest(
+        "POST",
+        `/api/resume/${resumeId}/optimize`,
+        data,
+        { signal: abortControllerRef.current.signal }
+      );
+
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || 'Failed to fetch job details');
@@ -80,6 +99,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       onOptimized(data, details);
     },
     onError: (error: Error) => {
+      // Don't show error toast if it was cancelled
+      if (error.name === 'AbortError') {
+        toast({
+          title: "Cancelled",
+          description: "Job fetching process was cancelled",
+        });
+        return;
+      }
+
       if (error.message.includes("dynamically loaded or require authentication")) {
         toast({
           title: "LinkedIn Job Detection",
@@ -95,9 +123,25 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           variant: "destructive",
         });
       }
-      setIsProcessing(false);
     },
+    onSettled: () => {
+      setIsProcessing(false);
+      abortControllerRef.current = null;
+    }
   });
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setIsProcessing(false);
+    setExtractedDetails(null);
+    if (activeTab === "url") {
+      setJobUrl("");
+    } else {
+      setJobDescription("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,6 +320,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         open={isProcessing}
         title="Fetching Job Details"
         description="Please wait while we analyze the job posting and optimize your resume..."
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCancel();
+          }
+        }}
       />
     </div>
   );
