@@ -69,7 +69,7 @@ export default function Dashboard() {
           <div className="mt-8 fade-in">
             <Card>
               <CardContent className="p-6">
-                <UploadForm onUploadComplete={handleResumeUploaded} />
+                <UploadForm onSuccess={handleResumeUploaded} />
               </CardContent>
             </Card>
           </div>
@@ -81,8 +81,8 @@ export default function Dashboard() {
             <Card>
               <CardContent className="p-6">
                 <JobInput 
-                  uploadedResumeId={uploadedResume.id} 
-                  onOptimizationComplete={handleOptimizationComplete}
+                  resumeId={uploadedResume.id} 
+                  onOptimized={handleOptimizationComplete}
                 />
               </CardContent>
             </Card>
@@ -100,7 +100,7 @@ export default function Dashboard() {
             <Card>
               <CardContent className="p-6">
                 <CoverLetter 
-                  optimizedResumeId={optimizedResume.id}
+                  resume={optimizedResume}
                   onGenerated={handleCoverLetterGenerated}
                 />
               </CardContent>
@@ -125,7 +125,7 @@ export default function Dashboard() {
                     <div>
                       <h3 className="text-lg font-semibold mb-4">Cover Letter</h3>
                       <CoverLetter 
-                        optimizedResumeId={optimizedResume.id}
+                        resume={optimizedResume}
                         onGenerated={() => {}}
                         viewOnly
                       />
