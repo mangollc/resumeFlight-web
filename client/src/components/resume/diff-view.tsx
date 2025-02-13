@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
+import { ResumeDifferences } from "@shared/schema";
 
 interface DiffViewProps {
   beforeContent: string;
@@ -58,7 +59,7 @@ function findAndHighlight(text: string, changes: Array<{ original: string; optim
 }
 
 export default function DiffView({ beforeContent, afterContent, resumeId }: DiffViewProps) {
-  const { data: differences, isLoading } = useQuery({
+  const { data: differences, isLoading } = useQuery<ResumeDifferences>({
     queryKey: [`/api/optimized-resume/${resumeId}/differences`],
     enabled: !!resumeId
   });

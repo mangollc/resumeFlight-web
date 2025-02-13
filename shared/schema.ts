@@ -94,6 +94,7 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     jobUrl: true,
     jobDetails: true,
     metadata: true,
+    metrics: true,
     uploadedResumeId: true,
   });
 
@@ -130,8 +131,6 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     positionLevel?: string;
     keyPoints?: string[];
   };
-  jobUrl: string | null;
-  originalContent: string;
   metrics: {
     before: {
       overall: number;
@@ -156,3 +155,13 @@ export type CoverLetter = typeof coverLetters.$inferSelect & {
   };
 };
 export type InsertCoverLetter = z.infer<typeof insertCoverLetterSchema>;
+
+// API Types
+export type ResumeDifferences = {
+  changes: Array<{
+    original: string;
+    optimized: string;
+    type: string;
+    reason: string;
+  }>;
+};
