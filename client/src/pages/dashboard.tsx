@@ -6,7 +6,7 @@ import Preview from "@/components/resume/preview";
 import CoverLetter from "@/components/resume/cover-letter";
 import { type UploadedResume, type OptimizedResume, type CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Upload, ArrowLeft, ArrowRight, Download } from "lucide-react";
+import { FileText, Upload, ArrowLeft, ArrowRight, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -54,6 +54,7 @@ export default function Dashboard() {
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<{ url?: string, description?: string } | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
   const { data: resumes } = useQuery<UploadedResume[]>({
@@ -106,7 +107,13 @@ export default function Dashboard() {
     if (!optimizedResume?.id) return;
 
     try {
-      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`);
+      setIsDownloading(true);
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`, {
+        headers: {
+          'Accept': 'application/zip',
+        }
+      });
+
       if (!response.ok) {
         throw new Error('Failed to download package');
       }
@@ -132,16 +139,14 @@ export default function Dashboard() {
         description: "Failed to download package",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
-  const renderCurrentStep = () => {
-    const commonCardProps = {
-      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto"
-    };
-
-    const renderNavigation = () => (
-      <div className="flex justify-between mt-6 pt-6 border-t">
+  const renderNavigation = () => (
+    <div className="flex justify-center mt-6 pt-6 border-t">
+      <div className="space-x-4">
         <Button
           variant="outline"
           onClick={handleBack}
@@ -158,7 +163,13 @@ export default function Dashboard() {
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
-    );
+    </div>
+  );
+
+  const renderCurrentStep = () => {
+    const commonCardProps = {
+      className: "border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow w-full mx-auto relative z-10"
+    };
 
     switch (currentStep) {
       case 1:
@@ -239,6 +250,27 @@ export default function Dashboard() {
             <Card {...commonCardProps}>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4">Enter Job Details</h3>
+                {jobDetails && (
+                  <div className="mb-6 bg-muted/50 rounded-lg p-4">
+                    <h4 className="font-medium mb-2">Current Job Details</h4>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {jobDetails.url && (
+                          <tr>
+                            <td className="font-medium pr-4 py-1">URL:</td>
+                            <td className="text-muted-foreground">{jobDetails.url}</td>
+                          </tr>
+                        )}
+                        {jobDetails.description && (
+                          <tr>
+                            <td className="font-medium pr-4 py-1 align-top">Description:</td>
+                            <td className="text-muted-foreground whitespace-pre-wrap">{jobDetails.description}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
@@ -299,9 +331,18 @@ export default function Dashboard() {
                   <div className="border-t pt-6">
                     <h3 className="text-xl font-semibold mb-4">Download Package</h3>
                     <div className="flex justify-center">
-                      <Button size="lg" onClick={handleDownloadPackage}>
-                        <Download className="h-5 w-5 mr-2" />
-                        Download Complete Package (ZIP)
+                      <Button size="lg" onClick={handleDownloadPackage} disabled={isDownloading}>
+                        {isDownloading ? (
+                          <>
+                            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            Downloading...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-5 w-5 mr-2" />
+                            Download Complete Package (ZIP)
+                          </>
+                        )}
                       </Button>
                     </div>
                   </div>
