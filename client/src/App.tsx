@@ -12,17 +12,19 @@ import SettingsPage from "@/pages/settings";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { Sidebar } from "@/components/layout/sidebar";
+import { Navbar } from "@/components/layout/navbar";
 import React from 'react';
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6 lg:py-8 lg:ml-64 mt-16 lg:mt-0">
+      <div className="flex-1">
+        <Navbar />
+        <main className="px-4 sm:px-6 lg:px-8 py-4 lg:ml-64 mt-12">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
