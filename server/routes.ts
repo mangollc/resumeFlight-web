@@ -318,9 +318,10 @@ async function createPDF(content: string): Promise<Buffer> {
         size: 'A4',
         bufferPages: true,
         info: {
-          Title: 'Generated Document',
-          Author: 'Resume Optimizer',
-          Subject: 'Resume/Cover Letter'
+          Title: 'Professional Resume',
+          Author: 'Resume Builder',
+          Subject: 'Resume/Cover Letter',
+          Keywords: 'resume, professional, career'
         }
       });
 
@@ -328,28 +329,34 @@ async function createPDF(content: string): Promise<Buffer> {
       doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
 
+      // Set up professional formatting
       doc.font('Helvetica')
          .fontSize(11)
          .lineGap(2);
 
+      // Process the content by paragraphs
       const paragraphs = content.split('\n\n');
       let isFirstParagraph = true;
 
       paragraphs.forEach(paragraph => {
         if (!isFirstParagraph) {
-          doc.moveDown(2);
+          doc.moveDown(1.5);
         }
 
         const lines = paragraph.split('\n');
         lines.forEach((line, lineIndex) => {
-          if (lineIndex > 0) {
-            doc.moveDown(1);
+          const trimmedLine = line.trim();
+          if (trimmedLine) {
+            if (lineIndex > 0) {
+              doc.moveDown(1);
+            }
+            doc.text(trimmedLine, {
+              align: 'left',
+              lineGap: 2,
+              width: doc.page.width - 100,
+              continued: false
+            });
           }
-          doc.text(line.trim(), {
-            align: 'left',
-            lineGap: 2,
-            width: doc.page.width - 100,
-          });
         });
 
         isFirstParagraph = false;

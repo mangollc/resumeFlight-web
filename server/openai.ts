@@ -51,6 +51,7 @@ export async function optimizeResume(resumeText: string, jobDescription: string)
         {
           role: "system",
           content: `You are an expert resume optimizer with years of experience in professional resume writing and ATS optimization. Your task is to analyze and optimize the provided resume to match the job description while maintaining authenticity and professionalism.
+
 Follow these guidelines:
 1. Analyze the job requirements and identify key skills and qualifications
 2. Restructure and enhance the resume content to highlight relevant experience
@@ -58,6 +59,13 @@ Follow these guidelines:
 4. Improve formatting and clarity while maintaining truthfulness
 5. Ensure all modifications are based on existing content
 6. Calculate a match score based on alignment with job requirements
+
+IMPORTANT:
+- Do not include any comments, feedback, or suggestions in the optimized content
+- Do not add placeholders or template text
+- Do not include any explanatory notes or revision marks
+- Keep the formatting clean and professional
+- Ensure the output is ready for direct submission to employers
 
 Return a JSON object with the following structure:
 {
@@ -108,7 +116,7 @@ Guidelines:
    [Email if present in resume]
    [Phone if present in resume]
 
-   [Today's Date: 12th Feb 2025]
+   [Today's Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}]
 
    Dear Hiring Manager,
 
@@ -129,6 +137,9 @@ Guidelines:
    - Keep content focused on matching candidate skills to job requirements
    - Use natural, professional language
    - Keep paragraphs concise and impactful
+   - Do not include any comments, suggestions, or revision marks
+   - Ensure the output is ready for direct submission
+   - Do not include any explanatory notes or formatting instructions
 
 Return a JSON object with:
 {
