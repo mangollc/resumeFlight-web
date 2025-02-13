@@ -5,6 +5,9 @@ import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetter from "@/components/resume/cover-letter";
 import { type UploadedResume, type OptimizedResume } from "@shared/schema";
+import { Card, CardContent } from "@/components/ui/card";
+import { Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const steps: Step[] = [
   {
@@ -20,12 +23,17 @@ const steps: Step[] = [
   {
     id: 3,
     title: "Optimize",
-    description: "Review and download your optimized resume"
+    description: "Review your optimized resume"
   },
   {
     id: 4,
     title: "Cover Letter",
     description: "Generate a matching cover letter"
+  },
+  {
+    id: 5,
+    title: "Summary",
+    description: "Review and download your optimized documents"
   }
 ];
 
@@ -34,6 +42,7 @@ export default function Dashboard() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
+  const [hasCoverLetter, setHasCoverLetter] = useState(false);
 
   const handleResumeUploaded = (resume: UploadedResume) => {
     setUploadedResume(resume);
@@ -49,6 +58,8 @@ export default function Dashboard() {
 
   const handleCoverLetterGenerated = () => {
     setCompletedSteps(prev => [...prev, 4]);
+    setHasCoverLetter(true);
+    setCurrentStep(5);
   };
 
   const renderCurrentStep = () => {
@@ -82,6 +93,52 @@ export default function Dashboard() {
               optimizedResumeId={optimizedResume.id}
               onGenerated={handleCoverLetterGenerated}
             />
+          </div>
+        ) : null;
+      case 5:
+        return optimizedResume ? (
+          <div className="mt-8 space-y-8">
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-2xl font-bold mb-6">Application Package Summary</h2>
+                <div className="space-y-8">
+                  {/* Optimized Resume Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Optimized Resume</h3>
+                    <Preview resume={optimizedResume} />
+                  </div>
+
+                  {/* Cover Letter Section */}
+                  {hasCoverLetter && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Cover Letter</h3>
+                      <CoverLetter 
+                        optimizedResumeId={optimizedResume.id}
+                        onGenerated={() => {}}
+                        viewOnly
+                      />
+                    </div>
+                  )}
+
+                  {/* Download Options */}
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Download Options</h3>
+                    <div className="flex flex-wrap gap-4">
+                      <Button variant="outline" size="lg">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Resume (PDF)
+                      </Button>
+                      {hasCoverLetter && (
+                        <Button variant="outline" size="lg">
+                          <FileText className="h-4 w-4 mr-2" />
+                          Download Cover Letter (PDF)
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         ) : null;
       default:
