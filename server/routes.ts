@@ -84,11 +84,11 @@ Return a detailed analysis in the following JSON format:
   "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
   "keyRequirements": ["3-5 key requirements, each under 50 words"],
   "skillsAndTools": [
-    "List of specific technical skills (programming languages, frameworks)",
-    "Database technologies (SQL, NoSQL, specific databases)",
-    "Cloud platforms and tools (AWS, Azure, DevOps tools)",
+    "Technical skills (specific programming languages, frameworks, APIs)",
+    "Database technologies (specific database names, SQL/NoSQL)",
+    "Cloud and DevOps tools (specific platform names, CI/CD tools)",
     "Testing frameworks and methodologies",
-    "Software and collaboration tools"
+    "Required software tools and platforms"
   ]
 }`
         },

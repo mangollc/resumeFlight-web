@@ -16,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 export interface JobDetails {
@@ -115,14 +114,15 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
 
   const getSkillBadgeVariant = (skill: string): "default" | "secondary" | "destructive" | "outline" => {
     const skillTypes = {
-      technical: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css", "api", "rest", "graphql", "sql", "nosql", "git", "aws", "azure", "docker", "kubernetes", "ci/cd"],
-      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel", "word", "powerpoint", "jira", "confluence", "slack", "teams"],
-      database: ["mongodb", "postgresql", "mysql", "oracle", "redis", "elasticsearch", "dynamodb"],
+      technical: ["javascript", "python", "java", "c++", "typescript", "react", "node", "html", "css", "api", "rest", "graphql", "sql", "nosql", "git", "aws", "azure", "docker", "kubernetes", "ci/cd", "frontend", "backend", "fullstack"],
+      database: ["mongodb", "postgresql", "mysql", "oracle", "redis", "elasticsearch", "dynamodb", "database"],
       cloud: ["aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2", "heroku"],
-      testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing"]
+      testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing", "qa"],
+      software: ["photoshop", "figma", "sketch", "adobe", "office", "excel", "word", "powerpoint", "jira", "confluence", "slack", "teams"]
     };
 
     const lowerSkill = skill.toLowerCase();
+
     if (skillTypes.technical.some(s => lowerSkill.includes(s))) {
       return "default"; // Blue for technical skills
     }
@@ -134,9 +134,6 @@ export default function JobInput({ resumeId, onNext, initialJobDetails }: JobInp
     }
     if (skillTypes.testing.some(s => lowerSkill.includes(s))) {
       return "secondary"; // Gray for testing
-    }
-    if (skillTypes.software.some(s => lowerSkill.includes(s))) {
-      return "secondary"; // Gray for software tools
     }
     return "default";
   };
