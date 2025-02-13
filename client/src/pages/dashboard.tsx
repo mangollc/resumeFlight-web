@@ -33,8 +33,8 @@ const steps: Step[] = [
   },
   {
     id: 3,
-    title: "Review",
-    description: "Review your AI-optimized resume"
+    title: "Optimize",
+    description: "Optimize your resume with AI"
   },
   {
     id: 4,
@@ -43,8 +43,8 @@ const steps: Step[] = [
   },
   {
     id: 5,
-    title: "Summary",
-    description: "Download your optimized documents"
+    title: "Review",
+    description: "Review optimized documents"
   }
 ];
 
@@ -411,7 +411,7 @@ export default function Dashboard() {
                 <Preview resume={optimizedResume} />
 
                 <div className="mt-6 flex justify-center">
-                  <Button 
+                  <Button
                     onClick={handleReoptimize}
                     variant="default"
                     className="w-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
@@ -456,6 +456,24 @@ export default function Dashboard() {
                   onGenerated={handleCoverLetterGenerated}
                   generatedCoverLetter={coverLetter}
                 />
+                {coverLetter && (
+                  <div className="mt-6 space-y-6">
+                    <div className="bg-muted/30 rounded-lg p-6">
+                      <h4 className="font-semibold mb-4">Preview</h4>
+                      <div className="prose prose-sm max-w-none">
+                        <pre className="whitespace-pre-wrap">{coverLetter.content}</pre>
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={() => window.location.href = `/api/cover-letter/${coverLetter.id}/download`}
+                        variant="outline"
+                      >
+                        Download Cover Letter
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 {renderNavigation()}
               </CardContent>
             </Card>

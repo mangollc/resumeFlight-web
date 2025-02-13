@@ -84,14 +84,12 @@ Return a detailed analysis in the following JSON format:
   "positionLevel": "Senior, Mid-level, Junior, Entry-level, or Intern based on requirements",
   "keyRequirements": ["3-5 key requirements, each under 50 words"],
   "skillsAndTools": [
-    "Programming languages (JavaScript, Python, etc.)",
-    "Frontend frameworks (React, Vue, etc.)",
-    "Backend technologies (Node.js, Django, etc.)",
-    "Database systems (PostgreSQL, MongoDB, etc.)",
-    "Cloud platforms (AWS, Azure, etc.)",
-    "DevOps tools (Docker, Kubernetes, etc.)",
-    "Testing frameworks (Jest, Cypress, etc.)",
-    "Development tools (Git, JIRA, etc.)"
+    "Keep each skill/tool to 1-2 words max",
+    "Focus on technical skills",
+    "Programming languages",
+    "Frameworks",
+    "Tools",
+    "Platforms"
   ]
 }`
         },
@@ -119,7 +117,9 @@ Return a detailed analysis in the following JSON format:
         location: parsed.location || "Not specified",
         positionLevel: parsed.positionLevel || "Not specified",
         keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
-        skillsAndTools: Array.isArray(parsed.skillsAndTools) ? parsed.skillsAndTools : ["No specific skills/tools found"],
+        skillsAndTools: Array.isArray(parsed.skillsAndTools) ? 
+          parsed.skillsAndTools.map((skill: string) => skill.split(' ').slice(0, 2).join(' ')) : 
+          ["No specific skills/tools found"],
         metrics: {
           keywords: Math.min(100, Math.max(0, Number(parsed.metrics?.keywords) || 0)),
           skills: Math.min(100, Math.max(0, Number(parsed.metrics?.skills) || 0)),
