@@ -53,14 +53,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const handleCancel = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
+      abortControllerRef.current = null;
     }
     setIsProcessing(false);
     setExtractedDetails(null);
-    if (activeTab === "url") {
-      setJobUrl("");
-    } else {
-      setJobDescription("");
-    }
+    fetchJobMutation.reset();
   };
 
   const handleReset = () => {
@@ -68,10 +65,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     setJobDescription("");
     setExtractedDetails(null);
     setActiveTab("url");
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    setIsProcessing(false);
+    handleCancel();
     setIsCollapsed(false);
   };
 
@@ -118,7 +112,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       setExtractedDetails(details);
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      setIsCollapsed(false);  // Expand the job details section
+      setIsCollapsed(false);
 
       toast({
         title: "Success",
@@ -161,8 +155,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
     },
     onSettled: () => {
-      setIsProcessing(false);
-      abortControllerRef.current = null;
+      if (!fetchJobMutation.isSuccess) {
+        setIsProcessing(false);
+        abortControllerRef.current = null;
+      }
     }
   });
 
