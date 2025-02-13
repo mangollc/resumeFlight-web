@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RotateCcw } from "lucide-react";
+import { Loader2, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
@@ -17,7 +18,6 @@ export interface JobDetails {
   company: string;
   salary?: string;
   location: string;
-  url?: string;
   description?: string;
   positionLevel?: string;
   keyRequirements?: string[];
@@ -40,8 +40,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState(initialJobDetails?.url || "");
   const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
+  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
 
@@ -72,14 +74,17 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       )
     );
     setIsProcessing(false);
+    setExtractedDetails(null);
     fetchJobMutation.reset();
   };
 
   const handleReset = () => {
     setJobUrl("");
     setJobDescription("");
+    setExtractedDetails(null);
     setActiveTab("url");
     handleCancel();
+    setIsCollapsed(false);
     setProgressSteps(INITIAL_STEPS);
   };
 
@@ -147,6 +152,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           skillsAndTools: data.jobDetails.skillsAndTools,
         };
 
+        setExtractedDetails(details);
         queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
 
         toast({
@@ -180,6 +186,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           });
         }
       }
+      setExtractedDetails(null);
     },
     onSettled: () => {
       if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
@@ -211,50 +218,30 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   ): "default" | "secondary" | "destructive" | "outline" => {
     const skillTypes = {
       technical: [
-        "javascript",
-        "python",
-        "java",
-        "c++",
-        "typescript",
-        "react",
-        "node",
-        "html",
-        "css",
-        "api",
-        "rest",
-        "graphql",
-        "frontend",
-        "backend",
-        "fullstack",
+        "javascript", "python", "java", "c++", "typescript", "react", "node",
+        "html", "css", "api", "rest", "graphql", "frontend", "backend", "fullstack",
+        "vue", "angular", "svelte", "next.js", "express", "django", "flask"
       ],
       database: [
-        "sql",
-        "nosql",
-        "mongodb",
-        "postgresql",
-        "mysql",
-        "oracle",
-        "redis",
-        "elasticsearch",
-        "dynamodb",
-        "database",
+        "sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis",
+        "elasticsearch", "dynamodb", "database", "cassandra", "sqlite"
       ],
       cloud: [
-        "aws",
-        "azure",
-        "gcp",
-        "cloud",
-        "serverless",
-        "lambda",
-        "s3",
-        "ec2",
-        "heroku",
-        "docker",
-        "kubernetes",
-        "ci/cd",
+        "aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2",
+        "heroku", "docker", "kubernetes", "ci/cd", "devops", "terraform"
       ],
-      testing: ["jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing", "qa"],
-      tools: ["git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack", "teams"],
+      testing: [
+        "jest", "mocha", "cypress", "selenium", "junit", "pytest", "testing",
+        "qa", "tdd", "bdd", "unit testing", "integration testing"
+      ],
+      tools: [
+        "git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack",
+        "teams", "vscode", "intellij", "webpack", "babel", "npm", "yarn"
+      ],
+      soft: [
+        "communication", "leadership", "teamwork", "agile", "scrum", "kanban",
+        "project management", "problem solving", "analytical"
+      ]
     };
 
     const lowerSkill = skill.toLowerCase();
@@ -274,6 +261,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     if (skillTypes.tools.some((s) => lowerSkill.includes(s))) {
       return "outline";
     }
+    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) {
+      return "destructive";
+    }
     return "default";
   };
 
@@ -285,6 +275,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           Provide your job post URL or manually paste text in the manual input box
         </p>
       </div>
+
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs
           value={activeTab}
@@ -376,6 +367,73 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           </Button>
         </div>
       </form>
+
+      {extractedDetails && !isProcessing && (
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="p-6 space-y-6">
+            <div className="grid gap-4">
+              <div>
+                <p className="font-medium mb-1">Title</p>
+                <p className="text-sm text-muted-foreground">
+                  {extractedDetails.title || "Not specified"}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Company</p>
+                <p className="text-sm text-muted-foreground">
+                  {extractedDetails.company || "Not specified"}
+                </p>
+              </div>
+              <div>
+                <p className="font-medium mb-1">Location</p>
+                <p className="text-sm text-muted-foreground">
+                  {extractedDetails.location || "Not specified"}
+                </p>
+              </div>
+              {extractedDetails.salary && (
+                <div>
+                  <p className="font-medium mb-1">Salary</p>
+                  <p className="text-sm text-muted-foreground">{extractedDetails.salary}</p>
+                </div>
+              )}
+              <div>
+                <p className="font-medium mb-1">Position Level</p>
+                <p className="text-sm text-muted-foreground">
+                  {extractedDetails.positionLevel || "Not specified"}
+                </p>
+              </div>
+            </div>
+
+            {extractedDetails.keyRequirements &&
+              extractedDetails.keyRequirements.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Key Requirements</h4>
+                  <ul className="list-disc list-inside space-y-2">
+                    {extractedDetails.keyRequirements.map((requirement, index) => (
+                      <li key={index} className="text-muted-foreground">
+                        {requirement}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {extractedDetails.skillsAndTools &&
+              extractedDetails.skillsAndTools.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {extractedDetails.skillsAndTools.map((skill, index) => (
+                      <Badge key={index} variant={getSkillBadgeVariant(skill)}>
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
 
       <LoadingDialog
         open={isProcessing}
