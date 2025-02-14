@@ -35,13 +35,28 @@ import {
 export default function UploadedResumesPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { data: resumes, isLoading } = useQuery<UploadedResume[]>({
+  const { data: resumes, isLoading, isError, error } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
+    retry: 2,
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
+    },
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
+
+      // Snapshot the previous value
+      const previousResumes = queryClient.getQueryData<UploadedResume[]>(["/api/uploaded-resumes"]);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) =>
+        old?.filter((resume) => resume.id !== id)
+      );
+
+      return { previousResumes };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
@@ -50,14 +65,32 @@ export default function UploadedResumesPage() {
         description: "Resume deleted successfully",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _, context) => {
+      // Rollback to the previous value
+      if (context?.previousResumes) {
+        queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
+      }
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to delete resume",
         variant: "destructive",
       });
     },
   });
+
+  if (isError) {
+    return (
+      <div className="flex-1 p-4 sm:p-8">
+        <div className="text-center py-12">
+          <div className="text-destructive mb-4">Error loading resumes</div>
+          <div className="text-muted-foreground">{(error as Error)?.message || "Please try again later"}</div>
+          <Button onClick={() => window.location.reload()} size="sm" className="mt-4">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -124,7 +157,12 @@ export default function UploadedResumesPage() {
                     <TableCell className="py-2 pr-2 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 w-7 p-0"
+                            disabled={deleteMutation.isPending}
+                          >
                             <MoreVertical className="h-4 w-4" />
                             <span className="sr-only">Open menu</span>
                           </Button>
@@ -134,6 +172,7 @@ export default function UploadedResumesPage() {
                           <DropdownMenuItem
                             onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
                             className="flex items-center cursor-pointer"
+                            disabled={deleteMutation.isPending}
                           >
                             <FileText className="mr-2 h-4 w-4" />
                             Optimize
@@ -143,6 +182,7 @@ export default function UploadedResumesPage() {
                               <DropdownMenuItem
                                 onSelect={(e) => e.preventDefault()}
                                 className="text-destructive focus:text-destructive cursor-pointer"
+                                disabled={deleteMutation.isPending}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
                                 Delete
@@ -161,8 +201,9 @@ export default function UploadedResumesPage() {
                                 <AlertDialogAction
                                   onClick={() => deleteMutation.mutate(resume.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  disabled={deleteMutation.isPending}
                                 >
-                                  Delete
+                                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
