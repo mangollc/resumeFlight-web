@@ -278,7 +278,13 @@ export default function Dashboard() {
         {
           jobUrl: jobDetails.url,
           jobDescription: jobDetails.description,
-          version: nextVersion
+          version: nextVersion,
+          aiPrompt: `Please optimize this resume to achieve higher match scores across all metrics (keywords, skills, experience, and overall) compared to version ${optimizationVersion.toFixed(1)}. Focus on:
+            1. Enhanced keyword alignment with the job description
+            2. Stronger skills matching and professional terminology
+            3. More impactful experience descriptions
+            4. Quantifiable achievements and metrics
+            Ensure improvements in all match score categories while maintaining authenticity and professional tone.`
         }
       );
 
@@ -288,6 +294,7 @@ export default function Dashboard() {
 
       const optimizedData = await response.json();
       handleOptimizationComplete(optimizedData, jobDetails);
+      setOptimizationVersion(nextVersion);
 
       toast({
         title: "Success",
@@ -489,7 +496,7 @@ export default function Dashboard() {
                   {!coverLetter && (
                     <Button
                       variant="outline"
-                      onClick={() => handleNext()}
+                      onClick={handleNext}
                       className="text-muted-foreground"
                     >
                       Skip Cover Letter
@@ -625,19 +632,13 @@ export default function Dashboard() {
                 </h2>
                 <div className="space-y-12">
                   <div>
-                    <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
-                      <span className="bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
-                        Resume Analysis & Comparison
-                      </span>
+                    <h3 className="text-xl font-semibold mb-6 text-foreground/90">
+                      Preview
                     </h3>
-                    <div className="transition-all duration-300">
-                      <ComparisonView
-                        currentResume={optimizedResume}
-                        originalContent={optimizedResume.originalContent}
-                        onReoptimize={handleReoptimize}
-                        isOptimizing={isOptimizing}
-                      />
-                    </div>
+                    <Preview
+                      resume={optimizedResume}
+                      coverLetter={coverLetter}
+                    />
                   </div>
 
                   <div>
