@@ -4,8 +4,8 @@ const API_TIMEOUT = 15000; // 15 seconds
 const PARSING_TIMEOUT = 10000; // 10 seconds
 const SAFE_TIMEOUT = 20000; // 20 seconds
 
-function validateTimeout(value: number, defaultValue: number = DEFAULT_TIMEOUT): number {
-    if (!value || value <= 0 || value > MAX_ALLOWED_TIMEOUT) {
+function validateTimeout(value: number | undefined, defaultValue: number = DEFAULT_TIMEOUT): number {
+    if (!value || typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
         console.warn(`Invalid timeout value: ${value}, using default: ${defaultValue}`);
         return defaultValue;
     }
