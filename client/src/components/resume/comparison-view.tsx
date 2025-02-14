@@ -56,7 +56,7 @@ export default function ComparisonView({
     fetch(`/api/optimized-resume/${currentResume.id}/versions`)
       .then((res) => res.json())
       .then((versions) => {
-        if (versions.length > 1) {
+        if (versions.length > 0) {
           setAvailableVersions(versions);
           setSelectedVersion(String(currentResume.metadata.version));
         }
@@ -82,90 +82,6 @@ export default function ComparisonView({
     }
   };
 
-  const ComparisonContent = () => (
-    <div className="space-y-6">
-      <ComparisonSlider
-        beforeContent={originalContent}
-        afterContent={comparisonContent}
-        isLoading={isOptimizing}
-        showFullScreen={!isFullScreen}
-        onFullScreen={() => setIsFullScreen(true)}
-      />
-
-      {currentResume.metrics && (
-        <div className="mt-6 grid grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Original Metrics</h4>
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Keywords Match</span>
-                  <span>{currentResume.metrics.before.keywords}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.before.keywords} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Skills Match</span>
-                  <span>{currentResume.metrics.before.skills}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.before.skills} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Experience Match</span>
-                  <span>{currentResume.metrics.before.experience}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.before.experience} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm font-medium">
-                  <span>Overall Score</span>
-                  <span>{currentResume.metrics.before.overall}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.before.overall} />
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-sm font-medium">Optimized Metrics</h4>
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Keywords Match</span>
-                  <span>{currentResume.metrics.after.keywords}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.after.keywords} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Skills Match</span>
-                  <span>{currentResume.metrics.after.skills}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.after.skills} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm">
-                  <span>Experience Match</span>
-                  <span>{currentResume.metrics.after.experience}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.after.experience} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm font-medium">
-                  <span>Overall Score</span>
-                  <span>{currentResume.metrics.after.overall}%</span>
-                </div>
-                <MetricBar value={currentResume.metrics.after.overall} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -175,17 +91,19 @@ export default function ComparisonView({
             <Select value={selectedVersion} onValueChange={handleVersionChange}>
               <SelectTrigger className="w-[200px]">
                 <History className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Select version" />
+                <SelectValue>Optimized v{selectedVersion}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {availableVersions.map((v) => (
-                  <SelectItem
-                    key={v.metadata.version}
-                    value={String(v.metadata.version)}
-                  >
-                    Version {v.metadata.version.toFixed(1)}
-                  </SelectItem>
-                ))}
+                {availableVersions
+                  .filter(v => String(v.metadata.version) !== selectedVersion)
+                  .map((v) => (
+                    <SelectItem
+                      key={v.metadata.version}
+                      value={String(v.metadata.version)}
+                    >
+                      Version {v.metadata.version.toFixed(1)}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           )}
@@ -213,12 +131,119 @@ export default function ComparisonView({
 
       <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
         <DialogContent className="max-w-6xl w-full">
-          <ComparisonContent />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Resume Comparison</h3>
+              {availableVersions.length > 1 && (
+                <Select value={selectedVersion} onValueChange={handleVersionChange}>
+                  <SelectTrigger className="w-[200px]">
+                    <History className="w-4 h-4 mr-2" />
+                    <SelectValue>Optimized v{selectedVersion}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVersions
+                      .filter(v => String(v.metadata.version) !== selectedVersion)
+                      .map((v) => (
+                        <SelectItem
+                          key={v.metadata.version}
+                          value={String(v.metadata.version)}
+                        >
+                          Version {v.metadata.version.toFixed(1)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <ComparisonSlider
+              beforeContent={originalContent}
+              afterContent={comparisonContent}
+              isLoading={isOptimizing}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
       <Card className="p-6">
-        <ComparisonContent />
+        <ComparisonSlider
+          beforeContent={originalContent}
+          afterContent={comparisonContent}
+          isLoading={isOptimizing}
+          showFullScreen={!isFullScreen}
+          onFullScreen={() => setIsFullScreen(true)}
+        />
+
+        {currentResume.metrics && (
+          <div className="mt-6 grid grid-cols-2 gap-4">
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Original Metrics</h4>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Keywords Match</span>
+                    <span>{currentResume.metrics.before.keywords}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.before.keywords} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Skills Match</span>
+                    <span>{currentResume.metrics.before.skills}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.before.skills} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Experience Match</span>
+                    <span>{currentResume.metrics.before.experience}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.before.experience} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>Overall Score</span>
+                    <span>{currentResume.metrics.before.overall}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.before.overall} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium">Optimized Metrics</h4>
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Keywords Match</span>
+                    <span>{currentResume.metrics.after.keywords}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.after.keywords} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Skills Match</span>
+                    <span>{currentResume.metrics.after.skills}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.after.skills} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Experience Match</span>
+                    <span>{currentResume.metrics.after.experience}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.after.experience} />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>Overall Score</span>
+                    <span>{currentResume.metrics.after.overall}%</span>
+                  </div>
+                  <MetricBar value={currentResume.metrics.after.overall} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

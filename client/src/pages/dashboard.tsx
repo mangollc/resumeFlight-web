@@ -63,8 +63,8 @@ const steps: Step[] = [
   },
   {
     id: 3,
-    title: "Preview",
-    description: "Preview your resume"
+    title: "Optimize",
+    description: "Get your resume optimized by AI"
   },
   {
     id: 4,
