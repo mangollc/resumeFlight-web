@@ -6,8 +6,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set reasonable timeout values
-const TIMEOUT_DURATION = 120000; // 2 minutes in milliseconds
+// Set reasonable timeout values that stay within 32-bit integer limits
+const TIMEOUT_DURATION = 30000; // 30 seconds in milliseconds
 
 app.use((req, res, next) => {
   // Set timeouts with proper error handling
