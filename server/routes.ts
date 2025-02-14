@@ -289,7 +289,6 @@ function getDefaultAnalysis() {
 }
 
 
-//Rest of the file
 const SAFE_TIMEOUT = 30000; // 30 seconds in milliseconds
 
 import type { Express, Request } from "express";
@@ -297,7 +296,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { optimizeResume, generateCoverLetter, openai, analyzeResumeDifferences } from "./openai";
+import { optimizeResume as originalOptimizeResume, generateCoverLetter, openai, analyzeResumeDifferences } from "./openai";
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
@@ -533,6 +532,41 @@ function getInitials(text: string): string {
     return "RES";
 }
 
+async function optimizeResume(content: string, jobDescription: string) {
+    try {
+        console.log("[Optimization] Starting resume optimization...");
+        const response = await openai.chat.completions.create({
+            model: "gpt-4",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a professional resume optimizer. Analyze the resume and job description, then provide an optimized version of the resume.`
+                },
+                {
+                    role: "user",
+                    content: `Original Resume:\n${content}\n\nJob Description:\n${jobDescription}`
+                }
+            ],
+            temperature: 0.3,
+            max_tokens: 2000,
+            timeout: 20000 // 20 second timeout
+        });
+
+        const optimizedContent = response.choices[0].message.content;
+        if (!optimizedContent) {
+            throw new Error("Failed to generate optimized content");
+        }
+
+        return {
+            optimizedContent,
+            suggestions: []
+        };
+    } catch (error: any) {
+        console.error("[Optimization] Error:", error);
+        throw new Error(`Failed to optimize resume: ${error.message}`);
+    }
+}
+
 export function registerRoutes(app: Express): Server {
     setupAuth(app);
 
@@ -621,44 +655,45 @@ export function registerRoutes(app: Express): Server {
     });
 
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
+        let timeoutId: NodeJS.Timeout | null = null;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            controller.abort();
-        }, MAX_TIMEOUT);
 
         try {
             if (!req.isAuthenticated()) {
-                clearTimeout(timeoutId);
                 return res.sendStatus(401);
             }
 
-            const { jobUrl, jobDescription, version } = req.body;
+            const { jobUrl, jobDescription } = req.body;
             if (!jobUrl && !jobDescription) {
-                clearTimeout(timeoutId);
                 return res.status(400).json({ error: "Please provide either a job URL or description" });
             }
 
             const uploadedResume = await storage.getUploadedResume(parseInt(req.params.id));
             if (!uploadedResume) {
-                clearTimeout(timeoutId);
-                return res.status(404).send("Resume not found");
+                return res.status(404).json({ error: "Resume not found" });
             }
             if (uploadedResume.userId !== req.user!.id) {
-                clearTimeout(timeoutId);
                 return res.sendStatus(403);
             }
 
+            // Set up timeout and cleanup
+            timeoutId = setTimeout(() => {
+                controller.abort();
+            }, 25000); // 25 second timeout
+
             // Handle client disconnection
             req.on('close', () => {
+                if (timeoutId) clearTimeout(timeoutId);
                 controller.abort();
-                clearTimeout(timeoutId);
+                console.log("[Optimization] Client disconnected, aborting operation");
             });
 
-            let jobDetails: JobDetails;
             let finalJobDescription: string;
+            let jobDetails: JobDetails;
 
-            if (jobUrl) {
-                try {
+            try {
+                if (jobUrl) {
+                    console.log("[Optimization] Extracting job details from URL");
                     const extractedDetails = await extractJobDetails(jobUrl);
                     finalJobDescription = extractedDetails.description;
                     const analysis = await analyzeJobDescription(finalJobDescription);
@@ -666,70 +701,72 @@ export function registerRoutes(app: Express): Server {
                         ...extractedDetails,
                         ...analysis
                     };
-                } catch (error: any) {
-                    clearTimeout(timeoutId);
-                    throw error;
+                } else {
+                    console.log("[Optimization] Processing manual job description");
+                    finalJobDescription = jobDescription;
+                    const analysis = await analyzeJobDescription(jobDescription);
+                    jobDetails = {
+                        ...analysis,
+                        description: jobDescription
+                    };
                 }
-            } else {
-                finalJobDescription = jobDescription;
-                const analysis = await analyzeJobDescription(jobDescription);
-                jobDetails = {
-                    ...analysis,
-                    description: jobDescription
-                };
+
+                console.log("[Optimization] Calculating initial metrics");
+                const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
+
+                console.log("[Optimization] Starting resume optimization");
+                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
+
+                console.log("[Optimization] Calculating post-optimization metrics");
+                const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
+
+                const initials = getInitials(uploadedResume.content);
+                const cleanJobTitle = jobDetails.title
+                    .replace(/[^a-zA-Z0-9\s]/g, '')
+                    .replace(/\s+/g, '_')
+                    .substring(0, 30);
+
+                const versionStr = '_v1.0';
+                const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
+
+                console.log("[Optimization] Saving optimized resume");
+                const optimizedResume = await storage.createOptimizedResume({
+                    content: optimized.optimizedContent,
+                    originalContent: uploadedResume.content,
+                    jobDescription: finalJobDescription,
+                    jobUrl: jobUrl || null,
+                    jobDetails,
+                    uploadedResumeId: uploadedResume.id,
+                    userId: req.user!.id,
+                    metadata: {
+                        filename: newFilename,
+                        optimizedAt: new Date().toISOString(),
+                        version: 1.0
+                    },
+                    metrics: {
+                        before: beforeMetrics,
+                        after: afterMetrics
+                    }
+                });
+
+                if (timeoutId) clearTimeout(timeoutId);
+                console.log("[Optimization] Successfully completed optimization");
+                res.json(optimizedResume);
+            } catch (error: any) {
+                console.error("[Optimization] Error during optimization:", error);
+                throw error;
             }
-
-            const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
-
-            const optimizePromise = optimizeResume(uploadedResume.content, finalJobDescription);
-            const optimized = await Promise.race([
-                optimizePromise,
-                new Promise((_, reject) => {
-                    setTimeout(() => {
-                        reject(new Error('Resume optimization timed out'));
-                    }, API_TIMEOUT);
-                })
-            ]);
-
-            const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
-
-            const initials = getInitials(uploadedResume.content);
-            const cleanJobTitle = jobDetails.title
-                .replace(/[^a-zA-Z0-9\s]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 30);
-
-            const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
-            const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
-
-            const optimizedResume = await storage.createOptimizedResume({
-                content: optimized.optimizedContent,
-                originalContent: uploadedResume.content,
-                jobDescription: finalJobDescription,
-                jobUrl: jobUrl || null,
-                jobDetails,
-                uploadedResumeId: uploadedResume.id,
-                userId: req.user!.id,
-                metadata: {
-                    filename: newFilename,
-                    optimizedAt: new Date().toISOString(),
-                    version: version || 1.0
-                },
-                metrics: {
-                    before: beforeMetrics,
-                    after: afterMetrics
-                }
-            });
-
-            clearTimeout(timeoutId);
-            res.json(optimizedResume);
         } catch (error: any) {
-            clearTimeout(timeoutId);
-            console.error("Optimization error:", error);
+            if (timeoutId) clearTimeout(timeoutId);
+            console.error("[Optimization] Error:", error);
+
             if (controller.signal.aborted) {
+                console.log("[Optimization] Request aborted");
                 return;
             }
-            res.status(500).json({ error: error.message });
+
+            const errorMessage = error.message || "Failed to optimize resume";
+            res.status(500).json({ error: errorMessage });
         }
     });
 
@@ -864,37 +901,25 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    app.get("/api/optimized-resume/:id/cover-letter/latest/download", async (req, res) => {
+    app.get("/api/optimized-resume/:id/versions", async (req, res) => {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
 
-            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
-            if (!optimizedResume) return res.status(404).send("Optimized resume not found");
-            if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
+            const resumeId = parseInt(req.params.id);
+            const resume = await storage.getOptimizedResume(resumeId);
 
-            const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
-            if (!coverLetters.length) return res.status(404).send("No cover letters found");
+            if (!resume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
 
-            const latestCoverLetter = coverLetters.reduce((latest, current) => {
-                return (!latest || current.metadata.version > latest.metadata.version) ? current : latest;
-            }, coverLetters[0]);
+            if (resume.userId !== req.user!.id) {
+                return res.sendStatus(403);
+            }
 
-            const pdfBuffer = await createPDF(latestCoverLetter.content);
-
-            const filename = formatFilename(
-                req.query.filename as string ||
-                `${getInitials(optimizedResume.content)}_${
-                    optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
-                }_v${latestCoverLetter.metadata.version.toFixed(1)}_cover`,
-                'pdf'
-            );
-
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('ContentLength', pdfBuffer.length);
-            res.send(pdfBuffer);
+            const versions = await getResumeVersions(resumeId);
+            res.json(versions);
         } catch (error: any) {
-            console.error("Download error:", error);
+            console.error("[Versions Route] Error:", error);
             res.status(500).json({ error: error.message });
         }
     });
@@ -940,25 +965,37 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    app.get("/api/optimized-resume/:id/versions", async (req, res) => {
+    app.get("/api/optimized-resume/:id/cover-letter/latest/download", async (req, res) => {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
 
-            const resumeId = parseInt(req.params.id);
-            const resume = await storage.getOptimizedResume(resumeId);
+            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            if (!optimizedResume) return res.status(404).send("Optimized resume not found");
+            if (optimizedResume.userId !== req.user!.id) return res.sendStatus(403);
 
-            if (!resume) {
-                return res.status(404).json({ error: "Resume not found" });
-            }
+            const coverLetters = await storage.getCoverLettersByOptimizedResumeId(parseInt(req.params.id));
+            if (!coverLetters.length) return res.status(404).send("No cover letters found");
 
-            if (resume.userId !== req.user!.id) {
-                return res.sendStatus(403);
-            }
+            const latestCoverLetter = coverLetters.reduce((latest, current) => {
+                return (!latest || current.metadata.version > latest.metadata.version) ? current : latest;
+            }, coverLetters[0]);
 
-            const versions = await getResumeVersions(resumeId);
-            res.json(versions);
+            const pdfBuffer = await createPDF(latestCoverLetter.content);
+
+            const filename = formatFilename(
+                req.query.filename as string ||
+                `${getInitials(optimizedResume.content)}_${
+                    optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+                }_v${latestCoverLetter.metadata.version.toFixed(1)}_cover`,
+                'pdf'
+            );
+
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('ContentLength', pdfBuffer.length);
+            res.send(pdfBuffer);
         } catch (error: any) {
-            console.error("[Versions Route] Error:", error);
+            console.error("Download error:", error);
             res.status(500).json({ error: error.message });
         }
     });
