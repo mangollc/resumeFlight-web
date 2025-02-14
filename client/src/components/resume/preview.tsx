@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Maximize2, Download, History } from "lucide-react";
+import { FileText, Maximize2, Download } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -25,13 +25,6 @@ import { Confetti } from "@/components/ui/confetti";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
-  coverLetter?: {
-    id: number;
-    content: string;
-    metadata: {
-      version: number;
-    };
-  };
   onVersionChange?: (version: string) => void;
 }
 
@@ -92,14 +85,14 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
           style={{ width: `${after}%` }}
         />
       </div>
-      <p className="text-xs text-muted-foreground" aria-label={scoreLabel}>
+      <div className="text-xs text-muted-foreground" aria-label={scoreLabel}>
         {scoreLabel}
-      </p>
+      </div>
     </div>
   );
 };
 
-export default function Preview({ resume, coverLetter, onVersionChange }: PreviewProps) {
+export default function Preview({ resume, onVersionChange }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<string>("");
@@ -107,7 +100,14 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isOptimized && (resume as OptimizedResume).metrics?.after?.overall >= 80) {
+    if (!resume) return;
+
+    const isOptimized = "jobDescription" in resume;
+    if (!isOptimized) return;
+
+    const optimizedResume = resume as OptimizedResume;
+
+    if (optimizedResume.metrics?.after?.overall >= 80) {
       setShowConfetti(true);
       toast({
         title: "Outstanding Achievement! 🎉",
@@ -115,23 +115,31 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
       });
     }
 
-    if (isOptimized) {
-      fetch(`/api/optimized-resume/${(resume as OptimizedResume).id}/versions`)
-        .then(res => res.json())
-        .then(versions => {
+    fetch(`/api/optimized-resume/${optimizedResume.id}/versions`)
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch versions');
+        return res.json();
+      })
+      .then(versions => {
+        if (Array.isArray(versions)) {
           setAvailableVersions(versions);
-          const currentVersion = String((resume as OptimizedResume).metadata.version);
+          const currentVersion = String(optimizedResume.metadata?.version || "1.0");
           setSelectedVersion(currentVersion);
-        })
-        .catch(console.error);
-    }
-  }, [resume]);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching versions:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load resume versions",
+          variant: "destructive",
+        });
+      });
+  }, [resume, toast]);
 
   const handleVersionChange = (version: string) => {
     setSelectedVersion(version);
-    if (onVersionChange) {
-      onVersionChange(version);
-    }
+    onVersionChange?.(version);
   };
 
   if (!resume) {
@@ -140,10 +148,10 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
         <CardContent className="p-6 flex flex-col items-center justify-center min-h-[300px] text-center">
           <FileText className="h-12 w-12 text-muted-foreground mb-4" />
           <div className="space-y-2">
-            <p className="font-medium">No resume selected</p>
-            <p className="text-sm text-muted-foreground">
+            <div className="font-medium">No resume selected</div>
+            <div className="text-sm text-muted-foreground">
               Upload a resume to get started with optimization
-            </p>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -172,10 +180,15 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
     return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
   };
 
-  const renderVersionSelect = (versions: OptimizedResume[]) => {
-    const sortedVersions = Array.from(
-      new Set(versions.map(v => v.metadata.version))
-    ).sort((a, b) => b - a);
+  const renderVersionSelect = () => {
+    if (!availableVersions.length) return null;
+
+    const versions = availableVersions
+      .map(v => v.metadata?.version)
+      .filter((v): v is number => typeof v === 'number')
+      .sort((a, b) => b - a);
+
+    if (!versions.length) return null;
 
     return (
       <Select
@@ -188,7 +201,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {sortedVersions.map((version) => (
+          {versions.map((version) => (
             <SelectItem
               key={version}
               value={String(version)}
@@ -209,9 +222,9 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
           <div className="flex flex-col space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <h3 className="font-semibold truncate max-w-[200px] sm:max-w-none">
+                <div className="font-semibold truncate max-w-[200px] sm:max-w-none">
                   {resume.metadata.filename}
-                </h3>
+                </div>
                 {isOptimized ? (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
                     Optimized
@@ -223,7 +236,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {isOptimized && availableVersions.length > 1 && renderVersionSelect(availableVersions)}
+                {isOptimized && availableVersions.length > 1 && renderVersionSelect()}
                 {isOptimized && (
                   <a
                     href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
@@ -257,7 +270,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
                         <>
                           {availableVersions.length > 1 && (
                             <div className="flex justify-end mb-4">
-                              {renderVersionSelect(availableVersions)}
+                              {renderVersionSelect()}
                             </div>
                           )}
                           <DiffView
@@ -286,7 +299,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
             <div className="mt-6 space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Resume Match Analysis</h4>
+                  <div className="font-semibold">Resume Match Analysis</div>
                   <div className="text-xs text-muted-foreground">
                     {(resume as OptimizedResume).metrics?.before
                       ? "Showing improvement from original resume"
