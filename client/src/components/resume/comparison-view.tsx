@@ -41,36 +41,40 @@ const MetricBar = ({ value }: { value: number }) => (
   </div>
 );
 
-export default function ComparisonView({
+const ComparisonView = ({
   currentResume,
   originalContent,
   onReoptimize,
   isOptimizing,
-}: ComparisonViewProps) {
-  const [selectedVersion, setSelectedVersion] = useState<string>("");
+}: ComparisonViewProps) => {
+  const [selectedVersion, setSelectedVersion] = useState<string>(
+    currentResume.metadata.version.toString()
+  );
   const [availableVersions, setAvailableVersions] = useState<OptimizedResume[]>([]);
   const [comparisonContent, setComparisonContent] = useState<string>(currentResume.content);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetch(`/api/optimized-resume/${currentResume.id}/versions`)
-      .then((res) => res.json())
-      .then((versions) => {
-        if (versions.length > 0) {
-          setAvailableVersions(versions);
-          setSelectedVersion(String(currentResume.metadata.version));
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching versions:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load resume versions",
-          variant: "destructive",
+    if (isFullScreen) {
+      fetch(`/api/optimized-resume/${currentResume.id}/versions`)
+        .then((res) => res.json())
+        .then((versions) => {
+          if (versions.length > 0) {
+            setAvailableVersions(versions);
+            setSelectedVersion(String(currentResume.metadata.version));
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching versions:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load resume versions",
+            variant: "destructive",
+          });
         });
-      });
-  }, [currentResume.id]);
+    }
+  }, [currentResume.id, isFullScreen]);
 
   const handleVersionChange = async (version: string) => {
     setSelectedVersion(version);
@@ -83,35 +87,35 @@ export default function ComparisonView({
     }
   };
 
-const renderMetricsSection = () => (
-  <div className="mt-4 grid grid-cols-2 gap-4 bg-muted/30 rounded-lg p-3">
-    <div className="space-y-1.5">
-      <h4 className="text-xs font-medium mb-2">Original Metrics</h4>
-      {Object.entries(currentResume.metrics.before).map(([key, value]) => (
-        <div key={key} className="space-y-0.5">
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
-            <span className="font-medium">{value}%</span>
+  const renderMetricsSection = () => (
+    <div className="mt-4 grid grid-cols-2 gap-4 bg-muted/30 rounded-lg p-3">
+      <div className="space-y-1.5">
+        <h4 className="text-xs font-medium mb-2">Original Metrics</h4>
+        {Object.entries(currentResume.metrics.before).map(([key, value]) => (
+          <div key={key} className="space-y-0.5">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
+              <span className="font-medium">{value}%</span>
+            </div>
+            <MetricBar value={value} />
           </div>
-          <MetricBar value={value} />
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
 
-    <div className="space-y-1.5">
-      <h4 className="text-xs font-medium mb-2">Optimized Metrics</h4>
-      {Object.entries(currentResume.metrics.after).map(([key, value]) => (
-        <div key={key} className="space-y-0.5">
-          <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
-            <span className="font-medium">{value}%</span>
+      <div className="space-y-1.5">
+        <h4 className="text-xs font-medium mb-2">Optimized Metrics</h4>
+        {Object.entries(currentResume.metrics.after).map(([key, value]) => (
+          <div key={key} className="space-y-0.5">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
+              <span className="font-medium">{value}%</span>
+            </div>
+            <MetricBar value={value} />
           </div>
-          <MetricBar value={value} />
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
 
   const renderComparisonContent = (inDialog: boolean = false) => (
     <>
@@ -138,12 +142,32 @@ const renderMetricsSection = () => (
               )}
             </Button>
           )}
+          {inDialog && availableVersions.length > 1 && (
+            <Select
+              value={selectedVersion}
+              onValueChange={handleVersionChange}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableVersions.map((v) => (
+                  <SelectItem
+                    key={v.metadata.version}
+                    value={String(v.metadata.version)}
+                  >
+                    Version {v.metadata.version.toFixed(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
       </div>
 
       <ComparisonSlider
         beforeContent={originalContent}
-        afterContent={currentResume.content}
+        afterContent={inDialog ? comparisonContent : currentResume.content}
         isLoading={isOptimizing}
         showFullScreen={!inDialog}
         onFullScreen={() => setIsFullScreen(true)}
@@ -169,4 +193,6 @@ const renderMetricsSection = () => (
       </Card>
     </div>
   );
-}
+};
+
+export default ComparisonView;

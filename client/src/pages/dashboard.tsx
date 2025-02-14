@@ -258,6 +258,7 @@ export default function Dashboard() {
     setCoverLetters([]);
   };
 
+  // Fix handleReoptimize function
   const handleReoptimize = async () => {
     if (!uploadedResume?.id || !jobDetails) {
       toast({
@@ -297,6 +298,9 @@ export default function Dashboard() {
       setOptimizedResume(optimizedData);
       setOptimizationVersion(nextVersion);
 
+      // Invalidate queries to ensure latest data
+      await queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
+
       toast({
         title: "Success",
         description: `Resume optimized (v${nextVersion.toFixed(1)})`,
@@ -314,11 +318,12 @@ export default function Dashboard() {
   };
 
   const canGoBack = currentStep > 1;
+  // Fix Skip Cover Letter button and step completion logic
   const canGoNext = currentStep < 5 && (
     (currentStep === 1 && !!uploadedResume) ||
     (currentStep === 2 && !!jobDetails) ||
-    (currentStep === 3) ||
-    (currentStep === 4 && !!coverLetter)
+    (currentStep === 3 && !!optimizedResume) ||
+    (currentStep === 4) // Allow next even without cover letter for skipping
   );
 
   const handleBack = () => {
@@ -327,12 +332,13 @@ export default function Dashboard() {
     }
   };
 
+  // Fix Skip Cover Letter button and step completion logic
   const handleNext = () => {
     if (canGoNext) {
       const nextStep = currentStep + 1;
 
       // Handle step completion
-      if (currentStep === 4) {
+      if (currentStep === 4 && !coverLetter) {
         // Mark cover letter step as completed when skipping
         setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
       } else if (!completedSteps.includes(currentStep)) {
