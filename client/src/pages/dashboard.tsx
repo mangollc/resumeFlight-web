@@ -274,17 +274,43 @@ export default function Dashboard() {
 
       const response = await apiRequest(
         "POST",
-        `/api/uploaded-resume/${uploadedResume.id}/optimize`,
+        `/api/uploaded-resumes/${uploadedResume.id}/optimize`,
         {
           jobUrl: jobDetails.url,
           jobDescription: jobDetails.description,
           version: nextVersion,
-          aiPrompt: `Please optimize this resume to achieve higher match scores across all metrics (keywords, skills, experience, and overall) compared to version ${optimizationVersion.toFixed(1)}. Focus on:
-            1. Enhanced keyword alignment with the job description
-            2. Stronger skills matching and professional terminology
-            3. More impactful experience descriptions
-            4. Quantifiable achievements and metrics
-            Ensure improvements in all match score categories while maintaining authenticity and professional tone.`
+          aiPrompt: `
+I need to optimize this resume for the job description, focusing on improving the match scores across all metrics compared to version ${optimizationVersion.toFixed(1)}. Please make the following enhancements:
+
+1. Keyword Optimization (Current: ${optimizedResume?.metrics?.after?.keywords}%):
+   - Identify and incorporate more relevant industry-specific keywords from the job description
+   - Align terminology with industry standards and job requirements
+   - Use action verbs and power words that highlight achievements
+
+2. Skills Enhancement (Current: ${optimizedResume?.metrics?.after?.skills}%):
+   - Strengthen technical and soft skills alignment with job requirements
+   - Highlight relevant certifications and tools
+   - Add missing critical skills mentioned in the job posting
+
+3. Experience Impact (Current: ${optimizedResume?.metrics?.after?.experience}%):
+   - Transform bullet points to showcase measurable achievements and results
+   - Quantify accomplishments with specific metrics and percentages
+   - Emphasize leadership and project management experience
+   - Focus on relevant experience that matches job requirements
+
+4. Overall Optimization (Current: ${optimizedResume?.metrics?.after?.overall}%):
+   - Improve formatting and readability
+   - Ensure consistent professional tone
+   - Highlight unique value propositions
+   - Remove irrelevant information
+
+Goals for the new version:
+- Keyword score: Aim for at least ${Math.min(100, (optimizedResume?.metrics?.after?.keywords || 0) + 10)}%
+- Skills score: Target minimum ${Math.min(100, (optimizedResume?.metrics?.after?.skills || 0) + 10)}%
+- Experience score: Achieve at least ${Math.min(100, (optimizedResume?.metrics?.after?.experience || 0) + 10)}%
+- Overall score: Reach minimum ${Math.min(100, (optimizedResume?.metrics?.after?.overall || 0) + 10)}%
+
+While optimizing, maintain authenticity and natural language flow. Do not fabricate experience or skills.`
         }
       );
 
@@ -328,11 +354,13 @@ export default function Dashboard() {
 
   const handleNext = () => {
     if (canGoNext) {
-      setCurrentStep(prev => {
-        const nextStep = prev + 1;
-        return nextStep;
-      });
-      if (!completedSteps.includes(currentStep)) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+
+      // For step 4 (cover letter), mark it as completed even when skipping
+      if (currentStep === 4 && !coverLetter) {
+        setCompletedSteps(prev => [...prev, currentStep]);
+      } else if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => [...prev, currentStep]);
       }
     }
