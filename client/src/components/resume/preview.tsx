@@ -107,7 +107,6 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
   const { toast } = useToast();
 
   useEffect(() => {
-    // Show confetti for high optimization scores
     if (isOptimized && (resume as OptimizedResume).metrics?.after?.overall >= 80) {
       setShowConfetti(true);
       toast({
@@ -116,9 +115,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
       });
     }
 
-    // Set available versions when optimized resume is loaded
     if (isOptimized) {
-      // Fetch all versions of this optimized resume
       fetch(`/api/optimized-resume/${(resume as OptimizedResume).id}/versions`)
         .then(res => res.json())
         .then(versions => {
@@ -130,7 +127,6 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
     }
   }, [resume]);
 
-  // Add version change handler
   const handleVersionChange = (version: string) => {
     setSelectedVersion(version);
     if (onVersionChange) {
@@ -176,6 +172,35 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
     return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
   };
 
+  const renderVersionSelect = (versions: OptimizedResume[]) => {
+    const sortedVersions = Array.from(
+      new Set(versions.map(v => v.metadata.version))
+    ).sort((a, b) => b - a);
+
+    return (
+      <Select
+        value={selectedVersion}
+        onValueChange={handleVersionChange}
+      >
+        <SelectTrigger className="w-[160px]">
+          <SelectValue>
+            {selectedVersion ? `Version ${Number(selectedVersion).toFixed(1)}` : "Select version"}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {sortedVersions.map((version) => (
+            <SelectItem
+              key={version}
+              value={String(version)}
+            >
+              Version {version.toFixed(1)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
+
   return (
     <Card className="h-full">
       <Confetti trigger={showConfetti} />
@@ -198,30 +223,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {isOptimized && availableVersions.length > 1 && (
-                  <Select
-                    value={selectedVersion}
-                    onValueChange={handleVersionChange}
-                  >
-                    <SelectTrigger className="w-[160px]">
-                      <SelectValue>
-                        {selectedVersion ? `Version ${Number(selectedVersion).toFixed(1)}` : "Select version"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[...new Set(availableVersions.map(v => v.metadata.version))]
-                        .sort((a, b) => b - a)
-                        .map((version) => (
-                          <SelectItem
-                            key={version}
-                            value={String(version)}
-                          >
-                            Version {version.toFixed(1)}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                {isOptimized && availableVersions.length > 1 && renderVersionSelect(availableVersions)}
                 {isOptimized && (
                   <a
                     href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
@@ -255,28 +257,7 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
                         <>
                           {availableVersions.length > 1 && (
                             <div className="flex justify-end mb-4">
-                              <Select
-                                value={selectedVersion}
-                                onValueChange={handleVersionChange}
-                              >
-                                <SelectTrigger className="w-[160px]">
-                                  <SelectValue>
-                                    {selectedVersion ? `Version ${Number(selectedVersion).toFixed(1)}` : "Select version"}
-                                  </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {[...new Set(availableVersions.map(v => v.metadata.version))]
-                                    .sort((a, b) => b - a)
-                                    .map((version) => (
-                                      <SelectItem
-                                        key={version}
-                                        value={String(version)}
-                                      >
-                                        Version {version.toFixed(1)}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
+                              {renderVersionSelect(availableVersions)}
                             </div>
                           )}
                           <DiffView
