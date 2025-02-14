@@ -270,16 +270,16 @@ export default function Dashboard() {
 
     try {
       setIsOptimizing(true);
-      const data = {
-        jobUrl: jobDetails.url,
-        jobDescription: jobDetails.description,
-        version: optimizationVersion + 0.1
-      };
+      const nextVersion = Number((optimizationVersion + 0.1).toFixed(1));
 
       const response = await apiRequest(
-        "POST", 
-        `/api/resume/${uploadedResume.id}/optimize`,
-        data
+        "POST",
+        `/api/uploaded-resume/${uploadedResume.id}/optimize`,
+        {
+          jobUrl: jobDetails.url,
+          jobDescription: jobDetails.description,
+          version: nextVersion
+        }
       );
 
       if (!response.ok) {
@@ -291,7 +291,7 @@ export default function Dashboard() {
 
       toast({
         title: "Success",
-        description: `Resume optimized (v${(optimizationVersion + 0.1).toFixed(1)})`,
+        description: `Resume optimized (v${nextVersion})`,
       });
     } catch (error) {
       console.error('Optimization error:', error);
@@ -484,7 +484,21 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
-                <h3 className="text-xl font-semibold mb-6 text-foreground/90">Cover Letter Generator</h3>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCurrentStep(5);
+                      if (!completedSteps.includes(4)) {
+                        setCompletedSteps(prev => [...prev, 4]);
+                      }
+                    }}
+                    className="text-muted-foreground"
+                  >
+                    Skip Cover Letter
+                  </Button>
+                </div>
                 {!coverLetter ? (
                   <CoverLetter
                     resume={optimizedResume}

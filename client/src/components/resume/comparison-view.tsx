@@ -33,7 +33,7 @@ const getMetricsColor = (value: number): string => {
 };
 
 const MetricBar = ({ value }: { value: number }) => (
-  <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+  <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
     <div
       className={`h-full ${getMetricsColor(value)} transition-all duration-500`}
       style={{ width: `${value}%` }}
@@ -84,35 +84,31 @@ export default function ComparisonView({
   };
 
   const renderMetricsSection = () => (
-    <div className="mt-6 grid grid-cols-2 gap-4">
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium">Original Metrics</h4>
-        <div className="space-y-2">
-          {Object.entries(currentResume.metrics.before).map(([key, value]) => (
-            <div key={key} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
-                <span>{value}%</span>
-              </div>
-              <MetricBar value={value} />
+    <div className="mt-4 grid grid-cols-2 gap-4 bg-muted/30 rounded-lg p-4">
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium mb-3">Original Metrics</h4>
+        {Object.entries(currentResume.metrics.before).map(([key, value]) => (
+          <div key={key} className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span>{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
+              <span>{value}%</span>
             </div>
-          ))}
-        </div>
+            <MetricBar value={value} />
+          </div>
+        ))}
       </div>
 
-      <div className="space-y-3">
-        <h4 className="text-sm font-medium">Optimized Metrics</h4>
-        <div className="space-y-2">
-          {Object.entries(currentResume.metrics.after).map(([key, value]) => (
-            <div key={key} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
-                <span>{value}%</span>
-              </div>
-              <MetricBar value={value} />
+      <div className="space-y-2">
+        <h4 className="text-sm font-medium mb-3">Optimized Metrics</h4>
+        {Object.entries(currentResume.metrics.after).map(([key, value]) => (
+          <div key={key} className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span>{key.charAt(0).toUpperCase() + key.slice(1)} Match</span>
+              <span>{value}%</span>
             </div>
-          ))}
-        </div>
+            <MetricBar value={value} />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -142,32 +138,12 @@ export default function ComparisonView({
               )}
             </Button>
           )}
-          {availableVersions.length > 1 && (
-            <Select value={selectedVersion} onValueChange={handleVersionChange}>
-              <SelectTrigger className="w-[180px]">
-                <History className="w-4 h-4 mr-2" />
-                <SelectValue>Optimized {selectedVersion}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {availableVersions
-                  .filter((v) => String(v.metadata.version) !== selectedVersion)
-                  .map((v) => (
-                    <SelectItem
-                      key={v.metadata.version}
-                      value={String(v.metadata.version)}
-                    >
-                      Optimized {v.metadata.version.toFixed(1)}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          )}
         </div>
       </div>
 
       <ComparisonSlider
         beforeContent={originalContent}
-        afterContent={comparisonContent}
+        afterContent={currentResume.content}
         isLoading={isOptimizing}
         showFullScreen={!inDialog}
         onFullScreen={() => setIsFullScreen(true)}
@@ -178,7 +154,7 @@ export default function ComparisonView({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Dialog open={isFullScreen} onOpenChange={setIsFullScreen}>
         <DialogContent className="max-w-6xl w-full">
           <DialogHeader>

@@ -178,101 +178,55 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                   {resume.metadata.filename}
                 </h3>
                 {isOptimized ? (
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
-                      Optimized Version
-                    </span>
-                    {availableVersions.length > 0 && (
-                      <Select
-                        value={selectedVersion}
-                        onValueChange={(value) => {
-                          setSelectedVersion(value);
-                          const selectedResume = availableVersions.find(
-                            v => String(v.metadata.version) === value
-                          );
-                          if (selectedResume) {
-                            window.location.href = `/resume/${selectedResume.id}`;
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <History className="w-4 h-4 mr-2" />
-                          <SelectValue placeholder="Select version" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableVersions.map((v) => (
-                            <SelectItem
-                              key={v.metadata.version}
-                              value={String(v.metadata.version)}
-                            >
-                              Version {v.metadata.version.toFixed(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
+                    Optimized
+                  </span>
                 ) : (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-                    Original Version
+                    Original
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 {isOptimized && (
-                  <>
-                    <a
-                      href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
-                        formatFilename(version)
-                      }.pdf`}
-                      download
-                    >
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Resume
-                      </Button>
-                    </a>
-                    {coverLetter && (
-                      <a
-                        href={`/api/cover-letter/${coverLetter.id}/download?filename=${
-                          formatFilename(version)
-                        }_cover.pdf`}
-                        download
-                      >
-                        <Button variant="default" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download Cover Letter
-                        </Button>
-                      </a>
-                    )}
-                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          <Maximize2 className="h-4 w-4 mr-2" />
-                          Compare Versions
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>Resume Comparison</DialogTitle>
-                          <DialogDescription>
-                            Compare the original and optimized versions of your resume side by side.
-                            Highlighted sections show improvements and optimizations.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="mt-4">
-                          {isDialogOpen && (
-                            <DiffView
-                              beforeContent={originalContent}
-                              afterContent={optimizedContent}
-                              resumeId={(resume as OptimizedResume).id}
-                            />
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </>
+                  <a
+                    href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
+                      formatFilename(version)
+                    }.pdf`}
+                    download
+                  >
+                    <Button variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Resume
+                    </Button>
+                  </a>
                 )}
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Compare Versions
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-[90vw] w-full max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Resume Comparison</DialogTitle>
+                      <DialogDescription>
+                        Compare the original and optimized versions of your resume side by side.
+                        Highlighted sections show improvements and optimizations.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-4">
+                      {isDialogOpen && (
+                        <DiffView
+                          beforeContent={originalContent}
+                          afterContent={optimizedContent}
+                          resumeId={(resume as OptimizedResume).id}
+                        />
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
@@ -291,7 +245,7 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold">Resume Match Analysis</h4>
                   <div className="text-xs text-muted-foreground">
-                    {(resume as OptimizedResume).metrics?.before 
+                    {(resume as OptimizedResume).metrics?.before
                       ? "Showing improvement from original resume"
                       : `Version ${(resume as OptimizedResume).metadata.version.toFixed(1)} Analysis`
                     }
