@@ -13,25 +13,16 @@ app.use(express.urlencoded({ extended: false }));
 const TIMEOUT_DURATION = 120000;
 
 app.use((req, res, next) => {
-  // Set timeouts safely
-  if (req.setTimeout) {
-    req.setTimeout(TIMEOUT_DURATION);
-  }
-  if (res.setTimeout) {
-    res.setTimeout(TIMEOUT_DURATION);
-  }
-
-  // Handle request timeouts
-  req.on('timeout', () => {
-    const err = new Error('Request timeout') as any;
-    err.status = 408;
+  // Set timeouts safely within 32-bit integer limits
+  res.setTimeout(TIMEOUT_DURATION, () => {
+    const err = new Error('Response timeout') as any;
+    err.status = 503;
     next(err);
   });
 
-  // Handle response timeouts
-  res.on('timeout', () => {
-    const err = new Error('Response timeout') as any;
-    err.status = 503;
+  req.setTimeout(TIMEOUT_DURATION, () => {
+    const err = new Error('Request timeout') as any;
+    err.status = 408;
     next(err);
   });
 
