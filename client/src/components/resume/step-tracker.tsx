@@ -19,7 +19,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
       {/* Desktop view - hide on mobile */}
       <div className="hidden md:block pb-20">
         <div className="relative">
-          {/* Progress Bar */}
+          {/* Desktop Progress Bar */}
           <div className="absolute left-0 top-1/2 h-1.5 w-full -translate-y-1/2">
             <div className="h-full bg-muted rounded-full">
               <div
@@ -31,7 +31,7 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
             </div>
           </div>
 
-          {/* Steps */}
+          {/* Desktop Steps */}
           <div className="relative z-10">
             <div className="flex justify-between items-center">
               {steps.map((step) => {
@@ -86,78 +86,46 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
       </div>
 
       {/* Mobile view - hide on desktop */}
-      <div className="md:hidden space-y-3 px-4">
-        {/* Progress indicator */}
-        <div className="flex items-center justify-between text-sm mb-6">
-          <span className="font-medium">Step {currentStep} of {steps.length}</span>
-          <div className="h-1.5 flex-1 mx-4 bg-muted rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 transition-all duration-500"
-              style={{
-                width: `${((currentStep - 1) / (steps.length - 1)) * 100}%`,
-              }}
-            />
+      <div className="md:hidden">
+        {/* Mobile compact progress bar */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b">
+          <div className="max-w-md mx-auto px-4 py-2">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-violet-600">
+                  Step {currentStep}
+                </span>
+                <span className="text-sm text-muted-foreground font-medium">
+                  {steps[currentStep - 1]?.title}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {currentStep}/{steps.length}
+              </span>
+            </div>
+
+            {/* Steps pills */}
+            <div className="flex gap-1 h-1">
+              {steps.map((step) => {
+                const isActive = currentStep === step.id;
+                const isCompleted = completedSteps.includes(step.id);
+                return (
+                  <div
+                    key={step.id}
+                    className={cn(
+                      "flex-1 h-full rounded-full transition-all duration-300",
+                      isCompleted && "bg-violet-500",
+                      isActive && "bg-violet-500",
+                      !isActive && !isCompleted && "bg-muted"
+                    )}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
-
-        {/* Vertical step list */}
-        <div className="space-y-2">
-          {steps.map((step) => {
-            const isActive = currentStep === step.id;
-            const isCompleted = completedSteps.includes(step.id);
-            const isPending = !isActive && !isCompleted;
-
-            return (
-              <div
-                key={step.id}
-                className={cn(
-                  "flex items-start p-3 rounded-lg transition-all duration-300",
-                  isActive && "bg-violet-500/10 ring-1 ring-violet-500/20",
-                  isCompleted && "bg-violet-500/5"
-                )}
-              >
-                <div className="flex-shrink-0 mr-3 mt-0.5">
-                  <div
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300",
-                      isActive && "bg-violet-500 text-white",
-                      isCompleted && "bg-violet-500/20 text-violet-500",
-                      isPending && "border border-muted-foreground/30"
-                    )}
-                  >
-                    {isCompleted ? (
-                      <Check className="h-3.5 w-3.5" />
-                    ) : isActive ? (
-                      <span className="text-xs font-medium">{step.id}</span>
-                    ) : (
-                      <Circle className="h-3.5 w-3.5" />
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3
-                    className={cn(
-                      "text-sm font-medium leading-tight",
-                      isActive && "text-violet-600",
-                      isPending && "text-muted-foreground"
-                    )}
-                  >
-                    {step.title}
-                  </h3>
-                  <p
-                    className={cn(
-                      "text-xs mt-0.5 line-clamp-2",
-                      isActive && "text-muted-foreground",
-                      isPending && "text-muted-foreground/60"
-                    )}
-                  >
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Add padding to content below fixed header */}
+        <div className="h-[52px]" />
       </div>
     </div>
   );
