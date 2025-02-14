@@ -46,7 +46,7 @@ async function calculateMatchScores(resumeContent: string, jobDescription: strin
         return await callOpenAIWithTimeout(
             async () => {
                 const response = await openai.chat.completions.create({
-                    model: "gpt-4-0613",
+                    model: "gpt-4o",  
                     messages: [
                         {
                             role: "system",
@@ -112,32 +112,24 @@ function formatFilename(base: string, extension: string): string {
 }
 
 function formatSkill(skill: string): string {
-  // Remove any parentheses and their contents
   skill = skill.replace(/\([^)]*\)/g, '');
-
-  // Remove special characters and extra spaces
   skill = skill.replace(/[^\w\s-]/g, '').trim();
-
-  // Limit to maximum 2 words
   const words = skill.split(/\s+/);
   return words.slice(0, 2).join(' ');
 }
 
 async function getResumeVersions(optimizedResumeId: number) {
     try {
-        // Get the base resume to find related versions
         const baseResume = await storage.getOptimizedResume(optimizedResumeId);
         if (!baseResume) {
             throw new Error("Resume not found");
         }
 
-        // Get all versions with the same job description and original resume
         const allVersions = await storage.getOptimizedResumesByJobDescription(
             baseResume.jobDescription,
             baseResume.uploadedResumeId
         );
 
-        // Sort versions by version number
         return allVersions.sort((a, b) => b.metadata.version - a.metadata.version);
     } catch (error) {
         console.error("[Version Fetch] Error:", error);
@@ -151,7 +143,7 @@ async function analyzeJobDescription(description: string) {
         return await callOpenAIWithTimeout(
             async () => {
                 const response = await openai.chat.completions.create({
-                    model: "gpt-4-0613",
+                    model: "gpt-4o",
                     messages: [
                         {
                             role: "system",
@@ -305,7 +297,7 @@ function getDefaultAnalysis() {
     };
 }
 
-const SAFE_TIMEOUT_2 = 30000; // 30 seconds in milliseconds
+const SAFE_TIMEOUT_2 = 30000; 
 
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
@@ -485,12 +477,10 @@ async function createPDF(content: string): Promise<Buffer> {
             doc.on('data', chunk => chunks.push(chunk));
             doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-            // Set up professional formatting
             doc.font('Helvetica')
                 .fontSize(11)
                 .lineGap(2);
 
-            // Process the content by paragraphs
             const paragraphs = content.split('\n\n');
             let isFirstParagraph = true;
 
@@ -553,7 +543,7 @@ async function optimizeResume(content: string, jobDescription: string, version?:
     try {
         console.log("[Optimization] Starting resume optimization...");
         const response = await openai.chat.completions.create({
-            model: "gpt-4-0613",
+            model: "gpt-4o",  
             messages: [
                 {
                     role: "system",
@@ -573,12 +563,11 @@ async function optimizeResume(content: string, jobDescription: string, version?:
             throw new Error("Failed to generate optimized content");
         }
 
-        // Assuming optimizeResume now returns more details
         return {
             optimizedContent,
-            improvements: ["Example improvement 1", "Example improvement 2"], // Placeholder improvements
-            changes: ["Example change 1", "Example change 2"],             // Placeholder changes
-            matchScore: 85                                                 // Placeholder match score
+            improvements: ["Example improvement 1", "Example improvement 2"], 
+            changes: ["Example change 1", "Example change 2"],             
+            matchScore: 85                                                
         };
     } catch (error: any) {
         console.error("[Optimization] Error:", error);
@@ -682,7 +671,6 @@ export function registerRoutes(app: Express): Server {
                 return res.sendStatus(401);
             }
 
-            // Validate and set timeout
             const operationTimeout = validateTimeout(SAFE_TIMEOUT, 20000);
             console.log(`[Optimize] Using operation timeout: ${operationTimeout}ms`);
 
@@ -691,7 +679,6 @@ export function registerRoutes(app: Express): Server {
                 console.log("[Optimize] Operation timed out");
             }, operationTimeout);
 
-            // Handle client disconnection
             req.on('close', () => {
                 if (timeoutId) clearTimeout(timeoutId);
                 controller.abort();
