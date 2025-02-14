@@ -486,18 +486,15 @@ export default function Dashboard() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setCurrentStep(5);
-                      if (!completedSteps.includes(4)) {
-                        setCompletedSteps(prev => [...prev, 4]);
-                      }
-                    }}
-                    className="text-muted-foreground"
-                  >
-                    Skip Cover Letter
-                  </Button>
+                  {!coverLetter && (
+                    <Button
+                      variant="outline"
+                      onClick={() => handleNext()}
+                      className="text-muted-foreground"
+                    >
+                      Skip Cover Letter
+                    </Button>
+                  )}
                 </div>
                 {!coverLetter ? (
                   <CoverLetter
