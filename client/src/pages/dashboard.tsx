@@ -259,7 +259,14 @@ export default function Dashboard() {
   };
 
   const handleReoptimize = async () => {
-    if (!uploadedResume?.id || !jobDetails) return;
+    if (!uploadedResume?.id || !jobDetails) {
+      toast({
+        title: "Error",
+        description: "Missing required information for optimization",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setIsOptimizing(true);
@@ -269,7 +276,12 @@ export default function Dashboard() {
         version: optimizationVersion + 0.1
       };
 
-      const response = await apiRequest("POST", `/api/resume/${uploadedResume.id}/optimize`, data);
+      const response = await apiRequest(
+        "POST", 
+        `/api/resume/${uploadedResume.id}/optimize`,
+        data
+      );
+
       if (!response.ok) {
         throw new Error('Failed to reoptimize resume');
       }
@@ -279,9 +291,10 @@ export default function Dashboard() {
 
       toast({
         title: "Success",
-        description: `Resume optimized (v${optimizationVersion.toFixed(1)})`,
+        description: `Resume optimized (v${(optimizationVersion + 0.1).toFixed(1)})`,
       });
     } catch (error) {
+      console.error('Optimization error:', error);
       toast({
         title: "Error",
         description: "Failed to reoptimize resume",
@@ -453,7 +466,7 @@ export default function Dashboard() {
               <CardContent className="p-8">
                 <div id="optimized-preview">
                   <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                    Optimized Resume Preview
+                    Preview
                   </h3>
                   <Preview
                     resume={optimizedResume}
@@ -747,7 +760,7 @@ export default function Dashboard() {
         open={isOptimizing}
         title="Optimizing Resume"
         description="Please wait while we optimize your resume using AI..."
-        onOpenChange={(open: boolean) => setIsOptimizing(open)}
+        onOpenChange={setIsOptimizing}
       />
     </div>
   );
