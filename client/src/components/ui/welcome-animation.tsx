@@ -9,23 +9,19 @@ interface WelcomeAnimationProps {
 
 export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
   const { user } = useAuth();
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true); // Start as true when component mounts
 
   useEffect(() => {
-    // Show animation whenever user is present (logged in)
     if (user) {
-      setShow(true);
       // Hide animation after 5 seconds
       const timer = setTimeout(() => {
         setShow(false);
       }, 5000);
       return () => clearTimeout(timer);
-    } else {
-      setShow(false);
     }
   }, [user]);
 
-  if (!show) return null;
+  if (!show || !user) return null;
 
   return (
     <motion.div
@@ -36,7 +32,7 @@ export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
       className={cn("space-y-4 text-center lg:text-left", className)}
     >
       <h1 className="text-fluid-h1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-        Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}!
+        Welcome back{user?.username ? `, ${user.username}` : ''}!
       </h1>
       <motion.p 
         initial={{ opacity: 0 }}
