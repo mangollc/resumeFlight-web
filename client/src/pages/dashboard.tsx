@@ -771,7 +771,7 @@ export default function Dashboard() {
     }
   };
 
-  const [sessionId] = useState(() => Date.now().toString());
+  const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
 
 
