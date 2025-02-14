@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Maximize2, Download } from "lucide-react";
+import { FileText, Maximize2, Download, History } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +34,6 @@ interface PreviewProps {
   };
 }
 
-// Utility functions
 const getMetricsColor = (value: number): string => {
   if (value >= 80) return "bg-emerald-500 dark:bg-emerald-400";
   if (value >= 60) return "bg-yellow-500 dark:bg-yellow-400";
@@ -95,6 +101,8 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
 export default function Preview({ resume, coverLetter }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [selectedVersion, setSelectedVersion] = useState<string>("");
+  const [availableVersions, setAvailableVersions] = useState<OptimizedResume[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -105,6 +113,18 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
         title: "Outstanding Achievement! 🎉",
         description: "Your resume has achieved excellent optimization scores.",
       });
+    }
+
+    // Set available versions when optimized resume is loaded
+    if (isOptimized) {
+      // Fetch all versions of this optimized resume
+      fetch(`/api/optimized-resume/${(resume as OptimizedResume).id}/versions`)
+        .then(res => res.json())
+        .then(versions => {
+          setAvailableVersions(versions);
+          setSelectedVersion(String((resume as OptimizedResume).metadata.version));
+        })
+        .catch(console.error);
     }
   }, [resume]);
 
@@ -158,9 +178,40 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                   {resume.metadata.filename}
                 </h3>
                 {isOptimized ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
-                    Optimized Version
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">
+                      Optimized Version
+                    </span>
+                    {availableVersions.length > 0 && (
+                      <Select
+                        value={selectedVersion}
+                        onValueChange={(value) => {
+                          setSelectedVersion(value);
+                          const selectedResume = availableVersions.find(
+                            v => String(v.metadata.version) === value
+                          );
+                          if (selectedResume) {
+                            window.location.href = `/resume/${selectedResume.id}`;
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <History className="w-4 h-4 mr-2" />
+                          <SelectValue placeholder="Select version" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableVersions.map((v) => (
+                            <SelectItem
+                              key={v.metadata.version}
+                              value={String(v.metadata.version)}
+                            >
+                              Version {v.metadata.version.toFixed(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 ) : (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
                     Original Version
@@ -225,6 +276,7 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
               </div>
             </div>
           </div>
+
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
               <pre className="whitespace-pre-wrap font-sans text-sm">
@@ -232,16 +284,18 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
               </pre>
             </div>
           </div>
+
           {isOptimized && (resume as OptimizedResume).metrics && (
             <div className="mt-6 space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold">Resume Match Analysis</h4>
-                  {(resume as OptimizedResume).metrics?.before && (
-                    <div className="text-xs text-muted-foreground">
-                      Showing improvement from original resume
-                    </div>
-                  )}
+                  <div className="text-xs text-muted-foreground">
+                    {(resume as OptimizedResume).metrics?.before 
+                      ? "Showing improvement from original resume"
+                      : `Version ${(resume as OptimizedResume).metadata.version.toFixed(1)} Analysis`
+                    }
+                  </div>
                 </div>
                 <div className="grid gap-6">
                   <MetricRow

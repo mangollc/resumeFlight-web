@@ -1,7 +1,7 @@
 import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
@@ -22,6 +22,7 @@ export interface IStorage {
   createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume>;
   getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
   deleteOptimizedResume(id: number): Promise<void>;
+  getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]>;
 
   // Cover letter operations
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
@@ -152,6 +153,27 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting optimized resume:', error);
       throw new Error('Failed to get optimized resume');
+    }
+  }
+
+  async getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]> {
+    try {
+      const results = await db.select()
+        .from(optimizedResumes)
+        .where(and(
+          eq(optimizedResumes.jobDescription, jobDescription),
+          eq(optimizedResumes.uploadedResumeId, uploadedResumeId)
+        ));
+
+      return results.map(result => ({
+        ...result,
+        metadata: result.metadata as OptimizedResume['metadata'],
+        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+        metrics: result.metrics as OptimizedResume['metrics']
+      }));
+    } catch (error) {
+      console.error('Error getting optimized resumes by job description:', error);
+      throw new Error('Failed to get optimized resumes by job description');
     }
   }
 

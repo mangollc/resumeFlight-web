@@ -460,34 +460,15 @@ export default function Dashboard() {
               <CardContent className="p-8">
                 <div id="optimized-preview">
                   <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                    Optimized Resume Preview <span className="text-sm text-muted-foreground">(v{optimizationVersion.toFixed(1)})</span>
+                    Optimized Resume Preview
                   </h3>
-                  <Preview
-                    resume={optimizedResume}
-                    coverLetter={coverLetter}
-                  />
 
-                  <div className="mt-6 flex justify-center">
-                    <Button
-                      onClick={handleReoptimize}
-                      variant="default"
-                      className="w-auto bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                      size="lg"
-                      disabled={isOptimizing}
-                    >
-                      {isOptimizing ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Optimizing...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Optimize Again
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  <ComparisonView
+                    currentResume={optimizedResume}
+                    originalContent={optimizedResume.originalContent}
+                    onReoptimize={handleReoptimize}
+                    isOptimizing={isOptimizing}
+                  />
                 </div>
 
                 {renderNavigation()}

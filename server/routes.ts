@@ -14,6 +14,28 @@ function formatSkill(skill: string): string {
   return words.slice(0, 2).join(' ');
 }
 
+async function getResumeVersions(optimizedResumeId: number) {
+    try {
+        // Get the base resume to find related versions
+        const baseResume = await storage.getOptimizedResume(optimizedResumeId);
+        if (!baseResume) {
+            throw new Error("Resume not found");
+        }
+
+        // Get all versions with the same job description and original resume
+        const allVersions = await storage.getOptimizedResumesByJobDescription(
+            baseResume.jobDescription,
+            baseResume.uploadedResumeId
+        );
+
+        // Sort versions by version number
+        return allVersions.sort((a, b) => b.metadata.version - a.metadata.version);
+    } catch (error) {
+        console.error("[Version Fetch] Error:", error);
+        return [];
+    }
+}
+
 async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
     keywords: number;
     skills: number;
@@ -883,6 +905,29 @@ export function registerRoutes(app: Express): Server {
             res.json(differences);
         } catch (error: any) {
             console.error("Get differences error:", error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+
+    app.get("/api/optimized-resume/:id/versions", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) return res.sendStatus(401);
+
+            const resumeId = parseInt(req.params.id);
+            const resume = await storage.getOptimizedResume(resumeId);
+
+            if (!resume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                return res.sendStatus(403);
+            }
+
+            const versions = await getResumeVersions(resumeId);
+            res.json(versions);
+        } catch (error: any) {
+            console.error("[Versions Route] Error:", error);
             res.status(500).json({ error: error.message });
         }
     });
