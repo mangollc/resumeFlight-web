@@ -40,16 +40,11 @@ async function getResumeVersions(optimizedResumeId: number) {
     }
 }
 
-async function calculateMatchScores(resumeContent: string, jobDescription: string): Promise<{
-    keywords: number;
-    skills: number;
-    experience: number;
-    overall: number;
-}> {
+async function calculateMatchScores(resumeContent: string, jobDescription: string) {
     try {
         console.log("[Match Analysis] Starting analysis...");
         const response = await openai.chat.completions.create({
-            model: "gpt-4",
+            model: "gpt-4-0613",
             messages: [
                 {
                     role: "system",
@@ -79,7 +74,7 @@ Scoring Guidelines:
                     content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
                 }
             ],
-            temperature: 0.3,
+            temperature: 0.3
         });
 
         const content = response.choices[0].message.content;
@@ -112,13 +107,12 @@ Scoring Guidelines:
 async function analyzeJobDescription(description: string) {
     try {
         console.log("[Job Analysis] Starting job description analysis...");
-        const response = await callOpenAIWithTimeout(
-            () => openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are a job analysis expert. Analyze the job description and extract key information.
+        const response = await openai.chat.completions.create({
+            model: "gpt-4-0613",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a job analysis expert. Analyze the job description and extract key information.
 Return a detailed analysis in the following JSON format:
 {
  "title": "Job title extracted from description",
@@ -139,16 +133,14 @@ Return a detailed analysis in the following JSON format:
    "other": ["Agile", "CI/CD"]
  }
 }`
-                    },
-                    {
-                        role: "user",
-                        content: description
-                    }
-                ],
-                temperature: 0.3,
-            }),
-            "Job description analysis"
-        );
+                },
+                {
+                    role: "user",
+                    content: description
+                }
+            ],
+            temperature: 0.3
+        });
 
         const content = response.choices[0].message.content;
         console.log("[Job Analysis] Raw response:", content);
@@ -536,7 +528,7 @@ async function optimizeResume(content: string, jobDescription: string) {
     try {
         console.log("[Optimization] Starting resume optimization...");
         const response = await openai.chat.completions.create({
-            model: "gpt-4",
+            model: "gpt-4-0613",
             messages: [
                 {
                     role: "system",
@@ -548,8 +540,7 @@ async function optimizeResume(content: string, jobDescription: string) {
                 }
             ],
             temperature: 0.3,
-            max_tokens: 2000,
-            timeout: 20000 // 20 second timeout
+            max_tokens: 2000
         });
 
         const optimizedContent = response.choices[0].message.content;
@@ -903,7 +894,7 @@ export function registerRoutes(app: Express): Server {
 
     app.get("/api/optimized-resume/:id/versions", async (req, res) => {
         try {
-            if (!req.isAuthenticated()) return res.sendStatus(401);
+            if (!req.isAuthenticated()) return res.sendStatus(40401);
 
             const resumeId = parseInt(req.params.id);
             const resume = await storage.getOptimizedResume(resumeId);
