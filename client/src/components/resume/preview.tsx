@@ -32,6 +32,7 @@ interface PreviewProps {
       version: number;
     };
   };
+  onVersionChange?: (version: string) => void;
 }
 
 const getMetricsColor = (value: number): string => {
@@ -98,7 +99,7 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
   );
 };
 
-export default function Preview({ resume, coverLetter }: PreviewProps) {
+export default function Preview({ resume, coverLetter, onVersionChange }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<string>("");
@@ -122,11 +123,20 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
         .then(res => res.json())
         .then(versions => {
           setAvailableVersions(versions);
-          setSelectedVersion(String((resume as OptimizedResume).metadata.version));
+          const currentVersion = String((resume as OptimizedResume).metadata.version);
+          setSelectedVersion(currentVersion);
         })
         .catch(console.error);
     }
   }, [resume]);
+
+  // Add version change handler
+  const handleVersionChange = (version: string) => {
+    setSelectedVersion(version);
+    if (onVersionChange) {
+      onVersionChange(version);
+    }
+  };
 
   if (!resume) {
     return (
@@ -188,6 +198,26 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                 )}
               </div>
               <div className="flex items-center gap-2">
+                {isOptimized && availableVersions.length > 1 && (
+                  <Select
+                    value={selectedVersion}
+                    onValueChange={handleVersionChange}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue placeholder="Select version" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableVersions.map((version) => (
+                        <SelectItem
+                          key={version.metadata.version}
+                          value={String(version.metadata.version)}
+                        >
+                          Version {version.metadata.version.toFixed(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
                 {isOptimized && (
                   <a
                     href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
@@ -218,11 +248,35 @@ export default function Preview({ resume, coverLetter }: PreviewProps) {
                     </DialogHeader>
                     <div className="mt-4">
                       {isDialogOpen && (
-                        <DiffView
-                          beforeContent={originalContent}
-                          afterContent={optimizedContent}
-                          resumeId={(resume as OptimizedResume).id}
-                        />
+                        <>
+                          {availableVersions.length > 1 && (
+                            <div className="mb-4">
+                              <Select
+                                value={selectedVersion}
+                                onValueChange={handleVersionChange}
+                              >
+                                <SelectTrigger className="w-[140px]">
+                                  <SelectValue placeholder="Select version" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableVersions.map((version) => (
+                                    <SelectItem
+                                      key={version.metadata.version}
+                                      value={String(version.metadata.version)}
+                                    >
+                                      Version {version.metadata.version.toFixed(1)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          <DiffView
+                            beforeContent={originalContent}
+                            afterContent={optimizedContent}
+                            resumeId={(resume as OptimizedResume).id}
+                          />
+                        </>
                       )}
                     </div>
                   </DialogContent>

@@ -500,12 +500,39 @@ While optimizing, maintain authenticity and natural language flow. Do not fabric
             <Card {...commonCardProps}>
               <CardContent className="p-8">
                 <div id="optimized-preview">
-                  <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                    Preview
-                  </h3>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-foreground/90">Preview</h3>
+                    {isOptimizing ? (
+                      <Button disabled variant="outline">
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Optimizing...
+                      </Button>
+                    ) : (
+                      <Button onClick={handleReoptimize} variant="default">
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Optimize Again
+                      </Button>
+                    )}
+                  </div>
                   <Preview
                     resume={optimizedResume}
                     coverLetter={coverLetter}
+                    onVersionChange={(version) => {
+                      // Fetch specific version data
+                      fetch(`/api/optimized-resume/${optimizedResume.id}/version/${version}`)
+                        .then(res => res.json())
+                        .then(data => {
+                          setOptimizedResume(data);
+                          setOptimizationVersion(Number(version));
+                        })
+                        .catch(error => {
+                          toast({
+                            title: "Error",
+                            description: "Failed to load resume version",
+                            variant: "destructive",
+                          });
+                        });
+                    }}
                   />
                 </div>
                 {renderNavigation()}
