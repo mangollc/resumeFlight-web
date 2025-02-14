@@ -43,31 +43,37 @@ Return a JSON object with the following structure:
   }
 }
 
-export async function optimizeResume(resumeText: string, jobDescription: string) {
+export async function optimizeResume(resumeText: string, jobDescription: string, currentVersion?: number) {
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an expert resume optimizer with years of experience in professional resume writing and ATS optimization. Your task is to analyze and optimize the provided resume to match the job description while maintaining authenticity and professionalism.
+          content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Your task is to create a highly optimized version of the resume that maximizes match with the job description while maintaining authenticity and professionalism.
 
-Follow these guidelines:
-1. Analyze the job requirements and identify key skills and qualifications
-2. Restructure and enhance the resume content to highlight relevant experience
-3. Use industry-standard keywords from the job description
-4. Improve formatting and clarity while maintaining truthfulness
-5. Ensure all modifications are based on existing content
-6. Calculate a match score based on alignment with job requirements
+Follow these optimization guidelines:
+1. Analyze job requirements thoroughly to identify:
+   - Required technical skills and qualifications
+   - Soft skills and experience levels
+   - Industry-specific keywords and terminology
+   - Key responsibilities and expectations
 
-IMPORTANT:
-- Do not include any comments, feedback, or suggestions in the optimized content
-- Do not add placeholders or template text
-- Do not include any explanatory notes or revision marks
-- Keep the formatting clean and professional
-- Ensure the output is ready for direct submission to employers
+2. Enhance the resume by:
+   - Restructuring content to highlight most relevant experience first
+   - Using exact keywords from job description where truthful
+   - Quantifying achievements with metrics where possible
+   - Improving clarity and impact of accomplishment statements
+   - Ensuring proper formatting and professional language
+   - Incorporating industry-standard terms and skills${currentVersion ? '\n   - Building upon previous optimizations while making further improvements' : ''}
 
-Return a JSON object with the following structure:
+3. Maintain authenticity by:
+   - Only using information present in the original resume
+   - Not adding fictional experience or skills
+   - Keeping all dates and company names accurate
+   - Preserving the core truth of all statements
+
+Return a JSON object with:
 {
   "optimizedContent": "the enhanced resume text with proper formatting",
   "changes": [
@@ -75,12 +81,20 @@ Return a JSON object with the following structure:
     "keywords added or emphasized",
     "structural changes"
   ],
-  "matchScore": "percentage match with job requirements (0-100)"
+  "matchScore": number between 0-100,
+  "improvements": {
+    "keywords": "description of keyword optimizations",
+    "structure": "description of structural changes",
+    "clarity": "description of clarity improvements",
+    "ats": "description of ATS-specific enhancements"
+  }
 }`
         },
         {
           role: "user",
-          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
+          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}${
+            currentVersion ? `\n\nThis is reoptimization attempt. Current version: ${currentVersion}. Please make additional improvements while maintaining previous optimizations.` : ''
+          }`
         }
       ],
       response_format: { type: "json_object" }
@@ -91,9 +105,26 @@ Return a JSON object with the following structure:
       throw new Error("No response from OpenAI");
     }
 
-    return JSON.parse(content);
+    const result = JSON.parse(content);
+
+    // Validate the response format
+    if (!result.optimizedContent || typeof result.optimizedContent !== 'string') {
+      throw new Error("Invalid optimization result: missing or invalid optimized content");
+    }
+
+    // Ensure we have a valid match score
+    const matchScore = typeof result.matchScore === 'number' ? 
+      Math.min(100, Math.max(0, result.matchScore)) : 
+      75; // Default score if not provided
+
+    return {
+      ...result,
+      matchScore,
+      optimizedContent: result.optimizedContent.trim()
+    };
   } catch (err) {
     const error = err as Error;
+    console.error("[Optimize] Error in optimizeResume:", error);
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
 }

@@ -341,6 +341,9 @@ interface JobDetails {
         experience?: number;
         overall?: number;
     };
+    improvements?: string[];
+    changes?: string[];
+    matchScore?: number;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -546,7 +549,7 @@ function getInitials(text: string): string {
     return "RES";
 }
 
-async function optimizeResume(content: string, jobDescription: string) {
+async function optimizeResume(content: string, jobDescription: string, version?: number) {
     try {
         console.log("[Optimization] Starting resume optimization...");
         const response = await openai.chat.completions.create({
@@ -554,7 +557,7 @@ async function optimizeResume(content: string, jobDescription: string) {
             messages: [
                 {
                     role: "system",
-                    content: `You are a professional resume optimizer. Analyze the resume and job description, then provide an optimized version of the resume.`
+                    content: `You are a professional resume optimizer. Analyze the resume and job description, then provide an optimized version of the resume.  Consider version ${version || 1}.`
                 },
                 {
                     role: "user",
@@ -570,9 +573,12 @@ async function optimizeResume(content: string, jobDescription: string) {
             throw new Error("Failed to generate optimized content");
         }
 
+        // Assuming optimizeResume now returns more details
         return {
             optimizedContent,
-            suggestions: []
+            improvements: ["Example improvement 1", "Example improvement 2"], // Placeholder improvements
+            changes: ["Example change 1", "Example change 2"],             // Placeholder changes
+            matchScore: 85                                                 // Placeholder match score
         };
     } catch (error: any) {
         console.error("[Optimization] Error:", error);
@@ -692,7 +698,7 @@ export function registerRoutes(app: Express): Server {
                 console.log("[Optimization] Client disconnected, aborting operation");
             });
 
-            const { jobUrl, jobDescription } = req.body;
+            const { jobUrl, jobDescription, version } = req.body;
             if (!jobUrl && !jobDescription) {
                 return res.status(400).json({ error: "Please provide either a job URL or description" });
             }
@@ -731,8 +737,8 @@ export function registerRoutes(app: Express): Server {
                 console.log("[Optimization] Calculating initial metrics");
                 const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
 
-                console.log("[Optimization] Starting resume optimization");
-                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
+                console.log("[Optimization] Starting resume optimization with version:", version);
+                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription, version);
 
                 console.log("[Optimization] Calculating post-optimization metrics");
                 const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
@@ -743,7 +749,7 @@ export function registerRoutes(app: Express): Server {
                     .replace(/\s+/g, '_')
                     .substring(0, 30);
 
-                const versionStr = '_v1.0';
+                const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
                 const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
 
                 console.log("[Optimization] Saving optimized resume");
@@ -752,13 +758,18 @@ export function registerRoutes(app: Express): Server {
                     originalContent: uploadedResume.content,
                     jobDescription: finalJobDescription,
                     jobUrl: jobUrl || null,
-                    jobDetails,
+                    jobDetails: {
+                        ...jobDetails,
+                        improvements: optimized.improvements,
+                        changes: optimized.changes,
+                        matchScore: optimized.matchScore
+                    },
                     uploadedResumeId: uploadedResume.id,
                     userId: req.user!.id,
                     metadata: {
                         filename: newFilename,
                         optimizedAt: new Date().toISOString(),
-                        version: 1.0
+                        version: version || 1.0
                     },
                     metrics: {
                         before: beforeMetrics,

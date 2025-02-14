@@ -258,7 +258,6 @@ export default function Dashboard() {
     setCoverLetters([]);
   };
 
-  // Fix handleReoptimize function
   const handleReoptimize = async () => {
     if (!uploadedResume?.id || !jobDetails) {
       toast({
@@ -274,13 +273,7 @@ export default function Dashboard() {
       const nextVersion = Number((optimizationVersion + 0.1).toFixed(1));
 
       const optimizationData = {
-        jobDetails: {
-          url: jobDetails.url || '',
-          description: jobDetails.description || '',
-          title: jobDetails.title || '',
-          company: jobDetails.company || '',
-          location: jobDetails.location || ''
-        },
+        jobDetails,
         version: nextVersion
       };
 
@@ -318,12 +311,11 @@ export default function Dashboard() {
   };
 
   const canGoBack = currentStep > 1;
-  // Fix Skip Cover Letter button and step completion logic
   const canGoNext = currentStep < 5 && (
     (currentStep === 1 && !!uploadedResume) ||
     (currentStep === 2 && !!jobDetails) ||
     (currentStep === 3 && !!optimizedResume) ||
-    (currentStep === 4) // Allow next even without cover letter for skipping
+    (currentStep === 4) 
   );
 
   const handleBack = () => {
@@ -332,20 +324,16 @@ export default function Dashboard() {
     }
   };
 
-  // Fix Skip Cover Letter button and step completion logic
   const handleNext = () => {
     if (canGoNext) {
       const nextStep = currentStep + 1;
 
-      // Handle step completion
       if (currentStep === 4 && !coverLetter) {
-        // Mark cover letter step as completed when skipping
         setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
       } else if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
       }
 
-      // Move to next step
       setCurrentStep(nextStep);
     }
   };
@@ -502,7 +490,6 @@ export default function Dashboard() {
                     resume={optimizedResume}
                     coverLetter={coverLetter}
                     onVersionChange={(version) => {
-                      // Fetch specific version data
                       fetch(`/api/optimized-resume/${optimizedResume.id}/version/${version}`)
                         .then(res => res.json())
                         .then(data => {
