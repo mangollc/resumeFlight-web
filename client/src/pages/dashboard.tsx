@@ -5,6 +5,7 @@ import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetter from "@/components/resume/cover-letter";
+import ComparisonView from "@/components/resume/comparison-view";
 import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
