@@ -110,7 +110,7 @@ app.use((req, res, next) => {
     });
   };
 
-  tryPort(5000).catch(err => {
+  tryPort(3000).catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
   });
