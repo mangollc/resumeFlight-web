@@ -108,12 +108,13 @@ Scoring Guidelines:
 async function analyzeJobDescription(description: string) {
     try {
         console.log("[Job Analysis] Starting job description analysis...");
-        const response = await openai.chat.completions.create({
-            model: "gpt-4",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a job analysis expert. Analyze the job description and extract key information.
+        const response = await callOpenAIWithTimeout(
+            () => openai.chat.completions.create({
+                model: "gpt-4",
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a job analysis expert. Analyze the job description and extract key information.
 Return a detailed analysis in the following JSON format:
 {
  "title": "Job title extracted from description",
@@ -134,18 +135,19 @@ Return a detailed analysis in the following JSON format:
    "other": ["Agile", "CI/CD"]
  }
 }`
-                },
-                {
-                    role: "user",
-                    content: description
-                }
-            ],
-            temperature: 0.3,
-        });
+                    },
+                    {
+                        role: "user",
+                        content: description
+                    }
+                ],
+                temperature: 0.3,
+            }),
+            "Job description analysis"
+        );
 
         const content = response.choices[0].message.content;
         console.log("[Job Analysis] Raw response:", content);
-
         if (!content) {
             console.warn("[Job Analysis] Empty response");
             return getDefaultAnalysis();
@@ -168,12 +170,7 @@ Return a detailed analysis in the following JSON format:
                 keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
                 skillsAndTools: skillsArray.map(skill => skill.name),
                 skillCategories: skillsArray.map(skill => skill.category),
-                metrics: {
-                    keywords: Math.min(100, Math.max(0, Number(parsed.metrics?.keywords) || 0)),
-                    skills: Math.min(100, Math.max(0, Number(parsed.metrics?.skills) || 0)),
-                    experience: Math.min(100, Math.max(0, Number(parsed.metrics?.experience) || 0)),
-                    overall: Math.min(100, Math.max(0, Number(parsed.metrics?.overall) || 0))
-                }
+                metrics: getDefaultMetrics()
             };
 
             console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
@@ -185,6 +182,75 @@ Return a detailed analysis in the following JSON format:
     } catch (error) {
         console.error("[Job Analysis] Analysis error:", error);
         return getDefaultAnalysis();
+    }
+}
+
+async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: string): Promise<T> {
+    return new Promise(async (resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error(`${operation} timed out`));
+        }, SAFE_TIMEOUT);
+
+        try {
+            const result = await apiCall();
+            clearTimeout(timeout);
+            resolve(result);
+        } catch (error) {
+            clearTimeout(timeout);
+            reject(error);
+        }
+    });
+}
+
+async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
+    try {
+        if (mimetype === "application/pdf") {
+            return new Promise((resolve, reject) => {
+                const pdfParser = new PDFParser(null);
+                let isDestroyed = false;
+
+                const timeout = setTimeout(() => {
+                    isDestroyed = true;
+                    pdfParser.removeAllListeners();
+                    reject(new Error('PDF parsing timed out'));
+                }, SAFE_TIMEOUT);
+
+                pdfParser.on("pdfParser_dataReady", (pdfData) => {
+                    if (isDestroyed) return;
+                    clearTimeout(timeout);
+                    resolve(pdfData.Pages.map(page =>
+                        page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
+                    ).join("\n"));
+                });
+
+                pdfParser.on("pdfParser_dataError", (error) => {
+                    if (isDestroyed) return;
+                    clearTimeout(timeout);
+                    reject(error);
+                });
+
+                pdfParser.parseBuffer(buffer);
+            });
+        } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+            return new Promise(async (resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('DOCX parsing timed out'));
+                }, SAFE_TIMEOUT);
+
+                try {
+                    const result = await mammoth.extractRawText({ buffer });
+                    clearTimeout(timeout);
+                    resolve(result.value);
+                } catch (error) {
+                    clearTimeout(timeout);
+                    reject(error);
+                }
+            });
+        }
+        throw new Error("Unsupported file type");
+    } catch (error) {
+        console.error("Error parsing resume:", error);
+        throw new Error(error instanceof Error ? error.message : "Failed to parse resume file");
     }
 }
 
@@ -215,7 +281,10 @@ function getDefaultAnalysis() {
     };
 }
 
+
 //Rest of the file
+const SAFE_TIMEOUT = 30000; // 30 seconds in milliseconds
+
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
@@ -270,59 +339,6 @@ const upload = multer({
     }
 });
 
-async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
-    try {
-        if (mimetype === "application/pdf") {
-            return new Promise((resolve, reject) => {
-                const pdfParser = new PDFParser(null);
-                let isDestroyed = false;
-
-                // Set timeout to avoid hanging
-                const timeout = setTimeout(() => {
-                    isDestroyed = true;
-                    // Instead of using destroy(), we'll clean up listeners
-                    pdfParser.removeAllListeners();
-                    reject(new Error('PDF parsing timed out'));
-                }, 30000); // 30 second timeout
-
-                pdfParser.on("pdfParser_dataReady", (pdfData) => {
-                    if (isDestroyed) return;
-                    clearTimeout(timeout);
-                    resolve(pdfData.Pages.map(page =>
-                        page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
-                    ).join("\n"));
-                });
-
-                pdfParser.on("pdfParser_dataError", (error) => {
-                    if (isDestroyed) return;
-                    clearTimeout(timeout);
-                    reject(error);
-                });
-
-                pdfParser.parseBuffer(buffer);
-            });
-        } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-            return new Promise(async (resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('DOCX parsing timed out'));
-                }, 30000); // 30 second timeout
-
-                try {
-                    const result = await mammoth.extractRawText({ buffer });
-                    clearTimeout(timeout);
-                    resolve(result.value);
-                } catch (error) {
-                    clearTimeout(timeout);
-                    reject(error);
-                }
-            });
-        }
-        throw new Error("Unsupported file type");
-    } catch (error) {
-        console.error("Error parsing resume:", error);
-        throw new Error(error instanceof Error ? error.message : "Failed to parse resume file");
-    }
-}
 
 async function extractJobDetails(url: string): Promise<JobDetails> {
     try {
@@ -424,6 +440,7 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         );
     }
 }
+
 
 
 async function createPDF(content: string): Promise<Buffer> {
@@ -597,6 +614,8 @@ export function registerRoutes(app: Express): Server {
     });
 
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
+        const abortController = new AbortController();
+
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
             const { jobUrl, jobDescription, version } = req.body;
@@ -609,10 +628,9 @@ export function registerRoutes(app: Express): Server {
             if (!uploadedResume) return res.status(404).send("Resume not found");
             if (uploadedResume.userId !== req.user!.id) return res.sendStatus(403);
 
-            const aborted = new Promise((_, reject) => {
-                req.on('close', () => {
-                    reject(new Error('Request aborted by client'));
-                });
+            // Handle client disconnection
+            req.on('close', () => {
+                abortController.abort();
             });
 
             let jobDetails: JobDetails;
@@ -625,37 +643,31 @@ export function registerRoutes(app: Express): Server {
                         finalJobDescription = extractedDetails.description;
                         const analysis = await analyzeJobDescription(finalJobDescription);
                         jobDetails = {
-                            title: extractedDetails.title,
-                            company: extractedDetails.company,
-                            location: extractedDetails.location,
-                            salary: extractedDetails.salary,
-                            description: finalJobDescription,
-                            positionLevel: analysis.positionLevel,
-                            keyRequirements: analysis.keyRequirements,
-                            skillsAndTools: analysis.skillsAndTools
+                            ...extractedDetails,
+                            ...analysis
                         };
                     } catch (error: any) {
                         console.error("[URL Extraction] Error:", error);
                         throw error;
                     }
                 } else {
-                    console.log("[Manual Input] Processing manual job description");
                     finalJobDescription = jobDescription;
                     const analysis = await analyzeJobDescription(jobDescription);
                     jobDetails = {
-                        title: analysis.title || "Manual Input",
-                        company: analysis.company || "Not specified",
-                        location: analysis.location || "Not specified",
-                        description: jobDescription,
-                        positionLevel: analysis.positionLevel,
-                        keyRequirements: analysis.keyRequirements,
-                        skillsAndTools: analysis.skillsAndTools
+                        ...analysis,
+                        description: jobDescription
                     };
                 }
 
                 console.log("[Metrics] Calculating pre-optimization scores");
                 const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
-                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
+
+                // Optimize resume with timeout handling
+                const optimized = await callOpenAIWithTimeout(
+                    () => optimizeResume(uploadedResume.content, finalJobDescription),
+                    "Resume optimization"
+                );
+
                 const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
 
                 const initials = getInitials(uploadedResume.content);
@@ -687,15 +699,15 @@ export function registerRoutes(app: Express): Server {
                 });
             };
 
-            const optimizedResume = await Promise.race([
-                processJob(),
-                aborted
-            ]);
+            const optimizedResume = await processJob();
+            if (abortController.signal.aborted) {
+                return;
+            }
 
             res.json(optimizedResume);
         } catch (error: any) {
             console.error("Optimization error:", error);
-            if (error.message === 'Request aborted by client') {
+            if (abortController.signal.aborted) {
                 return;
             }
             res.status(500).json({ error: error.message });
