@@ -86,46 +86,49 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
       </div>
 
       {/* Mobile view - hide on desktop */}
-      <div className="md:hidden">
-        {/* Mobile fixed header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background shadow-sm">
-          <div className="max-w-md mx-auto px-4 py-3">
-            {/* Current step info */}
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="bg-violet-500 text-white text-xs font-medium px-2 py-1 rounded">
-                  {currentStep}/{steps.length}
-                </div>
-                <span className="font-medium text-sm text-foreground">
-                  {steps[currentStep - 1]?.title}
-                </span>
-              </div>
-            </div>
-
-            {/* Progress steps */}
+      <div className="block md:hidden bg-background mb-6">
+        <div className="px-4 py-3 border-b">
+          {/* Step indicator */}
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              {steps.map((step) => {
-                const isActive = currentStep === step.id;
-                const isCompleted = completedSteps.includes(step.id);
-                const isPending = !isActive && !isCompleted;
-
-                return (
-                  <div
-                    key={step.id}
-                    className={cn(
-                      "flex-1 h-1.5 rounded-full transition-all duration-300",
-                      isCompleted && "bg-violet-500",
-                      isActive && "bg-violet-500 shadow-sm",
-                      isPending && "bg-muted"
-                    )}
-                  />
-                );
-              })}
+              <div className="bg-violet-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium">
+                {currentStep}
+              </div>
+              <span className="font-medium text-sm">
+                {steps[currentStep - 1]?.title}
+              </span>
             </div>
+            <span className="text-sm text-muted-foreground">
+              Step {currentStep} of {steps.length}
+            </span>
+          </div>
+
+          {/* Progress bar */}
+          <div className="flex items-center gap-1.5">
+            {steps.map((step) => {
+              const isActive = currentStep === step.id;
+              const isCompleted = completedSteps.includes(step.id);
+              return (
+                <div
+                  key={step.id}
+                  className={cn(
+                    "flex-1 h-2 rounded-full transition-all duration-300",
+                    isCompleted && "bg-violet-500",
+                    isActive && "bg-violet-500/80",
+                    !isActive && !isCompleted && "bg-muted"
+                  )}
+                />
+              );
+            })}
+          </div>
+
+          {/* Current step description - only show on larger mobiles */}
+          <div className="hidden sm:block mt-2">
+            <p className="text-xs text-muted-foreground">
+              {steps[currentStep - 1]?.description}
+            </p>
           </div>
         </div>
-        {/* Spacer to prevent content from being hidden under fixed header */}
-        <div className="h-[68px]" />
       </div>
     </div>
   );
