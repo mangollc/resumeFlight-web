@@ -1,6 +1,7 @@
 const MAX_TIMEOUT = 20000; // 20 seconds
 const API_TIMEOUT = 15000; // 15 seconds 
 const PARSING_TIMEOUT = 10000; // 10 seconds
+const SAFE_TIMEOUT = 20000; // 20 seconds, safe value for Node.js
 
 function formatFilename(base: string, extension: string): string {
   return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
@@ -43,12 +44,18 @@ async function getResumeVersions(optimizedResumeId: number) {
 async function calculateMatchScores(resumeContent: string, jobDescription: string) {
     try {
         console.log("[Match Analysis] Starting analysis...");
-        const response = await openai.chat.completions.create({
-            model: "gpt-4-0613",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+            controller.abort();
+        }, SAFE_TIMEOUT);
+
+        try {
+            const response = await openai.chat.completions.create({
+                model: "gpt-4-0613",
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
 Your task is to:
 1. Analyze keyword matches between resume and job requirements
 2. Evaluate skills alignment
@@ -68,35 +75,44 @@ Scoring Guidelines:
 - Skills (0-100): How well the candidate's skills match the required skills
 - Experience (0-100): Relevance and depth of experience compared to requirements
 - Overall (0-100): Weighted average with emphasis on skills and experience`
-                },
-                {
-                    role: "user",
-                    content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
-                }
-            ],
-            temperature: 0.3
-        });
+                    },
+                    {
+                        role: "user",
+                        content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+                    }
+                ],
+                temperature: 0.3
+            });
 
-        const content = response.choices[0].message.content;
-        if (!content) {
-            console.warn("[Match Analysis] Empty response from OpenAI");
-            return getDefaultMetrics();
-        }
+            clearTimeout(timeout);
+            const content = response.choices[0].message.content;
+            if (!content) {
+                console.warn("[Match Analysis] Empty response from OpenAI");
+                return getDefaultMetrics();
+            }
 
-        try {
-            const metrics = JSON.parse(content);
-            const validatedMetrics = {
-                keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-                skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-                experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-                overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-            };
+            try {
+                const metrics = JSON.parse(content);
+                const validatedMetrics = {
+                    keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+                    skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+                    experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+                    overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+                };
 
-            console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
-            return validatedMetrics;
-        } catch (parseError) {
-            console.error("[Match Analysis] Error parsing metrics:", parseError);
-            return getDefaultMetrics();
+                console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
+                return validatedMetrics;
+            } catch (parseError) {
+                console.error("[Match Analysis] Error parsing metrics:", parseError);
+                return getDefaultMetrics();
+            }
+        } catch (error) {
+            clearTimeout(timeout);
+            if (error.name === 'AbortError') {
+                console.error("[Match Analysis] Operation timed out");
+                return getDefaultMetrics();
+            }
+            throw error;
         }
     } catch (error) {
         console.error("[Match Analysis] Error calculating scores:", error);
@@ -107,12 +123,18 @@ Scoring Guidelines:
 async function analyzeJobDescription(description: string) {
     try {
         console.log("[Job Analysis] Starting job description analysis...");
-        const response = await openai.chat.completions.create({
-            model: "gpt-4-0613",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a job analysis expert. Analyze the job description and extract key information.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => {
+            controller.abort();
+        }, SAFE_TIMEOUT);
+
+        try {
+            const response = await openai.chat.completions.create({
+                model: "gpt-4-0613",
+                messages: [
+                    {
+                        role: "system",
+                        content: `You are a job analysis expert. Analyze the job description and extract key information.
 Return a detailed analysis in the following JSON format:
 {
  "title": "Job title extracted from description",
@@ -133,47 +155,56 @@ Return a detailed analysis in the following JSON format:
    "other": ["Agile", "CI/CD"]
  }
 }`
-                },
-                {
-                    role: "user",
-                    content: description
-                }
-            ],
-            temperature: 0.3
-        });
+                    },
+                    {
+                        role: "user",
+                        content: description
+                    }
+                ],
+                temperature: 0.3
+            });
 
-        const content = response.choices[0].message.content;
-        console.log("[Job Analysis] Raw response:", content);
-        if (!content) {
-            console.warn("[Job Analysis] Empty response");
-            return getDefaultAnalysis();
-        }
+            clearTimeout(timeout);
+            const content = response.choices[0].message.content;
+            console.log("[Job Analysis] Raw response:", content);
+            if (!content) {
+                console.warn("[Job Analysis] Empty response");
+                return getDefaultAnalysis();
+            }
 
-        try {
-            const parsed = JSON.parse(content);
-            const skillsArray = Object.entries(parsed.skillsAndTools || {}).flatMap(([category, skills]) =>
-                (skills as string[]).map(skill => ({
-                    name: formatSkill(skill),
-                    category
-                }))
-            );
+            try {
+                const parsed = JSON.parse(content);
+                const skillsArray = Object.entries(parsed.skillsAndTools || {}).flatMap(([category, skills]) =>
+                    (skills as string[]).map(skill => ({
+                        name: formatSkill(skill),
+                        category
+                    }))
+                );
 
-            const validatedAnalysis = {
-                title: parsed.title || "Not specified",
-                company: parsed.company || "Not specified",
-                location: parsed.location || "Not specified",
-                positionLevel: parsed.positionLevel || "Not specified",
-                keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
-                skillsAndTools: skillsArray.map(skill => skill.name),
-                skillCategories: skillsArray.map(skill => skill.category),
-                metrics: getDefaultMetrics()
-            };
+                const validatedAnalysis = {
+                    title: parsed.title || "Not specified",
+                    company: parsed.company || "Not specified",
+                    location: parsed.location || "Not specified",
+                    positionLevel: parsed.positionLevel || "Not specified",
+                    keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
+                    skillsAndTools: skillsArray.map(skill => skill.name),
+                    skillCategories: skillsArray.map(skill => skill.category),
+                    metrics: getDefaultMetrics()
+                };
 
-            console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
-            return validatedAnalysis;
-        } catch (parseError) {
-            console.error("[Job Analysis] Parse error:", parseError);
-            return getDefaultAnalysis();
+                console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
+                return validatedAnalysis;
+            } catch (parseError) {
+                console.error("[Job Analysis] Parse error:", parseError);
+                return getDefaultAnalysis();
+            }
+        } catch (error) {
+            clearTimeout(timeout);
+            if (error.name === 'AbortError') {
+                console.error("[Job Analysis] Operation timed out");
+                return getDefaultAnalysis();
+            }
+            throw error;
         }
     } catch (error) {
         console.error("[Job Analysis] Analysis error:", error);
@@ -271,7 +302,7 @@ function getDefaultAnalysis() {
 }
 
 
-const SAFE_TIMEOUT = 30000; // 30 seconds in milliseconds
+const SAFE_TIMEOUT_2 = 30000; // 30 seconds in milliseconds
 
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
@@ -660,7 +691,7 @@ export function registerRoutes(app: Express): Server {
             // Set up timeout and cleanup
             timeoutId = setTimeout(() => {
                 controller.abort();
-            }, 25000); // 25 second timeout
+            }, SAFE_TIMEOUT_2); // 25 second timeout
 
             // Handle client disconnection
             req.on('close', () => {
@@ -867,7 +898,7 @@ export function registerRoutes(app: Express): Server {
             const filename = formatFilename(
                 req.query.filename as string ||
                 `${getInitials(resume.content)}_${
-                    resume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()
+                    resume.jobDetails?.title?.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'resume'
                 }_v${resume.metadata.version.toFixed(1)}`,
                 'pdf'
             );
