@@ -1,3 +1,7 @@
+const MAX_TIMEOUT = 25000; // 25 seconds
+const API_TIMEOUT = 20000; // 20 seconds
+const PARSING_TIMEOUT = 15000; // 15 seconds
+
 function formatFilename(base: string, extension: string): string {
   return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
 }
@@ -186,20 +190,28 @@ Return a detailed analysis in the following JSON format:
 }
 
 async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: string): Promise<T> {
-    return new Promise(async (resolve, reject) => {
-        const timeout = setTimeout(() => {
-            reject(new Error(`${operation} timed out`));
-        }, SAFE_TIMEOUT);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, API_TIMEOUT);
 
-        try {
-            const result = await apiCall();
-            clearTimeout(timeout);
-            resolve(result);
-        } catch (error) {
-            clearTimeout(timeout);
-            reject(error);
-        }
-    });
+    try {
+        const result = await Promise.race([
+            apiCall(),
+            new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error(`${operation} operation timed out after ${API_TIMEOUT}ms`));
+                }, API_TIMEOUT);
+            })
+        ]);
+
+        clearTimeout(timeoutId);
+        return result;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        console.error(`[${operation}] Error:`, error);
+        throw error;
+    }
 }
 
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
@@ -207,25 +219,20 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
         if (mimetype === "application/pdf") {
             return new Promise((resolve, reject) => {
                 const pdfParser = new PDFParser(null);
-                let isDestroyed = false;
-
-                const timeout = setTimeout(() => {
-                    isDestroyed = true;
+                const timeoutId = setTimeout(() => {
                     pdfParser.removeAllListeners();
                     reject(new Error('PDF parsing timed out'));
-                }, SAFE_TIMEOUT);
+                }, PARSING_TIMEOUT);
 
                 pdfParser.on("pdfParser_dataReady", (pdfData) => {
-                    if (isDestroyed) return;
-                    clearTimeout(timeout);
+                    clearTimeout(timeoutId);
                     resolve(pdfData.Pages.map(page =>
                         page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
                     ).join("\n"));
                 });
 
                 pdfParser.on("pdfParser_dataError", (error) => {
-                    if (isDestroyed) return;
-                    clearTimeout(timeout);
+                    clearTimeout(timeoutId);
                     reject(error);
                 });
 
@@ -233,16 +240,16 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
             });
         } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
             return new Promise(async (resolve, reject) => {
-                const timeout = setTimeout(() => {
+                const timeoutId = setTimeout(() => {
                     reject(new Error('DOCX parsing timed out'));
-                }, SAFE_TIMEOUT);
+                }, PARSING_TIMEOUT);
 
                 try {
                     const result = await mammoth.extractRawText({ buffer });
-                    clearTimeout(timeout);
+                    clearTimeout(timeoutId);
                     resolve(result.value);
                 } catch (error) {
-                    clearTimeout(timeout);
+                    clearTimeout(timeoutId);
                     reject(error);
                 }
             });
@@ -614,100 +621,112 @@ export function registerRoutes(app: Express): Server {
     });
 
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
-        const abortController = new AbortController();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, MAX_TIMEOUT);
 
         try {
-            if (!req.isAuthenticated()) return res.sendStatus(401);
-            const { jobUrl, jobDescription, version } = req.body;
+            if (!req.isAuthenticated()) {
+                clearTimeout(timeoutId);
+                return res.sendStatus(401);
+            }
 
+            const { jobUrl, jobDescription, version } = req.body;
             if (!jobUrl && !jobDescription) {
+                clearTimeout(timeoutId);
                 return res.status(400).json({ error: "Please provide either a job URL or description" });
             }
 
             const uploadedResume = await storage.getUploadedResume(parseInt(req.params.id));
-            if (!uploadedResume) return res.status(404).send("Resume not found");
-            if (uploadedResume.userId !== req.user!.id) return res.sendStatus(403);
+            if (!uploadedResume) {
+                clearTimeout(timeoutId);
+                return res.status(404).send("Resume not found");
+            }
+            if (uploadedResume.userId !== req.user!.id) {
+                clearTimeout(timeoutId);
+                return res.sendStatus(403);
+            }
 
             // Handle client disconnection
             req.on('close', () => {
-                abortController.abort();
+                controller.abort();
+                clearTimeout(timeoutId);
             });
 
             let jobDetails: JobDetails;
             let finalJobDescription: string;
 
-            const processJob = async () => {
-                if (jobUrl) {
-                    try {
-                        const extractedDetails = await extractJobDetails(jobUrl);
-                        finalJobDescription = extractedDetails.description;
-                        const analysis = await analyzeJobDescription(finalJobDescription);
-                        jobDetails = {
-                            ...extractedDetails,
-                            ...analysis
-                        };
-                    } catch (error: any) {
-                        console.error("[URL Extraction] Error:", error);
-                        throw error;
-                    }
-                } else {
-                    finalJobDescription = jobDescription;
-                    const analysis = await analyzeJobDescription(jobDescription);
+            if (jobUrl) {
+                try {
+                    const extractedDetails = await extractJobDetails(jobUrl);
+                    finalJobDescription = extractedDetails.description;
+                    const analysis = await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
-                        ...analysis,
-                        description: jobDescription
+                        ...extractedDetails,
+                        ...analysis
                     };
+                } catch (error: any) {
+                    clearTimeout(timeoutId);
+                    throw error;
                 }
-
-                console.log("[Metrics] Calculating pre-optimization scores");
-                const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
-
-                // Optimize resume with timeout handling
-                const optimized = await callOpenAIWithTimeout(
-                    () => optimizeResume(uploadedResume.content, finalJobDescription),
-                    "Resume optimization"
-                );
-
-                const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
-
-                const initials = getInitials(uploadedResume.content);
-                const cleanJobTitle = jobDetails.title
-                    .replace(/[^a-zA-Z0-9\s]/g, '')
-                    .replace(/\s+/g, '_')
-                    .substring(0, 30);
-
-                const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
-                const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
-
-                return await storage.createOptimizedResume({
-                    content: optimized.optimizedContent,
-                    originalContent: uploadedResume.content,
-                    jobDescription: finalJobDescription,
-                    jobUrl: jobUrl || null,
-                    jobDetails,
-                    uploadedResumeId: uploadedResume.id,
-                    userId: req.user!.id,
-                    metadata: {
-                        filename: newFilename,
-                        optimizedAt: new Date().toISOString(),
-                        version: version || 1.0
-                    },
-                    metrics: {
-                        before: beforeMetrics,
-                        after: afterMetrics
-                    }
-                });
-            };
-
-            const optimizedResume = await processJob();
-            if (abortController.signal.aborted) {
-                return;
+            } else {
+                finalJobDescription = jobDescription;
+                const analysis = await analyzeJobDescription(jobDescription);
+                jobDetails = {
+                    ...analysis,
+                    description: jobDescription
+                };
             }
 
+            const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
+
+            const optimizePromise = optimizeResume(uploadedResume.content, finalJobDescription);
+            const optimized = await Promise.race([
+                optimizePromise,
+                new Promise((_, reject) => {
+                    setTimeout(() => {
+                        reject(new Error('Resume optimization timed out'));
+                    }, API_TIMEOUT);
+                })
+            ]);
+
+            const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
+
+            const initials = getInitials(uploadedResume.content);
+            const cleanJobTitle = jobDetails.title
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 30);
+
+            const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
+            const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
+
+            const optimizedResume = await storage.createOptimizedResume({
+                content: optimized.optimizedContent,
+                originalContent: uploadedResume.content,
+                jobDescription: finalJobDescription,
+                jobUrl: jobUrl || null,
+                jobDetails,
+                uploadedResumeId: uploadedResume.id,
+                userId: req.user!.id,
+                metadata: {
+                    filename: newFilename,
+                    optimizedAt: new Date().toISOString(),
+                    version: version || 1.0
+                },
+                metrics: {
+                    before: beforeMetrics,
+                    after: afterMetrics
+                }
+            });
+
+            clearTimeout(timeoutId);
             res.json(optimizedResume);
         } catch (error: any) {
+            clearTimeout(timeoutId);
             console.error("Optimization error:", error);
-            if (abortController.signal.aborted) {
+            if (controller.signal.aborted) {
                 return;
             }
             res.status(500).json({ error: error.message });
@@ -872,7 +891,7 @@ export function registerRoutes(app: Express): Server {
 
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('Content-Length', pdfBuffer.length);
+            res.setHeader('ContentLength', pdfBuffer.length);
             res.send(pdfBuffer);
         } catch (error: any) {
             console.error("Download error:", error);
