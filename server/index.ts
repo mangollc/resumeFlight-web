@@ -46,49 +46,6 @@ const server = registerRoutes(app);
 server.timeout = 120000;
 server.keepAliveTimeout = 120000;
 
-// Function to find an available port
-async function findAvailablePort(startPort: number): Promise<number> {
-  return new Promise((resolve) => {
-    const testServer = express().listen(startPort, "0.0.0.0", () => {
-      const port = (testServer.address() as any).port;
-      testServer.close(() => resolve(port));
-    }).on('error', () => {
-      resolve(findAvailablePort(startPort + 1));
-    });
-  });
-}
-
-// Enhanced server startup with port fallback
-async function startServer() {
-  try {
-    log("Attempting to start server...");
-    const port = await findAvailablePort(5000);
-    log(`Found available port: ${port}`);
-
-    server.listen(port, "0.0.0.0", () => {
-      log(`Server started successfully on port ${port}`);
-      // Set environment variable for Vite to use
-      process.env.PORT = port.toString();
-    }).on('error', (err: any) => {
-      log(`Server startup error: ${err.message}`);
-      process.exit(1);
-    });
-
-    // Graceful shutdown handler
-    process.on('SIGTERM', () => {
-      log('SIGTERM received. Shutting down gracefully...');
-      server.close(() => {
-        log('Server closed. Exiting process.');
-        process.exit(0);
-      });
-    });
-
-  } catch (err) {
-    log(`Failed to start server: ${err}`);
-    process.exit(1);
-  }
-}
-
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
@@ -96,11 +53,11 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
   console.error(`[Error] ${status} - ${message}`, err.stack);
 
-  const responseMessage = process.env.NODE_ENV === "production" 
-    ? "An unexpected error occurred" 
+  const responseMessage = process.env.NODE_ENV === "production"
+    ? "An unexpected error occurred"
     : message;
 
-  res.status(status).json({ 
+  res.status(status).json({
     error: true,
     message: responseMessage,
     ...(process.env.NODE_ENV !== "production" && { stack: err.stack })
@@ -118,8 +75,6 @@ if (process.env.NODE_ENV === "development") {
   serveStatic(app);
 }
 
-// Initialize server
-startServer().catch(err => {
-  log(`Fatal error during server startup: ${err}`);
-  process.exit(1);
+server.listen(5000, "0.0.0.0", () => {
+  log("Server started on port 5000");
 });

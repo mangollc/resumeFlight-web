@@ -35,6 +35,9 @@ async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: st
 async function calculateMatchScores(resumeContent: string, jobDescription: string) {
     try {
         console.log("[Match Analysis] Starting analysis...");
+        const operationTimeout = validateTimeout(SAFE_TIMEOUT, 20000);
+        console.log(`[Match Analysis] Using timeout: ${operationTimeout}ms`);
+
         return await callOpenAIWithTimeout(
             async () => {
                 const response = await openai.chat.completions.create({
@@ -91,7 +94,7 @@ Scoring Guidelines:
                 }
             },
             "Match Analysis",
-            SAFE_TIMEOUT
+            operationTimeout
         );
     } catch (error) {
         console.error("[Match Analysis] Error calculating scores:", error);
@@ -669,7 +672,7 @@ export function registerRoutes(app: Express): Server {
             }
 
             // Validate and set timeout
-            const operationTimeout = validateTimeout(SAFE_TIMEOUT_2, 20000);
+            const operationTimeout = validateTimeout(SAFE_TIMEOUT, 20000);
             console.log(`[Optimize] Using operation timeout: ${operationTimeout}ms`);
 
             timeoutId = setTimeout(() => {
