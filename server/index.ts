@@ -6,8 +6,8 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set timeout to 5 minutes, ensuring it's within 32-bit signed integer limit
-const TIMEOUT_DURATION = Math.min(5 * 60 * 1000, 0x7FFFFFFF);
+// Set timeout to maximum safe value for 32-bit signed integer
+const TIMEOUT_DURATION = Math.min(5 * 60 * 1000, 2147483647); // 2147483647 is 0x7FFFFFFF
 
 app.use((req, res, next) => {
   req.setTimeout(TIMEOUT_DURATION);
