@@ -546,17 +546,31 @@ export function registerRoutes(app: Express): Server {
 
     app.delete("/api/uploaded-resume/:id", async (req, res) => {
         try {
-            if (!req.isAuthenticated()) return res.sendStatus(401);
+            if (!req.isAuthenticated()) {
+                console.log("[Delete Route] Unauthorized attempt");
+                return res.sendStatus(401);
+            }
 
-            const resume = await storage.getUploadedResume(parseInt(req.params.id));
-            if (!resume) return res.status(404).send("Resume not found");
-            if (resume.userId !== req.user!.id) return res.sendStatus(403);
+            const resumeId = parseInt(req.params.id);
+            console.log(`[Delete Route] Attempting to delete resume ${resumeId}`);
 
-            await storage.deleteUploadedResume(parseInt(req.params.id));
+            const resume = await storage.getUploadedResume(resumeId);
+            if (!resume) {
+                console.log(`[Delete Route] Resume ${resumeId} not found`);
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                console.log(`[Delete Route] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                return res.sendStatus(403);
+            }
+
+            await storage.deleteUploadedResume(resumeId);
+            console.log(`[Delete Route] Successfully deleted resume ${resumeId}`);
             res.sendStatus(200);
         } catch (error: any) {
-            console.error("Delete uploaded resume error:", error);
-            res.status(500).json({ error: error.message });
+            console.error("[Delete Route] Error:", error);
+            res.status(500).json({ error: error.message || "Failed to delete resume" });
         }
     });
 
