@@ -280,7 +280,7 @@ export default function Dashboard() {
           jobDescription: jobDetails.description,
           version: nextVersion,
           aiPrompt: `
-I need to optimize this resume for the job description, focusing on improving the match scores across all metrics compared to version ${optimizationVersion.toFixed(1)}. Please make the following enhancements:
+I need to optimize this resume for the job description, focusing on improving the match scores compared to version ${optimizationVersion.toFixed(1)}. Please make the following enhancements:
 
 1. Keyword Optimization (Current: ${optimizedResume?.metrics?.after?.keywords}%):
    - Identify and incorporate more relevant industry-specific keywords from the job description
@@ -324,12 +324,12 @@ While optimizing, maintain authenticity and natural language flow. Do not fabric
 
       toast({
         title: "Success",
-        description: `Resume optimized (v${nextVersion})`,
+        description: `Resume optimized (v${nextVersion.toFixed(1)})`,
       });
     } catch (error) {
       console.error('Optimization error:', error);
       toast({
-        title: "Error",
+        title: "Error", 
         description: "Failed to reoptimize resume",
         variant: "destructive",
       });
@@ -826,7 +826,14 @@ While optimizing, maintain authenticity and natural language flow. Do not fabric
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
-        description="Please wait while we optimize your resume using AI..."
+        description={
+          <div className="space-y-4">
+            <p>Please wait while we optimize your resume using AI...</p>
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+        }
         onOpenChange={setIsOptimizing}
       />
     </div>
