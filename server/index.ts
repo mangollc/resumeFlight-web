@@ -9,26 +9,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set timeout to 2 minutes (120000ms), well within 32-bit integer limits
-const TIMEOUT_DURATION = 120000;
-
-app.use((req, res, next) => {
-  // Set timeouts safely within 32-bit integer limits
-  res.setTimeout(TIMEOUT_DURATION, () => {
-    const err = new Error('Response timeout') as any;
-    err.status = 503;
-    next(err);
-  });
-
-  req.setTimeout(TIMEOUT_DURATION, () => {
-    const err = new Error('Request timeout') as any;
-    err.status = 408;
-    next(err);
-  });
-
-  next();
-});
-
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -60,6 +40,10 @@ app.use((req, res, next) => {
 });
 
 const server = registerRoutes(app);
+
+// Set server timeout to 2 minutes (120 seconds)
+server.timeout = 120000;
+server.keepAliveTimeout = 120000;
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
