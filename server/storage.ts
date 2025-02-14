@@ -165,15 +165,20 @@ export class DatabaseStorage implements IStorage {
           eq(optimizedResumes.uploadedResumeId, uploadedResumeId)
         ));
 
-      return results.map(result => ({
+      const transformedResults = results.map(result => ({
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics']
       }));
+
+      // Sort by version number in descending order
+      return transformedResults.sort((a, b) => 
+        (b.metadata.version || 0) - (a.metadata.version || 0)
+      );
     } catch (error) {
       console.error('Error getting optimized resumes by job description:', error);
-      throw new Error('Failed to get optimized resumes by job description');
+      return []; // Return empty array instead of throwing to prevent server crash
     }
   }
 

@@ -63,8 +63,8 @@ const steps: Step[] = [
   },
   {
     id: 3,
-    title: "Optimize",
-    description: "Optimize your resume with AI"
+    title: "Preview",
+    description: "Preview your resume"
   },
   {
     id: 4,
@@ -79,11 +79,11 @@ const steps: Step[] = [
 ];
 
 export type JobDetails = {
-  url?: string;
-  description?: string;
-  title?: string;
-  company?: string;
-  location?: string;
+  url?: string | undefined;
+  description?: string | undefined;
+  title?: string | undefined;
+  company?: string | undefined;
+  location?: string | undefined;
 };
 
 export default function Dashboard() {
@@ -135,7 +135,7 @@ export default function Dashboard() {
 
   const handleOptimizationComplete = (resume: OptimizedResume, details: JobDetails) => {
     setOptimizedResume(resume);
-    setJobDetails(prev => ({ ...prev, ...details }));
+    setJobDetails(details); 
     if (!completedSteps.includes(2)) {
       setCompletedSteps(prev => [...prev, 2]);
     }
@@ -295,7 +295,7 @@ export default function Dashboard() {
   const canGoBack = currentStep > 1;
   const canGoNext = currentStep < 5 && (
     (currentStep === 1 && !!uploadedResume) ||
-    (currentStep === 2 && !!optimizedResume) ||
+    (currentStep === 2 && !!jobDetails) ||
     (currentStep === 3) ||
     (currentStep === 4 && !!coverLetter)
   );
@@ -310,14 +310,6 @@ export default function Dashboard() {
     if (canGoNext) {
       setCurrentStep(prev => {
         const nextStep = prev + 1;
-        if (nextStep === 3) {
-          setTimeout(() => {
-            document.getElementById('optimized-preview')?.scrollIntoView({ 
-              behavior: 'smooth',
-              block: 'start'
-            });
-          }, 100);
-        }
         return nextStep;
       });
       if (!completedSteps.includes(currentStep)) {
@@ -463,25 +455,14 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold mb-6 text-foreground/90">
                     Optimized Resume Preview
                   </h3>
-
-                  <ComparisonView
-                    currentResume={optimizedResume}
-                    originalContent={optimizedResume.originalContent}
-                    onReoptimize={handleReoptimize}
-                    isOptimizing={isOptimizing}
+                  <Preview
+                    resume={optimizedResume}
+                    coverLetter={coverLetter}
                   />
                 </div>
-
                 {renderNavigation()}
               </CardContent>
             </Card>
-
-            <LoadingDialog
-              open={isOptimizing}
-              title="Reoptimizing Resume"
-              description="Please wait while we optimize your resume using AI..."
-              onOpenChange={() => setIsOptimizing(false)}
-            />
           </div>
         ) : null;
 
@@ -615,21 +596,26 @@ export default function Dashboard() {
           <div className="fade-in space-y-8">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
-                <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">Summary</h2>
+                <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+                  Final Review
+                </h2>
                 <div className="space-y-12">
                   <div>
                     <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
                       <span className="bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
-                        Optimized Resume
+                        Resume Analysis & Comparison
                       </span>
                     </h3>
                     <div className="transition-all duration-300">
-                      <Preview
-                        resume={optimizedResume}
-                        coverLetter={coverLetter}
+                      <ComparisonView
+                        currentResume={optimizedResume}
+                        originalContent={optimizedResume.originalContent}
+                        onReoptimize={handleReoptimize}
+                        isOptimizing={isOptimizing}
                       />
                     </div>
                   </div>
+
                   <div>
                     <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
                       <span className="bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
@@ -757,6 +743,12 @@ export default function Dashboard() {
       <div className="mt-16">
         {renderCurrentStep()}
       </div>
+      <LoadingDialog
+        open={isOptimizing}
+        title="Optimizing Resume"
+        description="Please wait while we optimize your resume using AI..."
+        onOpenChange={(open: boolean) => setIsOptimizing(open)}
+      />
     </div>
   );
 }

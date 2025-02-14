@@ -1,15 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, Loader2 } from "lucide-react";
+import { ArrowLeftRight, Loader2, Maximize2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ComparisonSliderProps {
   beforeContent: string;
   afterContent: string;
   isLoading?: boolean;
+  showFullScreen?: boolean;
+  onFullScreen?: () => void;
 }
 
-export default function ComparisonSlider({ beforeContent, afterContent, isLoading = false }: ComparisonSliderProps) {
+export default function ComparisonSlider({ 
+  beforeContent, 
+  afterContent, 
+  isLoading = false,
+  showFullScreen = false,
+  onFullScreen
+}: ComparisonSliderProps) {
   const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState(50);
   const rangeRef = useRef<HTMLDivElement>(null);
@@ -44,6 +52,18 @@ export default function ComparisonSlider({ beforeContent, afterContent, isLoadin
       document.removeEventListener('touchend', stopResizing);
     };
   }, [isResizing]);
+
+  const highlightDifferences = (original: string, optimized: string) => {
+    const originalWords = original.split(/\s+/);
+    const optimizedWords = optimized.split(/\s+/);
+
+    return optimizedWords.map((word, index) => {
+      const isNew = !originalWords.includes(word);
+      return isNew ? 
+        `<span class="bg-green-200/30 px-1 rounded">${word}</span>` : 
+        word;
+    }).join(' ');
+  };
 
   if (isLoading) {
     return (
@@ -89,9 +109,12 @@ export default function ComparisonSlider({ beforeContent, afterContent, isLoadin
           style={{ clipPath: `inset(0 0 0 ${position}%)` }}
         >
           <div className="h-full overflow-auto p-4">
-            <pre className="whitespace-pre-wrap font-sans text-sm">
-              {afterContent}
-            </pre>
+            <pre 
+              className="whitespace-pre-wrap font-sans text-sm"
+              dangerouslySetInnerHTML={{ 
+                __html: highlightDifferences(beforeContent, afterContent) 
+              }}
+            />
           </div>
         </div>
 
@@ -123,6 +146,20 @@ export default function ComparisonSlider({ beforeContent, afterContent, isLoadin
           </div>
         </div>
       </div>
+
+      {showFullScreen && (
+        <div className="flex justify-end mt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onFullScreen}
+            className="gap-2"
+          >
+            <Maximize2 className="h-4 w-4" />
+            Full Screen
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
