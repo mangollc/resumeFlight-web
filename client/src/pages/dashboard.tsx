@@ -272,46 +272,21 @@ export default function Dashboard() {
       setIsOptimizing(true);
       const nextVersion = Number((optimizationVersion + 0.1).toFixed(1));
 
+      const optimizationData = {
+        jobDetails: {
+          url: jobDetails.url || '',
+          description: jobDetails.description || '',
+          title: jobDetails.title || '',
+          company: jobDetails.company || '',
+          location: jobDetails.location || ''
+        },
+        version: nextVersion
+      };
+
       const response = await apiRequest(
         "POST",
         `/api/uploaded-resumes/${uploadedResume.id}/optimize`,
-        {
-          jobUrl: jobDetails.url,
-          jobDescription: jobDetails.description,
-          version: nextVersion,
-          aiPrompt: `
-I need to optimize this resume for the job description, focusing on improving the match scores compared to version ${optimizationVersion.toFixed(1)}. Please make the following enhancements:
-
-1. Keyword Optimization (Current: ${optimizedResume?.metrics?.after?.keywords}%):
-   - Identify and incorporate more relevant industry-specific keywords from the job description
-   - Align terminology with industry standards and job requirements
-   - Use action verbs and power words that highlight achievements
-
-2. Skills Enhancement (Current: ${optimizedResume?.metrics?.after?.skills}%):
-   - Strengthen technical and soft skills alignment with job requirements
-   - Highlight relevant certifications and tools
-   - Add missing critical skills mentioned in the job posting
-
-3. Experience Impact (Current: ${optimizedResume?.metrics?.after?.experience}%):
-   - Transform bullet points to showcase measurable achievements and results
-   - Quantify accomplishments with specific metrics and percentages
-   - Emphasize leadership and project management experience
-   - Focus on relevant experience that matches job requirements
-
-4. Overall Optimization (Current: ${optimizedResume?.metrics?.after?.overall}%):
-   - Improve formatting and readability
-   - Ensure consistent professional tone
-   - Highlight unique value propositions
-   - Remove irrelevant information
-
-Goals for the new version:
-- Keyword score: Aim for at least ${Math.min(100, (optimizedResume?.metrics?.after?.keywords || 0) + 10)}%
-- Skills score: Target minimum ${Math.min(100, (optimizedResume?.metrics?.after?.skills || 0) + 10)}%
-- Experience score: Achieve at least ${Math.min(100, (optimizedResume?.metrics?.after?.experience || 0) + 10)}%
-- Overall score: Reach minimum ${Math.min(100, (optimizedResume?.metrics?.after?.overall || 0) + 10)}%
-
-While optimizing, maintain authenticity and natural language flow. Do not fabricate experience or skills.`
-        }
+        optimizationData
       );
 
       if (!response.ok) {
@@ -320,7 +295,6 @@ While optimizing, maintain authenticity and natural language flow. Do not fabric
 
       const optimizedData = await response.json();
       handleOptimizationComplete(optimizedData, jobDetails);
-      setOptimizationVersion(nextVersion);
 
       toast({
         title: "Success",
@@ -329,8 +303,8 @@ While optimizing, maintain authenticity and natural language flow. Do not fabric
     } catch (error) {
       console.error('Optimization error:', error);
       toast({
-        title: "Error", 
-        description: "Failed to reoptimize resume",
+        title: "Error",
+        description: "Failed to reoptimize resume. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -355,14 +329,17 @@ While optimizing, maintain authenticity and natural language flow. Do not fabric
   const handleNext = () => {
     if (canGoNext) {
       const nextStep = currentStep + 1;
-      setCurrentStep(nextStep);
 
-      // For step 4 (cover letter), mark it as completed even when skipping
+      // Handle step completion
       if (currentStep === 4 && !coverLetter) {
-        setCompletedSteps(prev => [...prev, currentStep]);
+        // Mark cover letter step as completed when skipping
+        setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
       } else if (!completedSteps.includes(currentStep)) {
-        setCompletedSteps(prev => [...prev, currentStep]);
+        setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
       }
+
+      // Move to next step
+      setCurrentStep(nextStep);
     }
   };
 
