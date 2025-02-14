@@ -6,11 +6,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Set reasonable timeout values that stay within 32-bit integer limits
-const TIMEOUT_DURATION = 30000; // 30 seconds in milliseconds
+// Set safe timeout values well below 32-bit integer limit
+const TIMEOUT_DURATION = 10000; // 10 seconds in milliseconds
 
 app.use((req, res, next) => {
-  // Set timeouts with proper error handling
+  // Set timeouts with proper error handling and explicit conversion
+  const timeout = Math.min(TIMEOUT_DURATION, 0x7FFFFFFF); // Ensure value stays within 32-bit signed int
+  req.setTimeout(timeout);
+  res.setTimeout(timeout);
   req.setTimeout(TIMEOUT_DURATION, () => {
     const err = new Error('Request timeout');
     err.status = 408;
