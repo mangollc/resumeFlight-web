@@ -5,6 +5,16 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontSize: {
+        // Add fluid typography scale
+        'fluid-h1': 'var(--fluid-h1)',
+        'fluid-h2': 'var(--fluid-h2)',
+        'fluid-h3': 'var(--fluid-h3)',
+        'fluid-h4': 'var(--fluid-h4)',
+        'fluid-base': 'var(--fluid-base)',
+        'fluid-sm': 'var(--fluid-sm)',
+        'fluid-xs': 'var(--fluid-xs)',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
@@ -64,20 +74,12 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {

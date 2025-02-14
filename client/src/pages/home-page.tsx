@@ -37,7 +37,7 @@ export default function HomePage() {
         {number}
       </div>
       <h2 className={cn(
-        "text-xl font-semibold",
+        "text-fluid-h3 font-semibold",
         "bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent",
         className
       )}>
@@ -49,8 +49,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen max-w-[1400px] mx-auto">
       <header className="mb-12 text-center lg:text-left">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3">Welcome to ResumeFlight</h1>
-        <p className="text-muted-foreground text-lg">
+        <h1 className="mb-3">Welcome to ResumeFlight</h1>
+        <p className="text-muted-foreground text-fluid-base">
           Optimize your resume for your dream job using AI-powered insights
         </p>
       </header>
@@ -115,7 +115,7 @@ export default function HomePage() {
               ) : uploadMode === 'choose' ? (
                 <div className="text-center py-6 bg-muted/30 rounded-lg">
                   <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground mb-3">No resumes uploaded yet</p>
+                  <p className="text-muted-foreground mb-3 text-fluid-sm">No resumes uploaded yet</p>
                   <Button
                     variant="link"
                     onClick={() => setUploadMode('upload')}
