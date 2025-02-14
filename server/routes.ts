@@ -1,6 +1,6 @@
-const MAX_TIMEOUT = 25000; // 25 seconds
-const API_TIMEOUT = 20000; // 20 seconds
-const PARSING_TIMEOUT = 15000; // 15 seconds
+const MAX_TIMEOUT = 20000; // 20 seconds
+const API_TIMEOUT = 15000; // 15 seconds 
+const PARSING_TIMEOUT = 10000; // 10 seconds
 
 function formatFilename(base: string, extension: string): string {
   return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
@@ -182,25 +182,15 @@ Return a detailed analysis in the following JSON format:
 }
 
 async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: string): Promise<T> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        controller.abort();
-    }, API_TIMEOUT);
-
     try {
         const result = await Promise.race([
             apiCall(),
-            new Promise((_, reject) => {
-                setTimeout(() => {
-                    reject(new Error(`${operation} operation timed out after ${API_TIMEOUT}ms`));
-                }, API_TIMEOUT);
-            })
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error(`${operation} operation timed out`)), API_TIMEOUT)
+            )
         ]);
-
-        clearTimeout(timeoutId);
-        return result;
+        return result as T;
     } catch (error) {
-        clearTimeout(timeoutId);
         console.error(`[${operation}] Error:`, error);
         throw error;
     }
@@ -894,7 +884,7 @@ export function registerRoutes(app: Express): Server {
 
     app.get("/api/optimized-resume/:id/versions", async (req, res) => {
         try {
-            if (!req.isAuthenticated()) return res.sendStatus(40401);
+            if (!req.isAuthenticated()) return res.sendStatus(401);
 
             const resumeId = parseInt(req.params.id);
             const resume = await storage.getOptimizedResume(resumeId);
@@ -911,7 +901,30 @@ export function registerRoutes(app: Express): Server {
             res.json(versions);
         } catch (error: any) {
             console.error("[Versions Route] Error:", error);
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ error: error.message || "Failed to fetch resume versions" });
+        }
+    });
+
+    app.get("/api/resume/:id/feedback", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) return res.sendStatus(401);
+
+            const resumeId = parseInt(req.params.id);
+            const resume = await storage.getOptimizedResume(resumeId);
+
+            if (!resume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                return res.sendStatus(403);
+            }
+
+            const feedback = await analyzeResumeDifferences(resume.originalContent, resume.content);
+            res.json(feedback);
+        } catch (error: any) {
+            console.error("[Feedback Route] Error:", error);
+            res.status(500).json({ error: error.message || "Failed to generate resume feedback" });
         }
     });
 
