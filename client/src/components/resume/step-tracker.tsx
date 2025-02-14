@@ -87,36 +87,36 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
 
       {/* Mobile view - hide on desktop */}
       <div className="md:hidden">
-        {/* Mobile compact progress bar */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-sm border-b">
-          <div className="max-w-md mx-auto px-4 py-2">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-violet-600">
-                  Step {currentStep}
-                </span>
-                <span className="text-sm text-muted-foreground font-medium">
+        {/* Mobile fixed header */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background shadow-sm">
+          <div className="max-w-md mx-auto px-4 py-3">
+            {/* Current step info */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-violet-500 text-white text-xs font-medium px-2 py-1 rounded">
+                  {currentStep}/{steps.length}
+                </div>
+                <span className="font-medium text-sm text-foreground">
                   {steps[currentStep - 1]?.title}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">
-                {currentStep}/{steps.length}
-              </span>
             </div>
 
-            {/* Steps pills */}
-            <div className="flex gap-1 h-1">
+            {/* Progress steps */}
+            <div className="flex items-center gap-2">
               {steps.map((step) => {
                 const isActive = currentStep === step.id;
                 const isCompleted = completedSteps.includes(step.id);
+                const isPending = !isActive && !isCompleted;
+
                 return (
                   <div
                     key={step.id}
                     className={cn(
-                      "flex-1 h-full rounded-full transition-all duration-300",
+                      "flex-1 h-1.5 rounded-full transition-all duration-300",
                       isCompleted && "bg-violet-500",
-                      isActive && "bg-violet-500",
-                      !isActive && !isCompleted && "bg-muted"
+                      isActive && "bg-violet-500 shadow-sm",
+                      isPending && "bg-muted"
                     )}
                   />
                 );
@@ -124,8 +124,8 @@ export default function StepTracker({ currentStep, steps, completedSteps }: Step
             </div>
           </div>
         </div>
-        {/* Add padding to content below fixed header */}
-        <div className="h-[52px]" />
+        {/* Spacer to prevent content from being hidden under fixed header */}
+        <div className="h-[68px]" />
       </div>
     </div>
   );
