@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 interface WelcomeAnimationProps {
   className?: string;
@@ -8,6 +9,27 @@ interface WelcomeAnimationProps {
 
 export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
   const { user } = useAuth();
+  const [shouldShow, setShouldShow] = useState(false);
+
+  useEffect(() => {
+    // Check if this is the first visit after login
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+
+    if (!hasSeenWelcome && user) {
+      setShouldShow(true);
+      // Set the flag in localStorage
+      localStorage.setItem('hasSeenWelcome', 'true');
+
+      // Clear the flag when user logs out (add this to your logout handler)
+      return () => {
+        if (!user) {
+          localStorage.removeItem('hasSeenWelcome');
+        }
+      };
+    }
+  }, [user]);
+
+  if (!shouldShow) return null;
 
   return (
     <motion.div
