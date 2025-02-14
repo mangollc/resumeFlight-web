@@ -170,14 +170,36 @@ export default function UploadedResumesPage() {
                             <FileText className="mr-2 h-4 w-4" />
                             Optimize
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={(e) => e.preventDefault()}
-                            className="text-destructive focus:text-destructive cursor-pointer"
-                            disabled={deleteMutation.isPending}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem
+                                onSelect={(e) => e.preventDefault()}
+                                className="text-destructive focus:text-destructive cursor-pointer"
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Resume</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this resume? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(resume.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  disabled={deleteMutation.isPending}
+                                >
+                                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
