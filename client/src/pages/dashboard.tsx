@@ -135,7 +135,7 @@ export default function Dashboard() {
 
   const handleOptimizationComplete = (resume: OptimizedResume, details: JobDetails) => {
     setOptimizedResume(resume);
-    setJobDetails(details); 
+    setJobDetails(details);
     if (!completedSteps.includes(2)) {
       setCompletedSteps(prev => [...prev, 2]);
     }
@@ -144,7 +144,7 @@ export default function Dashboard() {
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
     setCoverLetter(letter);
-    setCoverLetters(prev => [...prev, letter]); 
+    setCoverLetters(prev => [...prev, letter]);
     if (!completedSteps.includes(4)) {
       setCompletedSteps(prev => [...prev, 4]);
     }
@@ -171,7 +171,7 @@ export default function Dashboard() {
 
       const data = await response.json();
       setCoverLetter(data);
-      setCoverLetters(prev => [...prev, data]); 
+      setCoverLetters(prev => [...prev, data]);
 
       toast({
         title: "Success",
@@ -255,14 +255,14 @@ export default function Dashboard() {
     setCoverLetter(null);
     setJobDetails(null);
     setUploadMode('choose');
-    setCoverLetters([]); 
+    setCoverLetters([]);
   };
 
   const handleReoptimize = async () => {
     if (!uploadedResume?.id || !jobDetails) return;
 
     try {
-      setIsOptimizing(true); 
+      setIsOptimizing(true);
       const data = {
         jobUrl: jobDetails.url,
         jobDescription: jobDetails.description,
@@ -288,7 +288,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
     } finally {
-      setIsOptimizing(false); 
+      setIsOptimizing(false);
     }
   };
 
@@ -713,7 +713,7 @@ export default function Dashboard() {
     }
   };
 
-  const [sessionId] = useState(() => Date.now().toString()); 
+  const [sessionId] = useState(() => Date.now().toString());
   const [isDownloading, setIsDownloading] = useState(false);
 
 
