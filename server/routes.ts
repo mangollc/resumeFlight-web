@@ -230,32 +230,75 @@ interface JobDetails {
     };
 }
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const SUPPORTED_MIME_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+];
+
 const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }
+    limits: { fileSize: MAX_FILE_SIZE },
+    fileFilter: (_req, file, cb) => {
+        if (SUPPORTED_MIME_TYPES.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Unsupported file type. Please upload PDF or DOCX files only.'));
+        }
+    }
 });
 
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
     try {
         if (mimetype === "application/pdf") {
-            const pdfParser = new PDFParser(null);
             return new Promise((resolve, reject) => {
+                const pdfParser = new PDFParser(null);
+                let isDestroyed = false;
+
+                // Set timeout to avoid hanging
+                const timeout = setTimeout(() => {
+                    isDestroyed = true;
+                    // Instead of using destroy(), we'll clean up listeners
+                    pdfParser.removeAllListeners();
+                    reject(new Error('PDF parsing timed out'));
+                }, 30000); // 30 second timeout
+
                 pdfParser.on("pdfParser_dataReady", (pdfData) => {
+                    if (isDestroyed) return;
+                    clearTimeout(timeout);
                     resolve(pdfData.Pages.map(page =>
                         page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
                     ).join("\n"));
                 });
-                pdfParser.on("pdfParser_dataError", reject);
+
+                pdfParser.on("pdfParser_dataError", (error) => {
+                    if (isDestroyed) return;
+                    clearTimeout(timeout);
+                    reject(error);
+                });
+
                 pdfParser.parseBuffer(buffer);
             });
         } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-            const result = await mammoth.extractRawText({ buffer });
-            return result.value;
+            return new Promise(async (resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('DOCX parsing timed out'));
+                }, 30000); // 30 second timeout
+
+                try {
+                    const result = await mammoth.extractRawText({ buffer });
+                    clearTimeout(timeout);
+                    resolve(result.value);
+                } catch (error) {
+                    clearTimeout(timeout);
+                    reject(error);
+                }
+            });
         }
         throw new Error("Unsupported file type");
     } catch (error) {
         console.error("Error parsing resume:", error);
-        throw new Error("Failed to parse resume file");
+        throw new Error(error instanceof Error ? error.message : "Failed to parse resume file");
     }
 }
 

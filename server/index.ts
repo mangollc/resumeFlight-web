@@ -6,6 +6,26 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Set reasonable timeout values
+const TIMEOUT_DURATION = 120000; // 2 minutes in milliseconds
+
+app.use((req, res, next) => {
+  // Set timeouts with proper error handling
+  req.setTimeout(TIMEOUT_DURATION, () => {
+    const err = new Error('Request timeout');
+    err.status = 408;
+    next(err);
+  });
+
+  res.setTimeout(TIMEOUT_DURATION, () => {
+    const err = new Error('Response timeout');
+    err.status = 503;
+    next(err);
+  });
+
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -39,25 +59,32 @@ app.use((req, res, next) => {
 (async () => {
   const server = registerRoutes(app);
 
+  // Enhanced error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    // Log the error for debugging
+    console.error(`[Error] ${status} - ${message}`, err.stack);
+
+    // Don't expose internal error details in production
+    const responseMessage = app.get("env") === "production" 
+      ? "An unexpected error occurred" 
+      : message;
+
+    res.status(status).json({ 
+      error: true,
+      message: responseMessage,
+      ...(app.get("env") !== "production" && { stack: err.stack })
+    });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
   const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`serving on port ${PORT}`);

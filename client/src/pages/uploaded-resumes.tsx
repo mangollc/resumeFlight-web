@@ -45,17 +45,11 @@ export default function UploadedResumesPage() {
       await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
     },
     onMutate: async (id) => {
-      // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
-
-      // Snapshot the previous value
       const previousResumes = queryClient.getQueryData<UploadedResume[]>(["/api/uploaded-resumes"]);
-
-      // Optimistically update to the new value
       queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) =>
         old?.filter((resume) => resume.id !== id)
       );
-
       return { previousResumes };
     },
     onSuccess: () => {
@@ -66,7 +60,6 @@ export default function UploadedResumesPage() {
       });
     },
     onError: (error: Error, _, context) => {
-      // Rollback to the previous value
       if (context?.previousResumes) {
         queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
       }
@@ -157,9 +150,9 @@ export default function UploadedResumesPage() {
                     <TableCell className="py-2 pr-2 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-7 w-7 p-0"
                             disabled={deleteMutation.isPending}
                           >
@@ -177,37 +170,14 @@ export default function UploadedResumesPage() {
                             <FileText className="mr-2 h-4 w-4" />
                             Optimize
                           </DropdownMenuItem>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <DropdownMenuItem
-                                onSelect={(e) => e.preventDefault()}
-                                className="text-destructive focus:text-destructive cursor-pointer"
-                                disabled={deleteMutation.isPending}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Resume</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this resume? This action cannot be undone, 
-                                  and the resume will be permanently removed from your uploaded resumes.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteMutation.mutate(resume.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  disabled={deleteMutation.isPending}
-                                >
-                                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                            className="text-destructive focus:text-destructive cursor-pointer"
+                            disabled={deleteMutation.isPending}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
