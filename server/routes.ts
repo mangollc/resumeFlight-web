@@ -539,36 +539,12 @@ function getInitials(text: string): string {
     return "RES";
 }
 
-async function optimizeResume(content: string, jobDescription: string, version?: number) {
+export async function optimizeResume(content: string, jobDescription: string, version?: number) {
     try {
         console.log("[Optimization] Starting resume optimization...");
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",  
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a professional resume optimizer. Analyze the resume and job description, then provide an optimized version of the resume.  Consider version ${version || 1}.`
-                },
-                {
-                    role: "user",
-                    content: `Original Resume:\n${content}\n\nJob Description:\n${jobDescription}`
-                }
-            ],
-            temperature: 0.3,
-            max_tokens: 2000
-        });
-
-        const optimizedContent = response.choices[0].message.content;
-        if (!optimizedContent) {
-            throw new Error("Failed to generate optimized content");
-        }
-
-        return {
-            optimizedContent,
-            improvements: ["Example improvement 1", "Example improvement 2"], 
-            changes: ["Example change 1", "Example change 2"],             
-            matchScore: 85                                                
-        };
+        const result = await originalOptimizeResume(content, jobDescription, version);
+        console.log("[Optimization] Successfully optimized resume with version:", version);
+        return result;
     } catch (error: any) {
         console.error("[Optimization] Error:", error);
         throw new Error(`Failed to optimize resume: ${error.message}`);
@@ -700,32 +676,68 @@ export function registerRoutes(app: Express): Server {
 
             let finalJobDescription: string;
             let jobDetails: JobDetails;
+            let existingOptimization = null;
+            let nextVersion = version || 1.0;
 
             try {
+                console.log("[Optimization] Starting optimization process...");
+                console.log("[Optimization] Version:", nextVersion);
+
+                // Find existing optimization if this is a reoptimization request
+                if (version) {
+                    console.log("[Optimization] Looking for existing optimization");
+                    const optimizations = await storage.getOptimizedResumesByUser(req.user!.id);
+                    existingOptimization = optimizations.find(opt => 
+                        opt.uploadedResumeId === uploadedResume.id &&
+                        (opt.jobUrl === jobUrl || opt.jobDescription === jobDescription)
+                    );
+
+                    if (existingOptimization) {
+                        console.log("[Optimization] Found existing optimization:", existingOptimization.id);
+                        nextVersion = (existingOptimization.metadata.version || 1.0) + 0.1;
+                        console.log("[Optimization] Next version will be:", nextVersion);
+                    }
+                }
+
+                // Handle job details retrieval
                 if (jobUrl) {
-                    console.log("[Optimization] Extracting job details from URL");
-                    const extractedDetails = await extractJobDetails(jobUrl);
-                    finalJobDescription = extractedDetails.description;
-                    const analysis = await analyzeJobDescription(finalJobDescription);
-                    jobDetails = {
-                        ...extractedDetails,
-                        ...analysis
-                    };
+                    console.log("[Optimization] Processing job URL:", jobUrl);
+                    if (existingOptimization?.jobDetails) {
+                        console.log("[Optimization] Using existing job details from previous optimization");
+                        jobDetails = existingOptimization.jobDetails;
+                        finalJobDescription = existingOptimization.jobDescription;
+                    } else {
+                        console.log("[Optimization] Extracting new job details from URL");
+                        const extractedDetails = await extractJobDetails(jobUrl);
+                        finalJobDescription = extractedDetails.description;
+                        const analysis = await analyzeJobDescription(finalJobDescription);
+                        jobDetails = {
+                            ...extractedDetails,
+                            ...analysis
+                        };
+                    }
                 } else {
                     console.log("[Optimization] Processing manual job description");
-                    finalJobDescription = jobDescription;
-                    const analysis = await analyzeJobDescription(jobDescription);
-                    jobDetails = {
-                        ...analysis,
-                        description: jobDescription
-                    };
+                    if (existingOptimization?.jobDetails) {
+                        console.log("[Optimization] Using existing job details from previous optimization");
+                        jobDetails = existingOptimization.jobDetails;
+                        finalJobDescription = existingOptimization.jobDescription;
+                    } else {
+                        console.log("[Optimization] Analyzing new job description");
+                        finalJobDescription = jobDescription;
+                        const analysis = await analyzeJobDescription(jobDescription);
+                        jobDetails = {
+                            ...analysis,
+                            description: jobDescription
+                        };
+                    }
                 }
 
                 console.log("[Optimization] Calculating initial metrics");
                 const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
 
-                console.log("[Optimization] Starting resume optimization with version:", version);
-                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription, version);
+                console.log("[Optimization] Starting resume optimization with version:", nextVersion);
+                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription, nextVersion);
 
                 console.log("[Optimization] Calculating post-optimization metrics");
                 const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
@@ -736,7 +748,7 @@ export function registerRoutes(app: Express): Server {
                     .replace(/\s+/g, '_')
                     .substring(0, 30);
 
-                const versionStr = version ? `_v${version.toFixed(1)}` : '_v1.0';
+                const versionStr = nextVersion ? `_v${nextVersion.toFixed(1)}` : '_v1.0';
                 const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
 
                 console.log("[Optimization] Saving optimized resume");
@@ -756,7 +768,7 @@ export function registerRoutes(app: Express): Server {
                     metadata: {
                         filename: newFilename,
                         optimizedAt: new Date().toISOString(),
-                        version: version || 1.0
+                        version: nextVersion
                     },
                     metrics: {
                         before: beforeMetrics,
@@ -883,8 +895,7 @@ export function registerRoutes(app: Express): Server {
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.send(resume.content);
         } catch (error: any) {
-            console.error("Download error:", error);
-            res.status(500).json({ error: error.message });
+            console.error("Download error:", error);            res.status(500).json({ error: error.message });
         }
     });
 
@@ -892,23 +903,20 @@ export function registerRoutes(app: Express): Server {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
 
-            const resume= await storage.getOptimizedResume(parseInt(req.params.id));
+            const resume = await storage.getOptimizedResume(parseInt(req.params.id));
             if (!resume) return res.status(404).send("Resume not found");
             if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
             const pdfBuffer = await createPDF(resume.content);
 
             const filename = formatFilename(
-                req.query.filename as string ||
-                `${getInitials(resume.content)}_${
-                    resume.jobDetails?.title?.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'resume'
-                }_v${resume.metadata.version.toFixed(1)}`,
+                req.query.filename as string || resume.metadata.filename,
                 'pdf'
             );
 
-            res.setHeader('Content-Type', 'application/pdf');
+            const contentType = 'application/pdf';
+            res.setHeader('Content-Type', contentType);
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('Content-Length', pdfBuffer.length);
             res.send(pdfBuffer);
         } catch (error: any) {
             console.error("Download error:", error);

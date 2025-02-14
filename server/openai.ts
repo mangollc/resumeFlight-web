@@ -39,6 +39,7 @@ Return a JSON object with the following structure:
     return JSON.parse(content);
   } catch (err) {
     const error = err as Error;
+    console.error("[Differences] Analysis error:", error);
     throw new Error(`Failed to analyze resume differences: ${error.message}`);
   }
 }
@@ -73,7 +74,7 @@ Follow these optimization guidelines:
    - Keeping all dates and company names accurate
    - Preserving the core truth of all statements
 
-Return a JSON object with:
+Return valid JSON in this exact format, no markdown:
 {
   "optimizedContent": "the enhanced resume text with proper formatting",
   "changes": [
@@ -81,7 +82,7 @@ Return a JSON object with:
     "keywords added or emphasized",
     "structural changes"
   ],
-  "matchScore": number between 0-100,
+  "matchScore": 85,
   "improvements": {
     "keywords": "description of keyword optimizations",
     "structure": "description of structural changes",
@@ -97,7 +98,8 @@ Return a JSON object with:
           }`
         }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      temperature: 0.3
     });
 
     const content = response.choices[0].message.content;
@@ -172,7 +174,7 @@ Guidelines:
    - Ensure the output is ready for direct submission
    - Do not include any explanatory notes or formatting instructions
 
-Return a JSON object with:
+Return valid JSON in this exact format, no markdown:
 {
   "coverLetter": "the generated cover letter with proper formatting",
   "highlights": [
@@ -180,7 +182,7 @@ Return a JSON object with:
     "specific achievements mentioned",
     "job requirement alignments"
   ],
-  "confidence": "match confidence score (0-100)"
+  "confidence": 85
 }`
         },
         {
@@ -196,9 +198,17 @@ Return a JSON object with:
       throw new Error("No response from OpenAI");
     }
 
-    return JSON.parse(content);
+    const result = JSON.parse(content);
+    return {
+      ...result,
+      coverLetter: result.coverLetter.trim(),
+      confidence: typeof result.confidence === 'number' ? 
+        Math.min(100, Math.max(0, result.confidence)) : 
+        85
+    };
   } catch (err) {
     const error = err as Error;
+    console.error("[Cover Letter] Error:", error);
     throw new Error(`Failed to generate cover letter: ${error.message}`);
   }
 }
