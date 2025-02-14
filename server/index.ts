@@ -17,7 +17,7 @@ app.use((req, res, next) => {
     const err: any = new Error('Request timeout');
     err.status = 408;
     next(err);
-  });
+  };
 
   res.setTimeout(TIMEOUT_DURATION, () => {
     const err = new Error('Response timeout');
