@@ -17,16 +17,21 @@ async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: st
     console.log(`[${operation}] Using timeout value: ${validTimeout}ms`);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        controller.abort();
-    }, validTimeout);
+    const id = setTimeout(() => controller.abort(), validTimeout);
 
     try {
-        const result = await apiCall();
-        clearTimeout(timeoutId);
+        const result = await Promise.race([
+            apiCall(),
+            new Promise<never>((_, reject) => {
+                controller.signal.addEventListener('abort', () => {
+                    reject(new Error(`Operation ${operation} timed out after ${validTimeout}ms`));
+                });
+            })
+        ]);
+        clearTimeout(id);
         return result;
     } catch (error) {
-        clearTimeout(timeoutId);
+        clearTimeout(id);
         console.error(`[${operation}] Error:`, error);
         throw error;
     }
