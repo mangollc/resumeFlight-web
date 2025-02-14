@@ -1,7 +1,103 @@
 const MAX_TIMEOUT = 20000; // 20 seconds
 const API_TIMEOUT = 15000; // 15 seconds 
 const PARSING_TIMEOUT = 10000; // 10 seconds
-const SAFE_TIMEOUT = 20000; // 20 seconds, safe value for Node.js
+const SAFE_TIMEOUT = 20000; // 20 seconds
+const MAX_ALLOWED_TIMEOUT = 2147483647; // Maximum 32-bit signed integer
+
+function validateTimeout(value: number, defaultValue: number): number {
+    if (value <= 0 || value > MAX_ALLOWED_TIMEOUT) {
+        console.warn(`Invalid timeout value: ${value}, using default: ${defaultValue}`);
+        return defaultValue;
+    }
+    return value;
+}
+
+async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: string, timeout: number = API_TIMEOUT): Promise<T> {
+    const validTimeout = validateTimeout(timeout, API_TIMEOUT);
+    console.log(`[${operation}] Using timeout value: ${validTimeout}ms`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, validTimeout);
+
+    try {
+        const result = await apiCall();
+        clearTimeout(timeoutId);
+        return result;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        console.error(`[${operation}] Error:`, error);
+        throw error;
+    }
+}
+
+async function calculateMatchScores(resumeContent: string, jobDescription: string) {
+    try {
+        console.log("[Match Analysis] Starting analysis...");
+        return await callOpenAIWithTimeout(
+            async () => {
+                const response = await openai.chat.completions.create({
+                    model: "gpt-4-0613",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+Your task is to:
+1. Analyze keyword matches between resume and job requirements
+2. Evaluate skills alignment
+3. Assess experience relevance
+4. Calculate an overall match score
+
+Return ONLY a JSON object in this exact format:
+{
+ "keywords": <number between 0-100>,
+ "skills": <number between 0-100>,
+ "experience": <number between 0-100>,
+ "overall": <number between 0-100>
+}
+
+Scoring Guidelines:
+- Keywords (0-100): Percentage of important keywords from job description found in resume
+- Skills (0-100): How well the candidate's skills match the required skills
+- Experience (0-100): Relevance and depth of experience compared to requirements
+- Overall (0-100): Weighted average with emphasis on skills and experience`
+                        },
+                        {
+                            role: "user",
+                            content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+                        }
+                    ],
+                    temperature: 0.3
+                });
+
+                const content = response.choices[0].message.content;
+                if (!content) {
+                    console.warn("[Match Analysis] Empty response from OpenAI");
+                    return getDefaultMetrics();
+                }
+
+                try {
+                    const metrics = JSON.parse(content);
+                    return {
+                        keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+                        skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+                        experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+                        overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+                    };
+                } catch (parseError) {
+                    console.error("[Match Analysis] Error parsing metrics:", parseError);
+                    return getDefaultMetrics();
+                }
+            },
+            "Match Analysis",
+            SAFE_TIMEOUT
+        );
+    } catch (error) {
+        console.error("[Match Analysis] Error calculating scores:", error);
+        return getDefaultMetrics();
+    }
+}
 
 function formatFilename(base: string, extension: string): string {
   return base.endsWith(`.${extension}`) ? base : `${base}.${extension}`;
@@ -41,100 +137,17 @@ async function getResumeVersions(optimizedResumeId: number) {
     }
 }
 
-async function calculateMatchScores(resumeContent: string, jobDescription: string) {
-    try {
-        console.log("[Match Analysis] Starting analysis...");
-        const controller = new AbortController();
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, SAFE_TIMEOUT);
-
-        try {
-            const response = await openai.chat.completions.create({
-                model: "gpt-4-0613",
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
-Your task is to:
-1. Analyze keyword matches between resume and job requirements
-2. Evaluate skills alignment
-3. Assess experience relevance
-4. Calculate an overall match score
-
-Return ONLY a JSON object in this exact format:
-{
- "keywords": <number between 0-100>,
- "skills": <number between 0-100>,
- "experience": <number between 0-100>,
- "overall": <number between 0-100>
-}
-
-Scoring Guidelines:
-- Keywords (0-100): Percentage of important keywords from job description found in resume
-- Skills (0-100): How well the candidate's skills match the required skills
-- Experience (0-100): Relevance and depth of experience compared to requirements
-- Overall (0-100): Weighted average with emphasis on skills and experience`
-                    },
-                    {
-                        role: "user",
-                        content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
-                    }
-                ],
-                temperature: 0.3
-            });
-
-            clearTimeout(timeout);
-            const content = response.choices[0].message.content;
-            if (!content) {
-                console.warn("[Match Analysis] Empty response from OpenAI");
-                return getDefaultMetrics();
-            }
-
-            try {
-                const metrics = JSON.parse(content);
-                const validatedMetrics = {
-                    keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-                    skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-                    experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-                    overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
-                };
-
-                console.log("[Match Analysis] Calculated metrics:", validatedMetrics);
-                return validatedMetrics;
-            } catch (parseError) {
-                console.error("[Match Analysis] Error parsing metrics:", parseError);
-                return getDefaultMetrics();
-            }
-        } catch (error) {
-            clearTimeout(timeout);
-            if (error.name === 'AbortError') {
-                console.error("[Match Analysis] Operation timed out");
-                return getDefaultMetrics();
-            }
-            throw error;
-        }
-    } catch (error) {
-        console.error("[Match Analysis] Error calculating scores:", error);
-        return getDefaultMetrics();
-    }
-}
-
 async function analyzeJobDescription(description: string) {
     try {
         console.log("[Job Analysis] Starting job description analysis...");
-        const controller = new AbortController();
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, SAFE_TIMEOUT);
-
-        try {
-            const response = await openai.chat.completions.create({
-                model: "gpt-4-0613",
-                messages: [
-                    {
-                        role: "system",
-                        content: `You are a job analysis expert. Analyze the job description and extract key information.
+        return await callOpenAIWithTimeout(
+            async () => {
+                const response = await openai.chat.completions.create({
+                    model: "gpt-4-0613",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are a job analysis expert. Analyze the job description and extract key information.
 Return a detailed analysis in the following JSON format:
 {
  "title": "Job title extracted from description",
@@ -155,79 +168,62 @@ Return a detailed analysis in the following JSON format:
    "other": ["Agile", "CI/CD"]
  }
 }`
-                    },
-                    {
-                        role: "user",
-                        content: description
-                    }
-                ],
-                temperature: 0.3
-            });
+                        },
+                        {
+                            role: "user",
+                            content: description
+                        }
+                    ],
+                    temperature: 0.3
+                });
 
-            clearTimeout(timeout);
-            const content = response.choices[0].message.content;
-            console.log("[Job Analysis] Raw response:", content);
-            if (!content) {
-                console.warn("[Job Analysis] Empty response");
-                return getDefaultAnalysis();
-            }
+                const content = response.choices[0].message.content;
+                console.log("[Job Analysis] Raw response:", content);
+                if (!content) {
+                    console.warn("[Job Analysis] Empty response");
+                    return getDefaultAnalysis();
+                }
 
-            try {
-                const parsed = JSON.parse(content);
-                const skillsArray = Object.entries(parsed.skillsAndTools || {}).flatMap(([category, skills]) =>
-                    (skills as string[]).map(skill => ({
-                        name: formatSkill(skill),
-                        category
-                    }))
-                );
+                try {
+                    const parsed = JSON.parse(content);
+                    const skillsArray = Object.entries(parsed.skillsAndTools || {}).flatMap(([category, skills]) =>
+                        (skills as string[]).map(skill => ({
+                            name: formatSkill(skill),
+                            category
+                        }))
+                    );
 
-                const validatedAnalysis = {
-                    title: parsed.title || "Not specified",
-                    company: parsed.company || "Not specified",
-                    location: parsed.location || "Not specified",
-                    positionLevel: parsed.positionLevel || "Not specified",
-                    keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
-                    skillsAndTools: skillsArray.map(skill => skill.name),
-                    skillCategories: skillsArray.map(skill => skill.category),
-                    metrics: getDefaultMetrics()
-                };
+                    const validatedAnalysis = {
+                        title: parsed.title || "Not specified",
+                        company: parsed.company || "Not specified",
+                        location: parsed.location || "Not specified",
+                        positionLevel: parsed.positionLevel || "Not specified",
+                        keyRequirements: Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : ["Unable to extract requirements"],
+                        skillsAndTools: skillsArray.map(skill => skill.name),
+                        skillCategories: skillsArray.map(skill => skill.category),
+                        metrics: getDefaultMetrics()
+                    };
 
-                console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
-                return validatedAnalysis;
-            } catch (parseError) {
-                console.error("[Job Analysis] Parse error:", parseError);
-                return getDefaultAnalysis();
-            }
-        } catch (error) {
-            clearTimeout(timeout);
-            if (error.name === 'AbortError') {
-                console.error("[Job Analysis] Operation timed out");
-                return getDefaultAnalysis();
-            }
-            throw error;
-        }
+                    console.log("[Job Analysis] Validated analysis:", validatedAnalysis);
+                    return validatedAnalysis;
+                } catch (parseError) {
+                    console.error("[Job Analysis] Parse error:", parseError);
+                    return getDefaultAnalysis();
+                }
+            },
+            "Job Analysis",
+            SAFE_TIMEOUT
+        );
     } catch (error) {
         console.error("[Job Analysis] Analysis error:", error);
         return getDefaultAnalysis();
     }
 }
 
-async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: string): Promise<T> {
-    try {
-        const result = await Promise.race([
-            apiCall(),
-            new Promise((_, reject) => 
-                setTimeout(() => reject(new Error(`${operation} operation timed out`)), API_TIMEOUT)
-            )
-        ]);
-        return result as T;
-    } catch (error) {
-        console.error(`[${operation}] Error:`, error);
-        throw error;
-    }
-}
-
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
+    const validatedTimeout = validateTimeout(PARSING_TIMEOUT, 10000);
+    console.log(`[Parse Resume] Using timeout: ${validatedTimeout}ms`);
+
     try {
         if (mimetype === "application/pdf") {
             return new Promise((resolve, reject) => {
@@ -235,7 +231,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
                 const timeoutId = setTimeout(() => {
                     pdfParser.removeAllListeners();
                     reject(new Error('PDF parsing timed out'));
-                }, PARSING_TIMEOUT);
+                }, validatedTimeout);
 
                 pdfParser.on("pdfParser_dataReady", (pdfData) => {
                     clearTimeout(timeoutId);
@@ -255,7 +251,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
             return new Promise(async (resolve, reject) => {
                 const timeoutId = setTimeout(() => {
                     reject(new Error('DOCX parsing timed out'));
-                }, PARSING_TIMEOUT);
+                }, validatedTimeout);
 
                 try {
                     const result = await mammoth.extractRawText({ buffer });
@@ -269,7 +265,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
         }
         throw new Error("Unsupported file type");
     } catch (error) {
-        console.error("Error parsing resume:", error);
+        console.error("[Parse Resume] Error:", error);
         throw new Error(error instanceof Error ? error.message : "Failed to parse resume file");
     }
 }
@@ -300,7 +296,6 @@ function getDefaultAnalysis() {
         }
     };
 }
-
 
 const SAFE_TIMEOUT_2 = 30000; // 30 seconds in milliseconds
 
@@ -459,8 +454,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         );
     }
 }
-
-
 
 async function createPDF(content: string): Promise<Buffer> {
     return new Promise<Buffer>((resolve, reject) => {
@@ -675,6 +668,22 @@ export function registerRoutes(app: Express): Server {
                 return res.sendStatus(401);
             }
 
+            // Validate and set timeout
+            const operationTimeout = validateTimeout(SAFE_TIMEOUT_2, 20000);
+            console.log(`[Optimize] Using operation timeout: ${operationTimeout}ms`);
+
+            timeoutId = setTimeout(() => {
+                controller.abort();
+                console.log("[Optimize] Operation timed out");
+            }, operationTimeout);
+
+            // Handle client disconnection
+            req.on('close', () => {
+                if (timeoutId) clearTimeout(timeoutId);
+                controller.abort();
+                console.log("[Optimization] Client disconnected, aborting operation");
+            });
+
             const { jobUrl, jobDescription } = req.body;
             if (!jobUrl && !jobDescription) {
                 return res.status(400).json({ error: "Please provide either a job URL or description" });
@@ -687,18 +696,6 @@ export function registerRoutes(app: Express): Server {
             if (uploadedResume.userId !== req.user!.id) {
                 return res.sendStatus(403);
             }
-
-            // Set up timeout and cleanup
-            timeoutId = setTimeout(() => {
-                controller.abort();
-            }, SAFE_TIMEOUT_2); // 25 second timeout
-
-            // Handle client disconnection
-            req.on('close', () => {
-                if (timeoutId) clearTimeout(timeoutId);
-                controller.abort();
-                console.log("[Optimization] Client disconnected, aborting operation");
-            });
 
             let finalJobDescription: string;
             let jobDetails: JobDetails;
@@ -774,7 +771,7 @@ export function registerRoutes(app: Express): Server {
 
             if (controller.signal.aborted) {
                 console.log("[Optimization] Request aborted");
-                return;
+                return res.status(408).json({ error: "Request timed out" });
             }
 
             const errorMessage = error.message || "Failed to optimize resume";
