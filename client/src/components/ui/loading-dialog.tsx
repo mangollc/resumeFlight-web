@@ -28,9 +28,9 @@ export function LoadingDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
+          <div className="text-sm text-muted-foreground">
             {description}
-          </DialogDescription>
+          </div>
         </DialogHeader>
         {steps && (
           <div className="mt-4">

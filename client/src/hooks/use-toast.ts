@@ -7,6 +7,8 @@ import type {
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 5000
+const MAX_ALLOWED_TIMEOUT = 2147483647 // Maximum 32-bit signed integer
+
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
@@ -54,6 +56,13 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
+function validateTimeout(delay: number): number {
+  if (!delay || delay <= 0 || delay > MAX_ALLOWED_TIMEOUT) {
+    return TOAST_REMOVE_DELAY;
+  }
+  return Math.min(delay, MAX_ALLOWED_TIMEOUT);
+}
+
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
     return
@@ -65,7 +74,7 @@ const addToRemoveQueue = (toastId: string) => {
       type: "REMOVE_TOAST",
       toastId: toastId,
     })
-  }, TOAST_REMOVE_DELAY)
+  }, validateTimeout(TOAST_REMOVE_DELAY))
 
   toastTimeouts.set(toastId, timeout)
 }
@@ -89,8 +98,6 @@ export const reducer = (state: State, action: Action): State => {
     case "DISMISS_TOAST": {
       const { toastId } = action
 
-      // ! Side effects ! - This could be extracted into a dismissToast() action,
-      // but I'll keep it here for simplicity
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
