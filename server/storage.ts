@@ -6,6 +6,10 @@ import { db, pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
+// Constants for session configuration
+const ONE_DAY = 86400; // 24 hours in seconds
+const ONE_HOUR = 3600; // 1 hour in seconds
+
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -42,9 +46,9 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true,
       tableName: 'session',
-      // Set reasonable pruning interval and session duration
-      pruneSessionInterval: Math.min(24 * 60 * 60 * 1000, 2147483647), // 24 hours or max 32-bit int
-      ttl: Math.min(24 * 60 * 60, 2147483647) // 24 hours in seconds or max 32-bit int
+      // Use smaller, safer values for timeouts
+      pruneSessionInterval: ONE_HOUR * 1000, // Prune every hour
+      ttl: ONE_DAY // Sessions expire after 24 hours
     });
   }
 
