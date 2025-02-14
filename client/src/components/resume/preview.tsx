@@ -203,18 +203,22 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
                     value={selectedVersion}
                     onValueChange={handleVersionChange}
                   >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue placeholder="Select version" />
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue>
+                        {selectedVersion ? `Version ${Number(selectedVersion).toFixed(1)}` : "Select version"}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      {availableVersions.map((version) => (
-                        <SelectItem
-                          key={version.metadata.version}
-                          value={String(version.metadata.version)}
-                        >
-                          Version {version.metadata.version.toFixed(1)}
-                        </SelectItem>
-                      ))}
+                      {[...new Set(availableVersions.map(v => v.metadata.version))]
+                        .sort((a, b) => b - a)
+                        .map((version) => (
+                          <SelectItem
+                            key={version}
+                            value={String(version)}
+                          >
+                            Version {version.toFixed(1)}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 )}
@@ -250,23 +254,27 @@ export default function Preview({ resume, coverLetter, onVersionChange }: Previe
                       {isDialogOpen && (
                         <>
                           {availableVersions.length > 1 && (
-                            <div className="mb-4">
+                            <div className="flex justify-end mb-4">
                               <Select
                                 value={selectedVersion}
                                 onValueChange={handleVersionChange}
                               >
-                                <SelectTrigger className="w-[140px]">
-                                  <SelectValue placeholder="Select version" />
+                                <SelectTrigger className="w-[160px]">
+                                  <SelectValue>
+                                    {selectedVersion ? `Version ${Number(selectedVersion).toFixed(1)}` : "Select version"}
+                                  </SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {availableVersions.map((version) => (
-                                    <SelectItem
-                                      key={version.metadata.version}
-                                      value={String(version.metadata.version)}
-                                    >
-                                      Version {version.metadata.version.toFixed(1)}
-                                    </SelectItem>
-                                  ))}
+                                  {[...new Set(availableVersions.map(v => v.metadata.version))]
+                                    .sort((a, b) => b - a)
+                                    .map((version) => (
+                                      <SelectItem
+                                        key={version}
+                                        value={String(version)}
+                                      >
+                                        Version {version.toFixed(1)}
+                                      </SelectItem>
+                                    ))}
                                 </SelectContent>
                               </Select>
                             </div>
