@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { WelcomeAnimation } from "@/components/ui/welcome-animation";
 import {
   Select,
   SelectContent,
@@ -48,11 +49,8 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen max-w-[1400px] mx-auto">
-      <header className="mb-12 text-center lg:text-left">
-        <h1 className="mb-3">Welcome to ResumeFlight</h1>
-        <p className="text-muted-foreground text-fluid-base">
-          Optimize your resume for your dream job using AI-powered insights
-        </p>
+      <header className="mb-12">
+        <WelcomeAnimation />
       </header>
 
       <div className="grid gap-8 lg:gap-12 lg:grid-cols-[2fr,3fr]">
