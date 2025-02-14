@@ -1,15 +1,15 @@
-const MAX_TIMEOUT = 20000; // 20 seconds
+const MAX_ALLOWED_TIMEOUT = 2147483647; // Maximum 32-bit signed integer
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
 const API_TIMEOUT = 15000; // 15 seconds 
 const PARSING_TIMEOUT = 10000; // 10 seconds
 const SAFE_TIMEOUT = 20000; // 20 seconds
-const MAX_ALLOWED_TIMEOUT = 2147483647; // Maximum 32-bit signed integer
 
-function validateTimeout(value: number, defaultValue: number): number {
-    if (value <= 0 || value > MAX_ALLOWED_TIMEOUT) {
+function validateTimeout(value: number, defaultValue: number = DEFAULT_TIMEOUT): number {
+    if (!value || value <= 0 || value > MAX_ALLOWED_TIMEOUT) {
         console.warn(`Invalid timeout value: ${value}, using default: ${defaultValue}`);
         return defaultValue;
     }
-    return value;
+    return Math.min(value, MAX_ALLOWED_TIMEOUT);
 }
 
 async function callOpenAIWithTimeout<T>(apiCall: () => Promise<T>, operation: string, timeout: number = API_TIMEOUT): Promise<T> {
@@ -889,7 +889,7 @@ export function registerRoutes(app: Express): Server {
         try {
             if (!req.isAuthenticated()) return res.sendStatus(401);
 
-            const resume = await storage.getOptimizedResume(parseInt(req.params.id));
+            const resume= await storage.getOptimizedResume(parseInt(req.params.id));
             if (!resume) return res.status(404).send("Resume not found");
             if (resume.userId !== req.user!.id) return res.sendStatus(403);
 
