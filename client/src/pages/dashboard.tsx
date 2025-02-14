@@ -294,7 +294,8 @@ export default function Dashboard() {
       }
 
       const optimizedData = await response.json();
-      handleOptimizationComplete(optimizedData, jobDetails);
+      setOptimizedResume(optimizedData);
+      setOptimizationVersion(nextVersion);
 
       toast({
         title: "Success",
@@ -331,7 +332,7 @@ export default function Dashboard() {
       const nextStep = currentStep + 1;
 
       // Handle step completion
-      if (currentStep === 4 && !coverLetter) {
+      if (currentStep === 4) {
         // Mark cover letter step as completed when skipping
         setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
       } else if (!completedSteps.includes(currentStep)) {
