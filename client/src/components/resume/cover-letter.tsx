@@ -21,7 +21,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`);
+      // Pass resume contact information to the API
+      const res = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
+        contactInfo: resume.contactInfo,
+        version: resume.metadata.version
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -42,16 +46,18 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   });
 
   const handleDownload = async () => {
+    if (!generatedCoverLetter?.id) return;
+
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/cover-letter/${generatedCoverLetter?.id}/download`);
+      const response = await fetch(`/api/cover-letter/${generatedCoverLetter.id}/download?filename=${generatedCoverLetter.metadata.filename}_v${generatedCoverLetter.metadata.version.toFixed(1)}.pdf`);
       if (!response.ok) throw new Error('Download failed');
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `cover-letter-${Date.now()}.pdf`;
+      a.download = `${generatedCoverLetter.metadata.filename}_v${generatedCoverLetter.metadata.version.toFixed(1)}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

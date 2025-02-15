@@ -144,11 +144,16 @@ export default function Dashboard() {
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
     setCoverLetter(letter);
-    setCoverLetters(prev => [...prev, letter]);
+    // Ensure no duplicate versions in the array
+    const existingVersions = new Set(coverLetters.map(l => l.metadata.version));
+    if (!existingVersions.has(letter.metadata.version)) {
+      setCoverLetters(prev => [...prev, letter]);
+    }
     if (!completedSteps.includes(4)) {
       setCompletedSteps(prev => [...prev, 4]);
     }
     setSelectedCoverLetterVersion(letter.metadata.version.toString());
+    setCoverLetterVersion(letter.metadata.version);
   };
 
   const handleRegenerateCoverLetter = async () => {
@@ -156,13 +161,16 @@ export default function Dashboard() {
 
     try {
       setIsGeneratingCoverLetter(true);
-      const nextVersion = Number((coverLetterVersion + 0.1).toFixed(1));
+      const nextVersion = Number((Math.max(...coverLetters.map(l => l.metadata.version), 0) + 0.1).toFixed(1));
       setCoverLetterVersion(nextVersion);
 
       const response = await apiRequest(
         "POST",
         `/api/optimized-resume/${optimizedResume.id}/cover-letter`,
-        { version: nextVersion }
+        { 
+          version: nextVersion,
+          contactInfo: optimizedResume.contactInfo 
+        }
       );
 
       if (!response.ok) {
@@ -170,8 +178,7 @@ export default function Dashboard() {
       }
 
       const data = await response.json();
-      setCoverLetter(data);
-      setCoverLetters(prev => [...prev, data]);
+      handleCoverLetterGenerated(data);
 
       toast({
         title: "Success",
@@ -198,6 +205,9 @@ export default function Dashboard() {
       formData.append('sessionId', sessionId);
       if (jobDetails) {
         formData.append('jobDetails', JSON.stringify(jobDetails));
+      }
+      if (coverLetter) {
+        formData.append('coverLetterId', coverLetter.id.toString());
       }
 
       const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`, {
