@@ -186,52 +186,45 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   Download Resume v{resume.metadata.version.toFixed(1)}
                 </a>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a
-                  href={`/api/cover-letter/latest/${resume.id}/download?filename=${
-                    formatDownloadFilename(
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  fetch(`/api/optimized-resume/${resume.id}/cover-letter/latest/download`, {
+                    headers: {
+                      'Accept': 'application/pdf'
+                    }
+                  })
+                  .then(response => {
+                    if (!response.ok) throw new Error('Download failed');
+                    return response.blob();
+                  })
+                  .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${formatDownloadFilename(
                       resume.metadata.filename,
                       resume.jobDetails?.title || '',
                       resume.metadata.version
-                    )
-                  }_cover.pdf`}
-                  download
-                  className="flex items-center"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    fetch(`/api/optimized-resume/${resume.id}/cover-letter/latest/download`, {
-                      headers: {
-                        'Accept': 'application/pdf'
-                      }
-                    })
-                    .then(response => response.blob())
-                    .then(blob => {
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${formatDownloadFilename(
-                        resume.metadata.filename,
-                        resume.jobDetails?.title || '',
-                        resume.metadata.version
-                      )}_cover.pdf`;
-                      document.body.appendChild(a);
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                      document.body.removeChild(a);
-                    })
-                    .catch(error => {
-                      console.error('Download error:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to download cover letter",
-                        variant: "destructive",
-                      });
+                    )}_cover.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  })
+                  .catch(error => {
+                    console.error('Download error:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to download cover letter",
+                      variant: "destructive",
                     });
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Latest Cover Letter
-                </a>
+                  });
+                }}
+                className="flex items-center"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Latest Cover Letter
               </DropdownMenuItem>
               {resume.jobUrl ? (
                 <>

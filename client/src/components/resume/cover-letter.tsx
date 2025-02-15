@@ -77,7 +77,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       if (!response.ok) throw new Error('Download failed');
 
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${formatDownloadFilename(
@@ -86,8 +86,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       )}.pdf`;
       document.body.appendChild(a);
       a.click();
+      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download error:', error);
       toast({
