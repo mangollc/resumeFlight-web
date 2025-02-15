@@ -403,6 +403,74 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
+    // Delete uploaded resume route
+    app.delete("/api/uploaded-resume/:id", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                console.log("[Delete Uploaded] User not authenticated");
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            console.log(`[Delete Uploaded] Attempting to delete resume ${resumeId}`);
+
+            const resume = await storage.getUploadedResume(resumeId);
+            if (!resume) {
+                console.log(`[Delete Uploaded] Resume ${resumeId} not found`);
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                console.log(`[Delete Uploaded] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            await storage.deleteUploadedResume(resumeId);
+            console.log(`[Delete Uploaded] Successfully deleted resume ${resumeId}`);
+            return res.status(200).json({ message: "Resume deleted successfully" });
+        } catch (error: any) {
+            console.error("[Delete Uploaded] Error:", error);
+            return res.status(500).json({ 
+                error: "Failed to delete resume", 
+                details: error.message 
+            });
+        }
+    });
+
+    // Delete optimized resume route
+    app.delete("/api/optimized-resume/:id", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                console.log("[Delete Optimized] User not authenticated");
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            console.log(`[Delete Optimized] Attempting to delete optimized resume ${resumeId}`);
+
+            const resume = await storage.getOptimizedResume(resumeId);
+            if (!resume) {
+                console.log(`[Delete Optimized] Resume ${resumeId} not found`);
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                console.log(`[Delete Optimized] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            await storage.deleteOptimizedResume(resumeId);
+            console.log(`[Delete Optimized] Successfully deleted resume ${resumeId}`);
+            return res.status(200).json({ message: "Resume deleted successfully" });
+        } catch (error: any) {
+            console.error("[Delete Optimized] Error:", error);
+            return res.status(500).json({ 
+                error: "Failed to delete resume", 
+                details: error.message 
+            });
+        }
+    });
+
     return createServer(app);
 }
 
