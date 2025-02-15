@@ -45,9 +45,9 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new PostgresSessionStore({ 
       pool,
       createTableIfMissing: true,
-      tableName: 'user_sessions', 
-      pruneSessionInterval: ONE_HOUR * 1000, 
-      ttl: ONE_DAY 
+      tableName: 'session',
+      pruneSessionInterval: ONE_HOUR * 1000,
+      ttl: ONE_DAY
     });
   }
 
