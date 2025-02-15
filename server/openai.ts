@@ -94,7 +94,7 @@ export async function optimizeResume(resumeText: string, jobDescription: string,
       structure: '',
       clarity: '',
       ats: ''
-    };
+    } as const;
 
     // Process each chunk of the resume
     for (let i = 0; i < resumeChunks.length; i++) {
@@ -145,8 +145,8 @@ Follow these optimization guidelines:
       allChanges.push(...(result.changes || []));
       overallMatchScore += (result.sectionScore || 0);
 
-      // Merge improvements
-      Object.keys(improvements).forEach(key => {
+      // Merge improvements with proper type checking
+      (Object.keys(improvements) as Array<keyof typeof improvements>).forEach(key => {
         if (result.improvements?.[key]) {
           improvements[key] += (improvements[key] ? '\n' : '') + result.improvements[key];
         }
@@ -250,8 +250,8 @@ Return JSON in this format:
     return {
       ...result,
       coverLetter: result.coverLetter.trim(),
-      confidence: typeof result.confidence === 'number' ? 
-        Math.min(100, Math.max(0, result.confidence)) : 
+      confidence: typeof result.confidence === 'number' ?
+        Math.min(100, Math.max(0, result.confidence)) :
         85
     };
   } catch (err) {

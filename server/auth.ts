@@ -14,7 +14,7 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
-const ONE_DAY = 86400000; // 24 hours in milliseconds
+const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -38,8 +38,9 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: app.get("env") === "production",
       httpOnly: true,
-      maxAge: ONE_DAY // 24 hours
-    }
+      maxAge: ONE_DAY,
+    },
+    rolling: true
   };
 
   if (app.get("env") === "production") {
