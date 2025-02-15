@@ -419,20 +419,25 @@ export function registerRoutes(app: Express): Server {
         const controller = new AbortController();
 
         try {
+            console.log("[Optimize] Starting optimization request...");
             if (!req.isAuthenticated()) {
+                console.log("[Optimize] User not authenticated");
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
             const { jobUrl, jobDescription, version } = req.body;
             if (!jobUrl && !jobDescription) {
+                console.log("[Optimize] Missing job details");
                 return res.status(400).json({ error: "Please provide either a job URL or description" });
             }
 
             const uploadedResume = await storage.getUploadedResume(parseInt(req.params.id));
             if (!uploadedResume) {
+                console.log("[Optimize] Resume not found");
                 return res.status(404).json({ error: "Resume not found" });
             }
             if (uploadedResume.userId !== req.user!.id) {
+                console.log("[Optimize] Unauthorized access");
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
@@ -442,12 +447,12 @@ export function registerRoutes(app: Express): Server {
             let nextVersion = version || 1.0;
 
             try {
-                console.log("[Optimization] Starting optimization process...");
-                console.log("[Optimization] Version:", nextVersion);
+                console.log("[Optimize] Processing optimization request...");
+                console.log("[Optimize] Initial version:", nextVersion);
 
-                // Find existing optimization if this is a reoptimization request
+                // Check for existing optimization if this is a reoptimization
                 if (version) {
-                    console.log("[Optimization] Looking for existing optimization");
+                    console.log("[Optimize] Looking for existing optimization...");
                     const optimizations = await storage.getOptimizedResumesByUser(req.user!.id);
                     existingOptimization = optimizations.find(opt => 
                         opt.uploadedResumeId === uploadedResume.id &&
@@ -455,21 +460,21 @@ export function registerRoutes(app: Express): Server {
                     );
 
                     if (existingOptimization) {
-                        console.log("[Optimization] Found existing optimization:", existingOptimization.id);
+                        console.log("[Optimize] Found existing optimization:", existingOptimization.id);
                         nextVersion = Math.round((existingOptimization.metadata.version + 0.1) * 10) / 10;
-                        console.log("[Optimization] Next version will be:", nextVersion);
+                        console.log("[Optimize] Next version will be:", nextVersion);
                     }
                 }
 
                 // Handle job details
                 if (jobUrl) {
-                    console.log("[Optimization] Processing job URL:", jobUrl);
+                    console.log("[Optimize] Processing job URL:", jobUrl);
                     if (existingOptimization?.jobDetails) {
-                        console.log("[Optimization] Using existing job details");
+                        console.log("[Optimize] Using existing job details");
                         jobDetails = existingOptimization.jobDetails;
                         finalJobDescription = existingOptimization.jobDescription;
                     } else {
-                        console.log("[Optimization] Extracting new job details from URL");
+                        console.log("[Optimize] Extracting new job details from URL");
                         const extractedDetails = await extractJobDetails(jobUrl);
                         finalJobDescription = extractedDetails.description;
                         const analysis = await analyzeJobDescription(finalJobDescription);
@@ -479,7 +484,7 @@ export function registerRoutes(app: Express): Server {
                         };
                     }
                 } else {
-                    console.log("[Optimization] Processing manual job description");
+                    console.log("[Optimize] Processing manual job description");
                     finalJobDescription = jobDescription;
                     const analysis = await analyzeJobDescription(jobDescription);
                     jobDetails = {
@@ -488,13 +493,18 @@ export function registerRoutes(app: Express): Server {
                     };
                 }
 
-                console.log("[Optimization] Starting optimization with details:", {
+                console.log("[Optimize] Starting optimization process with details:", {
                     resumeId: uploadedResume.id,
                     version: nextVersion,
                     hasJobDetails: !!jobDetails
                 });
 
                 const optimized = await optimizeResume(uploadedResume.content, finalJobDescription, nextVersion);
+                if (!optimized || !optimized.optimizedContent) {
+                    throw new Error("Failed to generate optimized content");
+                }
+
+                console.log("[Optimize] Calculating match scores...");
                 const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
                 const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
 
@@ -507,7 +517,7 @@ export function registerRoutes(app: Express): Server {
                 const versionStr = `_v${nextVersion.toFixed(1)}`;
                 const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
 
-                console.log("[Optimization] Saving optimized resume");
+                console.log("[Optimize] Saving optimized resume");
                 const optimizedResume = await storage.createOptimizedResume({
                     content: optimized.optimizedContent,
                     originalContent: uploadedResume.content,
@@ -533,23 +543,26 @@ export function registerRoutes(app: Express): Server {
                 });
 
                 if (timeoutId) clearTimeout(timeoutId);
-                console.log("[Optimization] Successfully completed optimization");
-                res.json(optimizedResume);
+                console.log("[Optimize] Successfully completed optimization");
+                return res.status(200).json(optimizedResume);
             } catch (error: any) {
-                console.error("[Optimization] Error during optimization:", error);
-                throw error;
+                console.error("[Optimize] Error during optimization process:", error);
+                throw new Error(`Optimization failed: ${error.message}`);
             }
         } catch (error: any) {
             if (timeoutId) clearTimeout(timeoutId);
-            console.error("[Optimization] Error:", error);
+            console.error("[Optimize] Error:", error);
 
             if (controller.signal.aborted) {
-                console.log("[Optimization] Request aborted");
+                console.log("[Optimize] Request aborted due to timeout");
                 return res.status(408).json({ error: "Request timed out" });
             }
 
             const errorMessage = error.message || "Failed to optimize resume";
-            res.status(500).json({ error: errorMessage });
+            return res.status(500).json({ 
+                error: errorMessage,
+                details: error instanceof Error ? error.message : "Unknown error"
+            });
         }
     });
 
