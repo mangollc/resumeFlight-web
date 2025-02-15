@@ -474,36 +474,10 @@ export default function Dashboard() {
                 <div id="optimized-preview">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-semibold text-foreground/90">Preview</h3>
-                    {isOptimizing ? (
-                      <Button disabled variant="outline">
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Optimizing...
-                      </Button>
-                    ) : (
-                      <Button onClick={handleReoptimize} variant="default">
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Optimize Again
-                      </Button>
-                    )}
                   </div>
                   <Preview
                     resume={optimizedResume}
-                    coverLetter={coverLetter}
-                    onVersionChange={(version) => {
-                      fetch(`/api/optimized-resume/${optimizedResume.id}/version/${version}`)
-                        .then(res => res.json())
-                        .then(data => {
-                          setOptimizedResume(data);
-                          setOptimizationVersion(Number(version));
-                        })
-                        .catch(error => {
-                          toast({
-                            title: "Error",
-                            description: "Failed to load resume version",
-                            variant: "destructive",
-                          });
-                        });
-                    }}
+                    
                   />
                 </div>
                 {renderNavigation()}

@@ -244,9 +244,9 @@ export function registerRoutes(app: Express): Server {
             return res.status(200).json(resumes);
         } catch (error: any) {
             console.error("[Get Resumes] Error:", error);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 error: "Failed to fetch resumes",
-                details: error.message 
+                details: error.message
             });
         }
     });
@@ -338,9 +338,9 @@ export function registerRoutes(app: Express): Server {
             return res.status(201).json(resume);
         } catch (error: any) {
             console.error("[Upload] Error:", error);
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: "Failed to upload resume",
-                details: error.message 
+                details: error.message
             });
         }
     });
@@ -372,9 +372,9 @@ export function registerRoutes(app: Express): Server {
             return res.status(200).json({ message: "Resume deleted successfully" });
         } catch (error: any) {
             console.error("[Delete Uploaded] Error:", error);
-            return res.status(500).json({ 
-                error: "Failed to delete resume", 
-                details: error.message 
+            return res.status(500).json({
+                error: "Failed to delete resume",
+                details: error.message
             });
         }
     });
@@ -406,18 +406,15 @@ export function registerRoutes(app: Express): Server {
             return res.status(200).json({ message: "Resume deleted successfully" });
         } catch (error: any) {
             console.error("[Delete Optimized] Error:", error);
-            return res.status(500).json({ 
-                error: "Failed to delete resume", 
-                details: error.message 
+            return res.status(500).json({
+                error: "Failed to delete resume",
+                details: error.message
             });
         }
     });
 
     // Optimize resume route
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
-        let timeoutId: NodeJS.Timeout | null = null;
-        const controller = new AbortController();
-
         try {
             console.log("[Optimize] Starting optimization request...");
             if (!req.isAuthenticated()) {
@@ -445,30 +442,24 @@ export function registerRoutes(app: Express): Server {
             let jobDetails: JobDetails;
 
             try {
-                console.log("[Optimize] Processing optimization request...");
-
-                // Handle job details
                 if (jobUrl) {
                     console.log("[Optimize] Processing job URL:", jobUrl);
                     const extractedDetails = await extractJobDetails(jobUrl);
                     finalJobDescription = extractedDetails.description;
-                    const analysis = await analyzeJobDescription(finalJobDescription);
+                    jobDetails = await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
                         ...extractedDetails,
-                        ...analysis
+                        ...jobDetails
                     };
                 } else {
                     console.log("[Optimize] Processing manual job description");
                     finalJobDescription = jobDescription;
-                    const analysis = await analyzeJobDescription(jobDescription);
-                    jobDetails = {
-                        ...analysis,
-                        description: jobDescription
-                    };
+                    jobDetails = await analyzeJobDescription(jobDescription);
                 }
 
                 console.log("[Optimize] Starting optimization process");
                 const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
+
                 if (!optimized || !optimized.optimizedContent) {
                     throw new Error("Failed to generate optimized content");
                 }
@@ -491,12 +482,7 @@ export function registerRoutes(app: Express): Server {
                     originalContent: uploadedResume.content,
                     jobDescription: finalJobDescription,
                     jobUrl: jobUrl || null,
-                    jobDetails: {
-                        ...jobDetails,
-                        improvements: optimized.improvements,
-                        changes: optimized.changes,
-                        matchScore: optimized.matchScore
-                    },
+                    jobDetails,
                     uploadedResumeId: uploadedResume.id,
                     userId: req.user!.id,
                     metadata: {
@@ -510,22 +496,14 @@ export function registerRoutes(app: Express): Server {
                     }
                 });
 
-                if (timeoutId) clearTimeout(timeoutId);
                 console.log("[Optimize] Successfully completed optimization");
                 return res.status(200).json(optimizedResume);
-            } catch (error: any) {
+            } catch (error) {
                 console.error("[Optimize] Error during optimization process:", error);
                 throw new Error(`Optimization failed: ${error.message}`);
             }
-        } catch (error: any) {
-            if (timeoutId) clearTimeout(timeoutId);
+        } catch (error) {
             console.error("[Optimize] Error:", error);
-
-            if (controller.signal.aborted) {
-                console.log("[Optimize] Request aborted due to timeout");
-                return res.status(408).json({ error: "Request timed out" });
-            }
-
             const errorMessage = error.message || "Failed to optimize resume";
             return res.status(500).json({ 
                 error: errorMessage,
@@ -564,6 +542,63 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
+
+    // Add the download route for optimized resumes
+    app.get("/api/optimized-resume/:id/download", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            const resume = await storage.getOptimizedResume(resumeId);
+
+            if (!resume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Create PDF document
+            const doc = new PDFDocument({
+                size: 'A4',
+                margin: 50
+            });
+
+            // Set response headers
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename=${resume.metadata.filename || `resume-${Date.now()}.pdf`}`
+            );
+
+            // Pipe the PDF document to the response
+            doc.pipe(res);
+
+            // Add content to PDF
+            doc.fontSize(16).font('Helvetica-Bold');
+
+            // Format the content properly with sections
+            const sections = resume.content.split('\n\n');
+            sections.forEach((section, index) => {
+                if (index > 0) doc.moveDown();
+                doc.fontSize(index === 0 ? 16 : 12)
+                    .font(index === 0 ? 'Helvetica-Bold' : 'Helvetica')
+                    .text(section.trim());
+            });
+
+            // Finalize the PDF
+            doc.end();
+        } catch (error) {
+            console.error("[Download] Error:", error);
+            res.status(500).json({
+                error: "Failed to generate PDF",
+                details: error instanceof Error ? error.message : "Unknown error"
+            });
+        }
+    });
 
     return createServer(app);
 }
