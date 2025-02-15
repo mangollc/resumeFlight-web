@@ -11,14 +11,13 @@ import { insertUploadedResumeSchema } from "@shared/schema";
 import axios from "axios";
 import * as cheerio from "cheerio";
 
-// Validation and timeout constants
+// Constants
 const MAX_ALLOWED_TIMEOUT = 2147483647;
 const DEFAULT_TIMEOUT = 30000;
 const API_TIMEOUT = 15000;
 const PARSING_TIMEOUT = 10000;
 const SAFE_TIMEOUT = 20000;
 
-// File upload configuration
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const SUPPORTED_MIME_TYPES = [
     'application/pdf',
@@ -51,7 +50,7 @@ interface JobDetails {
     matchScore?: number;
 }
 
-// Multer configuration for file uploads
+// Multer configuration
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: MAX_FILE_SIZE },
@@ -76,11 +75,8 @@ function validateTimeout(value: number | undefined, defaultValue: number = DEFAU
 async function calculateMatchScores(resumeContent: string, jobDescription: string) {
     try {
         console.log("[Match Analysis] Starting analysis...");
-        const operationTimeout = validateTimeout(SAFE_TIMEOUT, 20000);
-        console.log(`[Match Analysis] Using timeout: ${operationTimeout}ms`);
-
         const response = await openai.chat.completions.create({
-            model: "gpt-4o",  
+            model: "gpt-4o",
             messages: [
                 {
                     role: "system",
@@ -121,14 +117,100 @@ Return a JSON object in this exact format:
     }
 }
 
+async function extractJobDetails(url: string): Promise<JobDetails> {
+    try {
+        console.log("[Job Details] Fetching URL:", url);
+        const response = await axios.get(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+        const $ = cheerio.load(response.data);
+
+        // LinkedIn selectors
+        const linkedInSelectors = {
+            title: '.top-card-layout__title, .job-details-jobs-unified-top-card__job-title',
+            company: '.topcard__org-name-link, .job-details-jobs-unified-top-card__company-name',
+            location: '.topcard__flavor:not(:contains("applicants")), .job-details-jobs-unified-top-card__bullet',
+            description: '.description__text, .job-details-jobs-unified-top-card__job-description'
+        };
+
+        const title = $(linkedInSelectors.title).first().text().trim();
+        const company = $(linkedInSelectors.company).first().text().trim();
+        const location = $(linkedInSelectors.location).first().text().trim().replace(/\d+\s*applicants?/gi, '').trim();
+        const description = $(linkedInSelectors.description).text().trim() || $('main').text().trim();
+
+        if (!description) {
+            throw new Error("Could not extract job description. The page might require authentication.");
+        }
+
+        console.log("[Job Details] Successfully extracted details:", { title, company, location });
+
+        return {
+            title: title || 'Unknown Position',
+            company: company || 'Unknown Company',
+            location: location || 'Location Not Specified',
+            description: description
+        };
+    } catch (error: any) {
+        console.error("[Job Details] Error:", error);
+        throw new Error(`Failed to extract job details: ${error.message}`);
+    }
+}
+
+async function analyzeJobDescription(description: string): Promise<JobDetails> {
+    try {
+        console.log("[Job Analysis] Analyzing description...");
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `Analyze the job description and extract key information.
+Return a JSON object in this format:
+{
+    "title": "Extracted job title",
+    "company": "Company name if found",
+    "location": "Job location if found",
+    "positionLevel": "Senior/Mid/Junior/Entry based on requirements",
+    "keyRequirements": ["Array of key requirements"],
+    "skillsAndTools": ["Array of required skills and tools"]
+}`
+                },
+                {
+                    role: "user",
+                    content: description
+                }
+            ],
+            response_format: { type: "json_object" }
+        });
+
+        const content = response.choices[0].message.content;
+        if (!content) {
+            throw new Error("Empty response from OpenAI");
+        }
+
+        const analysis = JSON.parse(content);
+        return {
+            ...analysis,
+            description: description
+        };
+
+    } catch (error) {
+        console.error("[Job Analysis] Error:", error);
+        throw new Error("Failed to analyze job description");
+    }
+}
+
 // Resume optimization function
-export async function optimizeResume(content: string, jobDescription: string, version?: number) {
+async function optimizeResume(content: string, jobDescription: string, version?: number) {
     try {
         console.log("[Optimization] Starting resume optimization...");
         console.log("[Optimization] Version:", version);
         const result = await originalOptimizeResume(content, jobDescription, version);
-        console.log("[Optimization] Successfully optimized resume");
-        console.log("[Optimization] Match score:", result.matchScore);
+        if (!result || !result.optimizedContent) {
+            throw new Error("Invalid optimization result");
+        }
         return result;
     } catch (error: any) {
         console.error("[Optimization] Error:", error);
@@ -263,14 +345,82 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    // Optimization route
+    // Delete uploaded resume route
+    app.delete("/api/uploaded-resume/:id", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                console.log("[Delete Uploaded] User not authenticated");
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            console.log(`[Delete Uploaded] Attempting to delete resume ${resumeId}`);
+
+            const resume = await storage.getUploadedResume(resumeId);
+            if (!resume) {
+                console.log(`[Delete Uploaded] Resume ${resumeId} not found`);
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                console.log(`[Delete Uploaded] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            await storage.deleteUploadedResume(resumeId);
+            console.log(`[Delete Uploaded] Successfully deleted resume ${resumeId}`);
+            return res.status(200).json({ message: "Resume deleted successfully" });
+        } catch (error: any) {
+            console.error("[Delete Uploaded] Error:", error);
+            return res.status(500).json({ 
+                error: "Failed to delete resume", 
+                details: error.message 
+            });
+        }
+    });
+
+    // Delete optimized resume route
+    app.delete("/api/optimized-resume/:id", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                console.log("[Delete Optimized] User not authenticated");
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            console.log(`[Delete Optimized] Attempting to delete optimized resume ${resumeId}`);
+
+            const resume = await storage.getOptimizedResume(resumeId);
+            if (!resume) {
+                console.log(`[Delete Optimized] Resume ${resumeId} not found`);
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                console.log(`[Delete Optimized] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            await storage.deleteOptimizedResume(resumeId);
+            console.log(`[Delete Optimized] Successfully deleted resume ${resumeId}`);
+            return res.status(200).json({ message: "Resume deleted successfully" });
+        } catch (error: any) {
+            console.error("[Delete Optimized] Error:", error);
+            return res.status(500).json({ 
+                error: "Failed to delete resume", 
+                details: error.message 
+            });
+        }
+    });
+
+    // Optimize resume route
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
         let timeoutId: NodeJS.Timeout | null = null;
         const controller = new AbortController();
 
         try {
             if (!req.isAuthenticated()) {
-                return res.sendStatus(401);
+                return res.status(401).json({ error: "Unauthorized" });
             }
 
             const { jobUrl, jobDescription, version } = req.body;
@@ -283,7 +433,7 @@ export function registerRoutes(app: Express): Server {
                 return res.status(404).json({ error: "Resume not found" });
             }
             if (uploadedResume.userId !== req.user!.id) {
-                return res.sendStatus(403);
+                return res.status(403).json({ error: "Unauthorized access" });
             }
 
             let finalJobDescription: string;
@@ -403,70 +553,64 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    // Delete uploaded resume route
-    app.delete("/api/uploaded-resume/:id", async (req, res) => {
+    app.get("/api/optimized-resume/:id/versions", async (req, res) => {
         try {
             if (!req.isAuthenticated()) {
-                console.log("[Delete Uploaded] User not authenticated");
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const resumeId = parseInt(req.params.id);
-            console.log(`[Delete Uploaded] Attempting to delete resume ${resumeId}`);
-
-            const resume = await storage.getUploadedResume(resumeId);
-            if (!resume) {
-                console.log(`[Delete Uploaded] Resume ${resumeId} not found`);
+            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
 
-            if (resume.userId !== req.user!.id) {
-                console.log(`[Delete Uploaded] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+            if (optimizedResume.userId !== req.user!.id) {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            await storage.deleteUploadedResume(resumeId);
-            console.log(`[Delete Uploaded] Successfully deleted resume ${resumeId}`);
-            return res.status(200).json({ message: "Resume deleted successfully" });
+            const allVersions = await storage.getOptimizedResumesByJobDescription(
+                optimizedResume.jobDescription,
+                optimizedResume.uploadedResumeId
+            );
+
+            return res.status(200).json(allVersions.sort((a, b) => 
+                (b.metadata.version || 0) - (a.metadata.version || 0)
+            ));
         } catch (error: any) {
-            console.error("[Delete Uploaded] Error:", error);
-            return res.status(500).json({ 
-                error: "Failed to delete resume", 
-                details: error.message 
+            console.error("[Versions] Error:", error);
+            return res.status(500).json({
+                error: "Failed to fetch resume versions",
+                details: error.message
             });
         }
     });
 
-    // Delete optimized resume route
-    app.delete("/api/optimized-resume/:id", async (req, res) => {
+    app.get("/api/optimized-resume/:id/differences", async (req, res) => {
         try {
             if (!req.isAuthenticated()) {
-                console.log("[Delete Optimized] User not authenticated");
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const resumeId = parseInt(req.params.id);
-            console.log(`[Delete Optimized] Attempting to delete optimized resume ${resumeId}`);
-
-            const resume = await storage.getOptimizedResume(resumeId);
-            if (!resume) {
-                console.log(`[Delete Optimized] Resume ${resumeId} not found`);
+            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
 
-            if (resume.userId !== req.user!.id) {
-                console.log(`[Delete Optimized] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+            if (optimizedResume.userId !== req.user!.id) {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            await storage.deleteOptimizedResume(resumeId);
-            console.log(`[Delete Optimized] Successfully deleted resume ${resumeId}`);
-            return res.status(200).json({ message: "Resume deleted successfully" });
+            const differences = await analyzeResumeDifferences(
+                optimizedResume.originalContent,
+                optimizedResume.content
+            );
+
+            return res.status(200).json(differences);
         } catch (error: any) {
-            console.error("[Delete Optimized] Error:", error);
-            return res.status(500).json({ 
-                error: "Failed to delete resume", 
-                details: error.message 
+            console.error("[Differences] Error:", error);
+            return res.status(500).json({
+                error: "Failed to analyze differences",
+                details: error.message
             });
         }
     });
@@ -525,7 +669,6 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
     }
 }
 
-// Utility functions
 function getDefaultMetrics() {
     return {
         keywords: 0,
@@ -556,28 +699,4 @@ function getInitials(text: string): string {
     }
 
     return "RES";
-}
-
-async function extractJobDetails(url: string): Promise<JobDetails> {
-    try {
-        const response = await axios.get(url);
-        const $ = cheerio.load(response.data);
-        //Implementation to extract job details from the webpage using cheerio
-        //This is a placeholder and needs to be implemented based on the specific website structure.
-        return { title: "", company: "", location: "", description: "" };
-    } catch (error) {
-        console.error("Error extracting job details:", error);
-        throw new Error("Failed to extract job details from URL");
-    }
-}
-
-async function analyzeJobDescription(description: string): Promise<Partial<JobDetails>> {
-    try {
-        //Implementation to analyze the job description using OpenAI or other methods
-        //This is a placeholder and needs to be implemented.
-        return {};
-    } catch (error) {
-        console.error("Error analyzing job description:", error);
-        throw new Error("Failed to analyze job description");
-    }
 }
