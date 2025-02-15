@@ -110,22 +110,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
     },
   });
 
-  const formatDownloadFilename = (name: string, jobTitle: string, version?: number) => {
-    // Extract initials properly
-    const nameMatch = name.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
-    const initials = nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : 'XX';
-
-    // Clean and format job title
+  const formatDownloadFilename = (name: string, jobTitle: string, version: number) => {
+    const baseName = name.substring(0, name.lastIndexOf('.')) || name;
     const cleanJobTitle = jobTitle
       ?.replace(/[^a-zA-Z0-9\s]/g, '')
       .replace(/\s+/g, '_')
-      .toLowerCase()
-      .substring(0, 30); // Limit length
+      .toLowerCase();
 
-    // Add version if provided
-    const versionSuffix = version ? `_v${version.toFixed(1)}` : '';
-
-    return `${initials}_${cleanJobTitle}${versionSuffix}`;
+    return `${baseName}_${cleanJobTitle}_v${version.toFixed(1)}`;
   };
 
   return (
@@ -191,7 +183,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   className="flex items-center"
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Download Resume
+                  Download Resume v{resume.metadata.version.toFixed(1)}
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

@@ -21,12 +21,20 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      // Pass resume contact information to the API
-      const res = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
+      if (!resume.contactInfo) {
+        throw new Error("Contact information is required to generate a cover letter");
+      }
+
+      const response = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
         contactInfo: resume.contactInfo,
-        version: resume.metadata.version
+        version: resume.metadata.version || 1.0
       });
-      return res.json();
+
+      if (!response.ok) {
+        throw new Error("Failed to generate cover letter");
+      }
+
+      return response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cover-letter"] });
@@ -45,19 +53,35 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     },
   });
 
+  const formatDownloadFilename = (name: string, version: number) => {
+    const baseName = name.substring(0, name.lastIndexOf('.')) || name;
+    return `${baseName}_cover_v${version.toFixed(1)}`;
+  };
+
   const handleDownload = async () => {
     if (!generatedCoverLetter?.id) return;
 
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/cover-letter/${generatedCoverLetter.id}/download?filename=${generatedCoverLetter.metadata.filename}_v${generatedCoverLetter.metadata.version.toFixed(1)}.pdf`);
+      const response = await fetch(
+        `/api/cover-letter/${generatedCoverLetter.id}/download?filename=${
+          formatDownloadFilename(
+            generatedCoverLetter.metadata.filename,
+            generatedCoverLetter.metadata.version
+          )
+        }.pdf`
+      );
+
       if (!response.ok) throw new Error('Download failed');
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${generatedCoverLetter.metadata.filename}_v${generatedCoverLetter.metadata.version.toFixed(1)}.pdf`;
+      a.download = `${formatDownloadFilename(
+        generatedCoverLetter.metadata.filename,
+        generatedCoverLetter.metadata.version
+      )}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -105,7 +129,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
-                <h4 className="font-semibold">Generated Cover Letter</h4>
+                <h4 className="font-semibold">Generated Cover Letter (v{generatedCoverLetter?.metadata.version.toFixed(1) || generateMutation.data?.metadata.version.toFixed(1)})</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
                   Created on {new Date(generatedCoverLetter?.createdAt || generateMutation.data?.createdAt).toLocaleDateString()}
                 </p>

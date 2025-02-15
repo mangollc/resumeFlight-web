@@ -122,7 +122,13 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
   metadata: {
     filename: string;
     optimizedAt: string;
-    version: number; // Added version property
+    version: number;
+  };
+  contactInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address?: string;
   };
   jobDetails: {
     title: string;
