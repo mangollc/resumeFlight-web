@@ -169,12 +169,73 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
+    // Get optimized resumes route
+    app.get("/api/optimized-resumes", async (req, res) => {
+        try {
+            console.log("[Get Optimized] Checking authentication");
+            if (!req.isAuthenticated()) {
+                console.log("[Get Optimized] User not authenticated");
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            console.log("[Get Optimized] Fetching optimized resumes for user:", req.user!.id);
+            const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
+            console.log("[Get Optimized] Found optimized resumes:", resumes.length);
+
+            return res.status(200).json(resumes);
+        } catch (error: any) {
+            console.error("[Get Optimized] Error:", error);
+            return res.status(500).json({
+                error: "Failed to fetch optimized resumes",
+                details: error.message
+            });
+        }
+    });
+
+    // Get single optimized resume route
+    app.get("/api/optimized-resume/:id", async (req, res) => {
+        try {
+            console.log("[Get Single Optimized] Checking authentication");
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            console.log("[Get Single Optimized] Fetching resume:", resumeId);
+
+            const resume = await storage.getOptimizedResume(resumeId);
+            if (!resume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            console.log("[Get Single Optimized] Found resume");
+            return res.status(200).json(resume);
+        } catch (error: any) {
+            console.error("[Get Single Optimized] Error:", error);
+            return res.status(500).json({
+                error: "Failed to fetch optimized resume",
+                details: error.message
+            });
+        }
+    });
+
     // Upload route
     app.post("/api/resume/upload", upload.single("file"), async (req: MulterRequest, res) => {
         try {
-            if (!req.isAuthenticated()) return res.sendStatus(401);
-            if (!req.file) return res.status(400).send("No file uploaded");
+            console.log("[Upload] Checking authentication");
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
 
+            if (!req.file) {
+                return res.status(400).json({ error: "No file uploaded" });
+            }
+
+            console.log("[Upload] Processing file upload");
             const content = await parseResume(req.file.buffer, req.file.mimetype);
             const validatedData = insertUploadedResumeSchema.parse({
                 content: content,
@@ -185,15 +246,20 @@ export function registerRoutes(app: Express): Server {
                 }
             });
 
+            console.log("[Upload] Creating resume for user:", req.user!.id);
             const resume = await storage.createUploadedResume({
                 ...validatedData,
                 userId: req.user!.id
             });
 
-            res.json(resume);
+            console.log("[Upload] Resume created successfully");
+            return res.status(201).json(resume);
         } catch (error: any) {
-            console.error("[Upload Route] Error:", error);
-            res.status(400).json({ error: error.message });
+            console.error("[Upload] Error:", error);
+            return res.status(400).json({ 
+                error: "Failed to upload resume",
+                details: error.message 
+            });
         }
     });
 
