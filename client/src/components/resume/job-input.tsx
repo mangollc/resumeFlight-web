@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, RotateCcw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -90,11 +90,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   ): "language" | "framework" | "database" | "cloud" | "tool" | "soft" => {
     const skillTypes = {
       technical: [
-        "javascript", "python", "java", "c++", "typescript", "html", "css", 
+        "javascript", "python", "java", "c++", "typescript", "html", "css",
         "api", "rest", "graphql", "frontend", "backend", "fullstack"
       ],
       framework: [
-        "react", "node", "vue", "angular", "svelte", "next", "express", 
+        "react", "node", "vue", "angular", "svelte", "next", "express",
         "django", "flask"
       ],
       database: [
@@ -152,8 +152,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         const response = await apiRequest(
           "POST",
           `/api/resume/${resumeId}/optimize`,
-          data,
-          { signal: abortControllerRef.current.signal }
+          data
         );
 
         if (!response.ok) {
@@ -351,8 +350,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             disabled={isProcessing}
             className="w-full md:w-auto"
           >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Restart
+            <span>Restart</span>
           </Button>
         </div>
       </form>

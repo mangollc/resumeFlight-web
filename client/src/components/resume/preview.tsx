@@ -4,13 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Maximize2, Download } from "lucide-react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -25,7 +18,6 @@ import { Confetti } from "@/components/ui/confetti";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
-  onVersionChange?: (version: string) => void;
 }
 
 const getMetricsColor = (value: number): string => {
@@ -92,11 +84,9 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
   );
 };
 
-export default function Preview({ resume, onVersionChange }: PreviewProps) {
+export default function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [selectedVersion, setSelectedVersion] = useState<string>("");
-  const [availableVersions, setAvailableVersions] = useState<OptimizedResume[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -114,33 +104,7 @@ export default function Preview({ resume, onVersionChange }: PreviewProps) {
         description: "Your resume has achieved excellent optimization scores.",
       });
     }
-
-    fetch(`/api/optimized-resume/${optimizedResume.id}/versions`)
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch versions');
-        return res.json();
-      })
-      .then(versions => {
-        if (Array.isArray(versions)) {
-          setAvailableVersions(versions);
-          const currentVersion = String(optimizedResume.metadata?.version || "1.0");
-          setSelectedVersion(currentVersion);
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching versions:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load resume versions",
-          variant: "destructive",
-        });
-      });
   }, [resume, toast]);
-
-  const handleVersionChange = (version: string) => {
-    setSelectedVersion(version);
-    onVersionChange?.(version);
-  };
 
   if (!resume) {
     return (
@@ -161,9 +125,8 @@ export default function Preview({ resume, onVersionChange }: PreviewProps) {
   const isOptimized = "jobDescription" in resume;
   const originalContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
   const optimizedContent = resume.content;
-  const version = isOptimized ? (resume as OptimizedResume).metadata?.version || 1.0 : undefined;
 
-  const formatFilename = (v?: number) => {
+  const formatFilename = () => {
     const initials = getInitials(originalContent);
     const jobTitle = isOptimized
       ? (resume as OptimizedResume).jobDetails?.title?.replace(/[^a-zA-Z0-9\s]/g, "")
@@ -171,47 +134,12 @@ export default function Preview({ resume, onVersionChange }: PreviewProps) {
           .toLowerCase()
           .substring(0, 30)
       : "resume";
-    const versionStr = v ? `_v${v.toFixed(1)}` : "";
-    return `${initials}_${jobTitle}${versionStr}`;
+    return `${initials}_${jobTitle}`;
   };
 
   const getInitials = (text: string): string => {
     const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
     return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
-  };
-
-  const renderVersionSelect = () => {
-    if (!availableVersions.length) return null;
-
-    const versions = availableVersions
-      .map(v => v.metadata?.version)
-      .filter((v): v is number => typeof v === 'number')
-      .sort((a, b) => b - a);
-
-    if (!versions.length) return null;
-
-    return (
-      <Select
-        value={selectedVersion}
-        onValueChange={handleVersionChange}
-      >
-        <SelectTrigger className="w-[160px]">
-          <SelectValue>
-            {selectedVersion ? `Version ${Number(selectedVersion).toFixed(1)}` : "Select version"}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {versions.map((version) => (
-            <SelectItem
-              key={version}
-              value={String(version)}
-            >
-              Version {version.toFixed(1)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
   };
 
   return (
@@ -236,11 +164,10 @@ export default function Preview({ resume, onVersionChange }: PreviewProps) {
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {isOptimized && availableVersions.length > 1 && renderVersionSelect()}
                 {isOptimized && (
                   <a
                     href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
-                      formatFilename(version)
+                      formatFilename()
                     }.pdf`}
                     download
                   >
@@ -267,18 +194,11 @@ export default function Preview({ resume, onVersionChange }: PreviewProps) {
                     </DialogHeader>
                     <div className="mt-4">
                       {isDialogOpen && (
-                        <>
-                          {availableVersions.length > 1 && (
-                            <div className="flex justify-end mb-4">
-                              {renderVersionSelect()}
-                            </div>
-                          )}
-                          <DiffView
-                            beforeContent={originalContent}
-                            afterContent={optimizedContent}
-                            resumeId={(resume as OptimizedResume).id}
-                          />
-                        </>
+                        <DiffView
+                          beforeContent={originalContent}
+                          afterContent={optimizedContent}
+                          resumeId={(resume as OptimizedResume).id}
+                        />
                       )}
                     </div>
                   </DialogContent>
@@ -300,12 +220,6 @@ export default function Preview({ resume, onVersionChange }: PreviewProps) {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="font-semibold">Resume Match Analysis</div>
-                  <div className="text-xs text-muted-foreground">
-                    {(resume as OptimizedResume).metrics?.before
-                      ? "Showing improvement from original resume"
-                      : `Version ${(resume as OptimizedResume).metadata.version.toFixed(1)} Analysis`
-                    }
-                  </div>
                 </div>
                 <div className="grid gap-6">
                   <MetricRow
