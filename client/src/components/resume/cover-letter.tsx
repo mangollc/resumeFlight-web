@@ -26,7 +26,12 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       }
 
       const response = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
-        contactInfo: resume.contactInfo,
+        contactInfo: {
+          fullName: resume.contactInfo.fullName,
+          email: resume.contactInfo.email,
+          phone: resume.contactInfo.phone,
+          address: resume.contactInfo.address
+        },
         version: resume.metadata.version || 1.0
       });
 
@@ -63,14 +68,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
     try {
       setIsDownloading(true);
-      const response = await fetch(
-        `/api/cover-letter/${generatedCoverLetter.id}/download?filename=${
-          formatDownloadFilename(
-            generatedCoverLetter.metadata.filename,
-            generatedCoverLetter.metadata.version
-          )
-        }.pdf`
-      );
+      const response = await fetch(`/api/cover-letter/${generatedCoverLetter.id}/download`, {
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
 
       if (!response.ok) throw new Error('Download failed');
 

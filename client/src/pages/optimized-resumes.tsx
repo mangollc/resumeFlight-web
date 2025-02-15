@@ -188,7 +188,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a
-                  href={`/api/optimized-resume/${resume.id}/cover-letter/latest/download?filename=${
+                  href={`/api/cover-letter/latest/${resume.id}/download?filename=${
                     formatDownloadFilename(
                       resume.metadata.filename,
                       resume.jobDetails?.title || '',
@@ -197,6 +197,37 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   }_cover.pdf`}
                   download
                   className="flex items-center"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    fetch(`/api/optimized-resume/${resume.id}/cover-letter/latest/download`, {
+                      headers: {
+                        'Accept': 'application/pdf'
+                      }
+                    })
+                    .then(response => response.blob())
+                    .then(blob => {
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${formatDownloadFilename(
+                        resume.metadata.filename,
+                        resume.jobDetails?.title || '',
+                        resume.metadata.version
+                      )}_cover.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    })
+                    .catch(error => {
+                      console.error('Download error:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to download cover letter",
+                        variant: "destructive",
+                      });
+                    });
+                  }}
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download Latest Cover Letter
