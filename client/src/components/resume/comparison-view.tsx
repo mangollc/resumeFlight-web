@@ -1,16 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { OptimizedResume } from "@shared/schema";
 import ComparisonSlider from "./comparison-slider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, History, Maximize2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Maximize2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
@@ -22,8 +14,6 @@ import {
 interface ComparisonViewProps {
   currentResume: OptimizedResume;
   originalContent: string;
-  onReoptimize: () => void;
-  isOptimizing: boolean;
 }
 
 const getMetricsColor = (value: number): string => {
@@ -44,48 +34,8 @@ const MetricBar = ({ value }: { value: number }) => (
 const ComparisonView = ({
   currentResume,
   originalContent,
-  onReoptimize,
-  isOptimizing,
 }: ComparisonViewProps) => {
-  const [selectedVersion, setSelectedVersion] = useState<string>(
-    currentResume.metadata.version.toString()
-  );
-  const [availableVersions, setAvailableVersions] = useState<OptimizedResume[]>([]);
-  const [comparisonContent, setComparisonContent] = useState<string>(currentResume.content);
   const [isFullScreen, setIsFullScreen] = useState(false);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (isFullScreen) {
-      fetch(`/api/optimized-resume/${currentResume.id}/versions`)
-        .then((res) => res.json())
-        .then((versions) => {
-          if (versions.length > 0) {
-            setAvailableVersions(versions);
-            setSelectedVersion(String(currentResume.metadata.version));
-          }
-        })
-        .catch((error) => {
-          console.error("Error fetching versions:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load resume versions",
-            variant: "destructive",
-          });
-        });
-    }
-  }, [currentResume.id, isFullScreen]);
-
-  const handleVersionChange = async (version: string) => {
-    setSelectedVersion(version);
-    const selectedResume = availableVersions.find(
-      (v) => String(v.metadata.version) === version
-    );
-
-    if (selectedResume) {
-      setComparisonContent(selectedResume.content);
-    }
-  };
 
   const renderMetricsSection = () => (
     <div className="mt-4 grid grid-cols-2 gap-4 bg-muted/30 rounded-lg p-3">
@@ -123,52 +73,20 @@ const ComparisonView = ({
         <div className="flex items-center space-x-4">
           {!inDialog && (
             <Button
-              onClick={onReoptimize}
-              variant="default"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              onClick={() => setIsFullScreen(true)}
+              variant="outline"
               size="sm"
-              disabled={isOptimizing}
             >
-              {isOptimizing ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Optimizing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Optimize Again
-                </>
-              )}
+              <Maximize2 className="mr-2 h-4 w-4" />
+              Full Screen
             </Button>
-          )}
-          {inDialog && availableVersions.length > 1 && (
-            <Select
-              value={selectedVersion}
-              onValueChange={handleVersionChange}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Select version" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableVersions.map((v) => (
-                  <SelectItem
-                    key={v.metadata.version}
-                    value={String(v.metadata.version)}
-                  >
-                    Version {v.metadata.version.toFixed(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           )}
         </div>
       </div>
 
       <ComparisonSlider
         beforeContent={originalContent}
-        afterContent={inDialog ? comparisonContent : currentResume.content}
-        isLoading={isOptimizing}
+        afterContent={currentResume.content}
         showFullScreen={!inDialog}
         onFullScreen={() => setIsFullScreen(true)}
       />

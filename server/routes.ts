@@ -425,7 +425,7 @@ export function registerRoutes(app: Express): Server {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const { jobUrl, jobDescription, version } = req.body;
+            const { jobUrl, jobDescription } = req.body;
             if (!jobUrl && !jobDescription) {
                 console.log("[Optimize] Missing job details");
                 return res.status(400).json({ error: "Please provide either a job URL or description" });
@@ -443,46 +443,20 @@ export function registerRoutes(app: Express): Server {
 
             let finalJobDescription: string;
             let jobDetails: JobDetails;
-            let existingOptimization = null;
-            let nextVersion = version || 1.0;
 
             try {
                 console.log("[Optimize] Processing optimization request...");
-                console.log("[Optimize] Initial version:", nextVersion);
-
-                // Check for existing optimization if this is a reoptimization
-                if (version) {
-                    console.log("[Optimize] Looking for existing optimization...");
-                    const optimizations = await storage.getOptimizedResumesByUser(req.user!.id);
-                    existingOptimization = optimizations.find(opt => 
-                        opt.uploadedResumeId === uploadedResume.id &&
-                        (opt.jobUrl === jobUrl || opt.jobDescription === jobDescription)
-                    );
-
-                    if (existingOptimization) {
-                        console.log("[Optimize] Found existing optimization:", existingOptimization.id);
-                        nextVersion = Math.round((existingOptimization.metadata.version + 0.1) * 10) / 10;
-                        console.log("[Optimize] Next version will be:", nextVersion);
-                    }
-                }
 
                 // Handle job details
                 if (jobUrl) {
                     console.log("[Optimize] Processing job URL:", jobUrl);
-                    if (existingOptimization?.jobDetails) {
-                        console.log("[Optimize] Using existing job details");
-                        jobDetails = existingOptimization.jobDetails;
-                        finalJobDescription = existingOptimization.jobDescription;
-                    } else {
-                        console.log("[Optimize] Extracting new job details from URL");
-                        const extractedDetails = await extractJobDetails(jobUrl);
-                        finalJobDescription = extractedDetails.description;
-                        const analysis = await analyzeJobDescription(finalJobDescription);
-                        jobDetails = {
-                            ...extractedDetails,
-                            ...analysis
-                        };
-                    }
+                    const extractedDetails = await extractJobDetails(jobUrl);
+                    finalJobDescription = extractedDetails.description;
+                    const analysis = await analyzeJobDescription(finalJobDescription);
+                    jobDetails = {
+                        ...extractedDetails,
+                        ...analysis
+                    };
                 } else {
                     console.log("[Optimize] Processing manual job description");
                     finalJobDescription = jobDescription;
@@ -493,13 +467,8 @@ export function registerRoutes(app: Express): Server {
                     };
                 }
 
-                console.log("[Optimize] Starting optimization process with details:", {
-                    resumeId: uploadedResume.id,
-                    version: nextVersion,
-                    hasJobDetails: !!jobDetails
-                });
-
-                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription, nextVersion);
+                console.log("[Optimize] Starting optimization process");
+                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
                 if (!optimized || !optimized.optimizedContent) {
                     throw new Error("Failed to generate optimized content");
                 }
@@ -514,8 +483,7 @@ export function registerRoutes(app: Express): Server {
                     .replace(/\s+/g, '_')
                     .substring(0, 30);
 
-                const versionStr = `_v${nextVersion.toFixed(1)}`;
-                const newFilename = `${initials}_${cleanJobTitle}${versionStr}.pdf`;
+                const newFilename = `${initials}_${cleanJobTitle}.pdf`;
 
                 console.log("[Optimize] Saving optimized resume");
                 const optimizedResume = await storage.createOptimizedResume({
@@ -534,7 +502,7 @@ export function registerRoutes(app: Express): Server {
                     metadata: {
                         filename: newFilename,
                         optimizedAt: new Date().toISOString(),
-                        version: nextVersion
+                        version: 1.0
                     },
                     metrics: {
                         before: beforeMetrics,
@@ -562,38 +530,6 @@ export function registerRoutes(app: Express): Server {
             return res.status(500).json({ 
                 error: errorMessage,
                 details: error instanceof Error ? error.message : "Unknown error"
-            });
-        }
-    });
-
-    app.get("/api/optimized-resume/:id/versions", async (req, res) => {
-        try {
-            if (!req.isAuthenticated()) {
-                return res.status(401).json({ error: "Unauthorized" });
-            }
-
-            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
-            if (!optimizedResume) {
-                return res.status(404).json({ error: "Resume not found" });
-            }
-
-            if (optimizedResume.userId !== req.user!.id) {
-                return res.status(403).json({ error: "Unauthorized access" });
-            }
-
-            const allVersions = await storage.getOptimizedResumesByJobDescription(
-                optimizedResume.jobDescription,
-                optimizedResume.uploadedResumeId
-            );
-
-            return res.status(200).json(allVersions.sort((a, b) => 
-                (b.metadata.version || 0) - (a.metadata.version || 0)
-            ));
-        } catch (error: any) {
-            console.error("[Versions] Error:", error);
-            return res.status(500).json({
-                error: "Failed to fetch resume versions",
-                details: error.message
             });
         }
     });
@@ -627,6 +563,7 @@ export function registerRoutes(app: Express): Server {
             });
         }
     });
+
 
     return createServer(app);
 }
