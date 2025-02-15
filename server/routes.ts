@@ -140,6 +140,35 @@ export async function optimizeResume(content: string, jobDescription: string, ve
 export function registerRoutes(app: Express): Server {
     setupAuth(app);
 
+    // Add error handling middleware
+    app.use((req, res, next) => {
+        res.setHeader('Content-Type', 'application/json');
+        next();
+    });
+
+    // Get uploaded resumes route
+    app.get("/api/uploaded-resumes", async (req, res) => {
+        try {
+            console.log("[Get Resumes] Checking authentication");
+            if (!req.isAuthenticated()) {
+                console.log("[Get Resumes] User not authenticated");
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            console.log("[Get Resumes] Fetching resumes for user:", req.user!.id);
+            const resumes = await storage.getUploadedResumesByUser(req.user!.id);
+            console.log("[Get Resumes] Found resumes:", resumes.length);
+
+            return res.status(200).json(resumes);
+        } catch (error: any) {
+            console.error("[Get Resumes] Error:", error);
+            return res.status(500).json({ 
+                error: "Failed to fetch resumes",
+                details: error.message 
+            });
+        }
+    });
+
     // Upload route
     app.post("/api/resume/upload", upload.single("file"), async (req: MulterRequest, res) => {
         try {
