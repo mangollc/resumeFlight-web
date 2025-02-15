@@ -505,7 +505,7 @@ export function registerRoutes(app: Express): Server {
         } catch (error) {
             console.error("[Optimize] Error:", error);
             const errorMessage = error.message || "Failed to optimize resume";
-            return res.status(500).json({ 
+            return res.status(500).json({
                 error: errorMessage,
                 details: error instanceof Error ? error.message : "Unknown error"
             });
@@ -593,6 +593,107 @@ export function registerRoutes(app: Express): Server {
             doc.end();
         } catch (error) {
             console.error("[Download] Error:", error);
+            res.status(500).json({
+                error: "Failed to generate PDF",
+                details: error instanceof Error ? error.message : "Unknown error"
+            });
+        }
+    });
+
+    // Cover letter generation route
+    app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            if (!optimizedResume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (optimizedResume.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            console.log("[Cover Letter] Generating cover letter for resume:", req.params.id);
+            const coverLetterResult = await generateCoverLetter(
+                optimizedResume.content,
+                optimizedResume.jobDescription
+            );
+
+            const coverLetter = await storage.createCoverLetter({
+                content: coverLetterResult.coverLetter,
+                optimizedResumeId: optimizedResume.id,
+                userId: req.user!.id,
+                metadata: {
+                    filename: optimizedResume.metadata.filename.replace('.pdf', '_cover.pdf'),
+                    generatedAt: new Date().toISOString(),
+                    version: 1.0
+                }
+            });
+
+            return res.status(200).json({
+                ...coverLetter,
+                highlights: coverLetterResult.highlights,
+                confidence: coverLetterResult.confidence
+            });
+
+        } catch (error: any) {
+            console.error("[Cover Letter] Error:", error);
+            return res.status(500).json({
+                error: "Failed to generate cover letter",
+                details: error.message
+            });
+        }
+    });
+
+    // Add cover letter download route
+    app.get("/api/cover-letter/:id/download", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const coverLetter = await storage.getCoverLetter(parseInt(req.params.id));
+            if (!coverLetter) {
+                return res.status(404).json({ error: "Cover letter not found" });
+            }
+
+            if (coverLetter.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Create PDF document
+            const doc = new PDFDocument({
+                size: 'A4',
+                margin: 50
+            });
+
+            // Set response headers
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader(
+                'Content-Disposition',
+                `attachment; filename=${coverLetter.metadata.filename}`
+            );
+
+            // Pipe the PDF document to the response
+            doc.pipe(res);
+
+            // Format and add content to PDF
+            const sections = coverLetter.content.split('\n\n');
+            sections.forEach((section, index) => {
+                if (index > 0) doc.moveDown();
+                doc.fontSize(index === 0 ? 16 : 12)
+                    .font(index === 0 ? 'Helvetica-Bold' : 'Helvetica')
+                    .text(section.trim());
+            });
+
+            // Finalize the PDF
+            doc.end();
+
+        } catch (error) {
+            console.error("[Cover Letter Download] Error:", error);
             res.status(500).json({
                 error: "Failed to generate PDF",
                 details: error instanceof Error ? error.message : "Unknown error"

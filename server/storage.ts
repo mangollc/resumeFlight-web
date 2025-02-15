@@ -45,10 +45,9 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new PostgresSessionStore({ 
       pool,
       createTableIfMissing: true,
-      tableName: 'session',
-      // Use smaller, safer values for timeouts
-      pruneSessionInterval: ONE_HOUR * 1000, // Prune every hour
-      ttl: ONE_DAY // Sessions expire after 24 hours
+      tableName: 'user_sessions', 
+      pruneSessionInterval: ONE_HOUR * 1000, 
+      ttl: ONE_DAY 
     });
   }
 
@@ -184,7 +183,7 @@ export class DatabaseStorage implements IStorage {
       );
     } catch (error) {
       console.error('Error getting optimized resumes by job description:', error);
-      return []; // Return empty array instead of throwing to prevent server crash
+      return []; 
     }
   }
 
