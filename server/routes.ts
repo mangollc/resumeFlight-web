@@ -3,7 +3,12 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import multer from "multer";
-import { optimizeResume as originalOptimizeResume, generateCoverLetter, openai, analyzeResumeDifferences } from "./openai";
+import {
+    optimizeResume as originalOptimizeResume,
+    generateCoverLetter,
+    openai,
+    analyzeResumeDifferences,
+} from "./openai";
 import mammoth from "mammoth";
 import PDFParser from "pdf2json";
 import PDFDocument from "pdfkit";
@@ -20,8 +25,8 @@ const SAFE_TIMEOUT = 20000;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const SUPPORTED_MIME_TYPES = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
 interface MulterRequest extends Request {
@@ -58,21 +63,38 @@ const upload = multer({
         if (SUPPORTED_MIME_TYPES.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error('Unsupported file type. Please upload PDF or DOCX files only.'));
+            cb(
+                new Error(
+                    "Unsupported file type. Please upload PDF or DOCX files only.",
+                ),
+            );
         }
-    }
+    },
 });
 
 // Helper functions
-function validateTimeout(value: number | undefined, defaultValue: number = DEFAULT_TIMEOUT): number {
-    if (!value || typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-        console.warn(`Invalid timeout value: ${value}, using default: ${defaultValue}`);
+function validateTimeout(
+    value: number | undefined,
+    defaultValue: number = DEFAULT_TIMEOUT,
+): number {
+    if (
+        !value ||
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        value <= 0
+    ) {
+        console.warn(
+            `Invalid timeout value: ${value}, using default: ${defaultValue}`,
+        );
         return defaultValue;
     }
     return Math.min(value, MAX_ALLOWED_TIMEOUT);
 }
 
-async function calculateMatchScores(resumeContent: string, jobDescription: string) {
+async function calculateMatchScores(
+    resumeContent: string,
+    jobDescription: string,
+) {
     try {
         console.log("[Match Analysis] Starting analysis...");
         const response = await openai.chat.completions.create({
@@ -80,22 +102,22 @@ async function calculateMatchScores(resumeContent: string, jobDescription: strin
             messages: [
                 {
                     role: "system",
-                    content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores.
+                    content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores based on likelyhood of ATS selecting the resume.
 Return a JSON object in this exact format:
 {
  "keywords": <number between 0-100>,
  "skills": <number between 0-100>,
  "experience": <number between 0-100>,
  "overall": <number between 0-100>
-}`
+}`,
                 },
                 {
                     role: "user",
-                    content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
-                }
+                    content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`,
+                },
             ],
             response_format: { type: "json_object" },
-            temperature: 0.3
+            temperature: 0.3,
         });
 
         const content = response.choices[0].message.content;
@@ -108,8 +130,11 @@ Return a JSON object in this exact format:
         return {
             keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
             skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-            experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-            overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0))
+            experience: Math.min(
+                100,
+                Math.max(0, Number(metrics.experience) || 0),
+            ),
+            overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0)),
         };
     } catch (error) {
         console.error("[Match Analysis] Error calculating scores:", error);
@@ -122,35 +147,52 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         console.log("[Job Details] Fetching URL:", url);
         const response = await axios.get(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            },
         });
         const $ = cheerio.load(response.data);
 
         // LinkedIn selectors
         const linkedInSelectors = {
-            title: '.top-card-layout__title, .job-details-jobs-unified-top-card__job-title',
-            company: '.topcard__org-name-link, .job-details-jobs-unified-top-card__company-name',
-            location: '.topcard__flavor:not(:contains("applicants")), .job-details-jobs-unified-top-card__bullet',
-            description: '.description__text, .job-details-jobs-unified-top-card__job-description'
+            title: ".top-card-layout__title, .job-details-jobs-unified-top-card__job-title",
+            company:
+                ".topcard__org-name-link, .job-details-jobs-unified-top-card__company-name",
+            location:
+                '.topcard__flavor:not(:contains("applicants")), .job-details-jobs-unified-top-card__bullet',
+            description:
+                ".description__text, .job-details-jobs-unified-top-card__job-description",
         };
 
         const title = $(linkedInSelectors.title).first().text().trim();
         const company = $(linkedInSelectors.company).first().text().trim();
-        const location = $(linkedInSelectors.location).first().text().trim().replace(/\d+\s*applicants?/gi, '').trim();
-        const description = $(linkedInSelectors.description).text().trim() || $('main').text().trim();
+        const location = $(linkedInSelectors.location)
+            .first()
+            .text()
+            .trim()
+            .replace(/\d+\s*applicants?/gi, "")
+            .trim();
+        const description =
+            $(linkedInSelectors.description).text().trim() ||
+            $("main").text().trim();
 
         if (!description) {
-            throw new Error("Could not extract job description. The page might require authentication.");
+            throw new Error(
+                "Could not extract job description. The page might require authentication.",
+            );
         }
 
-        console.log("[Job Details] Successfully extracted details:", { title, company, location });
+        console.log("[Job Details] Successfully extracted details:", {
+            title,
+            company,
+            location,
+        });
 
         return {
-            title: title || 'Unknown Position',
-            company: company || 'Unknown Company',
-            location: location || 'Location Not Specified',
-            description: description
+            title: title || "Unknown Position",
+            company: company || "Unknown Company",
+            location: location || "Location Not Specified",
+            description: description,
         };
     } catch (error: any) {
         console.error("[Job Details] Error:", error);
@@ -173,16 +215,16 @@ Return a JSON object in this format:
     "company": "Company name if found",
     "location": "Job location if found",
     "positionLevel": "Senior/Mid/Junior/Entry based on requirements",
-    "keyRequirements": ["Array of key requirements"],
-    "skillsAndTools": ["Array of required skills and tools"]
-}`
+    "keyRequirements": ["Array of key requirements with condensed word choices"],
+    "skillsAndTools": ["Array of required skills and tools with max two words per skills or tools"]
+}`,
                 },
                 {
                     role: "user",
-                    content: description
-                }
+                    content: description,
+                },
             ],
-            response_format: { type: "json_object" }
+            response_format: { type: "json_object" },
         });
 
         const content = response.choices[0].message.content;
@@ -193,9 +235,8 @@ Return a JSON object in this format:
         const analysis = JSON.parse(content);
         return {
             ...analysis,
-            description: description
+            description: description,
         };
-
     } catch (error) {
         console.error("[Job Analysis] Error:", error);
         throw new Error("Failed to analyze job description");
@@ -203,11 +244,19 @@ Return a JSON object in this format:
 }
 
 // Resume optimization function
-async function optimizeResume(content: string, jobDescription: string, version?: number) {
+async function optimizeResume(
+    content: string,
+    jobDescription: string,
+    version?: number,
+) {
     try {
         console.log("[Optimization] Starting resume optimization...");
         console.log("[Optimization] Version:", version);
-        const result = await originalOptimizeResume(content, jobDescription, version);
+        const result = await originalOptimizeResume(
+            content,
+            jobDescription,
+            version,
+        );
         if (!result || !result.optimizedContent) {
             throw new Error("Invalid optimization result");
         }
@@ -224,7 +273,7 @@ export function registerRoutes(app: Express): Server {
 
     // Add error handling middleware
     app.use((req, res, next) => {
-        res.setHeader('Content-Type', 'application/json');
+        res.setHeader("Content-Type", "application/json");
         next();
     });
 
@@ -237,8 +286,13 @@ export function registerRoutes(app: Express): Server {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            console.log("[Get Resumes] Fetching resumes for user:", req.user!.id);
-            const resumes = await storage.getUploadedResumesByUser(req.user!.id);
+            console.log(
+                "[Get Resumes] Fetching resumes for user:",
+                req.user!.id,
+            );
+            const resumes = await storage.getUploadedResumesByUser(
+                req.user!.id,
+            );
             console.log("[Get Resumes] Found resumes:", resumes.length);
 
             return res.status(200).json(resumes);
@@ -246,7 +300,7 @@ export function registerRoutes(app: Express): Server {
             console.error("[Get Resumes] Error:", error);
             return res.status(500).json({
                 error: "Failed to fetch resumes",
-                details: error.message
+                details: error.message,
             });
         }
     });
@@ -260,16 +314,24 @@ export function registerRoutes(app: Express): Server {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            console.log("[Get Optimized] Fetching optimized resumes for user:", req.user!.id);
-            const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
-            console.log("[Get Optimized] Found optimized resumes:", resumes.length);
+            console.log(
+                "[Get Optimized] Fetching optimized resumes for user:",
+                req.user!.id,
+            );
+            const resumes = await storage.getOptimizedResumesByUser(
+                req.user!.id,
+            );
+            console.log(
+                "[Get Optimized] Found optimized resumes:",
+                resumes.length,
+            );
 
             return res.status(200).json(resumes);
         } catch (error: any) {
             console.error("[Get Optimized] Error:", error);
             return res.status(500).json({
                 error: "Failed to fetch optimized resumes",
-                details: error.message
+                details: error.message,
             });
         }
     });
@@ -300,50 +362,57 @@ export function registerRoutes(app: Express): Server {
             console.error("[Get Single Optimized] Error:", error);
             return res.status(500).json({
                 error: "Failed to fetch optimized resume",
-                details: error.message
+                details: error.message,
             });
         }
     });
 
     // Upload route
-    app.post("/api/resume/upload", upload.single("file"), async (req: MulterRequest, res) => {
-        try {
-            console.log("[Upload] Checking authentication");
-            if (!req.isAuthenticated()) {
-                return res.status(401).json({ error: "Unauthorized" });
-            }
-
-            if (!req.file) {
-                return res.status(400).json({ error: "No file uploaded" });
-            }
-
-            console.log("[Upload] Processing file upload");
-            const content = await parseResume(req.file.buffer, req.file.mimetype);
-            const validatedData = insertUploadedResumeSchema.parse({
-                content: content,
-                metadata: {
-                    filename: req.file.originalname,
-                    fileType: req.file.mimetype,
-                    uploadedAt: new Date().toISOString()
+    app.post(
+        "/api/resume/upload",
+        upload.single("file"),
+        async (req: MulterRequest, res) => {
+            try {
+                console.log("[Upload] Checking authentication");
+                if (!req.isAuthenticated()) {
+                    return res.status(401).json({ error: "Unauthorized" });
                 }
-            });
 
-            console.log("[Upload] Creating resume for user:", req.user!.id);
-            const resume = await storage.createUploadedResume({
-                ...validatedData,
-                userId: req.user!.id
-            });
+                if (!req.file) {
+                    return res.status(400).json({ error: "No file uploaded" });
+                }
 
-            console.log("[Upload] Resume created successfully");
-            return res.status(201).json(resume);
-        } catch (error: any) {
-            console.error("[Upload] Error:", error);
-            return res.status(400).json({
-                error: "Failed to upload resume",
-                details: error.message
-            });
-        }
-    });
+                console.log("[Upload] Processing file upload");
+                const content = await parseResume(
+                    req.file.buffer,
+                    req.file.mimetype,
+                );
+                const validatedData = insertUploadedResumeSchema.parse({
+                    content: content,
+                    metadata: {
+                        filename: req.file.originalname,
+                        fileType: req.file.mimetype,
+                        uploadedAt: new Date().toISOString(),
+                    },
+                });
+
+                console.log("[Upload] Creating resume for user:", req.user!.id);
+                const resume = await storage.createUploadedResume({
+                    ...validatedData,
+                    userId: req.user!.id,
+                });
+
+                console.log("[Upload] Resume created successfully");
+                return res.status(201).json(resume);
+            } catch (error: any) {
+                console.error("[Upload] Error:", error);
+                return res.status(400).json({
+                    error: "Failed to upload resume",
+                    details: error.message,
+                });
+            }
+        },
+    );
 
     // Delete uploaded resume route
     app.delete("/api/uploaded-resume/:id", async (req, res) => {
@@ -354,7 +423,9 @@ export function registerRoutes(app: Express): Server {
             }
 
             const resumeId = parseInt(req.params.id);
-            console.log(`[Delete Uploaded] Attempting to delete resume ${resumeId}`);
+            console.log(
+                `[Delete Uploaded] Attempting to delete resume ${resumeId}`,
+            );
 
             const resume = await storage.getUploadedResume(resumeId);
             if (!resume) {
@@ -363,18 +434,24 @@ export function registerRoutes(app: Express): Server {
             }
 
             if (resume.userId !== req.user!.id) {
-                console.log(`[Delete Uploaded] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                console.log(
+                    `[Delete Uploaded] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`,
+                );
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
             await storage.deleteUploadedResume(resumeId);
-            console.log(`[Delete Uploaded] Successfully deleted resume ${resumeId}`);
-            return res.status(200).json({ message: "Resume deleted successfully" });
+            console.log(
+                `[Delete Uploaded] Successfully deleted resume ${resumeId}`,
+            );
+            return res
+                .status(200)
+                .json({ message: "Resume deleted successfully" });
         } catch (error: any) {
             console.error("[Delete Uploaded] Error:", error);
             return res.status(500).json({
                 error: "Failed to delete resume",
-                details: error.message
+                details: error.message,
             });
         }
     });
@@ -388,7 +465,9 @@ export function registerRoutes(app: Express): Server {
             }
 
             const resumeId = parseInt(req.params.id);
-            console.log(`[Delete Optimized] Attempting to delete optimized resume ${resumeId}`);
+            console.log(
+                `[Delete Optimized] Attempting to delete optimized resume ${resumeId}`,
+            );
 
             const resume = await storage.getOptimizedResume(resumeId);
             if (!resume) {
@@ -397,18 +476,24 @@ export function registerRoutes(app: Express): Server {
             }
 
             if (resume.userId !== req.user!.id) {
-                console.log(`[Delete Optimized] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`);
+                console.log(
+                    `[Delete Optimized] Unauthorized: User ${req.user!.id} attempting to delete resume ${resumeId} owned by ${resume.userId}`,
+                );
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
             await storage.deleteOptimizedResume(resumeId);
-            console.log(`[Delete Optimized] Successfully deleted resume ${resumeId}`);
-            return res.status(200).json({ message: "Resume deleted successfully" });
+            console.log(
+                `[Delete Optimized] Successfully deleted resume ${resumeId}`,
+            );
+            return res
+                .status(200)
+                .json({ message: "Resume deleted successfully" });
         } catch (error: any) {
             console.error("[Delete Optimized] Error:", error);
             return res.status(500).json({
                 error: "Failed to delete resume",
-                details: error.message
+                details: error.message,
             });
         }
     });
@@ -425,10 +510,14 @@ export function registerRoutes(app: Express): Server {
             const { jobUrl, jobDescription } = req.body;
             if (!jobUrl && !jobDescription) {
                 console.log("[Optimize] Missing job details");
-                return res.status(400).json({ error: "Please provide either a job URL or description" });
+                return res.status(400).json({
+                    error: "Please provide either a job URL or description",
+                });
             }
 
-            const uploadedResume = await storage.getUploadedResume(parseInt(req.params.id));
+            const uploadedResume = await storage.getUploadedResume(
+                parseInt(req.params.id),
+            );
             if (!uploadedResume) {
                 console.log("[Optimize] Resume not found");
                 return res.status(404).json({ error: "Resume not found" });
@@ -446,10 +535,11 @@ export function registerRoutes(app: Express): Server {
                     console.log("[Optimize] Processing job URL:", jobUrl);
                     const extractedDetails = await extractJobDetails(jobUrl);
                     finalJobDescription = extractedDetails.description;
-                    jobDetails = await analyzeJobDescription(finalJobDescription);
+                    jobDetails =
+                        await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
                         ...extractedDetails,
-                        ...jobDetails
+                        ...jobDetails,
                     };
                 } else {
                     console.log("[Optimize] Processing manual job description");
@@ -458,20 +548,29 @@ export function registerRoutes(app: Express): Server {
                 }
 
                 console.log("[Optimize] Starting optimization process");
-                const optimized = await optimizeResume(uploadedResume.content, finalJobDescription);
+                const optimized = await optimizeResume(
+                    uploadedResume.content,
+                    finalJobDescription,
+                );
 
                 if (!optimized || !optimized.optimizedContent) {
                     throw new Error("Failed to generate optimized content");
                 }
 
                 console.log("[Optimize] Calculating match scores...");
-                const beforeMetrics = await calculateMatchScores(uploadedResume.content, finalJobDescription);
-                const afterMetrics = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
+                const beforeMetrics = await calculateMatchScores(
+                    uploadedResume.content,
+                    finalJobDescription,
+                );
+                const afterMetrics = await calculateMatchScores(
+                    optimized.optimizedContent,
+                    finalJobDescription,
+                );
 
                 const initials = getInitials(uploadedResume.content);
-                const cleanJobTitle = (jobDetails.title || 'job')
-                    .replace(/[^a-zA-Z0-9\s]/g, '')
-                    .replace(/\s+/g, '_')
+                const cleanJobTitle = (jobDetails.title || "job")
+                    .replace(/[^a-zA-Z0-9\s]/g, "")
+                    .replace(/\s+/g, "_")
                     .substring(0, 30);
 
                 const newFilename = `${initials}_${cleanJobTitle}.pdf`;
@@ -488,18 +587,21 @@ export function registerRoutes(app: Express): Server {
                     metadata: {
                         filename: newFilename,
                         optimizedAt: new Date().toISOString(),
-                        version: 1.0
+                        version: 1.0,
                     },
                     metrics: {
                         before: beforeMetrics,
-                        after: afterMetrics
-                    }
+                        after: afterMetrics,
+                    },
                 });
 
                 console.log("[Optimize] Successfully completed optimization");
                 return res.status(200).json(optimizedResume);
             } catch (error) {
-                console.error("[Optimize] Error during optimization process:", error);
+                console.error(
+                    "[Optimize] Error during optimization process:",
+                    error,
+                );
                 throw new Error(`Optimization failed: ${error.message}`);
             }
         } catch (error) {
@@ -507,7 +609,8 @@ export function registerRoutes(app: Express): Server {
             const errorMessage = error.message || "Failed to optimize resume";
             return res.status(500).json({
                 error: errorMessage,
-                details: error instanceof Error ? error.message : "Unknown error"
+                details:
+                    error instanceof Error ? error.message : "Unknown error",
             });
         }
     });
@@ -518,7 +621,9 @@ export function registerRoutes(app: Express): Server {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            const optimizedResume = await storage.getOptimizedResume(
+                parseInt(req.params.id),
+            );
             if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
@@ -529,7 +634,7 @@ export function registerRoutes(app: Express): Server {
 
             const differences = await analyzeResumeDifferences(
                 optimizedResume.originalContent,
-                optimizedResume.content
+                optimizedResume.content,
             );
 
             return res.status(200).json(differences);
@@ -537,11 +642,10 @@ export function registerRoutes(app: Express): Server {
             console.error("[Differences] Error:", error);
             return res.status(500).json({
                 error: "Failed to analyze differences",
-                details: error.message
+                details: error.message,
             });
         }
     });
-
 
     // Add the download route for optimized resumes
     app.get("/api/optimized-resume/:id/download", async (req, res) => {
@@ -563,29 +667,29 @@ export function registerRoutes(app: Express): Server {
 
             // Create PDF document
             const doc = new PDFDocument({
-                size: 'A4',
-                margin: 50
+                size: "A4",
+                margin: 50,
             });
 
             // Set response headers
-            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
-                'Content-Disposition',
-                `attachment; filename=${resume.metadata.filename || `resume-${Date.now()}.pdf`}`
+                "Content-Disposition",
+                `attachment; filename=${resume.metadata.filename || `resume-${Date.now()}.pdf`}`,
             );
 
             // Pipe the PDF document to the response
             doc.pipe(res);
 
             // Add content to PDF
-            doc.fontSize(16).font('Helvetica-Bold');
+            doc.fontSize(16).font("Helvetica-Bold");
 
             // Format the content properly with sections
-            const sections = resume.content.split('\n\n');
+            const sections = resume.content.split("\n\n");
             sections.forEach((section, index) => {
                 if (index > 0) doc.moveDown();
                 doc.fontSize(index === 0 ? 16 : 12)
-                    .font(index === 0 ? 'Helvetica-Bold' : 'Helvetica')
+                    .font(index === 0 ? "Helvetica-Bold" : "Helvetica")
                     .text(section.trim());
             });
 
@@ -595,7 +699,8 @@ export function registerRoutes(app: Express): Server {
             console.error("[Download] Error:", error);
             res.status(500).json({
                 error: "Failed to generate PDF",
-                details: error instanceof Error ? error.message : "Unknown error"
+                details:
+                    error instanceof Error ? error.message : "Unknown error",
             });
         }
     });
@@ -607,7 +712,9 @@ export function registerRoutes(app: Express): Server {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            const optimizedResume = await storage.getOptimizedResume(
+                parseInt(req.params.id),
+            );
             if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
@@ -616,10 +723,13 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            console.log("[Cover Letter] Generating cover letter for resume:", req.params.id);
+            console.log(
+                "[Cover Letter] Generating cover letter for resume:",
+                req.params.id,
+            );
             const coverLetterResult = await generateCoverLetter(
                 optimizedResume.content,
-                optimizedResume.jobDescription
+                optimizedResume.jobDescription,
             );
 
             const coverLetter = await storage.createCoverLetter({
@@ -627,23 +737,25 @@ export function registerRoutes(app: Express): Server {
                 optimizedResumeId: optimizedResume.id,
                 userId: req.user!.id,
                 metadata: {
-                    filename: optimizedResume.metadata.filename.replace('.pdf', '_cover.pdf'),
+                    filename: optimizedResume.metadata.filename.replace(
+                        ".pdf",
+                        "_cover.pdf",
+                    ),
                     generatedAt: new Date().toISOString(),
-                    version: 1.0
-                }
+                    version: 1.0,
+                },
             });
 
             return res.status(200).json({
                 ...coverLetter,
                 highlights: coverLetterResult.highlights,
-                confidence: coverLetterResult.confidence
+                confidence: coverLetterResult.confidence,
             });
-
         } catch (error: any) {
             console.error("[Cover Letter] Error:", error);
             return res.status(500).json({
                 error: "Failed to generate cover letter",
-                details: error.message
+                details: error.message,
             });
         }
     });
@@ -655,9 +767,13 @@ export function registerRoutes(app: Express): Server {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const coverLetter = await storage.getCoverLetter(parseInt(req.params.id));
+            const coverLetter = await storage.getCoverLetter(
+                parseInt(req.params.id),
+            );
             if (!coverLetter) {
-                return res.status(404).json({ error: "Cover letter not found" });
+                return res
+                    .status(404)
+                    .json({ error: "Cover letter not found" });
             }
 
             if (coverLetter.userId !== req.user!.id) {
@@ -666,37 +782,37 @@ export function registerRoutes(app: Express): Server {
 
             // Create PDF document
             const doc = new PDFDocument({
-                size: 'A4',
-                margin: 50
+                size: "A4",
+                margin: 50,
             });
 
             // Set response headers
-            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
-                'Content-Disposition',
-                `attachment; filename=${coverLetter.metadata.filename}`
+                "Content-Disposition",
+                `attachment; filename=${coverLetter.metadata.filename}`,
             );
 
             // Pipe the PDF document to the response
             doc.pipe(res);
 
             // Format and add content to PDF
-            const sections = coverLetter.content.split('\n\n');
+            const sections = coverLetter.content.split("\n\n");
             sections.forEach((section, index) => {
                 if (index > 0) doc.moveDown();
                 doc.fontSize(index === 0 ? 16 : 12)
-                    .font(index === 0 ? 'Helvetica-Bold' : 'Helvetica')
+                    .font(index === 0 ? "Helvetica-Bold" : "Helvetica")
                     .text(section.trim());
             });
 
             // Finalize the PDF
             doc.end();
-
         } catch (error) {
             console.error("[Cover Letter Download] Error:", error);
             res.status(500).json({
                 error: "Failed to generate PDF",
-                details: error instanceof Error ? error.message : "Unknown error"
+                details:
+                    error instanceof Error ? error.message : "Unknown error",
             });
         }
     });
@@ -715,14 +831,18 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
                 const pdfParser = new PDFParser(null);
                 const timeoutId = setTimeout(() => {
                     pdfParser.removeAllListeners();
-                    reject(new Error('PDF parsing timed out'));
+                    reject(new Error("PDF parsing timed out"));
                 }, validatedTimeout);
 
                 pdfParser.on("pdfParser_dataReady", (pdfData) => {
                     clearTimeout(timeoutId);
-                    resolve(pdfData.Pages.map(page =>
-                        page.Texts.map(text => decodeURIComponent(text.R[0].T)).join(" ")
-                    ).join("\n"));
+                    resolve(
+                        pdfData.Pages.map((page) =>
+                            page.Texts.map((text) =>
+                                decodeURIComponent(text.R[0].T),
+                            ).join(" "),
+                        ).join("\n"),
+                    );
                 });
 
                 pdfParser.on("pdfParser_dataError", (error) => {
@@ -732,10 +852,13 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
 
                 pdfParser.parseBuffer(buffer);
             });
-        } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        } else if (
+            mimetype ===
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ) {
             return new Promise(async (resolve, reject) => {
                 const timeoutId = setTimeout(() => {
-                    reject(new Error('DOCX parsing timed out'));
+                    reject(new Error("DOCX parsing timed out"));
                 }, validatedTimeout);
 
                 try {
@@ -751,7 +874,11 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
         throw new Error("Unsupported file type");
     } catch (error) {
         console.error("[Parse Resume] Error:", error);
-        throw new Error(error instanceof Error ? error.message : "Failed to parse resume file");
+        throw new Error(
+            error instanceof Error
+                ? error.message
+                : "Failed to parse resume file",
+        );
     }
 }
 
@@ -760,7 +887,7 @@ function getDefaultMetrics() {
         keywords: 0,
         skills: 0,
         experience: 0,
-        overall: 0
+        overall: 0,
     };
 }
 
@@ -769,18 +896,18 @@ function getInitials(text: string): string {
     if (nameMatch) {
         return nameMatch[0]
             .split(/\s+/)
-            .map(name => name[0])
-            .join('')
+            .map((name) => name[0])
+            .join("")
             .toUpperCase();
     }
 
-    const firstParagraph = text.split('\n\n')[0];
+    const firstParagraph = text.split("\n\n")[0];
     const anyNameMatch = firstParagraph.match(/[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
     if (anyNameMatch) {
         return anyNameMatch[0]
             .split(/\s+/)
-            .map(name => name[0])
-            .join('')
+            .map((name) => name[0])
+            .join("")
             .toUpperCase();
     }
 
