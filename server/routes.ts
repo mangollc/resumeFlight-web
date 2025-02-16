@@ -728,18 +728,34 @@ export function registerRoutes(app: Express): Server {
                 req.params.id,
             );
 
-            // Use existing contact info from optimizedResume or extract from content
-            const contactInfo = optimizedResume.jobDetails?.contactInfo || {};
-            if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
-                const nameMatch = optimizedResume.content.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-                const emailMatch = optimizedResume.content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-                const phoneMatch = optimizedResume.content.match(/(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
-                const addressMatch = optimizedResume.content.match(/\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:\s+[^@\n]+(?:Suite|Unit|Building|Apt|Apartment|Room|Rm)\.?\s+[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?/i);
+            // Extract contact info from the first section of the resume
+            const firstSection = optimizedResume.content.split('\n\n')[0];
+            
+            // More robust name matching
+            const nameMatch = firstSection.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m) || 
+                            optimizedResume.content.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m);
+            
+            // More robust email matching
+            const emailMatch = firstSection.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i) ||
+                             optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+            
+            // More robust phone matching
+            const phoneMatch = firstSection.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/) ||
+                             optimizedResume.content.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+            
+            // More robust address matching
+            const addressMatch = firstSection.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i) ||
+                               optimizedResume.content.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i);
 
-                contactInfo.fullName = contactInfo.fullName || (nameMatch ? nameMatch[0] : '');
-                contactInfo.email = contactInfo.email || (emailMatch ? emailMatch[0] : '');
-                contactInfo.phone = contactInfo.phone || (phoneMatch ? phoneMatch[0] : '');
-                contactInfo.address = contactInfo.address || (addressMatch ? addressMatch[0] : '');
+            const contactInfo = {
+                fullName: nameMatch ? nameMatch[1].trim() : '',
+                email: emailMatch ? emailMatch[1].trim() : '',
+                phone: phoneMatch ? phoneMatch[0].trim() : '',
+                address: addressMatch ? addressMatch[1].trim() : ''
+            };
+
+            if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
+                throw new Error("Unable to extract complete contact information (name, email, and phone) from resume");
             }
 
             const coverLetterResult = await generateCoverLetter(
