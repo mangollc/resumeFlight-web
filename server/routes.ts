@@ -728,18 +728,19 @@ export function registerRoutes(app: Express): Server {
                 req.params.id,
             );
 
-            // Extract contact info from resume content
-            const nameMatch = optimizedResume.content.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-            const emailMatch = optimizedResume.content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-            const phoneMatch = optimizedResume.content.match(/(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
-            const addressMatch = optimizedResume.content.match(/\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:\s+[^@\n]+(?:Suite|Unit|Building|Apt|Apartment|Room|Rm)\.?\s+[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?/i);
+            // Use existing contact info from optimizedResume or extract from content
+            const contactInfo = optimizedResume.jobDetails?.contactInfo || {};
+            if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
+                const nameMatch = optimizedResume.content.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
+                const emailMatch = optimizedResume.content.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                const phoneMatch = optimizedResume.content.match(/(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
+                const addressMatch = optimizedResume.content.match(/\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:\s+[^@\n]+(?:Suite|Unit|Building|Apt|Apartment|Room|Rm)\.?\s+[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?/i);
 
-            const contactInfo = {
-                fullName: nameMatch ? nameMatch[0] : '',
-                email: emailMatch ? emailMatch[0] : '',
-                phone: phoneMatch ? phoneMatch[0] : '',
-                address: addressMatch ? addressMatch[0] : ''
-            };
+                contactInfo.fullName = contactInfo.fullName || (nameMatch ? nameMatch[0] : '');
+                contactInfo.email = contactInfo.email || (emailMatch ? emailMatch[0] : '');
+                contactInfo.phone = contactInfo.phone || (phoneMatch ? phoneMatch[0] : '');
+                contactInfo.address = contactInfo.address || (addressMatch ? addressMatch[0] : '');
+            }
 
             const coverLetterResult = await generateCoverLetter(
                 optimizedResume.content,
