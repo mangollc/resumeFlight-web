@@ -1,3 +1,4 @@
+
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
@@ -11,7 +12,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure the connection pool with SSL settings
+// Configure the connection pool with more conservative timeout settings
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -19,8 +20,10 @@ export const pool = new Pool({
   },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  maxUses: 7500
+  connectionTimeoutMillis: 10000,
+  maxUses: 7500,
+  keepAlive: true,
+  keepAliveTimeoutMillis: 30000
 });
 
 export const db = drizzle(pool, { schema });
