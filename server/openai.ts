@@ -2,7 +2,9 @@ import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 if (!process.env.OPENAI_API_KEY) {
-  throw new Error("OPENAI_API_KEY environment variable is not set. Please set it to use OpenAI features.");
+  throw new Error(
+    "OPENAI_API_KEY environment variable is not set. Please set it to use OpenAI features.",
+  );
 }
 
 export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -10,15 +12,17 @@ export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // Utility function to split text into chunks
 function splitIntoChunks(text: string, maxChunkSize: number = 4000): string[] {
   const chunks: string[] = [];
-  const paragraphs = text.split('\n\n');
-  let currentChunk = '';
+  const paragraphs = text.split("\n\n");
+  let currentChunk = "";
 
   for (const paragraph of paragraphs) {
     if ((currentChunk + paragraph).length > maxChunkSize && currentChunk) {
       chunks.push(currentChunk.trim());
       currentChunk = paragraph;
     } else {
-      currentChunk = currentChunk ? `${currentChunk}\n\n${paragraph}` : paragraph;
+      currentChunk = currentChunk
+        ? `${currentChunk}\n\n${paragraph}`
+        : paragraph;
     }
   }
 
@@ -29,7 +33,10 @@ function splitIntoChunks(text: string, maxChunkSize: number = 4000): string[] {
   return chunks;
 }
 
-export async function analyzeResumeDifferences(originalContent: string, optimizedContent: string) {
+export async function analyzeResumeDifferences(
+  originalContent: string,
+  optimizedContent: string,
+) {
   try {
     const originalChunks = splitIntoChunks(originalContent);
     const optimizedChunks = splitIntoChunks(optimizedContent);
@@ -54,14 +61,14 @@ Return a JSON object with the following structure:
       "reason": "brief explanation of why this change improves the resume"
     }
   ]
-}`
+}`,
           },
           {
             role: "user",
-            content: `Original Resume Section ${i + 1}/${maxChunks}:\n${originalChunks[i]}\n\nOptimized Resume Section ${i + 1}/${maxChunks}:\n${optimizedChunks[i]}`
-          }
+            content: `Original Resume Section ${i + 1}/${maxChunks}:\n${originalChunks[i]}\n\nOptimized Resume Section ${i + 1}/${maxChunks}:\n${optimizedChunks[i]}`,
+          },
         ],
-        response_format: { type: "json_object" }
+        response_format: { type: "json_object" },
       });
 
       const content = response.choices[0].message.content;
@@ -81,7 +88,11 @@ Return a JSON object with the following structure:
   }
 }
 
-export async function optimizeResume(resumeText: string, jobDescription: string, currentVersion?: number) {
+export async function optimizeResume(
+  resumeText: string,
+  jobDescription: string,
+  currentVersion?: number,
+) {
   try {
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
@@ -90,10 +101,10 @@ export async function optimizeResume(resumeText: string, jobDescription: string,
     let allChanges: string[] = [];
     let overallMatchScore = 0;
     let improvements = {
-      keywords: '',
-      structure: '',
-      clarity: '',
-      ats: ''
+      keywords: "",
+      structure: "",
+      clarity: "",
+      ats: "",
     } as const;
 
     // Process each chunk of the resume
@@ -120,19 +131,21 @@ Follow these optimization guidelines:
     "clarity": "clarity improvements",
     "ats": "ATS-specific enhancements"
   }
-}`
+}`,
           },
           {
             role: "user",
-            content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${
-              jobDescriptionChunks.join('\n\n')
-            }${
-              currentVersion ? `\n\nThis is reoptimization attempt. Current version: ${currentVersion}. Please make additional improvements while maintaining previous optimizations.` : ''
-            }`
-          }
+            content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join(
+              "\n\n",
+            )}${
+              currentVersion
+                ? `\n\nThis is reoptimization attempt. Current version: ${currentVersion}. Please make additional improvements while maintaining previous optimizations.`
+                : ""
+            }`,
+          },
         ],
         response_format: { type: "json_object" },
-        temperature: 0.3
+        temperature: 0.3,
       });
 
       const content = response.choices[0].message.content;
@@ -141,26 +154,29 @@ Follow these optimization guidelines:
       }
 
       const result = JSON.parse(content);
-      optimizedChunks.push(result.optimizedContent || '');
+      optimizedChunks.push(result.optimizedContent || "");
       allChanges.push(...(result.changes || []));
-      overallMatchScore += (result.sectionScore || 0);
+      overallMatchScore += result.sectionScore || 0;
 
       // Merge improvements with proper type checking
-      (Object.keys(improvements) as Array<keyof typeof improvements>).forEach(key => {
-        if (result.improvements?.[key]) {
-          improvements[key] += (improvements[key] ? '\n' : '') + result.improvements[key];
-        }
-      });
+      (Object.keys(improvements) as Array<keyof typeof improvements>).forEach(
+        (key) => {
+          improvements[key] = improvements[key] + (result.improvements?.[key] ? "\n" + result.improvements[key] : "");
+        },
+      );
     }
 
     // Calculate final match score
-    const finalScore = Math.min(100, Math.max(0, Math.round(overallMatchScore / resumeChunks.length)));
+    const finalScore = Math.min(
+      100,
+      Math.max(0, Math.round(overallMatchScore / resumeChunks.length)),
+    );
 
     return {
-      optimizedContent: optimizedChunks.join('\n\n').trim(),
+      optimizedContent: optimizedChunks.join("\n\n").trim(),
       changes: allChanges,
       matchScore: finalScore,
-      improvements
+      improvements,
     };
   } catch (err) {
     const error = err as Error;
@@ -169,56 +185,47 @@ Follow these optimization guidelines:
   }
 }
 
-export async function generateCoverLetter(resumeText: string, jobDescription: string) {
+export async function generateCoverLetter(
+  resumeText: string,
+  jobDescription: string,
+  contactInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address?: string;
+  }
+) {
   try {
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
-    // First, analyze the resume and job description
-    const analysisResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `Analyze the resume and job description to extract key matching points for a cover letter.
-Return JSON in this format:
-{
-  "keyPoints": ["list of strongest matching points"],
-  "candidateStrengths": ["list of relevant achievements"],
-  "jobRequirements": ["list of key job requirements"]
-}`
-        },
-        {
-          role: "user",
-          content: `Resume:\n${resumeChunks.join('\n\n')}\n\nJob Description:\n${jobDescriptionChunks.join('\n\n')}`
-        }
-      ],
-      response_format: { type: "json_object" }
-    });
-
-    const analysis = JSON.parse(analysisResponse.choices[0].message.content || '{}');
-
-    // Generate the cover letter using the analysis
+    // Generate the cover letter using the latest resume and contact information
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an expert cover letter writer. Create a professional cover letter using the provided analysis and following these guidelines:
+          content: `You are an expert cover letter writer with years of experience in crafting compelling and professional cover letters tailored to specific job applications. Using the attached resume as a reference, create a professional cover letter that aligns with the following guidelines:
 
 1. Format:
-   [Name from resume]
-   [Email if present in resume]
-   [Phone if present in resume]
+   ${contactInfo.fullName}
+   ${contactInfo.email}
+   ${contactInfo.phone}
+   ${contactInfo.address ? `\n   ${contactInfo.address}` : ''}
 
-   [Today's Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}]
+   ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
 
    Dear Hiring Manager,
 
-   [3-4 paragraphs of content]
+   [3-4 paragraphs of content: Begin with a strong opening paragraph that captures attention and clearly states the position being applied for.
+   Highlight key achievements and skills from the resume that directly relate to the job description, ensuring the content is tailored to the role.
+   Use a professional yet engaging tone throughout the letter, maintaining human authenticity to avoid sounding overly generic or robotic.
+   Include specific examples of how my qualifications and experiences make me a strong fit for the company's needs.
+   Conclude with a call to action, expressing enthusiasm for an interview opportunity and gratitude for their consideration.
+   Ensure the cover letter is concise (no more than one page), polished, and free of errors. Format it professionally with a formal greeting and closing]
 
    Best regards,
-   [Name from resume]
+   ${contactInfo.fullName}
 
 2. Content Guidelines:
    - Focus on the key matching points provided
@@ -235,10 +242,11 @@ Return JSON in this format:
         },
         {
           role: "user",
-          content: JSON.stringify(analysis)
-        }
+          content: `Resume:\n${resumeChunks.join("\n\n")}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`,
+        },
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      temperature: 0.3,
     });
 
     const content = response.choices[0].message.content;
@@ -250,9 +258,10 @@ Return JSON in this format:
     return {
       ...result,
       coverLetter: result.coverLetter.trim(),
-      confidence: typeof result.confidence === 'number' ?
-        Math.min(100, Math.max(0, result.confidence)) :
-        85
+      confidence:
+        typeof result.confidence === "number"
+          ? Math.min(100, Math.max(0, result.confidence))
+          : 85,
     };
   } catch (err) {
     const error = err as Error;
