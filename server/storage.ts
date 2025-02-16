@@ -149,16 +149,19 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
       if (!result) return undefined;
 
+      const jobDetails = result.jobDetails as any;
+      const contactInfo = jobDetails?.contactInfo || {
+        fullName: '',
+        email: '',
+        phone: '',
+      };
+
       return {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: result.jobDetails.contactInfo || {
-          fullName: '',
-          email: '',
-          phone: '',
-        }
+        contactInfo
       };
     } catch (error) {
       console.error('Error getting optimized resume:', error);
@@ -166,50 +169,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]> {
-    try {
-      const results = await db.select()
-        .from(optimizedResumes)
-        .where(and(
-          eq(optimizedResumes.jobDescription, jobDescription),
-          eq(optimizedResumes.uploadedResumeId, uploadedResumeId)
-        ));
-
-      const transformedResults = results.map(result => ({
-        ...result,
-        metadata: result.metadata as OptimizedResume['metadata'],
-        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: result.jobDetails.contactInfo || {
-          fullName: '',
-          email: '',
-          phone: '',
-        }
-      }));
-
-      return transformedResults.sort((a, b) => 
-        (b.metadata.version || 0) - (a.metadata.version || 0)
-      );
-    } catch (error) {
-      console.error('Error getting optimized resumes by job description:', error);
-      return []; 
-    }
-  }
-
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
+      // Ensure jobDetails exists and has proper contact information structure
+      const jobDetailsWithContact = {
+        ...resume.jobDetails,
+        contactInfo: {
+          fullName: resume.jobDetails?.contactInfo?.fullName || '',
+          email: resume.jobDetails?.contactInfo?.email || '',
+          phone: resume.jobDetails?.contactInfo?.phone || '',
+          address: resume.jobDetails?.contactInfo?.address
+        }
+      };
+
       const [result] = await db
         .insert(optimizedResumes)
         .values({
           ...resume,
-          jobDetails: {
-            ...resume.jobDetails,
-            contactInfo: resume.jobDetails.contactInfo || {
-              fullName: '',
-              email: '',
-              phone: '',
-            }
-          },
+          jobDetails: jobDetailsWithContact,
           createdAt: new Date().toISOString(),
         })
         .returning();
@@ -219,7 +196,7 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: result.jobDetails.contactInfo || {
+        contactInfo: (result.jobDetails as any)?.contactInfo || {
           fullName: '',
           email: '',
           phone: '',
@@ -239,7 +216,7 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: result.jobDetails.contactInfo || {
+        contactInfo: (result.jobDetails as any)?.contactInfo || {
           fullName: '',
           email: '',
           phone: '',
@@ -257,6 +234,41 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting optimized resume:', error);
       throw new Error('Failed to delete optimized resume');
+    }
+  }
+
+  async getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]> {
+    try {
+      const results = await db.select()
+        .from(optimizedResumes)
+        .where(and(
+          eq(optimizedResumes.jobDescription, jobDescription),
+          eq(optimizedResumes.uploadedResumeId, uploadedResumeId)
+        ));
+
+      const transformedResults = results.map(result => {
+        const jobDetails = result.jobDetails as any;
+        const contactInfo = jobDetails?.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+        };
+
+        return {
+          ...result,
+          metadata: result.metadata as OptimizedResume['metadata'],
+          jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+          metrics: result.metrics as OptimizedResume['metrics'],
+          contactInfo
+        };
+      });
+
+      return transformedResults.sort((a, b) => 
+        (b.metadata.version || 0) - (a.metadata.version || 0)
+      );
+    } catch (error) {
+      console.error('Error getting optimized resumes by job description:', error);
+      return []; 
     }
   }
 
