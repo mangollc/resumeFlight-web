@@ -202,6 +202,14 @@ export class DatabaseStorage implements IStorage {
         .insert(optimizedResumes)
         .values({
           ...resume,
+          jobDetails: {
+            ...resume.jobDetails,
+            contactInfo: resume.jobDetails.contactInfo || {
+              fullName: '',
+              email: '',
+              phone: '',
+            }
+          },
           createdAt: new Date().toISOString(),
         })
         .returning();
@@ -210,7 +218,12 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics']
+        metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: result.jobDetails.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+        }
       };
     } catch (error) {
       console.error('Error creating optimized resume:', error);
