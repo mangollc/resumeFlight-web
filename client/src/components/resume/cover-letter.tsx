@@ -21,16 +21,17 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      if (!resume.contactInfo) {
+      const contactInfo = resume.contactInfo || resume.jobDetails?.contactInfo;
+      if (!contactInfo) {
         throw new Error("Contact information is required to generate a cover letter");
       }
 
       const response = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
         contactInfo: {
-          fullName: resume.contactInfo.fullName,
-          email: resume.contactInfo.email,
-          phone: resume.contactInfo.phone,
-          address: resume.contactInfo.address
+          fullName: contactInfo.fullName,
+          email: contactInfo.email,
+          phone: contactInfo.phone,
+          address: contactInfo.address
         },
         version: resume.metadata.version || 1.0
       });

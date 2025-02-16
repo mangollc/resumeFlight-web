@@ -153,7 +153,12 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics']
+        metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: result.jobDetails.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+        }
       };
     } catch (error) {
       console.error('Error getting optimized resume:', error);
@@ -174,10 +179,14 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics']
+        metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: result.jobDetails.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+        }
       }));
 
-      // Sort by version number in descending order
       return transformedResults.sort((a, b) => 
         (b.metadata.version || 0) - (a.metadata.version || 0)
       );
@@ -216,7 +225,12 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics']
+        metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: result.jobDetails.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+        }
       }));
     } catch (error) {
       console.error('Error getting optimized resumes by user:', error);
