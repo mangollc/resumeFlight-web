@@ -217,12 +217,12 @@ export async function generateCoverLetter(
 
    Dear Hiring Manager,
 
-   [3-4 paragraphs of content: Begin with a strong opening paragraph that captures attention and clearly states the position being applied for.
-   Highlight key achievements and skills from the resume that directly relate to the job description, ensuring the content is tailored to the role.
-   Use a professional yet engaging tone throughout the letter, maintaining human authenticity to avoid sounding overly generic or robotic.
-   Include specific examples of how my qualifications and experiences make me a strong fit for the company's needs.
-   Conclude with a call to action, expressing enthusiasm for an interview opportunity and gratitude for their consideration.
-   Ensure the cover letter is concise (no more than one page), polished, and free of errors. Format it professionally with a formal greeting and closing]
+   [3-4 paragraphs of content:
+   - Begin with a strong opening paragraph that captures attention and clearly states the position being applied for
+   - Highlight key achievements and skills from the resume that directly relate to the job description
+   - Use a professional yet engaging tone throughout the letter
+   - Include specific examples of how qualifications and experiences make a strong fit
+   - Conclude with a call to action, expressing enthusiasm for an interview]
 
    Best regards,
    ${contactInfo.fullName}
@@ -238,7 +238,7 @@ Return JSON in this format:
   "coverLetter": "the generated cover letter with proper formatting",
   "highlights": ["key qualifications emphasized"],
   "confidence": <number between 0-100>
-}`
+}`,
         },
         {
           role: "user",

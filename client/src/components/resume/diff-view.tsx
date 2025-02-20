@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Info } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -71,12 +71,9 @@ export default function DiffView({ beforeContent, afterContent, resumeId }: Diff
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="space-y-4 w-full max-w-md">
-          <div className="h-4 bg-muted animate-pulse rounded" />
-          <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
-          <div className="h-4 bg-muted animate-pulse rounded w-1/2" />
-        </div>
+      <div className="flex flex-col items-center justify-center p-8 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Analyzing resume differences...</p>
       </div>
     );
   }
