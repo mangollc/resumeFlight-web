@@ -74,7 +74,7 @@ export default function UploadedResumesPage() {
   if (isError) {
     return (
       <div className="flex-1 h-full">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-5xl mx-auto">
           <div className="text-center py-12">
             <div className="text-destructive mb-4">Error loading resumes</div>
             <div className="text-muted-foreground">{(error as Error)?.message || "Please try again later"}</div>
@@ -90,7 +90,7 @@ export default function UploadedResumesPage() {
   if (isLoading) {
     return (
       <div className="flex-1 h-full">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-5xl mx-auto">
           <div className="animate-pulse space-y-4">
             <div className="h-4 bg-muted rounded w-1/4"></div>
             <div className="h-32 bg-muted rounded"></div>
@@ -102,7 +102,7 @@ export default function UploadedResumesPage() {
 
   return (
     <div className="flex-1 h-full">
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
           <div className="flex-1" />

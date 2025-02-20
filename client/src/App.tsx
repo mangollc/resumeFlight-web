@@ -30,7 +30,9 @@ function Layout({ children }: { children: React.ReactNode }) {
           sidebarCollapsed ? "lg:ml-16" : "lg:ml-56",
           "transition-all duration-300 ease-in-out"
         )}>
-          {children}
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>
