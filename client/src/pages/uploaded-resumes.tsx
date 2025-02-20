@@ -73,13 +73,15 @@ export default function UploadedResumesPage() {
 
   if (isError) {
     return (
-      <div className="flex-1 p-4 sm:p-8">
-        <div className="text-center py-12">
-          <div className="text-destructive mb-4">Error loading resumes</div>
-          <div className="text-muted-foreground">{(error as Error)?.message || "Please try again later"}</div>
-          <Button onClick={() => window.location.reload()} size="sm" className="mt-4">
-            Retry
-          </Button>
+      <div className="flex-1 h-full">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center py-12">
+            <div className="text-destructive mb-4">Error loading resumes</div>
+            <div className="text-muted-foreground">{(error as Error)?.message || "Please try again later"}</div>
+            <Button onClick={() => window.location.reload()} size="sm" className="mt-4">
+              Retry
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -87,32 +89,30 @@ export default function UploadedResumesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-4 sm:p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-muted rounded w-1/4"></div>
-          <div className="h-32 bg-muted rounded"></div>
+      <div className="flex-1 h-full">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-muted rounded w-1/4"></div>
+            <div className="h-32 bg-muted rounded"></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 p-4 sm:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center">
-        <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
-      </div>
+    <div className="flex-1 h-full">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-bold">Uploaded Resumes</h1>
+          <div className="flex-1" />
+          <Button onClick={() => setLocation("/dashboard")} size="sm">
+            Upload New Resume
+          </Button>
+        </div>
 
-      {resumes && resumes.length > 0 ? (
-        <div className="space-y-4">
-          <div className="w-full sm:w-[70%]">
-            <div className="flex justify-end mb-2">
-              <Button onClick={() => setLocation("/dashboard")} size="sm">
-                Upload New Resume
-              </Button>
-            </div>
-          </div>
-
-          <div className="border rounded-lg overflow-x-auto w-full sm:w-[70%]">
+        {resumes && resumes.length > 0 ? (
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader className="bg-primary/5">
                 <TableRow className="hover:bg-transparent">
@@ -208,21 +208,21 @@ export default function UploadedResumesPage() {
               </TableBody>
             </Table>
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <div className="mt-4">
-            <h2 className="text-lg font-semibold">No resumes uploaded</h2>
-            <div className="mt-2 text-muted-foreground">
-              Get started by uploading your first resume
+        ) : (
+          <div className="text-center py-12">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+            <div className="mt-4">
+              <h2 className="text-lg font-semibold">No resumes uploaded</h2>
+              <div className="mt-2 text-muted-foreground">
+                Get started by uploading your first resume
+              </div>
             </div>
+            <Button onClick={() => setLocation("/dashboard")} size="sm" className="mt-4">
+              Upload Resume
+            </Button>
           </div>
-          <Button onClick={() => setLocation("/dashboard")} size="sm" className="mt-4">
-            Upload Resume
-          </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

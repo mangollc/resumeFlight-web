@@ -194,32 +194,32 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       'Accept': 'application/pdf'
                     }
                   })
-                  .then(response => {
-                    if (!response.ok) throw new Error('Download failed');
-                    return response.blob();
-                  })
-                  .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${formatDownloadFilename(
-                      resume.metadata.filename,
-                      resume.jobDetails?.title || '',
-                      resume.metadata.version
-                    )}_cover.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                  })
-                  .catch(error => {
-                    console.error('Download error:', error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to download cover letter",
-                      variant: "destructive",
+                    .then(response => {
+                      if (!response.ok) throw new Error('Download failed');
+                      return response.blob();
+                    })
+                    .then(blob => {
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${formatDownloadFilename(
+                        resume.metadata.filename,
+                        resume.jobDetails?.title || '',
+                        resume.metadata.version
+                      )}_cover.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                      document.body.removeChild(a);
+                    })
+                    .catch(error => {
+                      console.error('Download error:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to download cover letter",
+                        variant: "destructive",
+                      });
                     });
-                  });
                 }}
                 className="flex items-center"
               >
@@ -360,50 +360,54 @@ export default function OptimizedResumesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex-1 p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-muted rounded w-1/4"></div>
-          <div className="h-32 bg-muted rounded"></div>
+      <div className="flex-1 h-full">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-muted rounded w-1/4"></div>
+            <div className="h-32 bg-muted rounded"></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 p-4 sm:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold">Optimized Resumes</h1>
-      </div>
+    <div className="flex-1 h-full">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-bold">Optimized Resumes</h1>
+        </div>
 
-      {resumes && resumes.length > 0 ? (
-        <div className="border rounded-lg overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-primary/5 dark:bg-primary/10">
-              <TableRow>
-                <TableHead className="w-[30px]"></TableHead>
-                <TableHead className="w-[100px] font-bold text-primary">Date</TableHead>
-                <TableHead className="font-bold text-primary w-[30%]">Position</TableHead>
-                <TableHead className="hidden sm:table-cell font-bold text-primary w-[20%]">Company</TableHead>
-                <TableHead className="hidden lg:table-cell font-bold text-primary w-[20%]">Match Score</TableHead>
-                <TableHead className="text-right font-bold text-primary w-[60px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {resumes.map((resume) => (
-                <ResumeRow key={resume.id} resume={resume} />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-          <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
-          <p className="text-muted-foreground">
-            Upload and optimize a resume to see it here
-          </p>
-        </div>
-      )}
+        {resumes && resumes.length > 0 ? (
+          <div className="border rounded-lg overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-primary/5 dark:bg-primary/10">
+                <TableRow>
+                  <TableHead className="w-[30px]"></TableHead>
+                  <TableHead className="w-[100px] font-bold text-primary">Date</TableHead>
+                  <TableHead className="font-bold text-primary w-[30%]">Position</TableHead>
+                  <TableHead className="hidden sm:table-cell font-bold text-primary w-[20%]">Company</TableHead>
+                  <TableHead className="hidden lg:table-cell font-bold text-primary w-[20%]">Match Score</TableHead>
+                  <TableHead className="text-right font-bold text-primary w-[60px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resumes.map((resume) => (
+                  <ResumeRow key={resume.id} resume={resume} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
+            <p className="text-muted-foreground">
+              Upload and optimize a resume to see it here
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

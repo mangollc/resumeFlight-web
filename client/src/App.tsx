@@ -26,15 +26,11 @@ function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex-1">
         <Navbar collapsed={sidebarCollapsed} />
         <main className={cn(
-          "px-4 sm:px-6 lg:px-8",
-          "py-4 lg:py-6",
           "mt-14 lg:mt-12", 
           sidebarCollapsed ? "lg:ml-16" : "lg:ml-56",
           "transition-all duration-300 ease-in-out"
         )}>
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>
