@@ -24,6 +24,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   disabled?: boolean;
+  color?: string;
 }
 
 const navItems: NavItem[] = [
@@ -31,27 +32,32 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    color: "text-blue-500",
   },
   {
     title: "Uploaded Resumes",
     href: "/uploaded-resumes",
     icon: FileText,
+    color: "text-purple-500",
   },
   {
     title: "Optimized Resumes",
     href: "/optimized-resumes",
     icon: FileCheck2,
+    color: "text-green-500",
   },
   {
     title: "Subscription",
     href: "/subscription",
     icon: CreditCard,
+    color: "text-amber-500",
     disabled: true,
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
+    color: "text-gray-500",
   },
 ];
 
@@ -97,7 +103,7 @@ const NavigationItems = ({ onClick, collapsed }: { onClick?: () => void; collaps
               )}
               onClick={onClick}
             >
-              <item.icon className={cn("h-5 w-5 shrink-0", !collapsed && "mr-3")} />
+              <item.icon className={cn("h-5 w-5 shrink-0", item.color, !collapsed && "mr-3")} />
               {!collapsed && <span className="text-sm font-medium truncate">{item.title}</span>}
             </Button>
           </Link>

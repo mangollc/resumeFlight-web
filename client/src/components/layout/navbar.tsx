@@ -30,9 +30,9 @@ export function Navbar({ collapsed }: NavbarProps) {
             <Button 
               variant="ghost" 
               size="icon"
-              className="active:scale-95 transition-transform"
+              className="active:scale-95 transition-transform hover:bg-yellow-100/10"
             >
-              <LightbulbIcon className="h-5 w-5" />
+              <LightbulbIcon className="h-5 w-5 text-yellow-400" />
               <span className="sr-only">Resume Tips</span>
             </Button>
           </DialogTrigger>
