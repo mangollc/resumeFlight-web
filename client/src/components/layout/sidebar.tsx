@@ -68,7 +68,7 @@ const ProfileSection = () => {
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="text-sm font-medium truncate">{user?.name || 'Anonymous'}</span>
+          <span className="text-sm font-medium truncate">{user?.name || 'No name'}</span>
           <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
         </div>
       </div>
