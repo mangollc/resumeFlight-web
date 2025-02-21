@@ -11,18 +11,17 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure the connection pool with more conservative timeout settings
+// Configure the connection pool with conservative settings
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   },
   max: 20,
-  idleTimeoutMillis: 10000, // Reduced from 30000
-  connectionTimeoutMillis: 3000, // Reduced from 5000
+  idleTimeoutMillis: 5000,     // Further reduced from 10000
+  connectionTimeoutMillis: 2000, // Further reduced from 3000
   maxUses: 7500,
-  keepAlive: true,
-  keepAliveTimeoutMillis: 10000 // Reduced from 30000
+  keepAlive: false            // Disabled keepAlive to prevent timeout issues
 });
 
 export const db = drizzle(pool, { schema });
