@@ -775,13 +775,13 @@ export default function Dashboard() {
 
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 lg:pl-24">
-      <div className="text-center mb-12">
+    <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
+      <div className="text-center mb-8">
         <WelcomeAnimation />
       </div>
 
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
           Welcome Back, {user?.name || 'User'}!
         </h1>
         <p className="text-muted-foreground/90 text-lg">
@@ -789,7 +789,7 @@ export default function Dashboard() {
         </p>
       </div>
 
-      <div className="mb-16">
+      <div className="mb-8">
         <StepTracker
           currentStep={currentStep}
           steps={steps}
@@ -797,7 +797,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="mt-16">
+      <div className="mt-8">
         {renderCurrentStep()}
       </div>
       <LoadingDialog
