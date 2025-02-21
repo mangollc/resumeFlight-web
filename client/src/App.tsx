@@ -54,6 +54,7 @@ function Router() {
         <Redirect to="/dashboard" />
       </Route>
       <ProtectedRoute path="/dashboard" component={() => <ProtectedLayout component={Dashboard} />} />
+      <ProtectedRoute path="/resume/:id/optimize/review" component={() => <ProtectedLayout component={Dashboard} />} />
       <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayout component={UploadedResumesPage} />} />
       <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayout component={OptimizedResumesPage} />} />
       <ProtectedRoute path="/subscription" component={() => <ProtectedLayout component={SubscriptionPage} />} />

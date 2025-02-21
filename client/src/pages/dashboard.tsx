@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
 import StepTracker, { Step } from "@/components/resume/step-tracker";
 import UploadForm from "@/components/resume/upload-form";
@@ -111,6 +112,8 @@ export type JobDetails = {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const params = useParams<{ id?: string }>();
+  const [location] = useLocation();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
@@ -131,17 +134,45 @@ export default function Dashboard() {
   const [proverb, setProverb] = useState("");
   const [showWelcome, setShowWelcome] = useState(true);
 
+  // Extract optimizedId from URL if present
+  const searchParams = new URLSearchParams(location.split('?')[1]);
+  const optimizedId = searchParams.get('optimizedId');
+  const isReviewMode = params.id && optimizedId;
+
+  // Fetch optimized resume data when in review mode
   useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
-    setProverb(jobProverbs[randomIndex]);
+    if (isReviewMode) {
+      const fetchOptimizedResume = async () => {
+        try {
+          const response = await apiRequest('GET', `/api/optimized-resume/${optimizedId}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch optimized resume');
+          }
+          const data = await response.json();
+          setOptimizedResume(data);
+          setJobDetails(data.jobDetails);
+          if (data.coverLetter) {
+            setCoverLetter(data.coverLetter);
+            setCoverLetters([data.coverLetter]);
+            setSelectedCoverLetterVersion(data.coverLetter.metadata.version.toString());
+          }
+          // Set all steps as completed and move to review step
+          setCompletedSteps([1, 2, 3, 4, 5]);
+          setCurrentStep(5);
+          setShowWelcome(false);
+        } catch (error) {
+          console.error('Error fetching optimized resume:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load optimization session",
+            variant: "destructive",
+          });
+        }
+      };
 
-    // Hide welcome message after 3 seconds
-    const timer = setTimeout(() => {
-      setShowWelcome(false);
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
+      fetchOptimizedResume();
+    }
+  }, [isReviewMode, optimizedId, toast]);
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -694,7 +725,7 @@ export default function Dashboard() {
 
                   <div>
                     <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
-                      <span className="bg-gradient-to-r from-primary/90 to-primary/70 bg-clip-text text-transparent">
+                      <span className="bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
                         Cover Letter
                       </span>
                     </h3>
@@ -788,6 +819,18 @@ export default function Dashboard() {
         return null;
     }
   };
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+    setProverb(jobProverbs[randomIndex]);
+
+    // Hide welcome message after 3 seconds
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
