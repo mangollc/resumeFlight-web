@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
 import StepTracker, { Step } from "@/components/resume/step-tracker";
 import UploadForm from "@/components/resume/upload-form";
@@ -49,6 +49,17 @@ import {
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
+
+const jobProverbs = [
+  "Your next career move starts with a great resume",
+  "Every masterpiece starts with a single draft",
+  "Small improvements lead to big opportunities",
+  "Your skills are your superpower",
+  "Today's preparation determines tomorrow's success",
+  "Excellence is not a skill, it's an attitude",
+  "Your dream job is looking for you too",
+  "Let your resume tell your story"
+];
 
 const steps: Step[] = [
   {
@@ -104,7 +115,12 @@ export default function Dashboard() {
   const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [proverb, setProverb] = useState("");
 
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+    setProverb(jobProverbs[randomIndex]);
+  }, []);
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -168,9 +184,9 @@ export default function Dashboard() {
       const response = await apiRequest(
         "POST",
         `/api/optimized-resume/${optimizedResume.id}/cover-letter`,
-        { 
+        {
           version: nextVersion,
-          contactInfo: optimizedResume.contactInfo 
+          contactInfo: optimizedResume.contactInfo
         }
       );
 
@@ -329,7 +345,7 @@ export default function Dashboard() {
     (currentStep === 1 && !!uploadedResume) ||
     (currentStep === 2 && !!jobDetails) ||
     (currentStep === 3 && !!optimizedResume) ||
-    (currentStep === 4) 
+    (currentStep === 4)
   );
 
   const handleBack = () => {
@@ -491,7 +507,6 @@ export default function Dashboard() {
                   </div>
                   <Preview
                     resume={optimizedResume}
-                    
                   />
                 </div>
                 {renderNavigation()}
@@ -632,6 +647,7 @@ export default function Dashboard() {
               open={isGeneratingCoverLetter}
               title="Generating Cover Letter"
               description="Please wait while we generate your cover letter using AI..."
+              onOpenChange={setIsGeneratingCoverLetter}
             />
           </div>
         ) : null;
@@ -757,9 +773,12 @@ export default function Dashboard() {
 
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="mb-12">
+    <div className="max-w-7xl mx-auto px-6 py-12 lg:pl-24">
+      <div className="text-center mb-12">
         <WelcomeAnimation />
+        <p className="text-lg italic text-muted-foreground mt-4">
+          "{proverb}"
+        </p>
       </div>
 
       <div className="text-center mb-12">

@@ -28,12 +28,12 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input id="username" value={user?.username} disabled />
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" value={user?.name || ''} disabled />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="Coming soon..." disabled />
+              <Input id="email" type="email" value={user?.email || ''} disabled />
             </div>
             <Button variant="outline" onClick={() => logoutMutation.mutate()}>
               <LogOut className="mr-2 h-4 w-4" />
