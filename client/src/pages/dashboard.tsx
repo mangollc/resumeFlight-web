@@ -784,9 +784,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      <div className="text-center mb-8">
-        <WelcomeAnimation />
-      </div>
 
       <div className={cn(
         "text-center transition-all duration-500 ease-in-out",
