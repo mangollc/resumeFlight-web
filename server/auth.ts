@@ -82,9 +82,16 @@ export function setupAuth(app: Express) {
         return res.status(400).send("Username already exists");
       }
 
+      // Ensure required fields are present
+      if (!req.body.name || !req.body.email) {
+        return res.status(400).send("Name and email are required");
+      }
+
       const user = await storage.createUser({
-        ...req.body,
+        username: req.body.username,
         password: await hashPassword(req.body.password),
+        name: req.body.name,
+        email: req.body.email
       });
 
       req.login(user, (err) => {
