@@ -51,6 +51,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
+  const [optimizationVersion, setOptimizationVersion] = useState(1.0); // Initialize at 1.0
 
   useEffect(() => {
     return () => {
@@ -182,7 +183,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         const response = await apiRequest(
           "POST",
           `/api/resume/${resumeId}/optimize`,
-          data
+          {
+            ...data,
+            version: optimizationVersion // Include version in the request
+          }
         );
 
         if (!response.ok) {
@@ -226,7 +230,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         };
 
         setExtractedDetails(details);
-        queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+        setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1))); // Increment version for next optimization
+        queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
         toast({
           title: "Success",
@@ -338,7 +343,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 <Alert className="mt-2">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Note: Indeed and ZipRecruiter URLs are not supported due to their security measures. 
+                    Note: Indeed and ZipRecruiter URLs are not supported due to their security measures.
                     Please use manual input for these job sites.
                   </AlertDescription>
                 </Alert>
