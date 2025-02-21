@@ -12,29 +12,26 @@ const ONE_HOUR = 3600; // 1 hour in seconds
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-
+  updateUser(id: number, data: { name: string }): Promise<User>;
   // Uploaded Resume operations
   getUploadedResume(id: number): Promise<UploadedResume | undefined>;
   createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume>;
   getUploadedResumesByUser(userId: number): Promise<UploadedResume[]>;
   deleteUploadedResume(id: number): Promise<void>;
-
   // Optimized Resume operations
   getOptimizedResume(id: number): Promise<OptimizedResume | undefined>;
   createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume>;
   getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
   deleteOptimizedResume(id: number): Promise<void>;
   getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]>;
-
   // Cover letter operations
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
   createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter>;
   getCoverLettersByUser(userId: number): Promise<CoverLetter[]>;
   deleteCoverLetter(id: number): Promise<void>;
   getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]>;
-
   sessionStore: session.Store;
 }
 
@@ -62,31 +59,44 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
+      const [user] = await db.select().from(users).where(eq(users.email, email));
       return user;
     } catch (error) {
-      console.error('Error getting user by username:', error);
-      throw new Error('Failed to get user by username');
+      console.error('Error getting user by email:', error);
+      throw new Error('Failed to get user by email');
     }
   }
 
-  async createUser(userData: InsertUser & { name: string; email: string }): Promise<User> {
+  async createUser(userData: InsertUser): Promise<User> {
     try {
       const [user] = await db
         .insert(users)
         .values({
-          username: userData.username,
+          email: userData.email,
           password: userData.password,
-          name: userData.name,
-          email: userData.email
+          name: userData.name || '',
         })
         .returning();
       return user;
     } catch (error) {
       console.error('Error creating user:', error);
       throw new Error('Failed to create user');
+    }
+  }
+
+  async updateUser(id: number, data: { name: string }): Promise<User> {
+    try {
+      const [user] = await db
+        .update(users)
+        .set(data)
+        .where(eq(users.id, id))
+        .returning();
+      return user;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw new Error('Failed to update user');
     }
   }
 

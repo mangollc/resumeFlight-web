@@ -52,17 +52,20 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
+    new LocalStrategy(
+      { usernameField: 'email' },
+      async (email, password, done) => {
+        try {
+          const user = await storage.getUserByEmail(email);
+          if (!user || !(await comparePasswords(password, user.password))) {
+            return done(null, false);
+          }
+          return done(null, user);
+        } catch (error) {
+          return done(error);
         }
-        return done(null, user);
-      } catch (error) {
-        return done(error);
       }
-    }),
+    )
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
@@ -77,21 +80,15 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
-        return res.status(400).send("Username already exists");
-      }
-
-      // Ensure required fields are present
-      if (!req.body.name || !req.body.email) {
-        return res.status(400).send("Name and email are required");
+        return res.status(400).send("Email already registered");
       }
 
       const user = await storage.createUser({
-        username: req.body.username,
+        email: req.body.email,
         password: await hashPassword(req.body.password),
-        name: req.body.name,
-        email: req.body.email
+        name: req.body.name || '',
       });
 
       req.login(user, (err) => {
@@ -117,5 +114,18 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+
+  // Add endpoint to update user profile
+  app.patch("/api/user", async (req, res, next) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = await storage.updateUser(req.user.id, {
+        name: req.body.name,
+      });
+      res.json(user);
+    } catch (error) {
+      next(error);
+    }
   });
 }

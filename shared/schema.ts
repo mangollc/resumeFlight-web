@@ -5,10 +5,9 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
+  name: text("name").default(''),
 });
 
 export const uploadedResumes = pgTable("uploaded_resumes", {
@@ -78,8 +77,9 @@ export const coverLettersRelations = relations(coverLetters, ({ one }) => ({
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
+  email: true,
   password: true,
+  name: true,
 });
 
 export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
