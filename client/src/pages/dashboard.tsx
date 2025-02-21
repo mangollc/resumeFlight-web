@@ -118,10 +118,18 @@ export default function Dashboard() {
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * jobProverbs.length);
     setProverb(jobProverbs[randomIndex]);
+
+    // Hide welcome message after 3 seconds
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const { data: resumes } = useQuery<UploadedResume[]>({
@@ -780,16 +788,28 @@ export default function Dashboard() {
         <WelcomeAnimation />
       </div>
 
-      <div className="text-center mb-8">
+      <div className={cn(
+        "text-center transition-all duration-500 ease-in-out",
+        showWelcome ? "opacity-100 mb-8" : "opacity-0 h-0 mb-0 overflow-hidden"
+      )}>
         <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
           Welcome Back, {user?.name || 'User'}!
         </h1>
-        <p className="text-muted-foreground/90 text-lg">
+      </div>
+
+      <div className={cn(
+        "text-center transition-all duration-500 ease-in-out",
+        !showWelcome ? "transform -translate-y-8" : ""
+      )}>
+        <p className="text-muted-foreground/90 text-lg mb-8">
           {proverb}
         </p>
       </div>
 
-      <div className="mb-8">
+      <div className={cn(
+        "transition-all duration-500 ease-in-out",
+        !showWelcome ? "transform -translate-y-8" : ""
+      )}>
         <StepTracker
           currentStep={currentStep}
           steps={steps}
@@ -797,9 +817,13 @@ export default function Dashboard() {
         />
       </div>
 
-      <div className="mt-8">
+      <div className={cn(
+        "mt-8 transition-all duration-500 ease-in-out",
+        !showWelcome ? "transform -translate-y-8" : ""
+      )}>
         {renderCurrentStep()}
       </div>
+
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
