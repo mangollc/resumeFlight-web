@@ -16,20 +16,21 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Use pooler URL for more stable connections
-const poolerUrl = process.env.DATABASE_URL?.replace('.us-east-2', '-pooler.us-east-2');
+const poolerUrl = process.env.DATABASE_URL?.replace('postgres://', 'postgres://').replace('.us-east-2', '-pooler.us-east-2');
 
 // Configure the connection pool with more conservative settings
 export const pool = new Pool({ 
   connectionString: poolerUrl,
   ssl: true,
-  max: 3,                         // Reduce max connections for more stability
-  idleTimeoutMillis: 10000,       // 10 seconds idle timeout
-  connectionTimeoutMillis: 5000,   // 5 seconds connection timeout
-  maxUses: 1000,                  // Reduce max uses per connection for stability
+  max: 2,                         // Reduce max connections for more stability
+  idleTimeoutMillis: 30000,       // 30 seconds idle timeout
+  connectionTimeoutMillis: 10000,  // 10 seconds connection timeout
+  maxUses: 7500,                  // Reduce max uses per connection for stability
   keepAlive: true,                // Enable keepalive
   allowExitOnIdle: true,          // Allow the pool to exit when idle
-  statement_timeout: 10000,        // 10 second query timeout
-  query_timeout: 10000,           // 10 second query timeout
+  statement_timeout: 30000,        // 30 second query timeout
+  query_timeout: 30000,           // 30 second query timeout
+  application_name: 'resume-app',  // Add application name for better monitoring
 });
 
 // Add error handling for the pool
@@ -41,6 +42,14 @@ pool.on('error', (err: Error) => {
 // Add connection event handling
 pool.on('connect', () => {
   console.log('Successfully connected to database');
+});
+
+pool.on('acquire', () => {
+  console.log('Client acquired from pool');
+});
+
+pool.on('remove', () => {
+  console.log('Client removed from pool');
 });
 
 export const db = drizzle(pool, { schema });

@@ -43,8 +43,23 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true,
       tableName: 'session',
-      pruneSessionInterval: 60000, // 1 minute
-      ttl: 86400 // 1 day in seconds
+      schemaName: 'public',
+      pruneSessionInterval: 900000, // 15 minutes
+      errorLog: console.error.bind(console),
+      ttl: ONE_DAY,
+      disableTouch: false,
+      touchInterval: ONE_HOUR,
+      retries: 3,
+      retry: {
+        initial: 1000, // Start with 1 second delay
+        max: 5000,    // Maximum 5 seconds between retries
+        multiplier: 2 // Double the delay after each retry
+      }
+    });
+
+    // Add error handler for session store
+    this.sessionStore.on('error', (error: Error) => {
+      console.error('Session store error:', error);
     });
   }
 
