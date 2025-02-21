@@ -32,16 +32,8 @@ export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
       className={cn("space-y-4 text-center lg:text-left", className)}
     >
       <h1 className="text-fluid-h1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-        Welcome back{user?.username ? `, ${user.username}` : ''}!
+        Welcome back{user?.name ? `, ${user.name}` : ''}!
       </h1>
-      <motion.p 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="text-fluid-base text-muted-foreground max-w-md mx-auto lg:mx-0"
-      >
-        Optimize your resume and boost your career opportunities with AI-powered insights.
-      </motion.p>
     </motion.div>
   );
 }
