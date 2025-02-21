@@ -15,18 +15,23 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Use pooler URL for more stable connections
+const poolerUrl = process.env.DATABASE_URL?.replace('.us-east-2', '-pooler.us-east-2');
+
 // Configure the connection pool with retry logic and more conservative settings
 export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
+  connectionString: poolerUrl,
   ssl: true,
-  max: 5,                         // Reduce max connections for stability
-  idleTimeoutMillis: 15000,      // 15 seconds idle timeout
-  connectionTimeoutMillis: 3000,  // 3 seconds connection timeout
-  maxUses: 5000,                 // Reduce max uses per connection
-  keepAlive: true,               // Enable keepalive
-  allowExitOnIdle: true,         // Allow the pool to exit when idle
-  retryInterval: 100,            // Add retry interval
-  maxRetries: 3                  // Add max retries
+  max: 3,                         // Reduce max connections for more stability
+  idleTimeoutMillis: 10000,       // 10 seconds idle timeout
+  connectionTimeoutMillis: 5000,   // 5 seconds connection timeout
+  maxUses: 1000,                  // Reduce max uses per connection for stability
+  keepAlive: true,                // Enable keepalive
+  allowExitOnIdle: true,          // Allow the pool to exit when idle
+  retryInterval: 500,             // Increase retry interval
+  maxRetries: 5,                  // Increase max retries
+  statement_timeout: 10000,        // 10 second query timeout
+  query_timeout: 10000,           // 10 second query timeout
 });
 
 // Add error handling for the pool
