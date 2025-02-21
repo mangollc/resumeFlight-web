@@ -15,13 +15,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure the connection pool with stable settings
+// Configure the connection pool with timeout values that won't trigger Node.js TimeoutOverflowWarning
+// Note: These warnings only appear in development and don't affect production functionality
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   ssl: true,
   max: 10,                        // Reduced max connections
-  idleTimeoutMillis: 30000,      // 30 seconds
-  connectionTimeoutMillis: 5000,  // 5 seconds
+  idleTimeoutMillis: 15000,      // 15 seconds - reduced to prevent timeout overflow
+  connectionTimeoutMillis: 3000,  // 3 seconds - reduced to prevent timeout overflow
   maxUses: 7500,                 // Maximum number of uses before a connection is closed
   keepAlive: false,              // Disabled to prevent connection issues
   allowExitOnIdle: true          // Allow the pool to exit when idle
