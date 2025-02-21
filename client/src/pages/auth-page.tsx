@@ -86,7 +86,7 @@ function LoginForm({ onSubmit }) {
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -96,12 +96,12 @@ function LoginForm({ onSubmit }) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
-          name="username"
+          name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input type="email" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -134,10 +134,9 @@ function RegisterForm({ onSubmit }) {
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
-      username: "",
-      password: "",
       name: "",
       email: "",
+      password: "",
     },
   });
 
@@ -166,20 +165,6 @@ function RegisterForm({ onSubmit }) {
               <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
