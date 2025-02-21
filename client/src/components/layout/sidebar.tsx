@@ -8,7 +8,7 @@ import {
   Settings,
   Plane,
   Menu,
-  User,
+  Briefcase,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -17,6 +17,7 @@ import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/use-auth";
 
 interface NavItem {
   title: string;
@@ -54,24 +55,28 @@ const navItems: NavItem[] = [
   },
 ];
 
-const ProfileSection = () => (
-  <div className="mt-auto p-3 border-t">
-    <div className="flex items-center space-x-3">
-      <Avatar className="h-8 w-8 shrink-0">
-        <AvatarImage src="/placeholder-avatar.png" alt="Profile" />
-        <AvatarFallback>
-          <User className="h-5 w-5" />
-        </AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-sm font-medium truncate">John Doe</span>
-        <span className="text-xs text-muted-foreground truncate">john@example.com</span>
+const ProfileSection = () => {
+  const { user } = useAuth();
+
+  return (
+    <div className="mt-auto p-3 border-t">
+      <div className="flex items-center space-x-3">
+        <Avatar className="h-8 w-8 shrink-0">
+          <AvatarImage src="/placeholder-avatar.png" alt="Profile" />
+          <AvatarFallback>
+            <Briefcase className="h-5 w-5" />
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-sm font-medium truncate">{user?.name || 'Anonymous'}</span>
+          <span className="text-xs text-muted-foreground truncate">{user?.email || 'No email'}</span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const NavigationItems = ({ onClick, collapsed }: { onClick?: () => void, collapsed?: boolean }) => {
+const NavigationItems = ({ onClick, collapsed }: { onClick?: () => void; collapsed?: boolean }) => {
   const [location] = useLocation();
   return (
     <div className="flex flex-col flex-1">
@@ -132,8 +137,8 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [onCollapsedChange]);
 
   const handleCollapsedChange = (newCollapsed: boolean) => {
@@ -148,19 +153,12 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
         <AppLogo />
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="active:scale-95 transition-transform"
-            >
+            <Button variant="ghost" size="icon" className="active:scale-95 transition-transform">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent 
-            side="left" 
-            className="p-0 flex flex-col w-80 sm:w-96 lg:w-72"
-          >
+          <SheetContent side="left" className="p-0 flex flex-col w-80 sm:w-96 lg:w-72">
             <div className="p-4 border-b">
               <AppLogo />
             </div>
@@ -171,11 +169,13 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
       </div>
 
       {/* Desktop Sidebar */}
-      <div className={cn(
-        "hidden lg:flex fixed top-0 left-0 h-screen bg-card border-r shadow-sm z-[60] flex-col",
-        collapsed ? "w-16" : "w-56",
-        "transition-all duration-300 ease-in-out"
-      )}>
+      <div
+        className={cn(
+          "hidden lg:flex fixed top-0 left-0 h-screen bg-card border-r shadow-sm z-[60] flex-col",
+          collapsed ? "w-16" : "w-56",
+          "transition-all duration-300 ease-in-out"
+        )}
+      >
         <div className="p-4 border-b flex items-center justify-between">
           <AppLogo collapsed={collapsed} />
           <Button
@@ -184,11 +184,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
             className="ml-2 active:scale-95 transition-transform"
             onClick={() => handleCollapsedChange(!collapsed)}
           >
-            {collapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
         </div>
         <NavigationItems collapsed={collapsed} />
