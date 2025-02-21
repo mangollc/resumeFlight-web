@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Select,
   SelectContent,
@@ -98,6 +99,7 @@ export type JobDetails = {
 };
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
@@ -776,17 +778,14 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto px-6 py-12 lg:pl-24">
       <div className="text-center mb-12">
         <WelcomeAnimation />
-        <p className="text-lg italic text-muted-foreground mt-4">
-          "{proverb}"
-        </p>
       </div>
 
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
-          Resume Optimization
+          Welcome Back, {user?.name || 'User'}!
         </h1>
         <p className="text-muted-foreground/90 text-lg">
-          Transform your resume with AI-powered insights
+          {proverb}
         </p>
       </div>
 
