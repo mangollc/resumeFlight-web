@@ -46,8 +46,8 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true,
       tableName: 'session',
-      pruneSessionInterval: ONE_HOUR * 1000,
-      ttl: ONE_DAY
+      pruneSessionInterval: 60000, // 1 minute
+      ttl: 86400 // 1 day in seconds
     });
   }
 
