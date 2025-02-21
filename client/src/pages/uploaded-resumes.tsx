@@ -57,6 +57,7 @@ export default function UploadedResumesPage() {
       toast({
         title: "Success",
         description: "Resume deleted successfully",
+        duration: 2000, // Set to 2 seconds
       });
     },
     onError: (error: Error, _, context) => {

@@ -122,6 +122,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: "Resume uploaded successfully",
+        duration: 2000, // Set to 2 seconds
       });
     } catch (error) {
       console.error('Error handling resume upload:', error);
@@ -183,6 +184,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: `Cover letter regenerated (v${nextVersion.toFixed(1)})`,
+        duration: 2000, // Set to 2 seconds
       });
     } catch (error) {
       toast({
@@ -244,6 +246,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: "Package downloaded successfully",
+        duration: 2000, // Set to 2 seconds
       });
     } catch (error) {
       console.error('Download error:', error);
@@ -307,6 +310,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: `Resume optimized (v${nextVersion.toFixed(1)})`,
+        duration: 2000, // Set to 2 seconds
       });
     } catch (error) {
       console.error('Optimization error:', error);

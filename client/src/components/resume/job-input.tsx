@@ -51,7 +51,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
-  const [optimizationVersion, setOptimizationVersion] = useState(1.0); // Initialize at 1.0
+  const [optimizationVersion, setOptimizationVersion] = useState(1.0); 
 
   useEffect(() => {
     return () => {
@@ -185,7 +185,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           `/api/resume/${resumeId}/optimize`,
           {
             ...data,
-            version: optimizationVersion // Include version in the request
+            version: optimizationVersion 
           }
         );
 
@@ -230,12 +230,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         };
 
         setExtractedDetails(details);
-        setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1))); // Increment version for next optimization
+        setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1))); 
         queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
         toast({
           title: "Success",
           description: "Job details fetched successfully",
+          duration: 2000, 
         });
 
         setIsProcessing(false);
