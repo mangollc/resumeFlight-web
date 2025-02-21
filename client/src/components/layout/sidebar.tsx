@@ -176,19 +176,29 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
           "transition-all duration-300 ease-in-out"
         )}
       >
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b">
           <AppLogo collapsed={collapsed} />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="ml-2 active:scale-95 transition-transform"
-            onClick={() => handleCollapsedChange(!collapsed)}
-          >
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </Button>
         </div>
         <NavigationItems collapsed={collapsed} />
         {!collapsed && <ProfileSection />}
+
+        {/* Collapse Button */}
+        <div className="absolute -right-4 top-1/2 -translate-y-1/2">
+          <Button
+            variant="secondary"
+            size="icon"
+            className={cn(
+              "h-8 w-8 rounded-full border shadow-md",
+              "hover:bg-primary/10 hover:text-primary",
+              "focus:ring-2 focus:ring-primary focus:ring-offset-2",
+              "active:scale-95 transition-all duration-200",
+              "bg-background"
+            )}
+            onClick={() => handleCollapsedChange(!collapsed)}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4 transition-transform duration-200" /> : <ChevronLeft className="h-4 w-4 transition-transform duration-200" />}
+          </Button>
+        </div>
       </div>
     </>
   );
