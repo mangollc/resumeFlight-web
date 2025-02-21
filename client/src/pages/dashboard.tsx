@@ -59,7 +59,18 @@ const jobProverbs = [
   "Today's preparation determines tomorrow's success",
   "Excellence is not a skill, it's an attitude",
   "Your dream job is looking for you too",
-  "Let your resume tell your story"
+  "Let your resume tell your story",
+  // Adding 10 more inspiring proverbs
+  "Every expert was once a beginner",
+  "The best investment is in yourself",
+  "Success is built one opportunity at a time",
+  "Your potential is limitless, your resume should show it",
+  "Great careers are built on great foundations",
+  "The perfect job doesn't exist, create it",
+  "Your next chapter begins with your next application",
+  "Turn experience into excellence",
+  "Progress over perfection, always",
+  "Opportunities multiply as they are seized"
 ];
 
 const steps: Step[] = [
@@ -798,9 +809,9 @@ export default function Dashboard() {
         "text-center transition-all duration-500 ease-in-out",
         !showWelcome ? "transform -translate-y-8" : ""
       )}>
-        <p className="text-muted-foreground/90 text-lg mb-8">
+        <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
           {proverb}
-        </p>
+        </h2>
       </div>
 
       <div className={cn(
