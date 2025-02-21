@@ -18,11 +18,11 @@ export const pool = new Pool({
     rejectUnauthorized: false
   },
   max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 10000, // Reduced from 30000
+  connectionTimeoutMillis: 3000, // Reduced from 5000
   maxUses: 7500,
   keepAlive: true,
-  keepAliveTimeoutMillis: 30000
+  keepAliveTimeoutMillis: 10000 // Reduced from 30000
 });
 
 export const db = drizzle(pool, { schema });
