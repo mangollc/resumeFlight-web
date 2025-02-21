@@ -6,14 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export interface JobDetails {
+interface JobDetails {
   title: string;
   company: string;
   salary?: string;
@@ -34,6 +35,11 @@ const INITIAL_STEPS: ProgressStep[] = [
   { id: "extract", label: "Extracting job details", status: "pending" },
   { id: "analyze", label: "Analyzing requirements", status: "pending" },
   { id: "optimize", label: "Optimizing resume", status: "pending" },
+];
+
+const UNSUPPORTED_JOB_SITES = [
+  { domain: "indeed.com", name: "Indeed" },
+  { domain: "ziprecruiter.com", name: "ZipRecruiter" }
 ];
 
 export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
@@ -136,6 +142,30 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       return "soft";
     }
     return "language";
+  };
+
+  const checkUnsupportedJobSite = (url: string): string | null => {
+    const unsupportedSite = UNSUPPORTED_JOB_SITES.find(site => 
+      url.toLowerCase().includes(site.domain)
+    );
+    return unsupportedSite?.name || null;
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setJobUrl(url);
+
+    const unsupportedSite = checkUnsupportedJobSite(url);
+    if (unsupportedSite) {
+      toast({
+        title: `${unsupportedSite} Detection`,
+        description: `${unsupportedSite} job postings cannot be automatically fetched due to their security measures. Please switch to manual input and paste the job description.`,
+        variant: "destructive",
+        duration: 6000,
+      });
+      setActiveTab("manual");
+      setJobUrl("");
+    }
   };
 
   const fetchJobMutation = useMutation({
@@ -260,7 +290,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       <div className="space-y-2">
         <h3 className="text-xl font-semibold">Enter Job Details</h3>
         <p className="text-sm text-muted-foreground">
-          Provide your job post URL or manually paste text in the manual input box
+          Provide your job post URL or manually paste text in the manual input box.  Note: Indeed and ZipRecruiter URLs are not supported due to their security measures. Please use manual input for these job sites.
         </p>
       </div>
 
@@ -297,7 +327,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 type="url"
                 placeholder="Paste job posting URL here..."
                 value={jobUrl}
-                onChange={(e) => setJobUrl(e.target.value)}
+                onChange={handleUrlChange}
                 className="w-full"
                 disabled={isProcessing}
               />
@@ -305,6 +335,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 <p className="text-muted-foreground">
                   Enter the URL of the job posting for best results
                 </p>
+                <Alert variant="warning" className="mt-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    Note: Indeed and ZipRecruiter URLs are not supported due to their security measures. 
+                    Please use manual input for these job sites.
+                  </AlertDescription>
+                </Alert>
                 <p className="text-xs text-muted-foreground italic">
                   Example: https://www.linkedin.com/jobs/view/4120138359/
                 </p>
