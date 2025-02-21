@@ -18,7 +18,7 @@ if (!process.env.DATABASE_URL) {
 // Use pooler URL for more stable connections
 const poolerUrl = process.env.DATABASE_URL?.replace('.us-east-2', '-pooler.us-east-2');
 
-// Configure the connection pool with retry logic and more conservative settings
+// Configure the connection pool with more conservative settings
 export const pool = new Pool({ 
   connectionString: poolerUrl,
   ssl: true,
@@ -28,8 +28,6 @@ export const pool = new Pool({
   maxUses: 1000,                  // Reduce max uses per connection for stability
   keepAlive: true,                // Enable keepalive
   allowExitOnIdle: true,          // Allow the pool to exit when idle
-  retryInterval: 500,             // Increase retry interval
-  maxRetries: 5,                  // Increase max retries
   statement_timeout: 10000,        // 10 second query timeout
   query_timeout: 10000,           // 10 second query timeout
 });
