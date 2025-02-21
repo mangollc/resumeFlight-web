@@ -145,7 +145,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   };
 
   const checkUnsupportedJobSite = (url: string): string | null => {
-    const unsupportedSite = UNSUPPORTED_JOB_SITES.find(site => 
+    const unsupportedSite = UNSUPPORTED_JOB_SITES.find(site =>
       url.toLowerCase().includes(site.domain)
     );
     return unsupportedSite?.name || null;
@@ -335,7 +335,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 <p className="text-muted-foreground">
                   Enter the URL of the job posting for best results
                 </p>
-                <Alert variant="warning" className="mt-2">
+                <Alert className="mt-2">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
                     Note: Indeed and ZipRecruiter URLs are not supported due to their security measures. 
