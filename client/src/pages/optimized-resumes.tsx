@@ -1,11 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDown, ChevronRight, Eye } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -89,6 +90,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -170,6 +172,15 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(`/resume/${resume.uploadedResumeId}/optimize/review?optimizedId=${resume.id}`);
+                }}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Review Optimization
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <a
                   href={`/api/optimized-resume/${resume.id}/download?filename=${
