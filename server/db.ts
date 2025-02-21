@@ -39,17 +39,15 @@ pool.on('error', (err: Error) => {
   process.exit(-1);
 });
 
-// Add connection event handling
+// Add connection event handling - only log initial connection
 pool.on('connect', () => {
-  console.log('Successfully connected to database');
+  console.log('Database connection pool initialized');
 });
 
-pool.on('acquire', () => {
-  console.log('Client acquired from pool');
-});
-
+// Remove verbose logging of client acquisition
+// Only log when clients are removed (which is less frequent)
 pool.on('remove', () => {
-  console.log('Client removed from pool');
+  console.log('Database client removed from pool');
 });
 
 export const db = drizzle(pool, { schema });
