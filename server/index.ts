@@ -42,9 +42,9 @@ app.use((req, res, next) => {
 
 const server = registerRoutes(app);
 
-// Set server timeout to 2 minutes (120 seconds)
-server.timeout = 120000;
-server.keepAliveTimeout = 120000;
+// Set reasonable timeout values
+server.timeout = 30000; // 30 seconds
+server.keepAliveTimeout = 30000; // 30 seconds
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

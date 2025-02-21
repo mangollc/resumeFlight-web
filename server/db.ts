@@ -1,4 +1,3 @@
-
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
@@ -16,11 +15,11 @@ if (!process.env.DATABASE_URL) {
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: true
+    rejectUnauthorized: false
   },
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  connectionTimeoutMillis: 5000,
   maxUses: 7500,
   keepAlive: true,
   keepAliveTimeoutMillis: 30000
