@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,9 +10,26 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+const jobProverbs = [
+  "Your perfect job is waiting for you to be ready for it.",
+  "Every expert was once a beginner.",
+  "Success is built one opportunity at a time.",
+  "Your career is a journey, not a destination.",
+  "The best way to predict your future is to create it.",
+  "Small progress is still progress.",
+  "Behind every successful career is a lot of hard work.",
+  "Your potential is unlimited. Your opportunities are endless.",
+];
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const [proverb, setProverb] = useState("");
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+    setProverb(jobProverbs[randomIndex]);
+  }, []);
 
   // Redirect if already logged in
   if (user) {
@@ -48,15 +65,20 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12">
+      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12 lg:pl-24">
         <div className="max-w-xl text-white">
-          <h1 className="text-4xl font-bold mb-6">
+          <div className="text-center mb-12">
+            <p className="text-xl italic font-light mb-4">
+              "{proverb}"
+            </p>
+          </div>
+          <h1 className="text-4xl font-bold mb-6 text-center">
             Optimize Your Resume with AI
           </h1>
-          <p className="text-lg mb-8">
+          <p className="text-lg mb-8 text-center">
             Upload your resume and let our AI technology optimize it for your dream job. Get better matches and more interviews with ResumeFlight.
           </p>
-          <ul className="space-y-4">
+          <ul className="space-y-4 max-w-md mx-auto">
             <li className="flex items-center">
               <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
