@@ -35,11 +35,11 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <LoginForm onSubmit={(data) => loginMutation.mutate(data)} />
               </TabsContent>
-              
+
               <TabsContent value="register">
                 <RegisterForm onSubmit={(data) => registerMutation.mutate(data)} />
               </TabsContent>
@@ -47,7 +47,7 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12">
         <div className="max-w-xl text-white">
           <h1 className="text-4xl font-bold mb-6">
@@ -107,7 +107,7 @@ function LoginForm({ onSubmit }) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="password"
@@ -121,7 +121,7 @@ function LoginForm({ onSubmit }) {
             </FormItem>
           )}
         />
-        
+
         <Button type="submit" className="w-full">
           Login
         </Button>
@@ -136,12 +136,42 @@ function RegisterForm({ onSubmit }) {
     defaultValues: {
       username: "",
       password: "",
+      name: "",
+      email: "",
     },
   });
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="username"
@@ -155,7 +185,7 @@ function RegisterForm({ onSubmit }) {
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name="password"
@@ -169,7 +199,7 @@ function RegisterForm({ onSubmit }) {
             </FormItem>
           )}
         />
-        
+
         <Button type="submit" className="w-full">
           Register
         </Button>
