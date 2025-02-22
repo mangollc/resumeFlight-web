@@ -61,13 +61,14 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
     }
   };
 
-  const handleCoverLetterDownload = async () => {
+  const handleCoverLetterDownload = async (version?: number) => {
     if (!coverLetter) return;
 
     try {
       setIsDownloading(true);
       const format = selectedFormat;
-      const response = await fetch(`/api/cover-letter/${coverLetter.id}/download?format=${format}`);
+      const selectedVersion = version || coverLetter.metadata.version;
+      const response = await fetch(`/api/cover-letter/${coverLetter.id}/download?format=${format}&version=${selectedVersion}`);
 
       if (!response.ok) {
         throw new Error('Failed to download cover letter');
@@ -77,7 +78,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${coverLetter.metadata.filename}.${format}`;
+      a.download = `${coverLetter.metadata.filename}_v${selectedVersion}.${format}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -104,7 +105,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
     <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
       <CardContent className="p-8">
         <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-          Final Review
+          Final Summary
         </h2>
         <div className="space-y-12">
           <div>
@@ -133,26 +134,45 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
                 </span>
               </h3>
               <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
-                <div className="prose prose-sm max-w-none text-foreground/80">
-                  <pre className="whitespace-pre-wrap">
-                    {coverLetter.content}
-                  </pre>
-                </div>
-                <div className="mt-6 flex items-center justify-end gap-3">
-                  <Select
-                    value={selectedFormat}
-                    onValueChange={(value) => setSelectedFormat(value as "pdf" | "docx")}
-                  >
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue placeholder="Format" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pdf">PDF</SelectItem>
-                      <SelectItem value="docx">DOCX</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    {coverLetter.versions && coverLetter.versions.length > 1 && (
+                      <Select
+                        value={coverLetter.metadata.version.toString()}
+                        onValueChange={(value) => {
+                          const version = parseFloat(value);
+                          if (version) {
+                            handleCoverLetterDownload(version);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue placeholder="Version" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {coverLetter.versions.map((v: number) => (
+                            <SelectItem key={v} value={v.toString()}>
+                              v{v.toFixed(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Select
+                      value={selectedFormat}
+                      onValueChange={(value) => setSelectedFormat(value as "pdf" | "docx")}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Format" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pdf">PDF</SelectItem>
+                        <SelectItem value="docx">DOCX</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Button
-                    onClick={handleCoverLetterDownload}
+                    onClick={() => handleCoverLetterDownload()}
                     disabled={isDownloading}
                     variant="outline"
                   >
@@ -163,6 +183,11 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
                     )}
                     Download Cover Letter
                   </Button>
+                </div>
+                <div className="prose prose-sm max-w-none text-foreground/80">
+                  <pre className="whitespace-pre-wrap">
+                    {coverLetter.content}
+                  </pre>
                 </div>
               </div>
             </div>

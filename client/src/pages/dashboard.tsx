@@ -84,8 +84,8 @@ const steps: Step[] = [
   },
   {
     id: 5,
-    title: "Review",
-    description: "Review optimized documents"
+    title: "Summary",
+    description: "Review all optimized documents"
   }
 ];
 

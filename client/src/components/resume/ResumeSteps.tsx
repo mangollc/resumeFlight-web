@@ -10,11 +10,13 @@ import {
   Download,
   ChevronRight,
   ChevronLeft,
+  Check,
 } from "lucide-react";
 
 interface StepProps {
   currentStep: number;
   totalSteps: number;
+  completedSteps: number[];
   onNext: () => void;
   onBack: () => void;
 }
@@ -41,13 +43,13 @@ const steps = [
     icon: CheckCircle 
   },
   { 
-    title: "Download",
-    description: "Download your optimized resume",
+    title: "Summary",
+    description: "Review all optimized documents",
     icon: Download 
   },
 ];
 
-export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepProps) {
+export function ResumeSteps({ currentStep, totalSteps, completedSteps, onNext, onBack }: StepProps) {
   const [viewportWidth, setViewportWidth] = useState(0);
 
   useEffect(() => {
@@ -83,7 +85,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
             {steps.map((step, index) => {
               const StepIcon = step.icon;
               const isCurrent = currentStep === index;
-              const isPast = currentStep > index;
+              const isPast = completedSteps.includes(index + 1);
               const isFuture = currentStep < index;
 
               return (
@@ -97,7 +99,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
                 >
                   <div
                     className={cn(
-                      "flex h-20 w-20 items-center justify-center rounded-full border-2 mb-6",
+                      "flex h-20 w-20 items-center justify-center rounded-full border-2 mb-6 relative",
                       "transition-all duration-500 ease-out shadow-lg",
                       isCurrent && "border-primary bg-primary/10 text-primary scale-110",
                       isPast && "border-primary bg-primary text-primary-foreground",
@@ -105,6 +107,11 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
                     )}
                   >
                     <StepIcon className="h-10 w-10" />
+                    {isPast && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                        <Check className="h-4 w-4" />
+                      </div>
+                    )}
                   </div>
                   <div className="text-center space-y-2 max-w-[200px]">
                     <span className={cn(
@@ -137,6 +144,7 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
       <div className="hidden lg:grid grid-cols-5 gap-4">
         {steps.map((step, index) => {
           const StepIcon = step.icon;
+          const isCompleted = completedSteps.includes(index + 1);
           return (
             <div
               key={step.title}
@@ -150,19 +158,24 @@ export function ResumeSteps({ currentStep, totalSteps, onNext, onBack }: StepPro
                 className={cn(
                   "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border bg-background",
                   currentStep === index && "border-primary bg-primary/10",
-                  currentStep > index && "border-primary bg-primary text-primary-foreground",
-                  currentStep < index && "border-muted bg-muted"
+                  isCompleted && "border-primary bg-primary text-primary-foreground",
+                  currentStep < index && !isCompleted && "border-muted bg-muted"
                 )}
               >
                 <StepIcon className="h-5 w-5" />
+                {isCompleted && (
+                  <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                    <Check className="h-3 w-3" />
+                  </div>
+                )}
               </div>
               <span
                 className={cn(
                   "absolute text-sm font-medium top-14 text-center w-full",
                   "hidden lg:block",
                   currentStep === index && "text-primary",
-                  currentStep > index && "text-primary",
-                  currentStep < index && "text-muted-foreground"
+                  isCompleted && "text-primary",
+                  currentStep < index && !isCompleted && "text-muted-foreground"
                 )}
               >
                 {step.title}

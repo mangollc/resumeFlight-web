@@ -5,7 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OptimizedResume, CoverLetter as CoverLetterType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, RefreshCw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CoverLetterProps {
   resume: OptimizedResume;
@@ -18,14 +25,16 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
+  const [selectedVersion, setSelectedVersion] = useState<string>("");
 
   const generateMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
         version: resume.metadata.version || 1.0,
         jobDetails: resume.jobDetails,
-        includePositionInSignature: false, 
-        signatureFormat: "simple" 
+        includePositionInSignature: false,
+        signatureFormat: "simple"
       });
 
       if (!response.ok) {
@@ -37,6 +46,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cover-letter"] });
       if (onGenerated) onGenerated(data);
+      setSelectedVersion(data.metadata.version.toString());
       toast({
         title: "Success",
         description: "Cover letter generated successfully",
@@ -51,21 +61,20 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     },
   });
 
-  const formatDownloadFilename = (name: string, version: number) => {
-    const baseName = name.substring(0, name.lastIndexOf('.')) || name;
-    return `${baseName}_cover_v${version.toFixed(1)}`;
-  };
-
-  const handleDownload = async () => {
+  const handleDownload = async (version?: string) => {
     if (!generatedCoverLetter?.id) return;
 
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/cover-letter/${generatedCoverLetter.id}/download`, {
-        headers: {
-          'Accept': 'application/pdf'
+      const versionToUse = version || selectedVersion || generatedCoverLetter.metadata.version.toString();
+      const response = await fetch(
+        `/api/cover-letter/${generatedCoverLetter.id}/download?format=${selectedFormat}&version=${versionToUse}`,
+        {
+          headers: {
+            'Accept': selectedFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          }
         }
-      });
+      );
 
       if (!response.ok) throw new Error('Download failed');
 
@@ -75,12 +84,19 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       a.href = url;
       a.download = `${formatDownloadFilename(
         generatedCoverLetter.metadata.filename,
-        generatedCoverLetter.metadata.version
-      )}.pdf`;
+        resume.jobDetails?.title || '',
+        parseFloat(versionToUse)
+      )}.${selectedFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: `Cover letter downloaded successfully as ${selectedFormat.toUpperCase()}`,
+        duration: 2000,
+      });
     } catch (error) {
       console.error('Download error:', error);
       toast({
@@ -91,6 +107,12 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const formatDownloadFilename = (filename: string, jobTitle: string, version: number): string => {
+    const baseName = filename.substring(0, filename.lastIndexOf('.')) || filename;
+    const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    return `${baseName}_${formattedJobTitle}_v${version.toFixed(1)}`;
   };
 
   return (
@@ -124,21 +146,65 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
-                <h4 className="font-semibold">Generated Cover Letter (v{generatedCoverLetter?.metadata.version.toFixed(1) || generateMutation.data?.metadata.version.toFixed(1)})</h4>
+                <h4 className="font-semibold">Cover Letter</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Created on {new Date(generatedCoverLetter?.createdAt || generateMutation.data?.createdAt).toLocaleDateString()}
+                  Version {selectedVersion || generatedCoverLetter?.metadata.version.toFixed(1) || generateMutation.data?.metadata.version.toFixed(1)}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDownload}
-                disabled={isDownloading}
-                className="w-full sm:w-auto"
-              >
-                <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
-                {isDownloading ? 'Downloading...' : 'Download PDF'}
-              </Button>
+              <div className="flex items-center gap-2">
+                {!readOnly && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateMutation.mutate()}
+                    disabled={generateMutation.isPending}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
+                    {generateMutation.isPending ? 'Regenerating...' : 'Regenerate'}
+                  </Button>
+                )}
+                <div className="flex items-center gap-2">
+                  {(generatedCoverLetter?.versions?.length || 0) > 1 && (
+                    <Select
+                      value={selectedVersion}
+                      onValueChange={setSelectedVersion}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Version" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {generatedCoverLetter?.versions?.map((version: number) => (
+                          <SelectItem key={version} value={version.toString()}>
+                            v{version.toFixed(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Select
+                    value={selectedFormat}
+                    onValueChange={(value) => setSelectedFormat(value as "pdf" | "docx")}
+                  >
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue placeholder="Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="docx">DOCX</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload()}
+                    disabled={isDownloading}
+                    className="w-full sm:w-auto"
+                  >
+                    <Download className={`h-4 w-4 mr-2 ${isDownloading ? 'animate-spin' : ''}`} />
+                    {isDownloading ? 'Downloading...' : 'Download'}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="prose prose-sm max-w-none dark:prose-invert">
