@@ -19,9 +19,9 @@ import * as cheerio from "cheerio";
 // Constants
 const MAX_ALLOWED_TIMEOUT = 2147483647;
 const DEFAULT_TIMEOUT = 30000;
-const API_TIMEOUT = 15000;
-const PARSING_TIMEOUT = 10000;
-const SAFE_TIMEOUT = 20000;
+const API_TIMEOUT = 60000; // Increased to 60 seconds
+const PARSING_TIMEOUT = 30000; // Increased to 30 seconds
+const SAFE_TIMEOUT = 45000; // Increased to 45 seconds
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const SUPPORTED_MIME_TYPES = [
@@ -500,6 +500,8 @@ export function registerRoutes(app: Express): Server {
 
     // Optimize resume route
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
+  // Add timeout to the request
+  req.setTimeout(60000);
         try {
             console.log("[Optimize] Starting optimization request...");
             if (!req.isAuthenticated()) {
