@@ -21,11 +21,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      // Pass additional metadata to ensure position is handled correctly
       const response = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
         version: resume.metadata.version || 1.0,
-        jobDetails: resume.jobDetails, // Pass complete job details
-        includePositionInSignature: false // Flag to control position in signature
+        jobDetails: resume.jobDetails,
+        includePositionInSignature: false, 
+        signatureFormat: "simple" 
       });
 
       if (!response.ok) {
