@@ -970,9 +970,9 @@ export function registerRoutes(app: Express): Server {
                 .replace(/[^a-zA-Z0-9\s]/g, '')
                 .replace(/\s+/g, '_')
                 .toLowerCase();
-            const version = resume.metadata.version.toFixed(1);
+            const versionNumber = resume.metadata.version.toFixed(1);
             const fileExt = format === 'docx' ? 'docx' : 'pdf';
-            const filename = `${baseFilename}_${jobTitle}_v${version}.${fileExt}`;
+            const filename = `${baseFilename}_${jobTitle}_v${versionNumber}.${fileExt}`;
             
             res.setHeader(
                 "Content-Disposition",
