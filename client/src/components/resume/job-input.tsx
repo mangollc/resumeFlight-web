@@ -184,41 +184,43 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
 
-        let finalData = null;
+        const allChunks = [];
         while (reader) {
           const { value, done } = await reader.read();
           if (done) break;
+          allChunks.push(decoder.decode(value));
+        }
 
-          const text = decoder.decode(value);
-          const lines = text.split('\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const eventData = JSON.parse(line.slice(5));
-
-                if (eventData.status === "extracting_details") {
-                  updateStepStatus("extract", "completed");
-                  updateStepStatus("analyze", "loading");
-                } else if (eventData.status === "optimizing_resume") {
-                  updateStepStatus("analyze", "completed");
-                  updateStepStatus("optimize", "loading");
-                } else if (eventData.status === "completed") {
-                  finalData = eventData.data;
-                  updateStepStatus("optimize", "completed");
-                }
-              } catch (e) {
-                console.warn('Failed to parse SSE data:', line);
+        const fullResponse = allChunks.join('');
+        const lines = fullResponse.split('\n');
+        let optimizedData = null;
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const eventData = JSON.parse(line.slice(5));
+              
+              if (eventData.status === "extracting_details") {
+                updateStepStatus("extract", "completed");
+                updateStepStatus("analyze", "loading");
+              } else if (eventData.status === "optimizing_resume") {
+                updateStepStatus("analyze", "completed");
+                updateStepStatus("optimize", "loading");
+              } else if (eventData.status === "completed" && eventData.data) {
+                optimizedData = eventData.data;
+                updateStepStatus("optimize", "completed");
               }
+            } catch (e) {
+              console.warn('Failed to parse SSE data:', line);
             }
           }
         }
 
-        if (!finalData) {
+        if (!optimizedData) {
           throw new Error("No optimization data received");
         }
 
-        let jsonData = finalData;
+        let jsonData = optimizedData;
 
         // Validate required fields
         if (!jsonData.jobDetails?.title || !jsonData.jobDetails?.company || !jsonData.jobDetails?.location) {
