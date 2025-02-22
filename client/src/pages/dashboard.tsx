@@ -828,19 +828,25 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      {!isReviewMode && showWelcome ? (
-        <WelcomeAnimation text={proverb} />
-      ) : (
-        <div className="space-y-8">
-          <StepTracker
-            steps={steps}
-            currentStep={currentStep}
-            completedSteps={completedSteps}
-          />
-          {renderCurrentStep()}
-        </div>
-      )}
-
+      <div className="min-h-screen flex flex-col">
+        {!isReviewMode && proverb && (
+          <div className="bg-primary/5 p-4">
+            <p className="text-center text-lg italic text-primary">"{proverb}"</p>
+          </div>
+        )}
+        {!isReviewMode && showWelcome ? (
+          <WelcomeAnimation text={proverb} />
+        ) : (
+          <div className="space-y-8">
+            <StepTracker
+              steps={steps}
+              currentStep={currentStep}
+              completedSteps={completedSteps}
+            />
+            {renderCurrentStep()}
+          </div>
+        )}
+      </div>
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
