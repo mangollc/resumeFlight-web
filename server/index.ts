@@ -40,6 +40,9 @@ app.use((req, res, next) => {
   next();
 });
 
+log("Initializing server...");
+
+// Create HTTP server
 const server = registerRoutes(app);
 
 // Set reasonable timeout values
@@ -64,6 +67,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
+// Setup environment-specific middleware
 if (process.env.NODE_ENV === "development") {
   log("Setting up development environment with Vite...");
   setupVite(app, server).catch(err => {
@@ -75,18 +79,34 @@ if (process.env.NODE_ENV === "development") {
   serveStatic(app);
 }
 
-const port = process.env.PORT || 5000;
+// Get port from environment variable or use default
+const port = Number(process.env.PORT) || 5000;
+
+// Handle process termination
+process.on('SIGTERM', () => {
+  log('Received SIGTERM signal. Shutting down gracefully...');
+  server.close(() => {
+    log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  log('Received SIGINT signal. Shutting down gracefully...');
+  server.close(() => {
+    log('Server closed');
+    process.exit(0);
+  });
+});
+
+// Start server with enhanced error logging
+log(`Attempting to start server on port ${port}...`);
 server.listen(port, "0.0.0.0", () => {
-  log(`Server started on port ${port}`);
-}).on('error', (err: any) => {
+  log(`Server successfully started on port ${port}`);
+}).on('error', (err: NodeJS.ErrnoException) => {
+  console.error('Failed to start server:', err);
   if (err.code === 'EADDRINUSE') {
-    const nextPort = port + 1;
-    log(`Port ${port} is busy, trying ${nextPort}`);
-    server.listen(nextPort, "0.0.0.0", () => {
-      log(`Server started on port ${nextPort}`);
-    });
-  } else {
-    console.error('Server error:', err);
-    process.exit(1);
+    log(`Critical error: Port ${port} is already in use. Please ensure no other instance is running.`);
   }
+  process.exit(1);
 });

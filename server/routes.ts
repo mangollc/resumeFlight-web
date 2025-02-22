@@ -500,8 +500,8 @@ export function registerRoutes(app: Express): Server {
 
     // Optimize resume route
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
-  // Add timeout to the request
-  req.setTimeout(60000);
+        // Add timeout to the request
+        req.setTimeout(60000);
         try {
             console.log("[Optimize] Starting optimization request...");
             if (!req.isAuthenticated()) {
@@ -604,15 +604,14 @@ export function registerRoutes(app: Express): Server {
                     "[Optimize] Error during optimization process:",
                     error,
                 );
-                throw new Error(`Optimization failed: ${error.message}`);
+                throw new Error(`Optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
         } catch (error) {
             console.error("[Optimize] Error:", error);
-            const errorMessage = error.message || "Failed to optimize resume";
+            const errorMessage = error instanceof Error ? error.message : "Failed to optimize resume";
             return res.status(500).json({
                 error: errorMessage,
-                details:
-                    error instanceof Error ? error.message : "Unknown error",
+                details: error instanceof Error ? error.message : "Unknown error",
             });
         }
     });
@@ -732,19 +731,19 @@ export function registerRoutes(app: Express): Server {
 
             // Extract contact info from the first section of the resume
             const firstSection = optimizedResume.content.split('\n\n')[0];
-            
+
             // More robust name matching
             const nameMatch = firstSection.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m) || 
                             optimizedResume.content.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m);
-            
+
             // More robust email matching
             const emailMatch = firstSection.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i) ||
                              optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
-            
+
             // More robust phone matching
             const phoneMatch = firstSection.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/) ||
                              optimizedResume.content.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
-            
+
             // More robust address matching
             const addressMatch = firstSection.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i) ||
                                optimizedResume.content.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i);
