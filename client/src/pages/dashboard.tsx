@@ -9,46 +9,25 @@ import CoverLetter from "@/components/resume/cover-letter";
 import ComparisonView from "@/components/resume/comparison-view";
 import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
+import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Loader2,
   RotateCcw,
   ChevronDown,
   ChevronRight,
   Info,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 
@@ -118,9 +97,13 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
 
   // Extract optimizedId from URL if present
-  const searchParams = new URLSearchParams(location.split('?')[1]);
+  const searchParams = new URLSearchParams(location.split('?')[1] || '');
   const optimizedId = searchParams.get('optimizedId');
-  const isReviewMode = params.id && optimizedId;
+  const isReviewMode = Boolean(optimizedId);
+
+  // State for review mode
+  const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
+  const [reviewLoadError, setReviewLoadError] = useState<string | null>(null);
 
   // Initialize all state variables
   const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
@@ -143,21 +126,22 @@ export default function Dashboard() {
 
   // Fetch optimized resume data when in review mode
   useEffect(() => {
-    if (isReviewMode) {
-      const fetchOptimizedResume = async () => {
+    if (isReviewMode && optimizedId) {
+      const loadReviewData = async () => {
         try {
+          setIsLoadingReview(true);
+          setReviewLoadError(null);
+
           const response = await apiRequest('GET', `/api/optimized-resume/${optimizedId}`);
           if (!response.ok) {
-            throw new Error('Failed to fetch optimized resume');
+            throw new Error('Failed to fetch optimization session');
           }
+
           const data = await response.json();
 
-          // Set uploaded resume from the optimized resume data
-          if (data.uploadedResume) {
-            setUploadedResume(data.uploadedResume);
-          }
-
+          // Set all the necessary data
           setOptimizedResume(data);
+          setUploadedResume(data.uploadedResume);
           setJobDetails(data.jobDetails);
 
           if (data.coverLetter) {
@@ -166,24 +150,29 @@ export default function Dashboard() {
             setSelectedCoverLetterVersion(data.coverLetter.metadata.version.toString());
           }
 
-          setCompletedSteps([1, 2, 3, 4, 5]);
+          // Ensure we're at step 5
           setCurrentStep(5);
+          setCompletedSteps([1, 2, 3, 4, 5]);
           setShowWelcome(false);
         } catch (error) {
-          console.error('Error fetching optimized resume:', error);
+          const err = error as Error;
+          console.error('Error loading optimization session:', err);
+          setReviewLoadError(err.message);
           toast({
             title: "Error",
             description: "Failed to load optimization session",
             variant: "destructive",
           });
+        } finally {
+          setIsLoadingReview(false);
         }
       };
 
-      fetchOptimizedResume();
+      loadReviewData();
     }
   }, [isReviewMode, optimizedId, toast]);
 
-  // Welcome animation effect - Moved this useEffect here
+  // Welcome animation effect
   useEffect(() => {
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
@@ -468,6 +457,41 @@ export default function Dashboard() {
   );
 
   const renderCurrentStep = () => {
+    // Show loading state while fetching review data
+    if (isReviewMode && isLoadingReview) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Loading optimization session...</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Show error state if review mode loading failed
+    if (isReviewMode && reviewLoadError) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
+            <p className="text-muted-foreground">{reviewLoadError}</p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/optimized-resumes'}
+            >
+              Return to Optimized Resumes
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // For review mode, only render step 5
+    if (isReviewMode && currentStep !== 5) {
+      return null;
+    }
+
     const commonCardProps = {
       className: "border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95"
     };
@@ -729,110 +753,35 @@ export default function Dashboard() {
         ) : null;
 
       case 5:
-        return optimizedResume && coverLetter ? (
+        return optimizedResume && uploadedResume ? (
           <div className="fade-in space-y-8">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
                 <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                  Final Review
+                  {isReviewMode ? "Optimization Review" : "Final Review"}
                 </h2>
                 <div className="space-y-12">
+                  {/* Resume Preview */}
                   <div>
                     <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                      Preview
+                      Optimized Resume
                     </h3>
-                    <Preview
-                      resume={optimizedResume}
-                      coverLetter={coverLetter}
-                    />
+                    <Preview resume={optimizedResume} />
                   </div>
 
-                  <div>
-                    <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
-                      <span className="bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
+                  {/* Cover Letter (if available) */}
+                  {coverLetter && (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-6 text-foreground/90">
                         Cover Letter
-                      </span>
-                    </h3>
-                    <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
-                      <div className="flex justify-between items-center mb-6">
-                        <h4 className="font-semibold text-foreground/90">
-                          Preview {coverLetters?.find(
-                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                          )?.metadata.version ? `(v${coverLetters.find(
-                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                          )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          {coverLetters.length <= 1 ? (
-                            <Button
-                              onClick={() => {
-                                if (coverLetter) {
-                                  window.location.href = `/api/cover-letter/${coverLetter.id}/download?filename=${
-                                    formatDownloadFilename(
-                                      coverLetter.metadata.filename,
-                                      optimizedResume.jobDetails?.title || '',
-                                      coverLetter.metadata.version
-                                    )
-                                  }_cover.pdf`;
-                                }
-                              }}
-                              variant="outline"
-                              className="transition-all duration-300 hover:bg-primary/10"
-                            >
-                              Download Cover Letter
-                            </Button>
-                          ) : null}
-                        </div>
-                      </div>
-                      {coverLetters && coverLetters.length > 1 && (
-                        <div className="mb-6">
-                          <Select
-                            value={selectedCoverLetterVersion}
-                            onValueChange={setSelectedCoverLetterVersion}
-                          >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue placeholder="Select version" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {coverLetters.map((letter) => (
-                                <SelectItem
-                                  key={letter.metadata.version}
-                                  value={letter.metadata.version.toString()}
-                                >
-                                  Version {letter.metadata.version.toFixed(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <div className="prose prose-sm max-w-none text-foreground/80">
-                        <pre className="whitespace-pre-wrap">
-                          {coverLetters?.find(
-                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                          )?.content || coverLetter.content}
+                      </h3>
+                      <div className="bg-muted/30 rounded-lg p-8">
+                        <pre className="whitespace-pre-wrap text-sm text-foreground/80">
+                          {coverLetter.content}
                         </pre>
                       </div>
                     </div>
-                    {coverLetters && coverLetters.length > 1 && (
-                      <div className="flex justify-end mt-4">
-                        <Button
-                          onClick={() => {
-                            const selectedLetter = coverLetters.find(
-                              (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                            );
-                            if (selectedLetter) {
-                              window.location.href = `/api/cover-letter/${selectedLetter.id}/download`;
-                            }
-                          }}
-                          variant="outline"
-                          className="transition-all duration-300 hover:bg-primary/10"
-                        >
-                          Download Version {selectedCoverLetterVersion}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
                 {renderNavigation()}
               </CardContent>
@@ -867,42 +816,20 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
 
-      <div className={cn(
-        "text-center transition-all duration-500 ease-in-out",
-        showWelcome ? "opacity-100 mb-8" : "opacity-0 h-0 mb-0 overflow-hidden"
-      )}>
-        <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent animate-gradient">
-          Welcome Back, {user?.name || 'User'}!
-        </h1>
-      </div>
-
-      <div className={cn(
-        "text-center transition-all duration-500 ease-in-out",
-        !showWelcome ? "transform -translate-y-8" : ""
-      )}>
-        <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
-          {proverb}
-        </h2>
-      </div>
-
-      <div className={cn(
-        "transition-all duration-500 ease-in-out",
-        !showWelcome ? "transform -translate-y-8" : ""
-      )}>
-        <StepTracker
-          currentStep={currentStep}
-          steps={steps}
-          completedSteps={completedSteps}
-        />
-      </div>
-
-      <div className={cn(
-        "mt-8 transition-all duration-500 ease-in-out",
-        !showWelcome ? "transform -translate-y-8" : ""
-      )}>
-        {renderCurrentStep()}
-      </div>
-
+      {!isReviewMode && showWelcome ? (
+        <WelcomeAnimation text={proverb} />
+      ) : (
+        <div className="space-y-8">
+          {!isReviewMode && (
+            <StepTracker
+              steps={steps}
+              currentStep={currentStep}
+              completedSteps={completedSteps}
+            />
+          )}
+          {renderCurrentStep()}
+        </div>
+      )}
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
