@@ -1,20 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight, Eye } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,76 +36,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-function formatJobDetails(resume: OptimizedResume) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="font-semibold text-lg mb-2">Job Details</h3>
-        <div className="grid gap-4">
-          <div>
-            <p className="font-medium mb-1">Title</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.title || "Not specified"}
-            </p>
-          </div>
-          <div>
-            <p className="font-medium mb-1">Company</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.company || "Not specified"}
-            </p>
-          </div>
-          <div>
-            <p className="font-medium mb-1">Location</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.location || "Not specified"}
-            </p>
-          </div>
-          {resume.jobDetails?.salary && (
-            <div>
-              <p className="font-medium mb-1">Salary</p>
-              <p className="text-sm text-muted-foreground">
-                {resume.jobDetails.salary}
-              </p>
-            </div>
-          )}
-          {resume.jobDetails?.positionLevel && (
-            <div>
-              <p className="font-medium mb-1">Position Level</p>
-              <p className="text-sm text-muted-foreground">
-                {resume.jobDetails.positionLevel}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {resume.jobDetails?.keyRequirements && resume.jobDetails.keyRequirements.length > 0 && (
-        <div>
-          <h4 className="font-semibold mb-2">Key Requirements</h4>
-          <ul className="list-disc list-inside space-y-2">
-            {resume.jobDetails.keyRequirements.map((requirement, index) => (
-              <li key={index} className="text-muted-foreground">{requirement}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {resume.jobDetails?.skillsAndTools && resume.jobDetails.skillsAndTools.length > 0 && (
-        <div>
-          <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-          <div className="flex flex-wrap gap-2">
-            {resume.jobDetails.skillsAndTools.map((skill, index) => (
-              <Badge key={index} variant={getMetricsColor(resume.metrics?.after?.skills || 0)}>
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 const getMetricsColor = (value: number) => {
   if (value >= 80) return "bg-green-600";
   if (value >= 60) return "bg-yellow-500";
@@ -122,7 +44,6 @@ const getMetricsColor = (value: number) => {
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -286,32 +207,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     </a>
                   </DropdownMenuItem>
                 </>
-              ) : (
-                <>
-                  <DropdownMenuSeparator />
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        <Info className="mr-2 h-4 w-4" />
-                        View Job Details
-                      </DropdownMenuItem>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Job Details</DialogTitle>
-                        <DialogDescription>
-                          {formatJobDetails(resume)}
-                        </DialogDescription>
-                      </DialogHeader>
-                    </DialogContent>
-                  </Dialog>
-                </>
-              )}
+              ) : null}
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
