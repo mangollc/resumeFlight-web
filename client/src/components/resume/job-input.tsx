@@ -14,11 +14,11 @@ import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export interface JobDetails {
+interface JobDetails {
   title: string;
   company: string;
-  salary?: string;
   location: string;
+  salary?: string;
   description?: string;
   positionLevel?: string;
   keyRequirements?: string[];
@@ -170,10 +170,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         console.log('Making optimization request with data:', data);
 
-        const eventSource = new EventSource(`/api/resume/${resumeId}/optimize?${new URLSearchParams({
-          jobUrl: data.jobUrl || '',
-          jobDescription: data.jobDescription || ''
-        })}`);
+        // Create URL with proper encoding
+        const params = new URLSearchParams();
+        if (data.jobUrl) params.append('jobUrl', data.jobUrl);
+        if (data.jobDescription) params.append('jobDescription', data.jobDescription);
+
+        const eventSource = new EventSource(`/api/resume/${resumeId}/optimize?${params.toString()}`);
 
         return new Promise((resolve, reject) => {
           let result = null;
@@ -182,7 +184,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             try {
               const eventData = JSON.parse(event.data);
               console.log('SSE Event:', eventData);
-              
+
               if (eventData.status === "extracting_details") {
                 updateStepStatus("extract", "completed");
                 updateStepStatus("analyze", "loading");
@@ -196,25 +198,28 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                   eventSource.close();
                   resolve(result);
                 }
+              } else if (eventData.error) {
+                throw new Error(eventData.error);
               }
             } catch (error) {
-              console.warn('Failed to parse SSE data:', error);
+              console.error('Failed to parse SSE data:', error);
+              eventSource.close();
+              reject(error);
             }
           };
 
           eventSource.onerror = (error) => {
             console.error('EventSource error:', error);
             eventSource.close();
-            reject(new Error("EventSource failed - check server logs"));
+            reject(new Error("Failed to connect to optimization service"));
           };
+
+          // Add cleanup on abort
+          abortControllerRef.current?.signal.addEventListener('abort', () => {
+            eventSource.close();
+            reject(new Error("Request aborted by client"));
+          });
         });
-
-        // Validate job details
-        if (!data.jobDetails?.title || !data.jobDetails?.company || !data.jobDetails?.location) {
-          throw new Error('Missing required job details fields');
-        }
-
-        return jsonData;
       } catch (error) {
         if (error instanceof Error &&
             (error.name === "AbortError" ||
@@ -239,9 +244,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             title: data.jobDetails.title || "",
             company: data.jobDetails.company || "",
             location: data.jobDetails.location || "",
-            salary: data.jobDetails.salary || undefined,
-            description: data.jobDetails.description || undefined,
-            positionLevel: data.jobDetails.positionLevel || undefined,
+            salary: data.jobDetails.salary,
+            description: data.jobDetails.description,
+            positionLevel: data.jobDetails.positionLevel,
             keyRequirements: Array.isArray(data.jobDetails.keyRequirements) ? data.jobDetails.keyRequirements : [],
             skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
           };
@@ -267,12 +272,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           onOptimized(data, details);
         } catch (error) {
           console.error('Error processing optimization result:', error);
-          toast({
-            title: "Error",
-            description: "Failed to process optimization result",
-            variant: "destructive"
-          });
-          setIsProcessing(false);
+          throw error; // Re-throw to trigger onError handler
         }
       }
     },
@@ -290,12 +290,21 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         } else {
           toast({
             title: "Error",
-            description: error.message,
+            description: error.message || "Failed to process job details",
             variant: "destructive",
           });
         }
       }
       setIsProcessing(false);
+
+      // Mark all pending steps as error
+      setProgressSteps(prev =>
+        prev.map(step =>
+          step.status === "pending" || step.status === "loading"
+            ? { ...step, status: "error" }
+            : step
+        )
+      );
     },
   });
 
