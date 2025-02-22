@@ -9,23 +9,27 @@ if (!process.env.OPENAI_API_KEY) {
 
 export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Utility function to split text into chunks
-function splitIntoChunks(text: string, maxChunkSize: number = 4000): string[] {
+// Utility function to split text into chunks with optimized size for GPT-4o
+function splitIntoChunks(text: string, maxChunkSize: number = 16000): string[] {
   const chunks: string[] = [];
   const paragraphs = text.split("\n\n");
   let currentChunk = "";
 
   for (const paragraph of paragraphs) {
+    // Check if adding this paragraph would exceed the chunk size
     if ((currentChunk + paragraph).length > maxChunkSize && currentChunk) {
+      // If the current chunk is getting too large, save it and start a new one
       chunks.push(currentChunk.trim());
       currentChunk = paragraph;
     } else {
+      // Otherwise, add the paragraph to the current chunk
       currentChunk = currentChunk
         ? `${currentChunk}\n\n${paragraph}`
         : paragraph;
     }
   }
 
+  // Don't forget the last chunk
   if (currentChunk) {
     chunks.push(currentChunk.trim());
   }
@@ -38,13 +42,16 @@ export async function analyzeResumeDifferences(
   optimizedContent: string,
 ) {
   try {
+    // Use larger chunks for difference analysis
     const originalChunks = splitIntoChunks(originalContent);
     const optimizedChunks = splitIntoChunks(optimizedContent);
     const maxChunks = Math.min(originalChunks.length, optimizedChunks.length);
 
     const allChanges: any[] = [];
+    console.log(`[Differences] Processing ${maxChunks} chunks`);
 
     for (let i = 0; i < maxChunks; i++) {
+      console.log(`[Differences] Analyzing chunk ${i + 1}/${maxChunks}`);
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -94,8 +101,11 @@ export async function optimizeResume(
   currentVersion?: number,
 ) {
   try {
+    // Use larger chunks for resume optimization
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
+
+    console.log(`[Optimize] Processing resume in ${resumeChunks.length} chunks`);
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
@@ -109,6 +119,7 @@ export async function optimizeResume(
 
     // Process each chunk of the resume
     for (let i = 0; i < resumeChunks.length; i++) {
+      console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
         messages: [
@@ -161,7 +172,8 @@ Follow these optimization guidelines:
       // Merge improvements with proper type checking
       (Object.keys(improvements) as Array<keyof typeof improvements>).forEach(
         (key) => {
-          improvements[key] = improvements[key] + (result.improvements?.[key] ? "\n" + result.improvements[key] : "");
+          const newValue = result.improvements?.[key] || "";
+          improvements[key] = improvements[key] ? `${improvements[key]}\n${newValue}` : newValue;
         },
       );
     }
@@ -196,8 +208,11 @@ export async function generateCoverLetter(
   }
 ) {
   try {
+    // Use larger chunks for cover letter generation
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
+
+    console.log("[Cover Letter] Generating with optimized chunk size");
 
     // Generate the cover letter using the latest resume and contact information
     const response = await openai.chat.completions.create({
