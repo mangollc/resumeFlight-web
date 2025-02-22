@@ -827,37 +827,47 @@ export default function Dashboard() {
         transition={{ duration: 0.6, delay: showWelcome ? 2.4 : 0 }}
         className="space-y-8"
       >
-        {!isReviewMode && (
-          <div className="text-center transition-all duration-500 ease-in-out">
-            <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
-              {proverb}
-            </h2>
-          </div>
+        {!isReviewMode ? (
+          <>
+            <div className="text-center transition-all duration-500 ease-in-out">
+              <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
+                {proverb}
+              </h2>
+            </div>
+            <StepTracker
+              steps={steps}
+              currentStep={currentStep}
+              completedSteps={completedSteps}
+            />
+            {renderStep(currentStep)}
+            {showWelcome && (
+              <WelcomeAnimation
+                onAnimationComplete={() => setShowWelcome(false)}
+                text={`Welcome back, ${user?.name || 'Anonymous User'}!`}
+              />
+            )}
+          </>
+        ) : (
+          <>
+            <StepTracker
+              steps={steps}
+              currentStep={5}
+              completedSteps={[1, 2, 3, 4, 5]}
+            />
+            {renderStep(5)}
+          </>
         )}
-        <StepTracker
-          steps={steps}
-          currentStep={currentStep}
-          completedSteps={isReviewMode ? [1, 2, 3, 4, 5] : completedSteps}
+        <LoadingDialog
+          open={isOptimizing}
+          title="Optimizing Resume"
+          description="Please wait while we optimize your resume using AI..."
+          onOpenChange={(open) => {
+            if (!open && isOptimizing) {
+              handleCancel();
+            }
+          }}
         />
-        {renderStep(currentStep)}
       </motion.div>
-      {!isReviewMode && showWelcome && (
-        <WelcomeAnimation
-          onAnimationComplete={() => setShowWelcome(false)}
-          text={`Welcome back, ${user?.name || 'Anonymous User'}!`}
-        />
-      )}
-      {isReviewMode && renderStep(currentStep)}
-      <LoadingDialog
-        open={isOptimizing}
-        title="Optimizing Resume"
-        description="Please wait while we optimize your resume using AI..."
-        onOpenChange={(open) => {
-          if (!open && isOptimizing) {
-            handleCancel();
-          }
-        }}
-      />
     </div>
   );
 }
