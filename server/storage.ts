@@ -225,6 +225,7 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...resume,
           version: nextVersion,
+          versionHistory: [],
           versionMetrics: [{
             version: nextVersion,
             metrics: {
