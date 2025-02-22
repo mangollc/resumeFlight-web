@@ -17,6 +17,32 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+
+  const handleDownload = async (id: number) => {
+    try {
+      const response = await fetch(`/api/uploaded-resume/${id}/download`);
+      if (!response.ok) {
+        throw new Error('Failed to download resume');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = uploadedResume?.metadata.filename || 'resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download resume",
+        variant: "destructive"
+      });
+    }
+  };
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -722,6 +748,36 @@ export default function Dashboard() {
                     <div className="relative z-50 w-full">
                       <Select
                         value={uploadedResume?.id?.toString()}
+                      onValueChange={(value) => {
+                        const resume = resumes?.find((r) => r.id.toString() === value);
+                        if (resume) {
+                          setUploadedResume(resume);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a resume" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {resumes.map((resume) => (
+                          <SelectItem key={resume.id} value={resume.id.toString()}>
+                            {resume.metadata.filename}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      No resumes found. Upload a new one to get started.
+                    </div>
+                  )}
+                  {uploadedResume && (
+                    <div className="mt-4">
+                      <Button onClick={() => handleDownload(uploadedResume.id)} size="sm">
+                        Download
+                      </Button>
+                    </div>
+                  )}
                         onValueChange={(value) => {
                           const resume = resumes.find(r => r.id.toString() === value);
                           if (resume) {
