@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 function formatJobDetails(resume: OptimizedResume) {
   return (
@@ -67,15 +68,48 @@ function formatJobDetails(resume: OptimizedResume) {
               {resume.jobDetails?.location || "Not specified"}
             </p>
           </div>
+          {resume.jobDetails?.salary && (
+            <div>
+              <p className="font-medium mb-1">Salary</p>
+              <p className="text-sm text-muted-foreground">
+                {resume.jobDetails.salary}
+              </p>
+            </div>
+          )}
+          {resume.jobDetails?.positionLevel && (
+            <div>
+              <p className="font-medium mb-1">Position Level</p>
+              <p className="text-sm text-muted-foreground">
+                {resume.jobDetails.positionLevel}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
-      <div>
-        <h3 className="font-semibold text-lg mb-2">Description</h3>
-        <div className="text-sm text-muted-foreground whitespace-pre-wrap rounded-md bg-muted p-4">
-          {resume.jobDescription}
+      {resume.jobDetails?.keyRequirements && resume.jobDetails.keyRequirements.length > 0 && (
+        <div>
+          <h4 className="font-semibold mb-2">Key Requirements</h4>
+          <ul className="list-disc list-inside space-y-2">
+            {resume.jobDetails.keyRequirements.map((requirement, index) => (
+              <li key={index} className="text-muted-foreground">{requirement}</li>
+            ))}
+          </ul>
         </div>
-      </div>
+      )}
+
+      {resume.jobDetails?.skillsAndTools && resume.jobDetails.skillsAndTools.length > 0 && (
+        <div>
+          <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+          <div className="flex flex-wrap gap-2">
+            {resume.jobDetails.skillsAndTools.map((skill, index) => (
+              <Badge key={index} variant={getMetricsColor(resume.metrics?.after?.skills || 0)}>
+                {skill}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
