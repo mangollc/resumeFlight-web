@@ -35,7 +35,6 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
         version: versions.length > 0 ? Math.max(...versions) + 0.1 : 1.0,
         jobDetails: {
           ...resume.jobDetails,
-          // Ensure proper location formatting
           location: resume.jobDetails?.location?.split(',').slice(0, 2).join(', '), // City, State only
         },
         contactInfo: resume.contactInfo,
@@ -58,7 +57,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cover-letter"] });
       if (onGenerated) onGenerated(data);
-      const newVersion = data.metadata.version;
+      const newVersion = data.version;
       setVersions(prev => Array.from(new Set([...prev, newVersion])).sort((a, b) => b - a));
       setSelectedVersion(newVersion.toString());
       toast({
@@ -80,7 +79,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
     try {
       setIsDownloading(true);
-      const versionToUse = version || selectedVersion || generatedCoverLetter.metadata.version.toString();
+      const versionToUse = version || selectedVersion || generatedCoverLetter.version.toString();
       const response = await fetch(
         `/api/cover-letter/${generatedCoverLetter.id}/download?format=${selectedFormat}&version=${versionToUse}`,
         {
@@ -96,11 +95,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${formatDownloadFilename(
+      a.download = formatDownloadFilename(
         generatedCoverLetter.metadata.filename,
         resume.jobDetails?.title || '',
         parseFloat(versionToUse)
-      )}.${selectedFormat}`;
+      );
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -126,24 +125,24 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const formatDownloadFilename = (filename: string, jobTitle: string, version: number): string => {
     const baseName = filename.substring(0, filename.lastIndexOf('.')) || filename;
     const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    return `${baseName}_${formattedJobTitle}_v${version.toFixed(1)}`;
+    return `${baseName}_${formattedJobTitle}_v${version.toFixed(1)}.${selectedFormat}`;
   };
 
   useEffect(() => {
     if (generatedCoverLetter) {
       setVersions(prev => {
-        const newVersions = Array.from(new Set([...prev, generatedCoverLetter.metadata.version])).sort((a, b) => b - a);
+        const newVersions = Array.from(new Set([...prev, generatedCoverLetter.version])).sort((a, b) => b - a);
         if (!selectedVersion) {
-          setSelectedVersion(generatedCoverLetter.metadata.version.toString());
+          setSelectedVersion(generatedCoverLetter.version.toString());
         }
         return newVersions;
       });
     }
   }, [generatedCoverLetter]);
 
-  const selectedCoverLetter = versions.length > 0 && selectedVersion
-    ? generatedCoverLetter?.versions?.find(v => v.version.toString() === selectedVersion)
-    : generatedCoverLetter;
+  const selectedCoverLetterContent = versions.length > 0 && selectedVersion && generatedCoverLetter
+    ? generatedCoverLetter.content
+    : generatedCoverLetter?.content || '';
 
   return (
     <div className="space-y-4">
@@ -178,7 +177,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
               <div>
                 <h4 className="font-semibold">Cover Letter</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Version {selectedVersion || generatedCoverLetter?.metadata.version.toFixed(1)}
+                  Version {selectedVersion || generatedCoverLetter?.version.toFixed(1)}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -238,21 +237,21 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
             </div>
 
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              {selectedCoverLetter?.confidence && (
+              {generatedCoverLetter?.confidence && (
                 <div className="mb-4 flex items-center gap-2">
                   <span className="text-sm font-medium">Match Confidence:</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                    selectedCoverLetter.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                    selectedCoverLetter.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                    generatedCoverLetter.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                    generatedCoverLetter.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
                     'bg-red-100 text-red-700'
                   }`}>
-                    {selectedCoverLetter.confidence}%
+                    {generatedCoverLetter.confidence}%
                   </span>
                 </div>
               )}
               <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
                 <pre className="whitespace-pre-wrap font-sans text-sm">
-                  {selectedCoverLetter?.content || generateMutation.data?.content}
+                  {selectedCoverLetterContent}
                 </pre>
               </div>
             </div>

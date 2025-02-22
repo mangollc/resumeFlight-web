@@ -150,7 +150,7 @@ Follow these optimization guidelines:
     "clarity": "clarity improvements",
     "ats": "ATS-specific enhancements"
   }
-}`
+}`,
           },
           {
             role: "user",
@@ -217,16 +217,17 @@ export async function generateCoverLetter(
     email: string;
     phone: string;
     address?: string;
-  }
+  },
+  version?: number,
 ) {
   try {
-    // Use larger chunks for cover letter generation
+    const coverLetterVersion = version || 1.0;
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
     console.log("[Cover Letter] Generating with optimized chunk size");
+    console.log("[Cover Letter] Version:", coverLetterVersion);
 
-    // Generate the cover letter using the latest resume and contact information
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -259,12 +260,14 @@ export async function generateCoverLetter(
    - Highlight the candidate's relevant strengths
    - Address the main job requirements
    - Keep it concise and impactful
+   ${coverLetterVersion > 1 ? '\n3. Note: This is a revision. Create a distinct version while maintaining professional quality.' : ''}
 
 Return JSON in this format:
 {
   "coverLetter": "the generated cover letter with proper formatting",
   "highlights": ["key qualifications emphasized"],
-  "confidence": <number between 0-100>
+  "confidence": <number between 0-100>,
+  "version": ${coverLetterVersion}
 }`,
         },
         {
@@ -283,12 +286,12 @@ Return JSON in this format:
 
     const result = JSON.parse(content);
     return {
-      ...result,
-      coverLetter: result.coverLetter.trim(),
-      confidence:
-        typeof result.confidence === "number"
-          ? Math.min(100, Math.max(0, result.confidence))
-          : 85,
+      content: result.coverLetter.trim(),
+      highlights: result.highlights || [],
+      confidence: typeof result.confidence === "number"
+        ? Math.min(100, Math.max(0, result.confidence))
+        : 85,
+      version: coverLetterVersion,
     };
   } catch (err) {
     const error = err as Error;
