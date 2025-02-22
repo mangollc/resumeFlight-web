@@ -226,7 +226,7 @@ export async function generateCoverLetter(
    ${contactInfo.fullName}
    ${contactInfo.email}
    ${contactInfo.phone}
-   ${contactInfo.address ? `\n   ${contactInfo.address}` : ''}
+   ${contactInfo.address ? `\n   ${contactInfo.address.split(',').slice(-3, -1).join(', ')}` : ''}
 
    ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
 
