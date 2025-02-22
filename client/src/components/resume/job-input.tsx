@@ -176,70 +176,54 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         });
 
         if (!response.ok) {
-          if (response.headers.get('content-type')?.includes('text/event-stream')) {
-            const reader = response.body?.getReader();
-            const decoder = new TextDecoder();
-            while (reader) {
-              const {value, done} = await reader.read();
-              if (done) break;
-              const text = decoder.decode(value);
-              const lines = text.split('\n');
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  try {
-                    const data = JSON.parse(line.slice(5));
-                    console.log('SSE update:', data);
-                  } catch (e) {
-                    console.warn('Failed to parse SSE data:', line);
-                  }
+          const errorText = await response.text();
+          console.error('Error Response:', errorText);
+          throw new Error("Failed to optimize resume");
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+
+        let finalData = null;
+        while (reader) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          const text = decoder.decode(value);
+          const lines = text.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const eventData = JSON.parse(line.slice(5));
+
+                if (eventData.status === "extracting_details") {
+                  updateStepStatus("extract", "completed");
+                  updateStepStatus("analyze", "loading");
+                } else if (eventData.status === "optimizing_resume") {
+                  updateStepStatus("analyze", "completed");
+                  updateStepStatus("optimize", "loading");
+                } else if (eventData.status === "completed") {
+                  finalData = eventData.data;
+                  updateStepStatus("optimize", "completed");
                 }
+              } catch (e) {
+                console.warn('Failed to parse SSE data:', line);
               }
             }
           }
-          const errorText = await response.text();
-          console.error('Error Response:', errorText);
-          let errorMessage = "Failed to fetch job details";
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch (e) {
-            console.error('Error parsing error response:', e);
-          }
-          throw new Error(errorMessage);
         }
 
-        updateStepStatus("extract", "completed");
-        updateStepStatus("analyze", "loading");
-
-        const responseText = await response.text();
-        console.log('Raw API Response:', responseText);
-
-        let jsonData;
-        try {
-          jsonData = JSON.parse(responseText);
-          console.log('Parsed Job Details:', {
-            title: jsonData.jobDetails?.title,
-            company: jsonData.jobDetails?.company,
-            location: jsonData.jobDetails?.location,
-            salary: jsonData.jobDetails?.salary,
-            description: jsonData.jobDetails?.description,
-            positionLevel: jsonData.jobDetails?.positionLevel,
-            keyRequirements: jsonData.jobDetails?.keyRequirements,
-            skillsAndTools: jsonData.jobDetails?.skillsAndTools
-          });
-
-          // Validate required fields
-          if (!jsonData.jobDetails?.title || !jsonData.jobDetails?.company || !jsonData.jobDetails?.location) {
-            throw new Error('Missing required job details fields');
-          }
-
-        } catch (parseError) {
-          console.error('JSON Parse Error:', parseError, 'Response:', responseText);
-          throw new Error('Failed to parse server response');
+        if (!finalData) {
+          throw new Error("No optimization data received");
         }
 
-        updateStepStatus("analyze", "completed");
-        updateStepStatus("optimize", "loading");
+        let jsonData = finalData;
+
+        // Validate required fields
+        if (!jsonData.jobDetails?.title || !jsonData.jobDetails?.company || !jsonData.jobDetails?.location) {
+          throw new Error('Missing required job details fields');
+        }
 
         return jsonData;
       } catch (error) {
