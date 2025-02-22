@@ -186,7 +186,17 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             model: "gpt-4o",
             messages: [{
                 role: "system",
-                content: "Extract job details from the following LinkedIn job posting. Return only the JSON object with extracted information, ensuring all fields are filled based on available content."
+                content: `Extract detailed job information from the LinkedIn posting. Return a JSON object with these fields:
+                {
+                    "title": "exact job title",
+                    "company": "company name",
+                    "location": "job location",
+                    "salary": "salary range if available",
+                    "positionLevel": "seniority level",
+                    "keyRequirements": ["array of key requirements"],
+                    "skillsAndTools": ["array of required skills"],
+                    "description": "full job description"
+                }`
             }, {
                 role: "user",
                 content: `Title: ${title}\nCompany: ${company}\nLocation: ${location}\nContent: ${fullContent}`
@@ -196,6 +206,7 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         });
 
         const enhancedDetails = JSON.parse(analysis.choices[0].message.content || "{}");
+        console.log("[Job Details] Enhanced details:", enhancedDetails);
 
         console.log("[Job Details] Successfully extracted and enhanced details:", {
             title,

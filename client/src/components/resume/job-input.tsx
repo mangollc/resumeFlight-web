@@ -170,16 +170,32 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         console.log('Making optimization request with data:', data);
 
-        const response = await apiRequest(
-          "POST",
-          `/api/resume/${resumeId}/optimize`,
-          {
-            ...data,
-            version: optimizationVersion
-          }
-        );
+        const response = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, {
+          ...data,
+          version: optimizationVersion
+        });
 
         if (!response.ok) {
+          if (response.headers.get('content-type')?.includes('text/event-stream')) {
+            const reader = response.body?.getReader();
+            const decoder = new TextDecoder();
+            while (reader) {
+              const {value, done} = await reader.read();
+              if (done) break;
+              const text = decoder.decode(value);
+              const lines = text.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(5));
+                    console.log('SSE update:', data);
+                  } catch (e) {
+                    console.warn('Failed to parse SSE data:', line);
+                  }
+                }
+              }
+            }
+          }
           const errorText = await response.text();
           console.error('Error Response:', errorText);
           let errorMessage = "Failed to fetch job details";
