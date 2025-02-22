@@ -168,6 +168,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         setProgressSteps(INITIAL_STEPS);
         updateStepStatus("extract", "loading");
 
+        // Make the optimization request
         const response = await apiRequest(
           "POST",
           `/api/resume/${resumeId}/optimize`,
@@ -195,10 +196,20 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         // Get response text first
         const responseText = await response.text();
+        console.log('Raw response text:', responseText); // Debug log
+
         let jsonData;
         try {
           jsonData = JSON.parse(responseText);
-          console.log('Parsed response data:', jsonData); // Debug log
+          console.log('Job Details Response:', {
+            title: jsonData.jobDetails?.title,
+            company: jsonData.jobDetails?.company,
+            location: jsonData.jobDetails?.location,
+            salary: jsonData.jobDetails?.salary,
+            positionLevel: jsonData.jobDetails?.positionLevel,
+            keyRequirements: jsonData.jobDetails?.keyRequirements,
+            skillsAndTools: jsonData.jobDetails?.skillsAndTools
+          });
         } catch (parseError) {
           console.error('JSON Parse Error:', parseError, 'Response text:', responseText);
           throw new Error('Failed to parse server response');
@@ -227,15 +238,21 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             throw new Error('Invalid response format: missing job details');
           }
 
+          // Log the extracted job details
+          console.log('Processing job details:', data.jobDetails);
+
           const details: JobDetails = {
             title: data.jobDetails?.title || "",
             company: data.jobDetails?.company || "",
             location: data.jobDetails?.location || "",
-            salary: data.jobDetails?.salary,
-            positionLevel: data.jobDetails?.positionLevel,
+            salary: data.jobDetails?.salary || "",
+            positionLevel: data.jobDetails?.positionLevel || "",
             keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
-            skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : [],
+            skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : []
           };
+
+          // Log the final processed details
+          console.log('Final processed job details:', details);
 
           setExtractedDetails(details);
           setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
@@ -261,6 +278,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
     },
     onError: (error: Error) => {
+      console.error('Mutation error:', error);
       if (error.message !== "cancelled" && error.message !== "Request aborted by client") {
         if (error.message.includes("dynamically loaded or require authentication")) {
           toast({
