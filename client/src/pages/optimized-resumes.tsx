@@ -53,7 +53,7 @@ function formatJobDetails(resume: OptimizedResume) {
       remote: "outline",
       hybrid: "secondary",
       onsite: "default"
-    };
+    } as const;
 
     return (
       <Badge variant={variants[arrangement as keyof typeof variants] || "default"}>
@@ -87,19 +87,23 @@ function formatJobDetails(resume: OptimizedResume) {
               {resume.jobDetails?.location || "Not specified"}
             </p>
           </div>
-          {resume.jobDetails?.salary && (
+          <div>
+            <p className="font-medium mb-1">Position Level</p>
+            <p className="text-sm text-muted-foreground">
+              {resume.jobDetails?.positionLevel || "Not specified"}
+            </p>
+          </div>
+          <div>
+            <p className="font-medium mb-1">Salary</p>
+            <p className="text-sm text-muted-foreground">
+              {resume.jobDetails?.salary || "Not specified"}
+            </p>
+          </div>
+          {resume.jobDetails?.description && (
             <div>
-              <p className="font-medium mb-1">Salary</p>
-              <p className="text-sm text-muted-foreground">
-                {resume.jobDetails.salary}
-              </p>
-            </div>
-          )}
-          {resume.jobDetails?.positionLevel && (
-            <div>
-              <p className="font-medium mb-1">Position Level</p>
-              <p className="text-sm text-muted-foreground">
-                {resume.jobDetails.positionLevel}
+              <p className="font-medium mb-1">Description</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {resume.jobDetails.description}
               </p>
             </div>
           )}
