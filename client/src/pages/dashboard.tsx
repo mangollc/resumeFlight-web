@@ -100,6 +100,47 @@ export type JobDetails = {
   skillsAndTools?: string[];
 };
 
+const optimizationSteps = [
+  {
+    id: "analyze",
+    label: "Analyzing resume content",
+    status: "pending"
+  },
+  {
+    id: "keywords",
+    label: "Extracting keywords and skills",
+    status: "pending"
+  },
+  {
+    id: "matching",
+    label: "Matching with job requirements",
+    status: "pending"
+  },
+  {
+    id: "optimize",
+    label: "Optimizing content and format",
+    status: "pending"
+  }
+];
+
+const coverLetterSteps = [
+  {
+    id: "analyze_resume",
+    label: "Analyzing resume and job details",
+    status: "pending"
+  },
+  {
+    id: "draft",
+    label: "Drafting personalized content",
+    status: "pending"
+  },
+  {
+    id: "format",
+    label: "Formatting and finalizing",
+    status: "pending"
+  }
+];
+
 export default function Dashboard() {
   const { user } = useAuth();
   const params = useParams<{ id?: string }>();
@@ -132,6 +173,9 @@ export default function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
+  const [currentOptimizationSteps, setCurrentOptimizationSteps] = useState(optimizationSteps);
+  const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState(coverLetterSteps);
+
 
   // Fetch optimized resume data when in review mode
   useEffect(() => {
@@ -197,6 +241,7 @@ export default function Dashboard() {
   }, [isReviewMode, currentStep]);
 
 
+
   const handleResumeUploaded = async (resume: UploadedResume) => {
     try {
       setUploadedResume(resume);
@@ -252,6 +297,33 @@ export default function Dashboard() {
       const nextVersion = Number((Math.max(...coverLetters.map(l => l.metadata.version), 0) + 0.1).toFixed(1));
       setCoverLetterVersion(nextVersion);
 
+      // Reset cover letter steps
+      setCurrentCoverLetterSteps(coverLetterSteps.map(step => ({ ...step, status: "pending" })));
+
+      // Simulate progress through cover letter steps
+      const updateStep = (stepId: string, status: "loading" | "completed") => {
+        setCurrentCoverLetterSteps(prev =>
+          prev.map(step =>
+            step.id === stepId
+              ? { ...step, status }
+              : step
+          )
+        );
+      };
+
+      // Start analysis
+      updateStep("analyze_resume", "loading");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      updateStep("analyze_resume", "completed");
+
+      // Draft content
+      updateStep("draft", "loading");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      updateStep("draft", "completed");
+
+      // Format and finalize
+      updateStep("format", "loading");
+
       const response = await apiRequest(
         "POST",
         `/api/optimized-resume/${optimizedResume.id}/cover-letter`,
@@ -268,10 +340,12 @@ export default function Dashboard() {
       const data = await response.json();
       handleCoverLetterGenerated(data);
 
+      updateStep("format", "completed");
+
       toast({
         title: "Success",
         description: `Cover letter regenerated (v${nextVersion.toFixed(1)})`,
-        duration: 2000, // Set to 2 seconds
+        duration: 2000,
       });
     } catch (error) {
       toast({
@@ -279,6 +353,15 @@ export default function Dashboard() {
         description: "Failed to regenerate cover letter",
         variant: "destructive",
       });
+
+      // Mark remaining steps as error
+      setCurrentCoverLetterSteps(prev =>
+        prev.map(step =>
+          step.status === "pending" || step.status === "loading"
+            ? { ...step, status: "error" }
+            : step
+        )
+      );
     } finally {
       setIsGeneratingCoverLetter(false);
     }
@@ -405,6 +488,38 @@ export default function Dashboard() {
       setIsOptimizing(true);
       const nextVersion = Number((optimizationVersion + 0.1).toFixed(1));
 
+      // Reset optimization steps
+      setCurrentOptimizationSteps(optimizationSteps.map(step => ({ ...step, status: "pending" })));
+
+      // Simulate progress through optimization steps
+      const updateStep = (stepId: string, status: "loading" | "completed") => {
+        setCurrentOptimizationSteps(prev =>
+          prev.map(step =>
+            step.id === stepId
+              ? { ...step, status }
+              : step
+          )
+        );
+      };
+
+      // Start analysis
+      updateStep("analyze", "loading");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      updateStep("analyze", "completed");
+
+      // Keywords extraction
+      updateStep("keywords", "loading");
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      updateStep("keywords", "completed");
+
+      // Matching process
+      updateStep("matching", "loading");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      updateStep("matching", "completed");
+
+      // Final optimization
+      updateStep("optimize", "loading");
+
       const optimizationData = {
         jobDetails,
         version: nextVersion
@@ -424,13 +539,15 @@ export default function Dashboard() {
       setOptimizedResume(optimizedData);
       setOptimizationVersion(nextVersion);
 
+      updateStep("optimize", "completed");
+
       // Invalidate queries to ensure latest data
       await queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
       toast({
         title: "Success",
         description: `Resume optimized (v${nextVersion.toFixed(1)})`,
-        duration: 2000, // Set to 2 seconds
+        duration: 2000,
       });
     } catch (error) {
       console.error('Optimization error:', error);
@@ -439,6 +556,15 @@ export default function Dashboard() {
         description: "Failed to reoptimize resume. Please try again.",
         variant: "destructive",
       });
+
+      // Mark remaining steps as error
+      setCurrentOptimizationSteps(prev =>
+        prev.map(step =>
+          step.status === "pending" || step.status === "loading"
+            ? { ...step, status: "error" }
+            : step
+        )
+      );
     } finally {
       setIsOptimizing(false);
     }
@@ -499,8 +625,8 @@ export default function Dashboard() {
     if (!optimizedResume) return null;
 
     return (
-      <ReviewSection 
-        optimizedResume={optimizedResume} 
+      <ReviewSection
+        optimizedResume={optimizedResume}
         coverLetter={coverLetter}
         onDownload={handleDownload}
       />
@@ -520,8 +646,8 @@ export default function Dashboard() {
         );
       }
       return optimizedResume ? (
-        <ReviewSection 
-          optimizedResume={optimizedResume} 
+        <ReviewSection
+          optimizedResume={optimizedResume}
           coverLetter={coverLetter}
           onDownload={handleDownload}
         />
@@ -533,7 +659,7 @@ export default function Dashboard() {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
-            <AlertTriangle className="w-8 h-8 mx-auto text-destructive mb-4"/>
+            <AlertTriangle className="w-8 h-8 mx-auto text-destructive mb-4" />
             <p className="text-muted-foreground">Unable to load optimization session. Please try again.</p>
           </div>
         </div>
@@ -790,6 +916,7 @@ export default function Dashboard() {
               open={isGeneratingCoverLetter}
               title="Generating Cover Letter"
               description="Please wait while we generate your cover letter using AI..."
+              steps={currentCoverLetterSteps}
               onOpenChange={setIsGeneratingCoverLetter}
             />
           </div>
@@ -798,8 +925,8 @@ export default function Dashboard() {
       case 5:
         return optimizedResume && uploadedResume ? (
           <div className="fade-in space-y-8">
-            <ReviewSection 
-              optimizedResume={optimizedResume} 
+            <ReviewSection
+              optimizedResume={optimizedResume}
               coverLetter={coverLetter}
               onDownload={handleDownload}
             />
@@ -897,11 +1024,19 @@ export default function Dashboard() {
             </div>
           </div>
         }
+        steps={currentOptimizationSteps}
         onOpenChange={(open) => {
           if (!open && isOptimizing) {
             handleCancel();
           }
         }}
+      />
+      <LoadingDialog
+        open={isGeneratingCoverLetter}
+        title="Generating Cover Letter"
+        description="Please wait while we generate your cover letter using AI..."
+        steps={currentCoverLetterSteps}
+        onOpenChange={setIsGeneratingCoverLetter}
       />
     </div>
   );
