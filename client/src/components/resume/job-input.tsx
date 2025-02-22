@@ -61,7 +61,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     };
   }, []);
 
-  const updateStepStatus = (stepId: string, status: ProgressStep["status"]) => {
+  const updateStepStatus = (stepId: string, status: "pending" | "loading" | "completed" | "error") => {
     setProgressSteps((steps) =>
       steps.map((step) => (step.id === stepId ? { ...step, status } : step))
     );
@@ -72,13 +72,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setProgressSteps((steps) =>
-      steps.map((step) =>
-        step.status === "loading" || step.status === "pending"
-          ? { ...step, status: "cancelled" }
-          : step
-      )
-    );
+    setProgressSteps(INITIAL_STEPS);
     setIsProcessing(false);
     fetchJobMutation.reset();
   };
@@ -89,48 +83,27 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     setExtractedDetails(null);
     setActiveTab("url");
     handleCancel();
-    setProgressSteps(INITIAL_STEPS);
   };
 
-  const getSkillBadgeVariant = (
-    skill: string
-  ): "language" | "framework" | "database" | "cloud" | "tool" | "soft" => {
+  const getSkillBadgeVariant = (skill: string) => {
     const skillTypes = {
-      technical: [
-        "javascript", "python", "java", "c++", "typescript", "html", "css",
-        "api", "rest", "graphql", "frontend", "backend", "fullstack"
-      ],
-      framework: [
-        "react", "node", "vue", "angular", "svelte", "next", "express",
-        "django", "flask"
-      ],
-      database: [
-        "sql", "nosql", "mongodb", "postgresql", "mysql", "oracle", "redis",
-        "elasticsearch", "dynamodb", "database", "cassandra", "sqlite"
-      ],
-      cloud: [
-        "aws", "azure", "gcp", "cloud", "serverless", "lambda", "s3", "ec2",
-        "heroku", "docker", "kubernetes", "cicd", "devops", "terraform"
-      ],
-      tools: [
-        "git", "github", "gitlab", "bitbucket", "jira", "confluence", "slack",
-        "teams", "vscode", "intellij", "webpack", "babel", "npm", "yarn"
-      ],
-      soft: [
-        "communication", "leadership", "teamwork", "agile", "scrum", "kanban",
-        "management", "analytical", "problem-solving"
-      ]
+      technical: ["javascript", "python", "java", "typescript", "html", "css"],
+      framework: ["react", "node", "vue", "angular", "express"],
+      database: ["sql", "mongodb", "postgresql", "mysql"],
+      cloud: ["aws", "azure", "gcp", "docker"],
+      tools: ["git", "github", "jira", "webpack"],
+      soft: ["communication", "leadership", "teamwork"]
     };
 
     const lowerSkill = skill.toLowerCase();
 
-    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) return "language";
-    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) return "framework";
-    if (skillTypes.database.some((s) => lowerSkill.includes(s))) return "database";
-    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) return "cloud";
-    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) return "tool";
-    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) return "soft";
-    return "language";
+    if (skillTypes.technical.some(s => lowerSkill.includes(s))) return "default";
+    if (skillTypes.framework.some(s => lowerSkill.includes(s))) return "outline";
+    if (skillTypes.database.some(s => lowerSkill.includes(s))) return "secondary";
+    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) return "destructive";
+    if (skillTypes.tools.some(s => lowerSkill.includes(s))) return "ghost";
+    if (skillTypes.soft.some(s => lowerSkill.includes(s))) return "link";
+    return "default";
   };
 
   const checkUnsupportedJobSite = (url: string): string | null => {
@@ -148,7 +121,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     if (unsupportedSite) {
       toast({
         title: `${unsupportedSite} Detection`,
-        description: `${unsupportedSite} job postings cannot be automatically fetched due to their security measures. Please switch to manual input and paste the job description.`,
+        description: `${unsupportedSite} job postings cannot be automatically fetched. Please paste the description manually.`,
         variant: "destructive",
         duration: 6000,
       });
@@ -165,9 +138,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         }
         abortControllerRef.current = new AbortController();
 
-        setProgressSteps(INITIAL_STEPS);
-        updateStepStatus("extract", "loading");
-
         console.log('Making optimization request with data:', data);
 
         // Create URL with proper encoding
@@ -175,51 +145,32 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         if (data.jobUrl) params.append('jobUrl', data.jobUrl);
         if (data.jobDescription) params.append('jobDescription', data.jobDescription);
 
-        const eventSource = new EventSource(`/api/resume/${resumeId}/optimize?${params.toString()}`);
-
-        return new Promise((resolve, reject) => {
-          let result = null;
-
-          eventSource.onmessage = (event) => {
-            try {
-              const eventData = JSON.parse(event.data);
-              console.log('SSE Event:', eventData);
-
-              if (eventData.status === "extracting_details") {
-                updateStepStatus("extract", "completed");
-                updateStepStatus("analyze", "loading");
-              } else if (eventData.status === "optimizing_resume") {
-                updateStepStatus("analyze", "completed");
-                updateStepStatus("optimize", "loading");
-              } else if (eventData.status === "completed") {
-                updateStepStatus("optimize", "completed");
-                if (eventData.optimizedResume) {
-                  result = eventData.optimizedResume;
-                  eventSource.close();
-                  resolve(result);
-                }
-              } else if (eventData.error) {
-                throw new Error(eventData.error);
-              }
-            } catch (error) {
-              console.error('Failed to parse SSE data:', error);
-              eventSource.close();
-              reject(error);
-            }
-          };
-
-          eventSource.onerror = (error) => {
-            console.error('EventSource error:', error);
-            eventSource.close();
-            reject(new Error("Failed to connect to optimization service"));
-          };
-
-          // Add cleanup on abort
-          abortControllerRef.current?.signal.addEventListener('abort', () => {
-            eventSource.close();
-            reject(new Error("Request aborted by client"));
-          });
+        // Use fetch with proper error handling instead of EventSource
+        const response = await fetch(`/api/resume/${resumeId}/optimize?${params.toString()}`, {
+          signal: abortControllerRef.current.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
         });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Optimization response:', result);
+
+        if (!result || !result.jobDetails) {
+          throw new Error('Invalid response format: missing job details');
+        }
+
+        // Update progress after successful response
+        updateStepStatus("extract", "completed");
+        updateStepStatus("analyze", "completed");
+        updateStepStatus("optimize", "completed");
+
+        return result;
       } catch (error) {
         if (error instanceof Error &&
             (error.name === "AbortError" ||
@@ -233,13 +184,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     onSuccess: (data) => {
       if (!abortControllerRef.current?.signal.aborted) {
         try {
-          updateStepStatus("optimize", "completed");
-
-          if (!data || !data.jobDetails) {
+          if (!data.jobDetails) {
             throw new Error('Invalid response format: missing job details');
           }
 
-          // Create a properly structured JobDetails object
           const details: JobDetails = {
             title: data.jobDetails.title || "",
             company: data.jobDetails.company || "",
@@ -251,12 +199,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
           };
 
-          // Validate required fields
           if (!details.title || !details.company || !details.location) {
             throw new Error('Missing required job details');
           }
-
-          console.log('Final processed job details:', details);
 
           setExtractedDetails(details);
           setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
@@ -272,32 +217,22 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           onOptimized(data, details);
         } catch (error) {
           console.error('Error processing optimization result:', error);
-          throw error; // Re-throw to trigger onError handler
+          throw error;
         }
       }
     },
     onError: (error: Error) => {
       console.error('Mutation error:', error);
-      if (error.message !== "cancelled" && error.message !== "Request aborted by client") {
-        if (error.message.includes("dynamically loaded or require authentication")) {
-          toast({
-            title: "LinkedIn Job Detection",
-            description: "LinkedIn jobs require authentication. Please paste the description manually.",
-            variant: "destructive",
-            duration: 6000,
-          });
-          setActiveTab("manual");
-        } else {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to process job details",
-            variant: "destructive",
-          });
-        }
+      if (error.message !== "cancelled") {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to process job details",
+          variant: "destructive",
+        });
       }
       setIsProcessing(false);
 
-      // Mark all pending steps as error
+      // Mark remaining steps as error
       setProgressSteps(prev =>
         prev.map(step =>
           step.status === "pending" || step.status === "loading"
@@ -320,6 +255,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     }
 
     setIsProcessing(true);
+    setProgressSteps(INITIAL_STEPS);
+    updateStepStatus("extract", "loading");
+
     fetchJobMutation.mutate(
       activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
     );
@@ -341,22 +279,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           className="w-full"
         >
           <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-            <TabsTrigger
-              value="url"
-              disabled={isProcessing || !!jobDescription}
-              className={cn(
-                activeTab === "url" && "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-            >
+            <TabsTrigger value="url" disabled={isProcessing || !!jobDescription}>
               Job URL
             </TabsTrigger>
-            <TabsTrigger
-              value="manual"
-              disabled={isProcessing || !!jobUrl}
-              className={cn(
-                activeTab === "manual" && "bg-primary text-primary-foreground hover:bg-primary/90"
-              )}
-            >
+            <TabsTrigger value="manual" disabled={isProcessing || !!jobUrl}>
               Manual Input
             </TabsTrigger>
           </TabsList>
@@ -371,21 +297,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 className="w-full"
                 disabled={isProcessing}
               />
-              <div className="text-sm space-y-1">
-                <p className="text-muted-foreground">
-                  Enter the URL of the job posting for best results
-                </p>
-                <Alert className="mt-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Note: Indeed and ZipRecruiter URLs are not supported due to their security measures.
-                    Please use manual input for these job sites.
-                  </AlertDescription>
-                </Alert>
-                <p className="text-xs text-muted-foreground italic">
-                  Example: https://www.linkedin.com/jobs/view/4120138359/
-                </p>
-              </div>
+              <Alert className="mt-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Note: Indeed and ZipRecruiter URLs are not supported. Please use manual input for these job sites.
+                </AlertDescription>
+              </Alert>
             </div>
           </TabsContent>
 
@@ -398,9 +315,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 className="min-h-[200px] w-full"
                 disabled={isProcessing}
               />
-              <p className="text-sm text-muted-foreground">
-                Manually enter the job description if URL is not available
-              </p>
             </div>
           </TabsContent>
         </Tabs>
@@ -427,75 +341,47 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             disabled={isProcessing}
             className="w-full md:w-auto"
           >
-            <span>Restart</span>
+            Reset
           </Button>
         </div>
       </form>
 
       {extractedDetails && !isProcessing && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-6 space-y-6">
-            <div className="grid gap-4">
-              <div>
-                <p className="font-medium mb-1">Title</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedDetails.title || "Not specified"}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium mb-1">Company</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedDetails.company || "Not specified"}
-                </p>
-              </div>
-              <div>
-                <p className="font-medium mb-1">Location</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedDetails.location || "Not specified"}
-                </p>
-              </div>
-              {extractedDetails.salary && (
-                <div>
-                  <p className="font-medium mb-1">Salary</p>
-                  <p className="text-sm text-muted-foreground">{extractedDetails.salary}</p>
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
+          <div className="grid gap-4">
+            {Object.entries(extractedDetails)
+              .filter(([key]) => !Array.isArray(extractedDetails[key as keyof JobDetails]))
+              .map(([key, value]) => value && (
+                <div key={key}>
+                  <p className="font-medium mb-1">{key.charAt(0).toUpperCase() + key.slice(1)}</p>
+                  <p className="text-sm text-muted-foreground">{value}</p>
                 </div>
-              )}
-              <div>
-                <p className="font-medium mb-1">Position Level</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedDetails.positionLevel || "Not specified"}
-                </p>
+              ))}
+          </div>
+
+          {extractedDetails.keyRequirements?.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Key Requirements</h4>
+              <ul className="list-disc list-inside space-y-2">
+                {extractedDetails.keyRequirements.map((requirement, index) => (
+                  <li key={index} className="text-muted-foreground">{requirement}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {extractedDetails.skillsAndTools?.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+              <div className="flex flex-wrap gap-2">
+                {extractedDetails.skillsAndTools.map((skill, index) => (
+                  <Badge key={index} variant={getSkillBadgeVariant(skill)}>
+                    {skill}
+                  </Badge>
+                ))}
               </div>
             </div>
-
-            {extractedDetails.keyRequirements &&
-              extractedDetails.keyRequirements.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Key Requirements</h4>
-                  <ul className="list-disc list-inside space-y-2">
-                    {extractedDetails.keyRequirements.map((requirement, index) => (
-                      <li key={index} className="text-muted-foreground">
-                        {requirement}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-            {extractedDetails.skillsAndTools &&
-              extractedDetails.skillsAndTools.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {extractedDetails.skillsAndTools.map((skill, index) => (
-                      <Badge key={index} variant={getSkillBadgeVariant(skill)}>
-                        {skill}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-          </div>
+          )}
         </div>
       )}
 
