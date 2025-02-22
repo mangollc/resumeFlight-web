@@ -297,6 +297,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
           <TabsContent value="url" className="space-y-4">
             <div className="flex flex-col space-y-2">
+              <Alert variant="destructive" className="py-2 text-xs">
+                <AlertTriangle className="h-3 w-3" />
+                <AlertDescription>
+                  Only LinkedIn job URLs are supported (e.g. https://linkedin.com/jobs/view/123456). Many job sites use bot protection - for those, please copy-paste all job details in the manual input tab.
+                </AlertDescription>
+              </Alert>
               <Input
                 type="url"
                 placeholder="Paste LinkedIn job posting URL here..."
@@ -305,12 +311,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 className="w-full"
                 disabled={isProcessing}
               />
-              <Alert className="mt-2">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Note: Only LinkedIn job URLs are supported. For other job sites, please use manual input.
-                </AlertDescription>
-              </Alert>
             </div>
           </TabsContent>
 
