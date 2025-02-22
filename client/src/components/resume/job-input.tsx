@@ -168,7 +168,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         setProgressSteps(INITIAL_STEPS);
         updateStepStatus("extract", "loading");
 
-        // Make the optimization request
+        console.log('Making optimization request with data:', data);
+
         const response = await apiRequest(
           "POST",
           `/api/resume/${resumeId}/optimize`,
@@ -178,9 +179,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           }
         );
 
-        // First check if response is ok
         if (!response.ok) {
           const errorText = await response.text();
+          console.error('Error Response:', errorText);
           let errorMessage = "Failed to fetch job details";
           try {
             const errorData = JSON.parse(errorText);
@@ -194,24 +195,30 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         updateStepStatus("extract", "completed");
         updateStepStatus("analyze", "loading");
 
-        // Get response text first
         const responseText = await response.text();
-        console.log('Raw response text:', responseText); // Debug log
+        console.log('Raw API Response:', responseText);
 
         let jsonData;
         try {
           jsonData = JSON.parse(responseText);
-          console.log('Job Details Response:', {
+          console.log('Parsed Job Details:', {
             title: jsonData.jobDetails?.title,
             company: jsonData.jobDetails?.company,
             location: jsonData.jobDetails?.location,
             salary: jsonData.jobDetails?.salary,
+            description: jsonData.jobDetails?.description,
             positionLevel: jsonData.jobDetails?.positionLevel,
             keyRequirements: jsonData.jobDetails?.keyRequirements,
             skillsAndTools: jsonData.jobDetails?.skillsAndTools
           });
+
+          // Validate required fields
+          if (!jsonData.jobDetails?.title || !jsonData.jobDetails?.company || !jsonData.jobDetails?.location) {
+            throw new Error('Missing required job details fields');
+          }
+
         } catch (parseError) {
-          console.error('JSON Parse Error:', parseError, 'Response text:', responseText);
+          console.error('JSON Parse Error:', parseError, 'Response:', responseText);
           throw new Error('Failed to parse server response');
         }
 
@@ -238,20 +245,23 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             throw new Error('Invalid response format: missing job details');
           }
 
-          // Log the extracted job details
-          console.log('Processing job details:', data.jobDetails);
-
+          // Create a properly structured JobDetails object
           const details: JobDetails = {
-            title: data.jobDetails?.title || "",
-            company: data.jobDetails?.company || "",
-            location: data.jobDetails?.location || "",
-            salary: data.jobDetails?.salary || "",
-            positionLevel: data.jobDetails?.positionLevel || "",
-            keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
-            skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : []
+            title: data.jobDetails.title || "",
+            company: data.jobDetails.company || "",
+            location: data.jobDetails.location || "",
+            salary: data.jobDetails.salary || undefined,
+            description: data.jobDetails.description || undefined,
+            positionLevel: data.jobDetails.positionLevel || undefined,
+            keyRequirements: Array.isArray(data.jobDetails.keyRequirements) ? data.jobDetails.keyRequirements : [],
+            skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
           };
 
-          // Log the final processed details
+          // Validate required fields
+          if (!details.title || !details.company || !details.location) {
+            throw new Error('Missing required job details');
+          }
+
           console.log('Final processed job details:', details);
 
           setExtractedDetails(details);
