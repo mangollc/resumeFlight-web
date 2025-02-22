@@ -21,7 +21,9 @@ export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
     }
   }, [user]);
 
-  if (!show || !user) return null;
+  // Don't show welcome animation on review pages
+  const isReviewPage = window.location.pathname.includes('/review') || window.location.search.includes('optimizedId');
+  if (!show || !user || isReviewPage) return null;
 
   return (
     <motion.div
