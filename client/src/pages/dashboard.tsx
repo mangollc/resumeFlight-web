@@ -821,7 +821,10 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
       {!isReviewMode && showWelcome ? (
-        <WelcomeAnimation text={proverb} />
+        <WelcomeAnimation 
+          onAnimationComplete={() => setShowWelcome(false)} 
+          text={`Welcome back, ${user?.name || 'Anonymous User'}!`} 
+        />
       ) : (
         <div className="space-y-8">
           {!isReviewMode && (

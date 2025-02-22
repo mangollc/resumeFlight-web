@@ -5,23 +5,25 @@ import { useEffect, useState } from "react";
 
 interface WelcomeAnimationProps {
   className?: string;
+  text: string;
+  onAnimationComplete?: () => void;
 }
 
-export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
+export function WelcomeAnimation({ className, text, onAnimationComplete }: WelcomeAnimationProps) {
   const { user } = useAuth();
-  const [show, setShow] = useState(true); // Start as true when component mounts
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      // Hide animation after 5 seconds
+    if (show) {
       const timer = setTimeout(() => {
         setShow(false);
-      }, 5000);
+        onAnimationComplete?.();
+      }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [show, onAnimationComplete]);
 
-  if (!show || !user) return null;
+  if (!show) return null;
 
   return (
     <motion.div
@@ -32,7 +34,7 @@ export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
       className={cn("space-y-4 text-center lg:text-left", className)}
     >
       <h1 className="text-fluid-h1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-        Welcome back{user?.name ? `, ${user.name}` : ''}!
+        {text}
       </h1>
     </motion.div>
   );
