@@ -14,7 +14,7 @@ import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface JobDetails {
+export interface JobDetails {
   title: string;
   company: string;
   salary?: string;
@@ -44,14 +44,14 @@ const UNSUPPORTED_JOB_SITES = [
 
 export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
-  const [jobUrl, setJobUrl] = useState(initialJobDetails?.description || "");
-  const [jobDescription, setJobDescription] = useState(initialJobDetails?.description || "");
+  const [jobUrl, setJobUrl] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
-  const [optimizationVersion, setOptimizationVersion] = useState(1.0); 
+  const [optimizationVersion, setOptimizationVersion] = useState(1.0);
 
   useEffect(() => {
     return () => {
@@ -124,24 +124,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
     const lowerSkill = skill.toLowerCase();
 
-    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) {
-      return "language";
-    }
-    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) {
-      return "framework";
-    }
-    if (skillTypes.database.some((s) => lowerSkill.includes(s))) {
-      return "database";
-    }
-    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) {
-      return "cloud";
-    }
-    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) {
-      return "tool";
-    }
-    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) {
-      return "soft";
-    }
+    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) return "language";
+    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) return "framework";
+    if (skillTypes.database.some((s) => lowerSkill.includes(s))) return "database";
+    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) return "cloud";
+    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) return "tool";
+    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) return "soft";
     return "language";
   };
 
@@ -185,7 +173,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           `/api/resume/${resumeId}/optimize`,
           {
             ...data,
-            version: optimizationVersion 
+            version: optimizationVersion
           }
         );
 
@@ -204,12 +192,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         return jsonData;
       } catch (error) {
-        if (
-          error instanceof Error &&
-          (error.name === "AbortError" ||
-            error.message === "cancelled" ||
-            error.message === "Request aborted by client")
-        ) {
+        if (error instanceof Error && 
+            (error.name === "AbortError" || 
+             error.message === "cancelled" || 
+             error.message === "Request aborted by client")) {
           throw new Error("cancelled");
         }
         throw error;
@@ -220,23 +206,23 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         updateStepStatus("optimize", "completed");
 
         const details: JobDetails = {
-          title: data.jobDetails.title,
-          company: data.jobDetails.company,
-          location: data.jobDetails.location,
+          title: data.jobDetails.title || "",
+          company: data.jobDetails.company || "",
+          location: data.jobDetails.location || "",
           salary: data.jobDetails.salary,
           positionLevel: data.jobDetails.positionLevel,
-          keyRequirements: data.jobDetails.keyRequirements,
-          skillsAndTools: data.jobDetails.skillsAndTools,
+          keyRequirements: data.jobDetails.keyRequirements || [],
+          skillsAndTools: data.jobDetails.skillsAndTools || [],
         };
 
         setExtractedDetails(details);
-        setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1))); 
+        setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
         queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
         toast({
           title: "Success",
           description: "Job details fetched successfully",
-          duration: 2000, 
+          duration: 2000,
         });
 
         setIsProcessing(false);
@@ -244,15 +230,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       }
     },
     onError: (error: Error) => {
-      if (
-        error.message !== "cancelled" &&
-        error.message !== "Request aborted by client"
-      ) {
+      if (error.message !== "cancelled" && error.message !== "Request aborted by client") {
         if (error.message.includes("dynamically loaded or require authentication")) {
           toast({
             title: "LinkedIn Job Detection",
-            description:
-              "LinkedIn jobs require authentication. Please paste the description manually.",
+            description: "LinkedIn jobs require authentication. Please paste the description manually.",
             variant: "destructive",
             duration: 6000,
           });
@@ -296,7 +278,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       <div className="space-y-2">
         <h3 className="text-xl font-semibold">Enter Job Details</h3>
         <p className="text-sm text-muted-foreground">
-          Provide your job post URL or manually paste text in the manual input box.  Note: Indeed and ZipRecruiter URLs are not supported due to their security measures. Please use manual input for these job sites.
+          Provide your job post URL or manually paste text in the manual input box.
         </p>
       </div>
 
