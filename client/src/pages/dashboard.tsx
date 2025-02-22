@@ -702,9 +702,9 @@ export default function Dashboard() {
   ) : null;
 
 
-  const renderStep5 = () => (
-    <div>Step 5</div>
-  );
+  const renderStep5 = () => {
+    return null;  // Return null instead of showing "Step 5" text
+  };
 
   const renderReviewStep5 = () => {
     // Show loading state while fetching review data
