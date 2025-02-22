@@ -31,7 +31,10 @@ export function WelcomeAnimation({ className, text, onAnimationComplete }: Welco
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("space-y-4 text-center lg:text-left", className)}
+      className={cn(
+        "fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50",
+        className
+      )}
     >
       <h1 className="text-fluid-h1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
         {text}

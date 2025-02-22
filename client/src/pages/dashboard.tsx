@@ -29,6 +29,7 @@ import {
   Info,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { motion } from 'framer-motion';
 
 
 const jobProverbs = [
@@ -820,30 +821,33 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      {!isReviewMode && showWelcome ? (
-        <WelcomeAnimation 
-          onAnimationComplete={() => setShowWelcome(false)} 
-          text={`Welcome back, ${user?.name || 'Anonymous User'}!`} 
-        />
-      ) : (
-        <div className="space-y-8">
-          {!isReviewMode && (
-            <>
-              <div className="text-center transition-all duration-500 ease-in-out">
-                <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
-                  {proverb}
-                </h2>
-              </div>
-              <StepTracker
-                steps={steps}
-                currentStep={currentStep}
-                completedSteps={completedSteps}
-              />
-            </>
-          )}
+      {!isReviewMode && (
+        <motion.div
+          initial={{ opacity: 0, y: showWelcome ? 40 : 0 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: showWelcome ? 2.4 : 0 }}
+          className="space-y-8"
+        >
+          <div className="text-center transition-all duration-500 ease-in-out">
+            <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
+              {proverb}
+            </h2>
+          </div>
+          <StepTracker
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+          />
           {renderStep(currentStep)}
-        </div>
+        </motion.div>
       )}
+      {!isReviewMode && showWelcome && (
+        <WelcomeAnimation
+          onAnimationComplete={() => setShowWelcome(false)}
+          text={`Welcome back, ${user?.name || 'Anonymous User'}!`}
+        />
+      )}
+      {isReviewMode && renderStep(currentStep)}
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
