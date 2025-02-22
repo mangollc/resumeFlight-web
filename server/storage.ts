@@ -44,30 +44,30 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
-        pool,
-        tableName: 'session',
-        schemaName: 'public',
-        createTableIfMissing: true,
-        pruneSessionInterval: 60000, // 1 minute cleanup interval
-        ttl: 86400, // 24 hours
-        errorLog: (err: Error) => {
-            console.error('Session store error:', err);
-        },
-        disableTouch: true, // Disable touch to prevent connection issues
-        connectionConfig: {
-            statement_timeout: 10000, // 10 second timeout for session operations
-            idle_timeout: 30000, // 30 second idle timeout
-        }
+      pool,
+      tableName: 'session',
+      schemaName: 'public',
+      createTableIfMissing: true,
+      pruneSessionInterval: 60000, // 1 minute cleanup interval
+      ttl: 86400, // 24 hours
+      errorLog: (err: Error) => {
+        console.error('Session store error:', err);
+      },
+      disableTouch: true, // Disable touch to prevent connection issues
+      connectionConfig: {
+        statement_timeout: 10000, // 10 second timeout for session operations
+        idle_timeout: 30000, // 30 second idle timeout
+      }
     });
 
     // Add error handler for session store
     this.sessionStore.on('error', (error: Error) => {
-        console.error('Session store error:', error);
+      console.error('Session store error:', error);
     });
 
     // Add connection event handler
     this.sessionStore.on('connect', () => {
-        console.log('Session store connected successfully');
+      console.log('Session store connected successfully');
     });
   }
 
@@ -84,7 +84,10 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.email, email));
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email.toLowerCase()));
       return user;
     } catch (error) {
       console.error('Error getting user by email:', error);
@@ -97,7 +100,7 @@ export class DatabaseStorage implements IStorage {
       const [user] = await db
         .insert(users)
         .values({
-          email: userData.email,
+          email: userData.email.toLowerCase(),
           password: userData.password,
           name: userData.name || '',
         })

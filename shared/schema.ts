@@ -107,11 +107,16 @@ export const optimizationSessionsRelations = relations(optimizationSessions, ({ 
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  email: true,
-  password: true,
-  name: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    email: true,
+    password: true,
+    name: true,
+  })
+  .transform((data) => ({
+    ...data,
+    email: data.email.toLowerCase(),
+  }));
 
 export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
   .pick({
