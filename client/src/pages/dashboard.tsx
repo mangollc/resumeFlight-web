@@ -130,7 +130,7 @@ export default function Dashboard() {
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
-  const [showWelcome, setShowWelcome] = useState(!isReviewMode);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Fetch optimized resume data when in review mode
   useEffect(() => {
@@ -186,13 +186,14 @@ export default function Dashboard() {
   }, [isReviewMode]);
 
   useEffect(() => {
-    if (!isReviewMode) {
+    if (!isReviewMode && currentStep === 1) {
+      setShowWelcome(true);
       const timer = setTimeout(() => {
         setShowWelcome(false);
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [isReviewMode]);
+  }, [isReviewMode, currentStep]);
 
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
