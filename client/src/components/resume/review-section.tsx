@@ -1,24 +1,56 @@
-
 import { useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Preview from "@/components/resume/preview";
-import { OptimizedResume } from "@/types";
+import { OptimizedResume } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReviewSectionProps {
   optimizedResume: OptimizedResume;
   coverLetter?: any;
-  onDownload: (id: string) => void;
+  onDownload?: (id: string) => void;
 }
 
 export function ReviewSection({ optimizedResume, coverLetter, onDownload }: ReviewSectionProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const { toast } = useToast();
 
-  const handleDownload = async (id: string) => {
-    setIsDownloading(true);
-    await onDownload(id);
-    setIsDownloading(false);
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      if (onDownload) {
+        await onDownload(optimizedResume.id.toString());
+      } else {
+        const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download`);
+        if (!response.ok) {
+          throw new Error('Failed to download resume');
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = optimizedResume?.metadata.filename || 'resume.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+      toast({
+        title: "Success",
+        description: "Resume downloaded successfully",
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download resume",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -34,7 +66,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
             </h3>
             <Preview resume={optimizedResume} />
             <div className="mt-4 flex justify-end">
-              <Button onClick={() => handleDownload(optimizedResume.id)} disabled={isDownloading}>
+              <Button onClick={handleDownload} disabled={isDownloading}>
                 {isDownloading ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 ) : (

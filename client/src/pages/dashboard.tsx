@@ -481,38 +481,22 @@ export default function Dashboard() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast({ title: "Success", description: "Resume downloaded successfully", duration: 2000 });
+        toast({
+          title: "Success",
+          description: "Resume downloaded successfully",
+          duration: 2000
+        });
       } catch (error) {
-        toast({ title: "Error", description: "Failed to download resume", variant: "destructive" });
+        console.error('Download error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to download resume",
+          variant: "destructive"
+        });
       } finally {
         setIsDownloading(false);
       }
     };
-
-    const handleDownloadCoverLetter = async (coverLetterId: string) => {
-      try {
-        setIsDownloading(true);
-        const response = await fetch(`/api/cover-letter/${coverLetterId}/download`);
-        if (!response.ok) {
-          throw new Error('Failed to download cover letter');
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = coverLetter?.metadata.filename || 'cover_letter.pdf';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast({ title: "Success", description: "Cover letter downloaded successfully", duration: 2000 });
-      } catch (error) {
-        toast({ title: "Error", description: "Failed to download cover letter", variant: "destructive" });
-      } finally {
-        setIsDownloading(false);
-      }
-    };
-
 
     return (
       <ReviewSection 
