@@ -170,42 +170,47 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         console.log('Making optimization request with data:', data);
 
-        const eventSource = new EventSource(`/api/resume/${resumeId}/optimize?${new URLSearchParams(data)}`);
+        const eventSource = new EventSource(`/api/resume/${resumeId}/optimize?${new URLSearchParams({
+          jobUrl: data.jobUrl || '',
+          jobDescription: data.jobDescription || ''
+        })}`);
 
         return new Promise((resolve, reject) => {
           let result = null;
 
           eventSource.onmessage = (event) => {
             try {
-              const data = JSON.parse(event.data);
+              const eventData = JSON.parse(event.data);
+              console.log('SSE Event:', eventData);
               
-              if (data.status === "extracting_details") {
+              if (eventData.status === "extracting_details") {
                 updateStepStatus("extract", "completed");
                 updateStepStatus("analyze", "loading");
-              } else if (data.status === "optimizing_resume") {
+              } else if (eventData.status === "optimizing_resume") {
                 updateStepStatus("analyze", "completed");
                 updateStepStatus("optimize", "loading");
-              } else if (data.status === "completed") {
-                if (data.result) {
-                  result = data.result;
-                  updateStepStatus("optimize", "completed");
+              } else if (eventData.status === "completed") {
+                updateStepStatus("optimize", "completed");
+                if (eventData.optimizedResume) {
+                  result = eventData.optimizedResume;
+                  eventSource.close();
+                  resolve(result);
                 }
-                eventSource.close();
-                resolve(result);
               }
             } catch (error) {
-              console.warn('Failed to parse event data:', error);
+              console.warn('Failed to parse SSE data:', error);
             }
           };
 
           eventSource.onerror = (error) => {
+            console.error('EventSource error:', error);
             eventSource.close();
-            reject(new Error("EventSource failed"));
+            reject(new Error("EventSource failed - check server logs"));
           };
         });
 
-        // Validate required fields
-        if (!jsonData.jobDetails?.title || !jsonData.jobDetails?.company || !jsonData.jobDetails?.location) {
+        // Validate job details
+        if (!data.jobDetails?.title || !data.jobDetails?.company || !data.jobDetails?.location) {
           throw new Error('Missing required job details fields');
         }
 

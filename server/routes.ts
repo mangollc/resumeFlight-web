@@ -753,7 +753,10 @@ export function registerRoutes(app: Express): Server {
                 });
 
                 console.log("[Optimize] Successfully completed optimization");
-                sendStatus("completed");
+                res.write(`data: ${JSON.stringify({
+                  status: "completed",
+                  optimizedResume: optimizedResume
+                })}\n\n`);
                 return res.end();
             } catch (error) {
                 console.error("[Optimize] Error during optimization process:", error);
