@@ -12,10 +12,9 @@ import {
 
 interface NavbarProps {
   collapsed?: boolean;
-  proverb?: string; // Added proverb prop
 }
 
-export function Navbar({ collapsed, proverb }: NavbarProps) { // Added proverb to props
+export function Navbar({ collapsed }: NavbarProps) {
   return (
     <div className={cn(
       "h-14 lg:h-12 border-b",
@@ -25,10 +24,7 @@ export function Navbar({ collapsed, proverb }: NavbarProps) { // Added proverb t
       collapsed ? "lg:left-16" : "lg:left-56",
       "transition-all duration-300 ease-in-out"
     )}>
-      <div className="h-full px-4 lg:px-6 flex items-center justify-between">
-        <div className="text-primary/80 italic text-sm hidden lg:block">
-          {proverb}
-        </div>
+      <div className="h-full px-4 lg:px-6 flex items-center justify-end">
         <Dialog>
           <DialogTrigger asChild>
             <Button 

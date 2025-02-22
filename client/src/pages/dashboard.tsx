@@ -829,6 +829,11 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
       <div className="min-h-screen flex flex-col">
+        {!isReviewMode && proverb && (
+          <div className="bg-primary/5 p-4">
+            <p className="text-center text-lg italic text-primary">"{proverb}"</p>
+          </div>
+        )}
         {!isReviewMode && showWelcome ? (
           <WelcomeAnimation text={proverb} />
         ) : (
