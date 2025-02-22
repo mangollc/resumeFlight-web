@@ -830,7 +830,7 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
       <div className="min-h-screen flex flex-col">
         {!isReviewMode && proverb && (
-          <div className="bg-primary/5 p-4">
+          <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
             <p className="text-center text-lg italic text-primary">"{proverb}"</p>
           </div>
         )}
