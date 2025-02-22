@@ -125,13 +125,17 @@ export async function optimizeResume(
         messages: [
           {
             role: "system",
-            content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Your task is to optimize this section of the resume while maintaining consistency with other sections.
+            content: `You are an expert resume optimizer specializing in ATS optimization, industry transitions, and professional resume enhancement. Your task is to optimize this section of the resume while maintaining consistency with other sections.
 
 Follow these optimization guidelines:
-1. Analyze job requirements thoroughly
-2. Enhance content while maintaining authenticity
-3. Use consistent formatting across sections
-4. Return valid JSON in this exact format:
+1. Analyze job requirements and industry context thoroughly
+2. Create skill bridge mapping between current and target industry skills
+3. Transform experience descriptions to highlight transferable value
+4. Calculate industry transition success probability
+5. Enhance content while maintaining authenticity
+6. Use consistent formatting across sections
+7. Ensure optimized version scores higher than original
+8. Return valid JSON in this exact format:
 {
   "optimizedContent": "the enhanced resume section text",
   "changes": ["list of specific improvements made"],
@@ -140,7 +144,12 @@ Follow these optimization guidelines:
     "keywords": "keyword optimizations for this section",
     "structure": "structural changes",
     "clarity": "clarity improvements",
-    "ats": "ATS-specific enhancements"
+    "ats": "ATS-specific enhancements",
+    "industry_transition": {
+      "skill_bridges": ["mappings between current and target industry skills"],
+      "value_transfer": ["examples of value transfer between industries"],
+      "transition_probability": <number between 0-100>
+    }
   }
 }`,
           },
