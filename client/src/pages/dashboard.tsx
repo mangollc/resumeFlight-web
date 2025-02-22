@@ -284,6 +284,39 @@ export default function Dashboard() {
     }
   };
 
+  const handleDownload = async (resumeId: string) => {
+    try {
+      setIsDownloading(true);
+      const response = await fetch(`/api/optimized-resume/${resumeId}/download`);
+      if (!response.ok) {
+        throw new Error('Failed to download resume');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = optimizedResume?.metadata.filename || 'resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast({
+        title: "Success",
+        description: "Resume downloaded successfully",
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download resume",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleDownloadPackage = async () => {
     if (!optimizedResume?.id) return;
 
@@ -464,39 +497,6 @@ export default function Dashboard() {
 
   const renderOptimizedContent = () => {
     if (!optimizedResume) return null;
-
-    const handleDownload = async (resumeId: string) => {
-      try {
-        setIsDownloading(true);
-        const response = await fetch(`/api/optimized-resume/${resumeId}/download`);
-        if (!response.ok) {
-          throw new Error('Failed to download resume');
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = optimizedResume?.metadata.filename || 'resume.pdf';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast({
-          title: "Success",
-          description: "Resume downloaded successfully",
-          duration: 2000
-        });
-      } catch (error) {
-        console.error('Download error:', error);
-        toast({
-          title: "Error",
-          description: "Failed to download resume",
-          variant: "destructive"
-        });
-      } finally {
-        setIsDownloading(false);
-      }
-    };
 
     return (
       <ReviewSection 
