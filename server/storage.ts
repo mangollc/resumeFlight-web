@@ -44,34 +44,30 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-      tableName: 'session',
-      schemaName: 'public',
-      pruneSessionInterval: 60000, // 1 minute - more frequent cleanup
-      errorLog: (err: Error) => {
-        console.error('Session store error:', err);
-        // Add additional error handling if needed
-      },
-      ttl: ONE_DAY,
-      disableTouch: true, // Disable touch to prevent connection issues
-      retries: 5,
-      retry: {
-        initial: 500,    // Start with 0.5 second delay
-        max: 3000,      // Maximum 3 seconds between retries
-        multiplier: 1.5  // Increase delay by 1.5x after each retry
-      }
+        pool,
+        tableName: 'session',
+        schemaName: 'public',
+        createTableIfMissing: true,
+        pruneSessionInterval: 60000, // 1 minute cleanup interval
+        ttl: 86400, // 24 hours
+        errorLog: (err: Error) => {
+            console.error('Session store error:', err);
+        },
+        disableTouch: true, // Disable touch to prevent connection issues
+        connectionConfig: {
+            statement_timeout: 10000, // 10 second timeout for session operations
+            idle_timeout: 30000, // 30 second idle timeout
+        }
     });
 
     // Add error handler for session store
     this.sessionStore.on('error', (error: Error) => {
-      console.error('Session store error:', error);
-      // Add additional error handling if needed
+        console.error('Session store error:', error);
     });
 
     // Add connection event handler
     this.sessionStore.on('connect', () => {
-      console.log('Session store connected successfully');
+        console.log('Session store connected successfully');
     });
   }
 
