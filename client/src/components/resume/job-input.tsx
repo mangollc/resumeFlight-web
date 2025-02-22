@@ -160,7 +160,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         const response = await apiRequest(
           'POST',
           `/api/uploaded-resumes/${resumeId}/optimize`,
-          data
+          {
+            ...data,
+            version: 1.0
+          }
         );
 
         if (!response.ok) {
@@ -182,6 +185,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         return result;
       } catch (error) {
         console.error('Optimization error:', error);
+        console.error('Full error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
 
         if (error instanceof Error) {
           if (error.name === "AbortError" || error.message === "cancelled") {

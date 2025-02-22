@@ -109,6 +109,7 @@ export async function optimizeResume(
     console.log(`[Optimize] Starting resume optimization...`);
     console.log(`[Optimize] Version: ${optimizationVersion}`);
     console.log(`[Optimize] Processing resume in ${resumeChunks.length} chunks`);
+    console.log(`[Optimize] Job Description: ${jobDescription}`);
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
@@ -118,7 +119,7 @@ export async function optimizeResume(
       structure: "",
       clarity: "",
       ats: "",
-    } as const;
+    };
 
     // Process each chunk of the resume
     for (let i = 0; i < resumeChunks.length; i++) {
@@ -142,19 +143,14 @@ Follow these optimization guidelines:
 {
   "optimizedContent": "the enhanced resume section text",
   "changes": ["list of specific improvements made"],
-  "sectionScore": <number between 0-100>,
+  "sectionScore": 85,
   "improvements": {
     "keywords": "keyword optimizations for this section",
     "structure": "structural changes",
     "clarity": "clarity improvements",
-    "ats": "ATS-specific enhancements",
-    "industry_transition": {
-      "skill_bridges": ["mappings between current and target industry skills"],
-      "value_transfer": ["examples of value transfer between industries"],
-      "transition_probability": <number between 0-100>
-    }
+    "ats": "ATS-specific enhancements"
   }
-}`,
+}`
           },
           {
             role: "user",
@@ -176,18 +172,22 @@ Follow these optimization guidelines:
         throw new Error("No response from OpenAI for section " + (i + 1));
       }
 
-      const result = JSON.parse(content);
-      optimizedChunks.push(result.optimizedContent || "");
-      allChanges.push(...(result.changes || []));
-      overallMatchScore += result.sectionScore || 0;
+      try {
+        const result = JSON.parse(content);
+        optimizedChunks.push(result.optimizedContent || "");
+        allChanges.push(...(result.changes || []));
+        overallMatchScore += result.sectionScore || 0;
 
-      // Merge improvements with proper type checking
-      (Object.keys(improvements) as Array<keyof typeof improvements>).forEach(
-        (key) => {
+        // Merge improvements
+        Object.keys(improvements).forEach((key) => {
           const newValue = result.improvements?.[key] || "";
           improvements[key] = improvements[key] ? `${improvements[key]}\n${newValue}` : newValue;
-        },
-      );
+        });
+      } catch (error) {
+        console.error('[Optimize] Failed to parse OpenAI response:', error);
+        console.error('[Optimize] Raw response content:', content);
+        throw new Error('Failed to parse optimization response');
+      }
     }
 
     // Calculate final match score
