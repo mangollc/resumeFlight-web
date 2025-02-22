@@ -367,6 +367,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 export default function OptimizedResumesPage() {
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
+    select: (data) => {
+      return [...data].sort((a, b) => {
+        const dateA = new Date(a.metadata.optimizedAt).getTime();
+        const dateB = new Date(b.metadata.optimizedAt).getTime();
+        return dateB - dateA;
+      });
+    }
   });
 
   if (isLoading) {
