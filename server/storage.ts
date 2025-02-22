@@ -212,22 +212,37 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
-      // Ensure jobDetails exists and has proper contact information structure
-      const jobDetailsWithContact = {
-        ...resume.jobDetails,
-        contactInfo: {
-          fullName: resume.jobDetails?.contactInfo?.fullName || '',
-          email: resume.jobDetails?.contactInfo?.email || '',
-          phone: resume.jobDetails?.contactInfo?.phone || '',
-          address: resume.jobDetails?.contactInfo?.address
-        }
-      };
+      // Get existing versions if this is a regeneration
+      const existingVersions = await db
+        .select()
+        .from(optimizedResumes)
+        .where(eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId));
+
+      const nextVersion = existingVersions.length + 1;
 
       const [result] = await db
         .insert(optimizedResumes)
         .values({
           ...resume,
-          jobDetails: jobDetailsWithContact,
+          version: nextVersion,
+          versionMetrics: [{
+            version: nextVersion,
+            metrics: {
+              before: {
+                overall: 0,
+                keywords: 0,
+                skills: 0,
+                experience: 0
+              },
+              after: {
+                overall: 0,
+                keywords: 0,
+                skills: 0,
+                experience: 0
+              }
+            },
+            timestamp: new Date().toISOString()
+          }],
           createdAt: new Date().toISOString(),
         })
         .returning();

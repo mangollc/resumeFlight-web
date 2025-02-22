@@ -31,20 +31,9 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   metadata: jsonb("metadata").notNull(),
   version: integer("version").notNull(),
   versionHistory: jsonb("version_history").notNull().default([]),
-  metrics: jsonb("metrics").default({
-    before: {
-      overall: 0,
-      keywords: 0,
-      skills: 0,
-      experience: 0
-    },
-    after: {
-      overall: 0,
-      keywords: 0,
-      skills: 0,
-      experience: 0
-    }
-  }),
+  metrics: jsonb("metrics").notNull().default([]),
+  version: integer("version").notNull().default(1),
+  versionMetrics: jsonb("version_metrics").notNull().default([]),
   createdAt: text("created_at").notNull(),
 });
 

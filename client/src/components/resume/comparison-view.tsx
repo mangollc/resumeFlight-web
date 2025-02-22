@@ -27,10 +27,31 @@ const getMetricsColor = (value: number) => {
 export default function ComparisonView({ beforeContent, afterContent, resumeId }: ComparisonViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [differences, setDifferences] = useState<any>(null);
+  const [selectedVersion, setSelectedVersion] = useState<number>(1);
+  const [versions, setVersions] = useState<number[]>([]);
   const [metrics, setMetrics] = useState<{
     before: { overall: number; keywords: number; skills: number; experience: number };
     after: { overall: number; keywords: number; skills: number; experience: number };
   } | null>(null);
+
+  const handleVersionChange = async (version: number) => {
+    setSelectedVersion(version);
+    await fetchMetricsForVersion(version);
+  };
+
+  const fetchMetricsForVersion = async (version: number) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/optimized-resume/${resumeId}/metrics/${version}`);
+      if (!response.ok) throw new Error('Failed to fetch metrics');
+      const data = await response.json();
+      setMetrics(data);
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
