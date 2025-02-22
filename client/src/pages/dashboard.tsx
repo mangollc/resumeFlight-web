@@ -460,17 +460,67 @@ export default function Dashboard() {
     </div>
   );
 
-  const renderCurrentStep = () => {
-    // Show loading state if we're in review mode and still loading
-    if (isLoadingReview) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Loading optimization session...</p>
+  const renderOptimizationReview = () => {
+    if (!optimizedResume) return null;
+
+    return (
+      <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
+        <CardContent className="p-8">
+          <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+            Final Review
+          </h2>
+          <div className="space-y-12">
+            <div>
+              <h3 className="text-xl font-semibold mb-6 text-foreground/90">
+                Optimized Resume
+              </h3>
+              <Preview resume={optimizedResume} />
+              <div className="mt-4 flex justify-end">
+                <Button onClick={() => handleDownload(optimizedResume.id)} disabled={isDownloading}>
+                  {isDownloading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Download Resume
+                </Button>
+              </div>
+            </div>
+            
+            {coverLetter && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold mb-6 text-foreground/90">
+                  Cover Letter
+                </h3>
+                <Preview resume={coverLetter} />
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={() => handleDownloadCoverLetter(coverLetter.id)} disabled={isDownloading}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Cover Letter
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      );
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderCurrentStep = () => {
+    // When in review mode, show the optimization review component
+    if (isReviewMode) {
+      if (isLoadingReview) {
+        return (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground">Loading optimization session...</p>
+            </div>
+          </div>
+        );
+      }
+      return renderOptimizationReview();
     }
 
     // Don't render steps if we're in review mode and don't have all required data
@@ -829,23 +879,28 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
       <div className="min-h-screen flex flex-col">
-        {!isReviewMode && proverb && (
-          <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
-            <p className="text-center text-lg italic text-primary">"{proverb}"</p>
-          </div>
-        )}
-        {!isReviewMode && showWelcome ? (
+        {!isReviewMode && (
+          <>
+            {proverb && (
+              <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
+                <p className="text-center text-lg italic text-primary">"{proverb}"</p>
+              </div>
+            )}
+            {showWelcome ? (
           <WelcomeAnimation text={proverb} />
-        ) : (
-          <div className="space-y-8">
-            <StepTracker
-              steps={steps}
-              currentStep={currentStep}
-              completedSteps={completedSteps}
-            />
-            {renderCurrentStep()}
-          </div>
+            ) : (
+              <div className="space-y-8">
+                <StepTracker
+                  steps={steps}
+                  currentStep={currentStep}
+                  completedSteps={completedSteps}
+                />
+                {renderCurrentStep()}
+              </div>
+            )}
+          </>
         )}
+        {isReviewMode && renderCurrentStep()}
       </div>
       <LoadingDialog
         open={isOptimizing}
