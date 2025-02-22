@@ -825,11 +825,18 @@ export default function Dashboard() {
       ) : (
         <div className="space-y-8">
           {!isReviewMode && (
-            <StepTracker
-              steps={steps}
-              currentStep={currentStep}
-              completedSteps={completedSteps}
-            />
+            <>
+              <div className="text-center transition-all duration-500 ease-in-out">
+                <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
+                  {proverb}
+                </h2>
+              </div>
+              <StepTracker
+                steps={steps}
+                currentStep={currentStep}
+                completedSteps={completedSteps}
+              />
+            </>
           )}
           {renderStep(currentStep)}
         </div>
