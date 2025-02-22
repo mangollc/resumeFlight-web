@@ -1,4 +1,4 @@
-import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
@@ -33,13 +33,18 @@ export interface IStorage {
   deleteCoverLetter(id: number): Promise<void>;
   getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]>;
   sessionStore: session.Store;
+  // Optimization Session operations
+  getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined>;
+  createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession>;
+  updateOptimizationSession(sessionId: string, data: Partial<InsertOptimizationSession>): Promise<OptimizationSession>;
+  getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]>;
 }
 
 export class DatabaseStorage implements IStorage {
   readonly sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({ 
+    this.sessionStore = new PostgresSessionStore({
       pool,
       createTableIfMissing: true,
       tableName: 'session',
@@ -293,12 +298,12 @@ export class DatabaseStorage implements IStorage {
         };
       });
 
-      return transformedResults.sort((a, b) => 
+      return transformedResults.sort((a, b) =>
         (b.metadata.version || 0) - (a.metadata.version || 0)
       );
     } catch (error) {
       console.error('Error getting optimized resumes by job description:', error);
-      return []; 
+      return [];
     }
   }
 
@@ -374,6 +379,93 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting cover letters by optimized resume ID:', error);
       throw new Error('Failed to get cover letters by optimized resume ID');
+    }
+  }
+
+    // Optimization Session methods
+  async getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(optimizationSessions)
+        .where(eq(optimizationSessions.sessionId, sessionId));
+
+      if (!result) return undefined;
+
+      return {
+        ...result,
+        comparisons: result.comparisons as OptimizationSession['comparisons'],
+        reviewState: result.reviewState as OptimizationSession['reviewState'],
+      };
+    } catch (error) {
+      console.error('Error getting optimization session:', error);
+      throw new Error('Failed to get optimization session');
+    }
+  }
+
+  async createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession> {
+    try {
+      const now = new Date().toISOString();
+      const [result] = await db
+        .insert(optimizationSessions)
+        .values({
+          ...session,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      return {
+        ...result,
+        comparisons: result.comparisons as OptimizationSession['comparisons'],
+        reviewState: result.reviewState as OptimizationSession['reviewState'],
+      };
+    } catch (error) {
+      console.error('Error creating optimization session:', error);
+      throw new Error('Failed to create optimization session');
+    }
+  }
+
+  async updateOptimizationSession(
+    sessionId: string,
+    data: Partial<InsertOptimizationSession>,
+  ): Promise<OptimizationSession> {
+    try {
+      const [result] = await db
+        .update(optimizationSessions)
+        .set({
+          ...data,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(optimizationSessions.sessionId, sessionId))
+        .returning();
+
+      return {
+        ...result,
+        comparisons: result.comparisons as OptimizationSession['comparisons'],
+        reviewState: result.reviewState as OptimizationSession['reviewState'],
+      };
+    } catch (error) {
+      console.error('Error updating optimization session:', error);
+      throw new Error('Failed to update optimization session');
+    }
+  }
+
+  async getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]> {
+    try {
+      const results = await db
+        .select()
+        .from(optimizationSessions)
+        .where(eq(optimizationSessions.userId, userId));
+
+      return results.map(result => ({
+        ...result,
+        comparisons: result.comparisons as OptimizationSession['comparisons'],
+        reviewState: result.reviewState as OptimizationSession['reviewState'],
+      }));
+    } catch (error) {
+      console.error('Error getting optimization sessions by user:', error);
+      throw new Error('Failed to get optimization sessions');
     }
   }
 }

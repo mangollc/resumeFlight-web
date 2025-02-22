@@ -20,6 +20,7 @@ export const uploadedResumes = pgTable("uploaded_resumes", {
 
 export const optimizedResumes = pgTable("optimized_resumes", {
   id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
   userId: integer("user_id").notNull(),
   uploadedResumeId: integer("uploaded_resume_id").notNull(),
   content: text("content").notNull(),
@@ -45,6 +46,21 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   createdAt: text("created_at").notNull(),
 });
 
+export const optimizationSessions = pgTable("optimization_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(),
+  userId: integer("user_id").notNull(),
+  optimizedResumeId: integer("optimized_resume_id").notNull(),
+  coverLetterId: integer("cover_letter_id"),
+  comparisons: jsonb("comparisons").notNull(),
+  reviewState: jsonb("review_state").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => ({
+  sessionIdIdx: index("optimization_session_id_idx").on(table.sessionId),
+  optimizedResumeIdIdx: index("optimization_session_resume_id_idx").on(table.optimizedResumeId),
+}));
+
 export const coverLetters = pgTable("cover_letters", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
@@ -66,12 +82,27 @@ export const optimizedResumesRelations = relations(optimizedResumes, ({ one }) =
     fields: [optimizedResumes.uploadedResumeId],
     references: [uploadedResumes.id],
   }),
+  optimizationSession: one(optimizationSessions, {
+    fields: [optimizedResumes.sessionId],
+    references: [optimizationSessions.sessionId],
+  }),
 }));
 
 export const coverLettersRelations = relations(coverLetters, ({ one }) => ({
   optimizedResume: one(optimizedResumes, {
     fields: [coverLetters.optimizedResumeId],
     references: [optimizedResumes.id],
+  }),
+}));
+
+export const optimizationSessionsRelations = relations(optimizationSessions, ({ one }) => ({
+  optimizedResume: one(optimizedResumes, {
+    fields: [optimizationSessions.optimizedResumeId],
+    references: [optimizedResumes.id],
+  }),
+  coverLetter: one(coverLetters, {
+    fields: [optimizationSessions.coverLetterId],
+    references: [coverLetters.id],
   }),
 }));
 
@@ -90,6 +121,7 @@ export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
 
 export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
   .pick({
+    sessionId: true,
     content: true,
     originalContent: true,
     jobDescription: true,
@@ -98,6 +130,15 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     metadata: true,
     metrics: true,
     uploadedResumeId: true,
+  });
+
+export const insertOptimizationSessionSchema = createInsertSchema(optimizationSessions)
+  .pick({
+    sessionId: true,
+    optimizedResumeId: true,
+    coverLetterId: true,
+    comparisons: true,
+    reviewState: true,
   });
 
 export const insertCoverLetterSchema = createInsertSchema(coverLetters)
@@ -164,6 +205,17 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
+
+export type OptimizationSession = typeof optimizationSessions.$inferSelect & {
+  comparisons: ResumeDifferences;
+  reviewState: {
+    currentStep: number;
+    isComplete: boolean;
+    hasGeneratedCoverLetter: boolean;
+    downloadedFiles: string[];
+  };
+};
+export type InsertOptimizationSession = z.infer<typeof insertOptimizationSessionSchema>;
 
 export type CoverLetter = typeof coverLetters.$inferSelect & {
   metadata: {

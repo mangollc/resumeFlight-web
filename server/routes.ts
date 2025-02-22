@@ -15,6 +15,7 @@ import PDFDocument from "pdfkit";
 import { insertUploadedResumeSchema } from "@shared/schema";
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { v4 as uuidv4 } from 'uuid';
 
 // Constants
 const MAX_ALLOWED_TIMEOUT = 2147483647;
@@ -498,7 +499,51 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    // Optimize resume route
+    //New routes for optimization sessions
+    app.get("/api/optimization-sessions", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const sessions = await storage.getOptimizationSessionsByUser(req.user!.id);
+            return res.status(200).json(sessions);
+        } catch (error: any) {
+            console.error("[Get Sessions] Error:", error);
+            return res.status(500).json({
+                error: "Failed to fetch optimization sessions",
+                details: error.message,
+            });
+        }
+    });
+
+    app.get("/api/optimization-session/:sessionId", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const session = await storage.getOptimizationSession(req.params.sessionId);
+            if (!session) {
+                return res.status(404).json({ error: "Session not found" });
+            }
+
+            if (session.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            return res.status(200).json(session);
+        } catch (error: any) {
+            console.error("[Get Session] Error:", error);
+            return res.status(500).json({
+                error: "Failed to fetch optimization session",
+                details: error.message,
+            });
+        }
+    });
+
+
+    // Optimize resume route (modified)
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
         // Add timeout to the request
         req.setTimeout(60000);
@@ -529,6 +574,9 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
+            // Generate a unique session ID
+            const sessionId = uuidv4();
+
             let finalJobDescription: string;
             let jobDetails: JobDetails;
 
@@ -537,8 +585,7 @@ export function registerRoutes(app: Express): Server {
                     console.log("[Optimize] Processing job URL:", jobUrl);
                     const extractedDetails = await extractJobDetails(jobUrl);
                     finalJobDescription = extractedDetails.description;
-                    jobDetails =
-                        await analyzeJobDescription(finalJobDescription);
+                    jobDetails = await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
                         ...extractedDetails,
                         ...jobDetails,
@@ -579,6 +626,7 @@ export function registerRoutes(app: Express): Server {
 
                 console.log("[Optimize] Saving optimized resume");
                 const optimizedResume = await storage.createOptimizedResume({
+                    sessionId,
                     content: optimized.optimizedContent,
                     originalContent: uploadedResume.content,
                     jobDescription: finalJobDescription,
@@ -597,21 +645,74 @@ export function registerRoutes(app: Express): Server {
                     },
                 });
 
+                // Create the optimization session
+                console.log("[Optimize] Creating optimization session");
+                const session = await storage.createOptimizationSession({
+                    sessionId,
+                    userId: req.user!.id,
+                    optimizedResumeId: optimizedResume.id,
+                    coverLetterId: null,
+                    comparisons: { changes: [] },
+                    reviewState: {
+                        currentStep: 1,
+                        isComplete: false,
+                        hasGeneratedCoverLetter: false,
+                        downloadedFiles: [],
+                    },
+                });
+
                 console.log("[Optimize] Successfully completed optimization");
-                return res.status(200).json(optimizedResume);
+                return res.status(200).json({
+                    ...optimizedResume,
+                    session,
+                });
             } catch (error) {
                 console.error(
                     "[Optimize] Error during optimization process:",
                     error,
                 );
-                throw new Error(`Optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                throw new Error(
+                    `Optimization failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+                );
             }
         } catch (error) {
             console.error("[Optimize] Error:", error);
-            const errorMessage = error instanceof Error ? error.message : "Failed to optimize resume";
+            const errorMessage =
+                error instanceof Error ? error.message : "Failed to optimize resume";
             return res.status(500).json({
                 error: errorMessage,
                 details: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    });
+
+    // Update session state
+    app.patch("/api/optimization-session/:sessionId", async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const session = await storage.getOptimizationSession(req.params.sessionId);
+            if (!session) {
+                return res.status(404).json({ error: "Session not found" });
+            }
+
+            if (session.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            const updatedSession = await storage.updateOptimizationSession(
+                req.params.sessionId,
+                req.body
+            );
+
+            return res.status(200).json(updatedSession);
+        } catch (error: any) {
+            console.error("[Update Session] Error:", error);
+            return res.status(500).json({
+                error: "Failed to update optimization session",
+                details: error.message,
             });
         }
     });
@@ -734,19 +835,19 @@ export function registerRoutes(app: Express): Server {
 
             // More robust name matching
             const nameMatch = firstSection.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m) || 
-                            optimizedResume.content.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m);
+                                optimizedResume.content.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m);
 
             // More robust email matching
             const emailMatch = firstSection.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i) ||
-                             optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+                                 optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
 
             // More robust phone matching
             const phoneMatch = firstSection.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/) ||
-                             optimizedResume.content.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
+                                 optimizedResume.content.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
 
             // More robust address matching
             const addressMatch = firstSection.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i) ||
-                               optimizedResume.content.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i);
+                                   optimizedResume.content.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i);
 
             const contactInfo = {
                 fullName: nameMatch ? nameMatch[1].trim() : '',
@@ -833,7 +934,7 @@ export function registerRoutes(app: Express): Server {
             const sections = coverLetter.content.split("\n\n");
             sections.forEach((section, index) => {
                 if (index > 0) doc.moveDown();
-                doc.fontSize(index === 0 ? 16 : 12)
+                                doc.fontSize(index === 0 ? 16 : 12)
                     .font(index === 0 ? "Helvetica-Bold" : "Helvetica")
                     .text(section.trim());
             });
