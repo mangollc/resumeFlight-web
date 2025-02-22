@@ -99,14 +99,7 @@ function formatJobDetails(resume: OptimizedResume) {
               {resume.jobDetails?.salary || "Not specified"}
             </p>
           </div>
-          {resume.jobDetails?.description && (
-            <div>
-              <p className="font-medium mb-1">Description</p>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {resume.jobDetails.description}
-              </p>
-            </div>
-          )}
+          {/* Description hidden but data preserved in resume.jobDetails.description */}
         </div>
       </div>
 
