@@ -106,10 +106,9 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Extract optimizedId from URL if present
-  const searchParams = new URLSearchParams(location.split('?')[1]);
-  const optimizedId = searchParams.get('optimizedId');
-  const isReviewMode = params.id && optimizedId;
+  // Use the ID directly from the URL path for optimized resumes
+  const optimizedId = params.id;
+  const isReviewMode = !!optimizedId;
 
   // Add loading state for review mode
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
@@ -919,7 +918,7 @@ export default function Dashboard() {
   if (isLoadingReview) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
+        <div<div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Loading optimization session...</p>
         </div>
