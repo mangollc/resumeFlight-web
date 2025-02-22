@@ -182,11 +182,14 @@ export default function Dashboard() {
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
       setProverb(jobProverbs[randomIndex]);
+    }
+  }, [isReviewMode]);
 
+  useEffect(() => {
+    if (!isReviewMode) {
       const timer = setTimeout(() => {
         setShowWelcome(false);
       }, 3000);
-
       return () => clearTimeout(timer);
     }
   }, [isReviewMode]);
