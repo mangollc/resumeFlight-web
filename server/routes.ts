@@ -691,8 +691,9 @@ export function registerRoutes(app: Express): Server {
                 sendStatus("completed");
                 return res.end();
             } catch (error) {
-                console.error(
-                    "[Optimize] Error during optimization process:",
+                console.error("[Optimize] Error during optimization process:",
+                sendStatus("error");
+                return res.end();
                     error,
                 );
                 sendStatus("error");

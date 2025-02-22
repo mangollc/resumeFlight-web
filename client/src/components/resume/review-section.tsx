@@ -24,7 +24,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
   const { toast } = useToast();
 
-  const handleDownload = async () => {
+  const const handleDownload = async () => {
     try {
       setIsDownloading(true);
       const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}`);
