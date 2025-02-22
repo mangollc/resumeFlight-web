@@ -27,23 +27,20 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      if (onDownload) {
-        await onDownload(optimizedResume.id.toString());
-      } else {
-        const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download`);
-        if (!response.ok) {
-          throw new Error('Failed to download resume');
-        }
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = optimizedResume?.metadata.filename || 'resume.pdf';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}`);
+      if (!response.ok) {
+        throw new Error('Failed to download resume');
       }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${optimizedResume?.metadata.filename}.${selectedFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       toast({
         title: "Success",
         description: "Resume downloaded successfully",
@@ -109,20 +106,34 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
         </h2>
         <div className="space-y-12">
           <div>
-            <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-              Optimized Resume
-            </h3>
-            <Preview resume={optimizedResume} />
-            <div className="mt-4 flex justify-end">
-              <Button onClick={handleDownload} disabled={isDownloading}>
-                {isDownloading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 mr-2" />
-                )}
-                Download Resume
-              </Button>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-foreground/90">
+                Optimized Resume
+              </h3>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedFormat}
+                  onValueChange={(value) => setSelectedFormat(value as "pdf" | "docx")}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">PDF</SelectItem>
+                    <SelectItem value="docx">DOCX</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleDownload} disabled={isDownloading}>
+                  {isDownloading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  Download Resume
+                </Button>
+              </div>
             </div>
+            <Preview resume={optimizedResume} />
           </div>
 
           {/* Cover Letter Section */}

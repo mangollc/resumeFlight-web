@@ -474,7 +474,7 @@ export default function Dashboard() {
     setCoverLetters([]);
   };
 
-  const handleReoptimize = async () => {
+  async function handleReoptimize() {
     if (!uploadedResume?.id || !jobDetails) {
       toast({
         title: "Error",
@@ -504,26 +504,19 @@ export default function Dashboard() {
 
       // Start analysis
       updateStep("analyze", "loading");
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      updateStep("analyze", "completed");
-
-      // Keywords extraction
-      updateStep("keywords", "loading");
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      updateStep("keywords", "completed");
-
-      // Matching process
-      updateStep("matching", "loading");
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      updateStep("matching", "completed");
-
-      // Final optimization
-      updateStep("optimize", "loading");
-
       const optimizationData = {
         jobDetails,
         version: nextVersion
       };
+
+      // Keywords extraction
+      updateStep("keywords", "loading");
+
+      // Matching process
+      updateStep("matching", "loading");
+
+      // Final optimization
+      updateStep("optimize", "loading");
 
       const response = await apiRequest(
         "POST",
@@ -535,11 +528,14 @@ export default function Dashboard() {
         throw new Error('Failed to reoptimize resume');
       }
 
+      // Mark steps as completed after successful response
+      ["analyze", "keywords", "matching", "optimize"].forEach(stepId => {
+        updateStep(stepId, "completed");
+      });
+
       const optimizedData = await response.json();
       setOptimizedResume(optimizedData);
       setOptimizationVersion(nextVersion);
-
-      updateStep("optimize", "completed");
 
       // Invalidate queries to ensure latest data
       await queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
@@ -568,7 +564,7 @@ export default function Dashboard() {
     } finally {
       setIsOptimizing(false);
     }
-  };
+  }
 
   const canGoBack = currentStep > 1;
   const canGoNext = currentStep < 5 && (
