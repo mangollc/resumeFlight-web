@@ -32,7 +32,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   jobUrl: text("job_url"),
   jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
-  version: integer("version").notNull(),
+  version: text("version").notNull().default('1.0'),
   versionHistory: jsonb("version_history").notNull().default([]),
   metrics: jsonb("metrics").notNull().default([]),
   versionMetrics: jsonb("version_metrics").notNull().default([]),
