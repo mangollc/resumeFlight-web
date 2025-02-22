@@ -62,8 +62,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   }, []);
 
   const updateStepStatus = (stepId: string, status: "pending" | "loading" | "completed" | "error") => {
-    setProgressSteps((steps) =>
-      steps.map((step) => (step.id === stepId ? { ...step, status } : step))
+    setProgressSteps(prev =>
+      prev.map(step =>
+        step.id === stepId ? { ...step, status } : step
+      )
     );
   };
 
@@ -140,18 +142,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         console.log('Making optimization request with data:', data);
 
-        // Create URL with proper encoding
-        const params = new URLSearchParams();
-        if (data.jobUrl) params.append('jobUrl', data.jobUrl);
-        if (data.jobDescription) params.append('jobDescription', data.jobDescription);
-
-        // Use fetch with proper error handling instead of EventSource
-        const response = await fetch(`/api/resume/${resumeId}/optimize?${params.toString()}`, {
-          signal: abortControllerRef.current.signal,
-          headers: {
-            'Accept': 'application/json',
+        // Use apiRequest instead of fetch
+        const response = await apiRequest(
+          'POST',
+          `/api/resume/${resumeId}/optimize`,
+          data,
+          {
+            signal: abortControllerRef.current.signal,
           }
-        });
+        );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -172,11 +171,16 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         return result;
       } catch (error) {
-        if (error instanceof Error &&
-            (error.name === "AbortError" ||
-             error.message === "cancelled" ||
-             error.message === "Request aborted by client")) {
-          throw new Error("cancelled");
+        // Log the full error object for debugging
+        console.error('Full error object:', error);
+
+        if (error instanceof Error) {
+          if (error.name === "AbortError" || error.message === "cancelled") {
+            throw new Error("cancelled");
+          }
+          // Try to extract a more specific error message if available
+          const message = error.message || "Failed to process job details";
+          throw new Error(message);
         }
         throw error;
       }
@@ -223,6 +227,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     },
     onError: (error: Error) => {
       console.error('Mutation error:', error);
+
+      // Don't show error toast if the request was cancelled
       if (error.message !== "cancelled") {
         toast({
           title: "Error",
@@ -230,6 +236,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           variant: "destructive",
         });
       }
+
       setIsProcessing(false);
 
       // Mark remaining steps as error
