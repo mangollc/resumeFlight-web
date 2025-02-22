@@ -49,13 +49,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
 
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
       }
     };
   }, []);
@@ -69,9 +69,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   };
 
   const handleCancel = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
     setProgressSteps(INITIAL_STEPS);
     setIsProcessing(false);
@@ -143,111 +143,105 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
       try {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
         }
-        abortControllerRef.current = new AbortController();
 
         // Validate LinkedIn URL if provided
         if (data.jobUrl && !isValidLinkedInUrl(data.jobUrl)) {
           throw new Error('Please provide a valid LinkedIn job posting URL');
         }
 
-        console.log('Making optimization request with data:', data);
+        console.log('Making optimization request...');
 
-        updateStepStatus("extract", "loading");
+        const evtSource = new EventSource(`/api/resume/${resumeId}/optimize?${new URLSearchParams(data)}`);
+        eventSourceRef.current = evtSource;
 
-        const response = await apiRequest(
-          'POST',
-          `/api/uploaded-resumes/${resumeId}/optimize`,
-          {
-            ...data,
-            version: 1.0
-          }
-        );
+        return new Promise((resolve, reject) => {
+          evtSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              console.log('Received event:', data);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Server error: ${response.status}`);
-        }
+              if (data.status === "started") {
+                updateStepStatus("extract", "loading");
+              } else if (data.status === "extracting_details") {
+                updateStepStatus("extract", "loading");
+              } else if (data.status === "analyzing_description") {
+                updateStepStatus("extract", "completed");
+                updateStepStatus("analyze", "loading");
+              } else if (data.status === "optimizing_resume") {
+                updateStepStatus("analyze", "completed");
+                updateStepStatus("optimize", "loading");
+              } else if (data.status === "completed") {
+                updateStepStatus("optimize", "completed");
+                evtSource.close();
+                resolve(data.optimizedResume);
+              } else if (data.status === "error") {
+                throw new Error("Optimization failed");
+              }
+            } catch (error) {
+              evtSource.close();
+              reject(error);
+            }
+          };
 
-        const result = await response.json();
-        console.log('Optimization response:', result);
-
-        if (!result || !result.jobDetails) {
-          throw new Error('Invalid response format: missing job details');
-        }
-
-        updateStepStatus("extract", "completed");
-        updateStepStatus("analyze", "completed");
-        updateStepStatus("optimize", "completed");
-
-        return result;
+          evtSource.onerror = (error) => {
+            evtSource.close();
+            reject(new Error("EventSource failed"));
+          };
+        });
       } catch (error) {
         console.error('Optimization error:', error);
-        console.error('Full error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-
         if (error instanceof Error) {
-          if (error.name === "AbortError" || error.message === "cancelled") {
-            throw new Error("cancelled");
-          }
           throw error;
         }
         throw new Error("An unexpected error occurred");
       }
     },
     onSuccess: (data) => {
-      if (!abortControllerRef.current?.signal.aborted) {
-        try {
-          if (!data.jobDetails) {
-            throw new Error('Invalid response format: missing job details');
-          }
-
-          const details: JobDetails = {
-            title: data.jobDetails.title || "",
-            company: data.jobDetails.company || "",
-            location: data.jobDetails.location || "",
-            salary: data.jobDetails.salary,
-            description: data.jobDetails.description,
-            positionLevel: data.jobDetails.positionLevel,
-            keyRequirements: Array.isArray(data.jobDetails.keyRequirements) ? data.jobDetails.keyRequirements : [],
-            skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
-          };
-
-          setExtractedDetails(details);
-          queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
-
-          toast({
-            title: "Success",
-            description: "Job details fetched successfully",
-            duration: 2000,
-          });
-
-          setIsProcessing(false);
-          onOptimized(data, details);
-        } catch (error) {
-          console.error('Error processing optimization result:', error);
-          throw error;
+      try {
+        if (!data.jobDetails) {
+          throw new Error('Invalid response format: missing job details');
         }
+
+        const details: JobDetails = {
+          title: data.jobDetails.title || "",
+          company: data.jobDetails.company || "",
+          location: data.jobDetails.location || "",
+          salary: data.jobDetails.salary,
+          description: data.jobDetails.description,
+          positionLevel: data.jobDetails.positionLevel,
+          keyRequirements: Array.isArray(data.jobDetails.keyRequirements) ? data.jobDetails.keyRequirements : [],
+          skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
+        };
+
+        setExtractedDetails(details);
+        queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
+
+        toast({
+          title: "Success",
+          description: "Resume optimization completed",
+          duration: 2000,
+        });
+
+        setIsProcessing(false);
+        onOptimized(data, details);
+      } catch (error) {
+        console.error('Error processing optimization result:', error);
+        throw error;
       }
     },
     onError: (error: Error) => {
       console.error('Mutation error:', error);
 
-      if (error.message !== "cancelled") {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to process job details",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process job details",
+        variant: "destructive",
+      });
 
       setIsProcessing(false);
-
       setProgressSteps(prev =>
         prev.map(step =>
           step.status === "pending" || step.status === "loading"

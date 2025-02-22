@@ -608,8 +608,8 @@ export function registerRoutes(app: Express): Server {
     });
 
 
-    // Optimize resume route (modified)
-    app.post("/api/resume/:id/optimize", async (req: Request, res) => {
+    // Update the optimize resume route
+    app.get("/api/resume/:id/optimize", async (req: Request, res) => {
         // Increase timeout to 5 minutes for long-running optimizations
         req.setTimeout(300000);
         res.setTimeout(300000);
@@ -617,49 +617,44 @@ export function registerRoutes(app: Express): Server {
         // Enable keep-alive for longer connections
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('Keep-Alive', 'timeout=300');
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('X-Accel-Buffering', 'no');
+
+        const sendEvent = (data: any) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
 
         try {
-            const sendStatus = (status: string) => {
-                res.write(`data: ${JSON.stringify({ status })}\n\n`);
-            };
-
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
-
             console.log("[Optimize] Starting optimization request...");
-            sendStatus("started");
+            sendEvent({ status: "started" });
 
             if (!req.isAuthenticated()) {
                 console.log("[Optimize] User not authenticated");
-                return res.status(401).json({ error: "Unauthorized" });
+                sendEvent({ status: "error", message: "Unauthorized" });
+                return res.end();
             }
 
-            const { jobUrl, jobDescription } = req.body;
+            const { jobUrl, jobDescription } = req.query;
             if (!jobUrl && !jobDescription) {
                 console.log("[Optimize] Missing job details");
-                return res.status(400).json({
-                    error: "Please provide either a job URL or description",
-                });
+                sendEvent({ status: "error", message: "Please provide either a job URL or description" });
+                return res.end();
             }
 
             console.log("[Optimize] Fetching uploaded resume...");
-            sendStatus("fetching_resume");
-            const uploadedResume = await storage.getUploadedResume(
-                parseInt(req.params.id),
-            );
+            sendEvent({ status: "fetching_resume" });
+            const uploadedResume = await storage.getUploadedResume(parseInt(req.params.id));
             if (!uploadedResume) {
                 console.log("[Optimize] Resume not found");
-                return res.status(404).json({ error: "Resume not found" });
+                sendEvent({ status: "error", message: "Resume not found" });
+                return res.end();
             }
             if (uploadedResume.userId !== req.user!.id) {
                 console.log("[Optimize] Unauthorized access");
-                return res.status(403).json({ error: "Unauthorized access" });
+                sendEvent({ status: "error", message: "Unauthorized access" });
+                return res.end();
             }
-
-            // Generate a unique session ID
-            const sessionId = uuidv4();
-            console.log("[Optimize] Generated session ID:", sessionId);
 
             let finalJobDescription: string;
             let jobDetails: JobDetails;
@@ -667,11 +662,11 @@ export function registerRoutes(app: Express): Server {
             try {
                 if (jobUrl) {
                     console.log("[Optimize] Processing job URL:", jobUrl);
-                    sendStatus("extracting_details");
-                    const extractedDetails = await extractJobDetails(jobUrl);
+                    sendEvent({ status: "extracting_details" });
+                    const extractedDetails = await extractJobDetails(jobUrl as string);
                     finalJobDescription = extractedDetails.description;
                     console.log("[Optimize] Job details extracted, analyzing description...");
-                    sendStatus("analyzing_description");
+                    sendEvent({ status: "analyzing_description" });
                     jobDetails = await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
                         ...extractedDetails,
@@ -679,13 +674,13 @@ export function registerRoutes(app: Express): Server {
                     };
                 } else {
                     console.log("[Optimize] Processing manual job description");
-                    finalJobDescription = jobDescription;
-                    sendStatus("analyzing_description");
-                    jobDetails = await analyzeJobDescription(jobDescription);
+                    finalJobDescription = jobDescription as string;
+                    sendEvent({ status: "analyzing_description" });
+                    jobDetails = await analyzeJobDescription(jobDescription as string);
                 }
 
                 console.log("[Optimize] Starting optimization process");
-                sendStatus("optimizing_resume");
+                sendEvent({ status: "optimizing_resume" });
                 const optimized = await optimizeResume(
                     uploadedResume.content,
                     finalJobDescription,
@@ -693,11 +688,12 @@ export function registerRoutes(app: Express): Server {
 
                 if (!optimized || !optimized.optimizedContent) {
                     console.error("[Optimize] Failed to generate optimized content");
-                    throw new Error("Failed to generate optimized content");
+                    sendEvent({ status: "error", message: "Failed to generate optimized content" });
+                    return res.end();
                 }
 
                 console.log("[Optimize] Calculating match scores...");
-                sendStatus("calculating_scores");
+                sendEvent({ status: "calculating_scores" });
                 const beforeMetrics = await calculateMatchScores(
                     uploadedResume.content,
                     finalJobDescription,
@@ -717,11 +713,11 @@ export function registerRoutes(app: Express): Server {
 
                 console.log("[Optimize] Creating optimized resume record");
                 const optimizedResume = await storage.createOptimizedResume({
-                    sessionId,
+                    sessionId: uuidv4(),
                     content: optimized.optimizedContent,
                     originalContent: uploadedResume.content,
                     jobDescription: finalJobDescription,
-                    jobUrl: jobUrl || null,
+                    jobUrl: jobUrl as string || null,
                     jobDetails,
                     uploadedResumeId: uploadedResume.id,
                     userId: req.user!.id,
@@ -736,45 +732,22 @@ export function registerRoutes(app: Express): Server {
                     },
                 });
 
-                // Create the optimization session
-                console.log("[Optimize] Creating optimization session");
-                const session = await storage.createOptimizationSession({
-                    sessionId,
-                    userId: req.user!.id,
-                    optimizedResumeId: optimizedResume.id,
-                    coverLetterId: null,
-                    comparisons: { changes: [] },
-                    reviewState: {
-                        currentStep: 1,
-                        isComplete: false,
-                        hasGeneratedCoverLetter: false,
-                        downloadedFiles: [],
-                    },
-                });
-
                 console.log("[Optimize] Successfully completed optimization");
-                res.write(`data: ${JSON.stringify({
-                  status: "completed",
-                  optimizedResume: optimizedResume
-                })}\n\n`);
+                sendEvent({
+                    status: "completed",
+                    optimizedResume: optimizedResume
+                });
                 return res.end();
             } catch (error) {
                 console.error("[Optimize] Error during optimization process:", error);
-                sendStatus("error");
+                sendEvent({ status: "error", message: error instanceof Error ? error.message : "Optimization failed" });
                 return res.end();
             }
         } catch (error) {
             console.error("[Optimize] Error:", error);
-            const errorMessage =
-                error instanceof Error ? error.message : "Failed to optimize resume";
-
-            // If headers are already sent, we can't send another response
-            if (!res.headersSent) {
-                return res.status(500).json({
-                    error: errorMessage,
-                    details: error instanceof Error ? error.message : "Unknown error",
-                });
-            }
+            const errorMessage = error instanceof Error ? error.message : "Failed to optimize resume";
+            sendEvent({ status: "error", message: errorMessage });
+            return res.end();
         }
     });
 
