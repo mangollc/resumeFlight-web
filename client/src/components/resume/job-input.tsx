@@ -19,7 +19,6 @@ interface JobDetails {
   company: string;
   location: string;
   salary?: string;
-  description?: string;
   positionLevel?: string;
   keyRequirements?: string[];
   skillsAndTools?: string[];
@@ -46,11 +45,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
-  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
-  const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
+  const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
 
   useEffect(() => {
     return () => {
@@ -81,30 +79,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const handleReset = () => {
     setJobUrl("");
     setJobDescription("");
-    setExtractedDetails(null);
     setActiveTab("url");
     handleCancel();
-  };
-
-  const getSkillBadgeVariant = (skill: string) => {
-    const skillTypes = {
-      technical: ["javascript", "python", "java", "typescript", "html", "css"],
-      framework: ["react", "node", "vue", "angular", "express"],
-      database: ["sql", "mongodb", "postgresql", "mysql"],
-      cloud: ["aws", "azure", "gcp", "docker"],
-      tools: ["git", "github", "jira", "webpack"],
-      soft: ["communication", "leadership", "teamwork"]
-    };
-
-    const lowerSkill = skill.toLowerCase();
-
-    if (skillTypes.technical.some(s => lowerSkill.includes(s))) return "default";
-    if (skillTypes.framework.some(s => lowerSkill.includes(s))) return "secondary";
-    if (skillTypes.database.some(s => lowerSkill.includes(s))) return "destructive";
-    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) return "outline";
-    if (skillTypes.tools.some(s => lowerSkill.includes(s))) return "ghost";
-    if (skillTypes.soft.some(s => lowerSkill.includes(s))) return "default";
-    return "default";
   };
 
   const isValidLinkedInUrl = (url: string): boolean => {
@@ -147,7 +123,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           eventSourceRef.current.close();
         }
 
-        // Validate LinkedIn URL if provided
         if (data.jobUrl && !isValidLinkedInUrl(data.jobUrl)) {
           throw new Error('Please provide a valid LinkedIn job posting URL');
         }
@@ -210,13 +185,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           company: data.jobDetails.company || "",
           location: data.jobDetails.location || "",
           salary: data.jobDetails.salary,
-          description: data.jobDetails.description,
           positionLevel: data.jobDetails.positionLevel,
           keyRequirements: Array.isArray(data.jobDetails.keyRequirements) ? data.jobDetails.keyRequirements : [],
           skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
         };
 
-        setExtractedDetails(details);
         queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
         toast({
@@ -339,7 +312,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 Processing...
               </>
             ) : (
-              "Fetch Job Info"
+              "Start Optimization"
             )}
           </Button>
           <Button
@@ -353,45 +326,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           </Button>
         </div>
       </form>
-
-      {extractedDetails && !isProcessing && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-          <div className="grid gap-4">
-            {Object.entries(extractedDetails)
-              .filter(([key]) => !Array.isArray(extractedDetails[key as keyof JobDetails]))
-              .map(([key, value]) => value && (
-                <div key={key}>
-                  <p className="font-medium mb-1">{key.charAt(0).toUpperCase() + key.slice(1)}</p>
-                  <p className="text-sm text-muted-foreground">{value}</p>
-                </div>
-              ))}
-          </div>
-
-          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Key Requirements</h4>
-              <ul className="list-disc list-inside space-y-2">
-                {extractedDetails.keyRequirements.map((requirement, index) => (
-                  <li key={index} className="text-muted-foreground">{requirement}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-              <div className="flex flex-wrap gap-2">
-                {extractedDetails.skillsAndTools.map((skill, index) => (
-                  <Badge key={index} variant={getSkillBadgeVariant(skill)}>
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       <LoadingDialog
         open={isProcessing}
