@@ -16,21 +16,26 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  RotateCcw,
-  ChevronDown,
-  ChevronRight,
-  Info,
-} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { motion } from 'framer-motion';
-
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const jobProverbs = [
   "Your next career move starts with a great resume",
@@ -83,11 +88,14 @@ const steps: Step[] = [
 ];
 
 export type JobDetails = {
-  url?: string | undefined;
-  description?: string | undefined;
-  title?: string | undefined;
-  company?: string | undefined;
-  location?: string | undefined;
+  title?: string;
+  company?: string;
+  location?: string;
+  description?: string;
+  salary?: string;
+  positionLevel?: string;
+  keyRequirements?: string[];
+  skillsAndTools?: string[];
 };
 
 export default function Dashboard() {
@@ -98,22 +106,19 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
 
   // Extract optimizedId from URL if present
-  const searchParams = new URLSearchParams(location.split('?')[1] || '');
+  const searchParams = new URLSearchParams(location.split('?')[1]);
   const optimizedId = searchParams.get('optimizedId');
-  // Check both params.id and optimizedId for review mode
-  const isReviewMode = Boolean(params.id && optimizedId);
+  const isReviewMode = params.id && optimizedId;
 
-  // State for review mode
+  // Add loading state for review mode
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
-  const [reviewLoadError, setReviewLoadError] = useState<string | null>(null);
 
   // Initialize all state variables
   const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [completedSteps, setCompletedSteps] = useState<number[]>(isReviewMode ? [1, 2, 3, 4, 5] : []);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
-  const [showWelcome, setShowWelcome] = useState(!isReviewMode);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
   const [optimizationVersion, setOptimizationVersion] = useState(1.0);
@@ -125,32 +130,39 @@ export default function Dashboard() {
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
+  const [showWelcome, setShowWelcome] = useState(!isReviewMode);
 
-  // Fetch optimized resume data in review mode
+  // Fetch optimized resume data when in review mode
   useEffect(() => {
-    if (isReviewMode && optimizedId) {
-      const loadReviewData = async () => {
+    if (isReviewMode) {
+      const fetchOptimizedResume = async () => {
         try {
           setIsLoadingReview(true);
-          setReviewLoadError(null);
-
           const response = await apiRequest('GET', `/api/optimized-resume/${optimizedId}`);
           if (!response.ok) {
-            throw new Error('Failed to fetch optimization session');
+            throw new Error('Failed to fetch optimized resume');
           }
-
           const data = await response.json();
 
-          // Set all the necessary data
-          setOptimizedResume(data);
-          setUploadedResume(data.uploadedResume);
-          setCoverLetter(data.coverLetter);
-          setCompletedSteps([1, 2, 3, 4, 5]); // Mark all steps as completed in review mode
+          // Set uploaded resume from the optimized resume data
+          if (data.uploadedResume) {
+            setUploadedResume(data.uploadedResume);
+          }
 
+          setOptimizedResume(data);
+          setJobDetails(data.jobDetails);
+
+          if (data.coverLetter) {
+            setCoverLetter(data.coverLetter);
+            setCoverLetters([data.coverLetter]);
+            setSelectedCoverLetterVersion(data.coverLetter.metadata.version.toString());
+          }
+
+          setCompletedSteps([1, 2, 3, 4, 5]);
+          setCurrentStep(5);
+          setShowWelcome(false);
         } catch (error) {
-          const err = error as Error;
-          console.error('Error loading optimization session:', err);
-          setReviewLoadError(err.message);
+          console.error('Error fetching optimized resume:', error);
           toast({
             title: "Error",
             description: "Failed to load optimization session",
@@ -161,27 +173,27 @@ export default function Dashboard() {
         }
       };
 
-      loadReviewData();
+      fetchOptimizedResume();
     }
   }, [isReviewMode, optimizedId, toast]);
 
-  // Welcome animation effect
+  // Welcome animation effect - Only show if not in review mode
   useEffect(() => {
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
       setProverb(jobProverbs[randomIndex]);
+    }
+  }, [isReviewMode]);
 
+  useEffect(() => {
+    if (!isReviewMode) {
       const timer = setTimeout(() => {
         setShowWelcome(false);
       }, 3000);
-
       return () => clearTimeout(timer);
     }
   }, [isReviewMode]);
 
-  const { data: resumes } = useQuery<UploadedResume[]>({
-    queryKey: ["/api/uploaded-resumes"],
-  });
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
     try {
@@ -448,266 +460,8 @@ export default function Dashboard() {
     </div>
   );
 
-  const formatDownloadFilename = (filename: string, jobTitle: string, version: number) => {
-    const baseName = filename.substring(0, filename.lastIndexOf('.'));
-    return `${baseName}_${jobTitle}_v${version.toFixed(1)}`;
-  };
-
-  const formatJobDetails = (resume: OptimizedResume | null): string => {
-    if (!resume || !resume.jobDetails) return "No job details available.";
-    return `Title: ${resume.jobDetails.title || 'N/A'}\nCompany: ${resume.jobDetails.company || 'N/A'}\nLocation: ${resume.jobDetails.location || 'N/A'}\nURL: ${resume.jobDetails.url || 'N/A'}\nDescription: ${resume.jobDetails.description || 'N/A'}`;
-  };
-
-  const renderStep1 = () => (
-    <div className="fade-in">
-      <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-        <CardContent className="p-8">
-          <h3 className="text-xl font-semibold mb-6 text-foreground/90">Choose your uploaded Resume or Upload a new one</h3>
-          <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                variant={uploadMode === 'choose' ? "gradient" : "outline"}
-                onClick={() => setUploadMode('choose')}
-                className="w-full sm:w-auto"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Choose Existing
-              </Button>
-              <Button
-                variant={uploadMode === 'upload' ? "gradient" : "outline"}
-                onClick={() => setUploadMode('upload')}
-                className="w-full sm:w-auto"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload New
-              </Button>
-            </div>
-            {uploadMode === 'choose' && resumes && resumes.length > 0 ? (
-              <div className="relative z-50 w-full">
-                <Select
-                  value={uploadedResume?.id?.toString()}
-                  onValueChange={(value) => {
-                    const resume = resumes.find(r => r.id.toString() === value);
-                    if (resume) {
-                      setUploadedResume(resume);
-                      setCompletedSteps(prev => [...prev, 1]);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a resume" />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="absolute w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]"
-                  >
-                    {resumes.map((resume) => (
-                      <SelectItem key={resume.id} value={resume.id.toString()}>
-                        {resume.metadata.filename}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : uploadMode === 'choose' ? (
-              <div className="text-center py-6 bg-muted/30 rounded-lg">
-                <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground mb-3">No resumes uploaded yet</p>
-                <Button
-                  variant="link"
-                  onClick={() => setUploadMode('upload')}
-                  className="text-primary"
-                >
-                  Upload your first resume
-                </Button>
-              </div>
-            ) : null}
-
-            {uploadMode === 'upload' && (
-              <UploadForm onSuccess={handleResumeUploaded} />
-            )}
-          </div>
-          {renderNavigation()}
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderStep2 = () => uploadedResume ? (
-    <div className="fade-in">
-      <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-        <CardContent className="p-8">
-          <JobInput
-            resumeId={uploadedResume.id}
-            onOptimized={handleOptimizationComplete}
-            initialJobDetails={jobDetails}
-          />
-          {renderNavigation()}
-        </CardContent>
-      </Card>
-    </div>
-  ) : null;
-
-  const renderStep3 = () => optimizedResume ? (
-    <div className="fade-in">
-      <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-        <CardContent className="p-8">
-          <div id="optimized-preview">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-foreground/90">Preview</h3>
-            </div>
-            <Preview
-              resume={optimizedResume}
-            />
-          </div>
-          {renderNavigation()}
-        </CardContent>
-      </Card>
-    </div>
-  ) : null;
-
-  const renderStep4 = () => optimizedResume ? (
-    <div className="fade-in">
-      <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-        <CardContent className="p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
-            {!coverLetter && (
-              <Button
-                variant="outline"
-                onClick={handleNext}
-                className="text-muted-foreground"
-              >
-                Skip Cover Letter
-              </Button>
-            )}
-          </div>
-          {!coverLetter ? (
-            <CoverLetter
-              resume={optimizedResume}
-              onGenerated={handleCoverLetterGenerated}
-              generatedCoverLetter={coverLetter}
-            />
-          ) : (
-            <div className="mt-6 space-y-8">
-              <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
-                <div className="flex justify-between items-center mb-6">
-                  <h4 className="font-semibold text-foreground/90">
-                    Preview {coverLetters?.find(
-                      (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                    )?.metadata.version ? `(v${coverLetters.find(
-                      (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                    )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={handleRegenerateCoverLetter}
-                      variant="default"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                      disabled={isGeneratingCoverLetter}
-                    >
-                      {isGeneratingCoverLetter ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Regenerating...
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                          Regenerate Cover Letter
-                        </>
-                      )}
-                    </Button>
-                    {coverLetters.length <= 1 && (
-                      <Button
-                        onClick={() => {
-                          if (coverLetter) {
-                            window.location.href = `/api/cover-letter/${coverLetter.id}/download?filename=${
-                              formatDownloadFilename(
-                                coverLetter.metadata.filename,
-                                optimizedResume.jobDetails?.title || '',
-                                coverLetter.metadata.version
-                              )
-                            }_cover.pdf`;
-                          }
-                        }}
-                        variant="outline"
-                        className="transition-all duration-300 hover:bg-primary/10"
-                      >
-                        Download Cover Letter
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                {coverLetters && coverLetters.length > 1 && (
-                  <div className="mb-6">
-                    <Select
-                      value={selectedCoverLetterVersion}
-                      onValueChange={setSelectedCoverLetterVersion}
-                    >
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Select version" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {coverLetters.map((letter) => (
-                          <SelectItem
-                            key={letter.metadata.version}
-                            value={letter.metadata.version.toString()}
-                          >
-                            Version {letter.metadata.version.toFixed(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                <div className="prose prose-sm max-w-none text-foreground/80">
-                  <pre className="whitespace-pre-wrap">
-                    {coverLetters?.find(
-                      (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                    )?.content || coverLetter.content}
-                  </pre>
-                </div>
-              </div>
-              {coverLetters && coverLetters.length > 1 && (
-                <div className="flex justify-end">
-                  <Button
-                    onClick={() => {
-                      const selectedLetter = coverLetters.find(
-                        (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                      );
-                      if (selectedLetter) {
-                        window.location.href = `/api/cover-letter/${selectedLetter.id}/download`;
-                      }
-                    }}
-                    variant="outline"
-                    className="transition-all duration-300 hover:bg-primary/10"
-                  >
-                    Download Version {selectedCoverLetterVersion}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          {renderNavigation()}
-        </CardContent>
-      </Card>
-
-      <LoadingDialog
-        open={isGeneratingCoverLetter}
-        title="Generating Cover Letter"
-        description="Please wait while we generate your cover letter using AI..."
-        onOpenChange={setIsGeneratingCoverLetter}
-      />
-    </div>
-  ) : null;
-
-
-  const renderStep5 = () => {
-    return null;  // Return null instead of showing "Step 5" text
-  };
-
-  const renderReviewStep5 = () => {
-    // Show loading state while fetching review data
+  const renderCurrentStep = () => {
+    // Show loading state if we're in review mode and still loading
     if (isLoadingReview) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -719,155 +473,387 @@ export default function Dashboard() {
       );
     }
 
-    // Show error state if review mode loading failed
-    if (reviewLoadError) {
+    // Don't render steps if we're in review mode and don't have all required data
+    if (isReviewMode && (!optimizedResume || !uploadedResume)) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
-            <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
-            <p className="text-muted-foreground">{reviewLoadError}</p>
-            <Button
-              variant="outline"
-              onClick={() => window.location.href = '/optimized-resumes'}
-            >
-              Return to Optimized Resumes
-            </Button>
+            <AlertTriangle className="w-8 h-8 mx-auto text-destructive mb-4"/>
+            <p className="text-muted-foreground">Unable to load optimization session. Please try again.</p>
           </div>
         </div>
       );
     }
 
-    // Render review content
-    if (!optimizedResume || !uploadedResume) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
-            <p className="text-muted-foreground">Unable to load optimization session</p>
-            <Button
-              variant="outline"
-              onClick={() => window.location.href = '/optimized-resumes'}
-            >
-              Return to Optimized Resumes
-            </Button>
-          </div>
-        </div>
-      );
-    }
+    const commonCardProps = {
+      className: "border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95"
+    };
 
-    return (
-      <div className="fade-in space-y-8">
-        <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-          <CardContent className="p-8">
-            <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-              Optimization Review
-            </h2>
-            <div className="space-y-12">
-              {/* Resume Preview */}
-              <div>
-                <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                  Optimized Resume
-                </h3>
-                <Preview resume={optimizedResume} />
-              </div>
 
-              {/* Cover Letter (if available) */}
-              {coverLetter && (
-                <div>
-                  <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                    Cover Letter
-                  </h3>
-                  <div className="bg-muted/30 rounded-lg p-8">
-                    <pre className="whitespace-pre-wrap text-sm text-foreground/80">
-                      {coverLetter.content}
-                    </pre>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
-  const renderStep = (step: number) => {
-    switch (step) {
+    switch (currentStep) {
       case 1:
-        return renderStep1();
+        if (isReviewMode) return null; // Skip rendering step 1 in review mode
+        return (
+          <div className="fade-in">
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <h3 className="text-xl font-semibold mb-6 text-foreground/90">Choose your uploaded Resume or Upload a new one</h3>
+                <div className="space-y-8">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      variant={uploadMode === 'choose' ? "gradient" : "outline"}
+                      onClick={() => setUploadMode('choose')}
+                      className="w-full sm:w-auto"
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      Choose Existing
+                    </Button>
+                    <Button
+                      variant={uploadMode === 'upload' ? "gradient" : "outline"}
+                      onClick={() => setUploadMode('upload')}
+                      className="w-full sm:w-auto"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload New
+                    </Button>
+                  </div>
+                  {uploadMode === 'choose' && resumes && resumes.length > 0 ? (
+                    <div className="relative z-50 w-full">
+                      <Select
+                        value={uploadedResume?.id?.toString()}
+                        onValueChange={(value) => {
+                          const resume = resumes.find(r => r.id.toString() === value);
+                          if (resume) {
+                            setUploadedResume(resume);
+                            setCompletedSteps(prev => [...prev, 1]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a resume" />
+                        </SelectTrigger>
+                        <SelectContent
+                          className="absolute w-[var(--radix-select-trigger-width)] min-w-[var(--radix-select-trigger-width)]"
+                        >
+                          {resumes.map((resume) => (
+                            <SelectItem key={resume.id} value={resume.id.toString()}>
+                              {resume.metadata.filename}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : uploadMode === 'choose' ? (
+                    <div className="text-center py-6 bg-muted/30 rounded-lg">
+                      <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground mb-3">No resumes uploaded yet</p>
+                      <Button
+                        variant="link"
+                        onClick={() => setUploadMode('upload')}
+                        className="text-primary"
+                      >
+                        Upload your first resume
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  {uploadMode === 'upload' && (
+                    <UploadForm onSuccess={handleResumeUploaded} />
+                  )}
+                </div>
+                {renderNavigation()}
+              </CardContent>
+            </Card>
+          </div>
+        );
       case 2:
-        return renderStep2();
+        if (isReviewMode) return null; // Skip rendering step 2 in review mode
+        return uploadedResume ? (
+          <div className="fade-in">
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <JobInput
+                  resumeId={uploadedResume.id}
+                  onOptimized={handleOptimizationComplete}
+                  initialJobDetails={jobDetails}
+                />
+                {renderNavigation()}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null;
       case 3:
-        return renderStep3();
+        if (isReviewMode) return null; // Skip rendering step 3 in review mode
+        return optimizedResume ? (
+          <div className="fade-in">
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <div id="optimized-preview">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-foreground/90">Preview</h3>
+                  </div>
+                  <Preview
+                    resume={optimizedResume}
+                  />
+                </div>
+                {renderNavigation()}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null;
+
       case 4:
-        return renderStep4();
+        if (isReviewMode) return null; // Skip rendering step 4 in review mode
+        return optimizedResume ? (
+          <div className="fade-in">
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
+                  {!coverLetter && (
+                    <Button
+                      variant="outline"
+                      onClick={handleNext}
+                      className="text-muted-foreground"
+                    >
+                      Skip Cover Letter
+                    </Button>
+                  )}
+                </div>
+                {!coverLetter ? (
+                  <CoverLetter
+                    resume={optimizedResume}
+                    onGenerated={handleCoverLetterGenerated}
+                    generatedCoverLetter={coverLetter}
+                  />
+                ) : (
+                  <div className="mt-6 space-y-8">
+                    <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-semibold text-foreground/90">
+                          Preview {coverLetters?.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.metadata.version ? `(v${coverLetters.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
+                        </h4>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={handleRegenerateCoverLetter}
+                            variant="default"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                            disabled={isGeneratingCoverLetter}
+                          >
+                            {isGeneratingCoverLetter ? (
+                              <>
+                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                Regenerating...
+                              </>
+                            ) : (
+                              <>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Regenerate Cover Letter
+                              </>
+                            )}
+                          </Button>
+                          {coverLetters.length <= 1 && (
+                            <Button
+                              onClick={() => {
+                                if (coverLetter) {
+                                  window.location.href = `/api/cover-letter/${coverLetter.id}/download?filename=${
+                                    formatDownloadFilename(
+                                      coverLetter.metadata.filename,
+                                      optimizedResume.jobDetails?.title || '',
+                                      coverLetter.metadata.version
+                                    )
+                                  }_cover.pdf`;
+                                }
+                              }}
+                              variant="outline"
+                              className="transition-all duration-300 hover:bg-primary/10"
+                            >
+                              Download Cover Letter
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {coverLetters && coverLetters.length > 1 && (
+                        <div className="mb-6">
+                          <Select
+                            value={selectedCoverLetterVersion}
+                            onValueChange={setSelectedCoverLetterVersion}
+                          >
+                            <SelectTrigger className="w-[200px]">
+                              <SelectValue placeholder="Select version" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {coverLetters.map((letter) => (
+                                <SelectItem
+                                  key={letter.metadata.version}
+                                  value={letter.metadata.version.toString()}
+                                >
+                                  Version {letter.metadata.version.toFixed(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="prose prose-sm max-w-none text-foreground/80">
+                        <pre className="whitespace-pre-wrap">
+                          {coverLetters?.find(
+                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                          )?.content || coverLetter.content}
+                        </pre>
+                      </div>
+                    </div>
+                    {coverLetters && coverLetters.length > 1 && (
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={() => {
+                            const selectedLetter = coverLetters.find(
+                              (l) => l.metadata.version.toString() === selectedCoverLetterVersion
+                            );
+                            if (selectedLetter) {
+                              window.location.href = `/api/cover-letter/${selectedLetter.id}/download`;
+                            }
+                          }}
+                          variant="outline"
+                          className="transition-all duration-300 hover:bg-primary/10"
+                        >
+                          Download Version {selectedCoverLetterVersion}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {renderNavigation()}
+              </CardContent>
+            </Card>
+
+            <LoadingDialog
+              open={isGeneratingCoverLetter}
+              title="Generating Cover Letter"
+              description="Please wait while we generate your cover letter using AI..."
+              onOpenChange={setIsGeneratingCoverLetter}
+            />
+          </div>
+        ) : null;
+
       case 5:
-        if (isReviewMode) {
-          return renderReviewStep5();
-        }
-        return renderStep5();
+        return optimizedResume && uploadedResume ? (
+          <div className="fade-in space-y-8">
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+                  {isReviewMode ? "Optimization Review" : "Final Review"}
+                </h2>
+                <div className="space-y-12">
+                  {/* Resume Preview Section */}
+                  <div>
+                    <h3 className="text-xl font-semibold mb-6 text-foreground/90">
+                      Optimized Resume Preview
+                    </h3>
+                    <Preview
+                      resume={optimizedResume}
+                    />
+                  </div>
+
+                  {/* Cover Letter Section */}
+                  {coverLetter && (
+                    <div>
+                      <h3 className="text-xl font-semibold mb-6 flex items-center space-x-2">
+                        <span className="bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
+                          Cover Letter
+                        </span>
+                      </h3>
+                      <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
+                        <div className="prose prose-sm max-w-none text-foreground/80">
+                          <pre className="whitespace-pre-wrap">
+                            {coverLetter.content}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null;
+
       default:
         return null;
     }
   };
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+    setProverb(jobProverbs[randomIndex]);
+
+    // Hide welcome message after 3 seconds
+    const timer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleCancel = () => {
     setIsOptimizing(false);
-    //Add any other cancellation logic here if needed.
   };
+
+  // Show loading state while fetching review data
+  if (isLoadingReview) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading optimization session...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { data: resumes } = useQuery<UploadedResume[]>({
+    queryKey: ["/api/uploaded-resumes"],
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      <motion.div
-        initial={{ opacity: 0, y: showWelcome ? 40 : 0 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: showWelcome ? 2.4 : 0 }}
-        className="space-y-8"
-      >
-        {!isReviewMode ? (
-          <>
-            <div className="text-center transition-all duration-500 ease-in-out">
-              <h2 className="text-2xl font-semibold mb-4 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/50 bg-clip-text text-transparent">
-                {proverb}
-              </h2>
+      {!isReviewMode && showWelcome ? (
+        <WelcomeAnimation text={proverb} />
+      ) : (
+        <div className="space-y-8">
+          <StepTracker
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+          />
+          {renderCurrentStep()}
+        </div>
+      )}
+
+      <LoadingDialog
+        open={isOptimizing}
+        title="Optimizing Resume"
+        description={
+          <div className="space-y-4">
+            <p>Please wait while we optimize your resume using AI...</p>
+            <div className="flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-            <StepTracker
-              steps={steps}
-              currentStep={currentStep}
-              completedSteps={completedSteps}
-            />
-            {renderStep(currentStep)}
-            {showWelcome && (
-              <WelcomeAnimation
-                onAnimationComplete={() => setShowWelcome(false)}
-                text={`Welcome back, ${user?.name || 'Anonymous User'}!`}
-              />
-            )}
-          </>
-        ) : (
-          <>
-            <StepTracker
-              steps={steps}
-              currentStep={5}
-              completedSteps={[1, 2, 3, 4, 5]}
-            />
-            {renderStep(5)}
-          </>
-        )}
-        <LoadingDialog
-          open={isOptimizing}
-          title="Optimizing Resume"
-          description="Please wait while we optimize your resume using AI..."
-          onOpenChange={(open) => {
-            if (!open && isOptimizing) {
-              handleCancel();
-            }
-          }}
-        />
-      </motion.div>
+          </div>
+        }
+        onOpenChange={(open) => {
+          if (!open && isOptimizing) {
+            handleCancel();
+          }
+        }}
+      />
     </div>
   );
 }

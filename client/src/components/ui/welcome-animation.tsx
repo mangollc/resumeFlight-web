@@ -5,25 +5,23 @@ import { useEffect, useState } from "react";
 
 interface WelcomeAnimationProps {
   className?: string;
-  text: string;
-  onAnimationComplete?: () => void;
 }
 
-export function WelcomeAnimation({ className, text, onAnimationComplete }: WelcomeAnimationProps) {
+export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
   const { user } = useAuth();
-  const [show, setShow] = useState(true);
+  const [show, setShow] = useState(true); // Start as true when component mounts
 
   useEffect(() => {
-    if (show) {
+    if (user) {
+      // Hide animation after 5 seconds
       const timer = setTimeout(() => {
         setShow(false);
-        onAnimationComplete?.();
-      }, 3000);
+      }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [show, onAnimationComplete]);
+  }, [user]);
 
-  if (!show) return null;
+  if (!show || !user) return null;
 
   return (
     <motion.div
@@ -31,13 +29,10 @@ export function WelcomeAnimation({ className, text, onAnimationComplete }: Welco
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className={cn(
-        "fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50",
-        className
-      )}
+      className={cn("space-y-4 text-center lg:text-left", className)}
     >
       <h1 className="text-fluid-h1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-        {text}
+        Welcome back{user?.name ? `, ${user.name}` : ''}!
       </h1>
     </motion.div>
   );
