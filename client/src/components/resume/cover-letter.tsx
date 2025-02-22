@@ -177,7 +177,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
               <div>
                 <h4 className="font-semibold">Cover Letter</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Version {selectedVersion || generatedCoverLetter?.version.toFixed(1)}
+                  Version {selectedVersion || (generatedCoverLetter?.version ?? '1.0')}
                 </p>
               </div>
               <div className="flex items-center gap-2">

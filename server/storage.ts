@@ -8,7 +8,6 @@ const PostgresSessionStore = connectPg(session);
 
 // Constants for session configuration
 const ONE_DAY = 86400; // 24 hours in seconds
-const ONE_HOUR = 3600; // 1 hour in seconds
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -49,22 +48,30 @@ export class DatabaseStorage implements IStorage {
       createTableIfMissing: true,
       tableName: 'session',
       schemaName: 'public',
-      pruneSessionInterval: 900000, // 15 minutes
-      errorLog: console.error.bind(console),
+      pruneSessionInterval: 60000, // 1 minute - more frequent cleanup
+      errorLog: (err: Error) => {
+        console.error('Session store error:', err);
+        // Add additional error handling if needed
+      },
       ttl: ONE_DAY,
-      disableTouch: false,
-      touchInterval: ONE_HOUR,
-      retries: 3,
+      disableTouch: true, // Disable touch to prevent connection issues
+      retries: 5,
       retry: {
-        initial: 1000, // Start with 1 second delay
-        max: 5000,    // Maximum 5 seconds between retries
-        multiplier: 2 // Double the delay after each retry
+        initial: 500,    // Start with 0.5 second delay
+        max: 3000,      // Maximum 3 seconds between retries
+        multiplier: 1.5  // Increase delay by 1.5x after each retry
       }
     });
 
     // Add error handler for session store
     this.sessionStore.on('error', (error: Error) => {
       console.error('Session store error:', error);
+      // Add additional error handling if needed
+    });
+
+    // Add connection event handler
+    this.sessionStore.on('connect', () => {
+      console.log('Session store connected successfully');
     });
   }
 
@@ -382,7 +389,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-    // Optimization Session methods
+  // Optimization Session methods
   async getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined> {
     try {
       const [result] = await db
