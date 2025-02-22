@@ -199,7 +199,7 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
                     "_duties": ["full list of job duties"],
                     "_responsibilities": ["complete responsibilities"]
                 }
-                
+
                 Note: Fields starting with _ are for AI processing only, not for display.`
             }, {
                 role: "user",
@@ -221,41 +221,44 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         });
 
         console.log("[Job Details] Successfully extracted and enhanced details:", {
-            title,
-            company,
-            location,
-            hasDescription: !!description
+            title: enhancedDetails.title,
+            company: enhancedDetails.company,
+            location: enhancedDetails.location,
+            salary: enhancedDetails.salary,
+            positionLevel: enhancedDetails.positionLevel,
+            keyRequirements: enhancedDetails.keyRequirements,
+            skillsAndTools: enhancedDetails.skillsAndTools
         });
 
         // Internal object for AI processing with full details
-            const fullDetails = {
-                title: title || enhancedDetails.title || "Unknown Position",
-                company: company || enhancedDetails.company || "Unknown Company",
-                location: location || enhancedDetails.location || "Location Not Specified",
-                description: enhancedDetails._fullDescription || description,
-                fullDuties: enhancedDetails._duties || [],
-                fullResponsibilities: enhancedDetails._responsibilities || [],
-                salary: enhancedDetails.salary,
-                positionLevel: enhancedDetails.positionLevel,
-                keyRequirements: enhancedDetails.keyRequirements || [],
-                skillsAndTools: enhancedDetails.skillsAndTools || []
-            };
+        const fullDetails = {
+            title: enhancedDetails.title || title || "Unknown Position",
+            company: enhancedDetails.company || company || "Unknown Company",
+            location: enhancedDetails.location || location || "Location Not Specified",
+            description: enhancedDetails._fullDescription || description,
+            fullDuties: enhancedDetails._duties || [],
+            fullResponsibilities: enhancedDetails._responsibilities || [],
+            salary: enhancedDetails.salary,
+            positionLevel: enhancedDetails.positionLevel,
+            keyRequirements: enhancedDetails.keyRequirements || [],
+            skillsAndTools: enhancedDetails.skillsAndTools || []
+        };
 
-            // Client-side visible object with limited fields
-            return {
-                title: fullDetails.title,
-                company: fullDetails.company,
-                location: enhancedDetails.location || location || "Location Not Specified", // Prioritize extracted location
-                description: fullDetails.description,
-                salary: fullDetails.salary,
-                positionLevel: fullDetails.positionLevel,
-                keyRequirements: fullDetails.keyRequirements.map(req => req.length > 30 ? req.substring(0, 30) + '...' : req),
-                skillsAndTools: fullDetails.skillsAndTools.filter(skill => skill.split(' ').length <= 2),
-                _internalDescription: {
-                    fullDescription: fullDetails.description,
-                    duties: fullDetails.fullDuties,
-                    responsibilities: fullDetails.fullResponsibilities
-                }
+        // Client-side visible object with limited fields
+        return {
+            title: fullDetails.title,
+            company: fullDetails.company,
+            location: enhancedDetails.location || location || "Location Not Specified", // Prioritize extracted location
+            description: fullDetails.description,
+            salary: fullDetails.salary,
+            positionLevel: fullDetails.positionLevel,
+            keyRequirements: fullDetails.keyRequirements.map(req => req.length > 30 ? req.substring(0, 30) + '...' : req),
+            skillsAndTools: fullDetails.skillsAndTools.filter(skill => skill.split(' ').length <= 2),
+            _internalDescription: {
+                fullDescription: fullDetails.description,
+                duties: fullDetails.fullDuties,
+                responsibilities: fullDetails.fullResponsibilities
+            }
         };
     } catch (error: any) {
         console.error("[Job Details] Error:", error);
@@ -925,7 +928,7 @@ export function registerRoutes(app: Express): Server {
 
             // More robust email matching
             const emailMatch = firstSection.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i) ||
-                                 optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+                                 optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[aZ0-9.-]+\.[a-zA-Z]{2,})/i);
 
             // More robust phone matching
             const phoneMatch = firstSection.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/) ||
