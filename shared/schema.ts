@@ -29,6 +29,8 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   jobUrl: text("job_url"),
   jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
+  version: integer("version").notNull(),
+  versionHistory: jsonb("version_history").notNull().default([]),
   metrics: jsonb("metrics").default({
     before: {
       overall: 0,
@@ -45,6 +47,22 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   }),
   createdAt: text("created_at").notNull(),
 });
+
+export const resumeVersionScores = pgTable("resume_version_scores", {
+  id: serial("id").primaryKey(),
+  optimizedResumeId: integer("optimized_resume_id").notNull(),
+  version: integer("version").notNull(),
+  userId: integer("user_id").notNull(),
+  matchScore: jsonb("match_score").notNull().default({
+    overall: 0,
+    keywords: 0,
+    skills: 0,
+    experience: 0
+  }),
+  createdAt: text("created_at").notNull(),
+}, (table) => ({
+  optimizedResumeVersionIdx: index("resume_version_scores_idx").on(table.optimizedResumeId, table.version),
+}));
 
 export const optimizationSessions = pgTable("optimization_sessions", {
   id: serial("id").primaryKey(),
@@ -275,9 +293,9 @@ export const resumeMatchScores = pgTable("resume_match_scores", {
 }));
 
 // Add relations
-export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
+export const resumeVersionScoresRelations = relations(resumeVersionScores, ({ one }) => ({
   optimizedResume: one(optimizedResumes, {
-    fields: [resumeMatchScores.optimizedResumeId],
+    fields: [resumeVersionScores.optimizedResumeId],
     references: [optimizedResumes.id],
   }),
 }));
