@@ -240,3 +240,51 @@ export type ResumeDifferences = {
     reason: string;
   }>;
 };
+
+// Add new table for match scores
+export const resumeMatchScores = pgTable("resume_match_scores", {
+  id: serial("id").primaryKey(),
+  optimizedResumeId: integer("optimized_resume_id").notNull(),
+  userId: integer("user_id").notNull(),
+  originalScores: jsonb("original_scores").notNull().default({
+    overall: 0,
+    keywords: 0,
+    skills: 0,
+    experience: 0
+  }),
+  optimizedScores: jsonb("optimized_scores").notNull().default({
+    overall: 0,
+    keywords: 0,
+    skills: 0,
+    experience: 0
+  }),
+  analysis: jsonb("analysis").notNull().default({
+    strengths: [],
+    gaps: [],
+    suggestions: []
+  }),
+  createdAt: text("created_at").notNull(),
+}, (table) => ({
+  optimizedResumeIdIdx: index("resume_match_scores_resume_id_idx").on(table.optimizedResumeId),
+}));
+
+// Add relations
+export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
+  optimizedResume: one(optimizedResumes, {
+    fields: [resumeMatchScores.optimizedResumeId],
+    references: [optimizedResumes.id],
+  }),
+}));
+
+// Add schema
+export const insertResumeMatchScoreSchema = createInsertSchema(resumeMatchScores)
+  .pick({
+    optimizedResumeId: true,
+    originalScores: true,
+    optimizedScores: true,
+    analysis: true,
+  });
+
+// Add type
+export type InsertResumeMatchScore = z.infer<typeof insertResumeMatchScoreSchema>;
+export type ResumeMatchScore = typeof resumeMatchScores.$inferSelect;

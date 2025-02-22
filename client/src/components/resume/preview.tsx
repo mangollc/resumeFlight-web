@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Maximize2, Download } from "lucide-react";
+import { FileText, Maximize2, Download, LineChart } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,12 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import DiffView from "./diff-view";
 import { Confetti } from "@/components/ui/confetti";
+import { LoadingDialog } from "@/components/ui/loading-dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
@@ -84,27 +90,64 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
   );
 };
 
+const getInitials = (text: string): string => {
+  const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
+  return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
+};
+
 export default function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [matchScores, setMatchScores] = useState<{
+    originalScores: any;
+    optimizedScores: any;
+    analysis: { strengths: string[]; gaps: string[]; suggestions: string[] };
+  } | null>(null);
+  const [isScoresExpanded, setIsScoresExpanded] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!resume) return;
+  const analyzeResume = async () => {
+    if (!resume || !("id" in resume)) return;
 
-    const isOptimized = "jobDescription" in resume;
-    if (!isOptimized) return;
-
-    const optimizedResume = resume as OptimizedResume;
-
-    if (optimizedResume.metrics?.after?.overall >= 80) {
-      setShowConfetti(true);
-      toast({
-        title: "Outstanding Achievement! 🎉",
-        description: "Your resume has achieved excellent optimization scores.",
+    try {
+      setIsAnalyzing(true);
+      const response = await fetch(`/api/optimized-resume/${resume.id}/analyze`, {
+        method: "POST",
       });
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze resume");
+      }
+
+      const data = await response.json();
+      setMatchScores(data);
+      setIsScoresExpanded(true);
+
+      if (data.optimizedScores.overall >= 80) {
+        setShowConfetti(true);
+        toast({
+          title: "Outstanding Achievement! 🎉",
+          description: "Your resume has achieved excellent optimization scores.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Analysis Failed",
+        description: "Unable to analyze the resume. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
-  }, [resume, toast]);
+  };
+
+  useEffect(() => {
+    if (!resume) {
+      setMatchScores(null);
+      setIsScoresExpanded(false);
+    }
+  }, [resume]);
 
   if (!resume) {
     return (
@@ -137,11 +180,6 @@ export default function Preview({ resume }: PreviewProps) {
     return `${initials}_${jobTitle}`;
   };
 
-  const getInitials = (text: string): string => {
-    const nameMatch = text.match(/^([A-Z][a-z]+)\s+([A-Z][a-z]+)/i);
-    return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
-  };
-
   return (
     <Card className="h-full">
       <Confetti trigger={showConfetti} />
@@ -165,17 +203,26 @@ export default function Preview({ resume }: PreviewProps) {
               </div>
               <div className="flex items-center gap-2">
                 {isOptimized && (
-                  <a
-                    href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${
-                      formatFilename()
-                    }.pdf`}
-                    download
-                  >
-                    <Button variant="outline" size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download Resume
+                  <>
+                    <a
+                      href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${formatFilename()}.pdf`}
+                      download
+                    >
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Resume
+                      </Button>
+                    </a>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={analyzeResume}
+                      disabled={isAnalyzing}
+                    >
+                      <LineChart className="h-4 w-4 mr-2" />
+                      {isAnalyzing ? "Analyzing..." : "Analyze Match"}
                     </Button>
-                  </a>
+                  </>
                 )}
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
@@ -215,37 +262,111 @@ export default function Preview({ resume }: PreviewProps) {
             </div>
           </div>
 
-          {isOptimized && (resume as OptimizedResume).metrics && (
-            <div className="mt-6 space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold">Resume Match Analysis</div>
+          {isOptimized && matchScores && (
+            <Collapsible open={isScoresExpanded} onOpenChange={setIsScoresExpanded}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between">
+                  <span>Resume Match Analysis</span>
+                  <span className={`transform transition-transform ${isScoresExpanded ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mt-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="grid gap-6">
+                      <MetricRow
+                        label="Overall Match Score"
+                        before={matchScores.originalScores.overall}
+                        after={matchScores.optimizedScores.overall}
+                      />
+                      <MetricRow
+                        label="Keyword Alignment"
+                        before={matchScores.originalScores.keywords}
+                        after={matchScores.optimizedScores.keywords}
+                      />
+                      <MetricRow
+                        label="Skills Match"
+                        before={matchScores.originalScores.skills}
+                        after={matchScores.optimizedScores.skills}
+                      />
+                      <MetricRow
+                        label="Experience Relevance"
+                        before={matchScores.originalScores.experience}
+                        after={matchScores.optimizedScores.experience}
+                      />
+                    </div>
+
+                    {matchScores.analysis && (
+                      <div className="mt-6 space-y-4">
+                        {matchScores.analysis.strengths.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Strengths</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              {matchScores.analysis.strengths.map((strength, i) => (
+                                <li key={i} className="text-sm text-emerald-600 dark:text-emerald-400">
+                                  {strength}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {matchScores.analysis.gaps.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Areas for Improvement</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              {matchScores.analysis.gaps.map((gap, i) => (
+                                <li key={i} className="text-sm text-red-600 dark:text-red-400">
+                                  {gap}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {matchScores.analysis.suggestions.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Suggestions</h4>
+                            <ul className="list-disc list-inside space-y-1">
+                              {matchScores.analysis.suggestions.map((suggestion, i) => (
+                                <li key={i} className="text-sm text-blue-600 dark:text-blue-400">
+                                  {suggestion}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="grid gap-6">
-                  <MetricRow
-                    label="Overall Match Score"
-                    before={(resume as OptimizedResume).metrics?.before?.overall}
-                    after={(resume as OptimizedResume).metrics?.after?.overall || 0}
-                  />
-                  <MetricRow
-                    label="Keyword Alignment"
-                    before={(resume as OptimizedResume).metrics?.before?.keywords}
-                    after={(resume as OptimizedResume).metrics?.after?.keywords || 0}
-                  />
-                  <MetricRow
-                    label="Skills Match"
-                    before={(resume as OptimizedResume).metrics?.before?.skills}
-                    after={(resume as OptimizedResume).metrics?.after?.skills || 0}
-                  />
-                  <MetricRow
-                    label="Experience Relevance"
-                    before={(resume as OptimizedResume).metrics?.before?.experience}
-                    after={(resume as OptimizedResume).metrics?.after?.experience || 0}
-                  />
-                </div>
-              </div>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
+
+          <LoadingDialog
+            open={isAnalyzing}
+            onOpenChange={setIsAnalyzing}
+            title="Analyzing Resume"
+            description="Please wait while we analyze your resume against the job requirements..."
+            steps={[
+              {
+                id: "analyze",
+                label: "Analyzing resume content",
+                status: isAnalyzing ? "loading" : "completed",
+              },
+              {
+                id: "compare",
+                label: "Comparing with job requirements",
+                status: isAnalyzing ? "loading" : "completed",
+              },
+              {
+                id: "calculate",
+                label: "Calculating match scores",
+                status: isAnalyzing ? "loading" : "completed",
+              },
+            ]}
+          />
         </div>
       </CardContent>
     </Card>

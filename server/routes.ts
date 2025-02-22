@@ -348,7 +348,7 @@ async function optimizeResume(
     content: string,
     jobDescription: string,
     version?: number,
-) {
+): Promise<{ optimizedContent: string; changes: string[] }> {
     try {
         console.log("[Optimization] Starting resume optimization...");
         console.log("[Optimization] Version:", version);
@@ -726,16 +726,6 @@ export function registerRoutes(app: Express): Server {
                     return res.end();
                 }
 
-                console.log("[Optimize] Calculating match scores...");
-                sendEvent({ status: "calculating_scores" });
-                const beforeMetrics = await calculateMatchScores(
-                    uploadedResume.content,
-                    finalJobDescription,
-                );
-                const afterMetrics = await calculateMatchScores(
-                    optimized.optimizedContent,
-                    finalJobDescription,
-                );
 
                 const initials = getInitials(uploadedResume.content);
                 const cleanJobTitle = (jobDetails.title || "job")
@@ -759,11 +749,7 @@ export function registerRoutes(app: Express): Server {
                         filename: newFilename,
                         optimizedAt: new Date().toISOString(),
                         version: 1.0,
-                    },
-                    metrics: {
-                        before: beforeMetrics,
-                        after: afterMetrics,
-                    },
+                    }
                 });
 
                 console.log("[Optimize] Successfully completed optimization");
@@ -1043,6 +1029,61 @@ export function registerRoutes(app: Express): Server {
                 error: "Failed to generate PDF",
                 details:
                     error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    });
+
+    // Add new analyze endpoint
+    app.post("/api/optimized-resume/:id/analyze", async (req, res) => {
+        try {
+            console.log("[Analyze] Starting analysis...");
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
+            if (!optimizedResume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (optimizedResume.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            console.log("[Analyze] Calculating match scores...");
+            const originalScores = await calculateMatchScores(
+                optimizedResume.originalContent,
+                optimizedResume.jobDescription
+            );
+
+            const optimizedScores = await calculateMatchScores(
+                optimizedResume.content,
+                optimizedResume.jobDescription
+            );
+
+            const matchScore = await storage.createResumeMatchScore({
+                optimizedResumeId: optimizedResume.id,
+                userId: req.user!.id,
+                originalScores,
+                optimizedScores,
+                analysis: {
+                    strengths: optimizedScores.analysis.strengths,
+                    gaps: optimizedScores.analysis.gaps,
+                    suggestions: optimizedScores.analysis.suggestions
+                },
+                createdAt: new Date().toISOString()
+            });
+
+            return res.status(200).json({
+                originalScores,
+                optimizedScores,
+                analysis: matchScore.analysis
+            });
+        } catch (error: any) {
+            console.error("[Analyze] Error:", error);
+            return res.status(500).json({
+                error: "Failed to analyze resume",
+                details: error.message
             });
         }
     });
