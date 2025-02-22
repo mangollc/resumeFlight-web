@@ -34,6 +34,42 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
     after: { overall: number; keywords: number; skills: number; experience: number };
   } | null>(null);
 
+  useEffect(() => {
+    // Fetch available versions when component mounts
+    const fetchVersions = async () => {
+      try {
+        const response = await fetch(`/api/optimized-resume/${resumeId}/versions`);
+        if (!response.ok) throw new Error('Failed to fetch versions');
+        const data = await response.json();
+        setVersions(data);
+        if (data.length > 0) {
+          setSelectedVersion(data[0]);
+          await fetchMetricsForVersion(data[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching versions:', error);
+      }
+    };
+    fetchVersions();
+  }, [resumeId]);
+
+  const renderVersionSelector = () => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium mb-2">Select Version</label>
+      <select 
+        value={selectedVersion}
+        onChange={(e) => handleVersionChange(Number(e.target.value))}
+        className="w-full p-2 border rounded-md"
+      >
+        {versions.map((version) => (
+          <option key={version} value={version}>
+            Version {version.toFixed(1)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   const handleVersionChange = async (version: number) => {
     setSelectedVersion(version);
     await fetchMetricsForVersion(version);
