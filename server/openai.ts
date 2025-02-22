@@ -98,13 +98,16 @@ Return a JSON object with the following structure:
 export async function optimizeResume(
   resumeText: string,
   jobDescription: string,
-  currentVersion?: number,
+  version?: number,
 ) {
   try {
+    const optimizationVersion = version || 1.0;
     // Use larger chunks for resume optimization
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
+    console.log(`[Optimize] Starting resume optimization...`);
+    console.log(`[Optimize] Version: ${optimizationVersion}`);
     console.log(`[Optimize] Processing resume in ${resumeChunks.length} chunks`);
 
     let optimizedChunks: string[] = [];
@@ -158,8 +161,8 @@ Follow these optimization guidelines:
             content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join(
               "\n\n",
             )}${
-              currentVersion
-                ? `\n\nThis is reoptimization attempt. Current version: ${currentVersion}. Please make additional improvements while maintaining previous optimizations.`
+              optimizationVersion > 1
+                ? `\n\nThis is reoptimization attempt. Current version: ${optimizationVersion}. Please make additional improvements while maintaining previous optimizations.`
                 : ""
             }`,
           },

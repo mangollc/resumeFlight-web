@@ -554,7 +554,17 @@ export function registerRoutes(app: Express): Server {
         res.setHeader('Keep-Alive', 'timeout=300');
 
         try {
+            const sendStatus = (status: string) => {
+                res.write(`data: ${JSON.stringify({ status })}\n\n`);
+            };
+
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+
             console.log("[Optimize] Starting optimization request...");
+            sendStatus("started");
+
             if (!req.isAuthenticated()) {
                 console.log("[Optimize] User not authenticated");
                 return res.status(401).json({ error: "Unauthorized" });
@@ -569,6 +579,7 @@ export function registerRoutes(app: Express): Server {
             }
 
             console.log("[Optimize] Fetching uploaded resume...");
+            sendStatus("fetching_resume");
             const uploadedResume = await storage.getUploadedResume(
                 parseInt(req.params.id),
             );
@@ -591,9 +602,11 @@ export function registerRoutes(app: Express): Server {
             try {
                 if (jobUrl) {
                     console.log("[Optimize] Processing job URL:", jobUrl);
+                    sendStatus("extracting_details");
                     const extractedDetails = await extractJobDetails(jobUrl);
                     finalJobDescription = extractedDetails.description;
                     console.log("[Optimize] Job details extracted, analyzing description...");
+                    sendStatus("analyzing_description");
                     jobDetails = await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
                         ...extractedDetails,
@@ -602,10 +615,12 @@ export function registerRoutes(app: Express): Server {
                 } else {
                     console.log("[Optimize] Processing manual job description");
                     finalJobDescription = jobDescription;
+                    sendStatus("analyzing_description");
                     jobDetails = await analyzeJobDescription(jobDescription);
                 }
 
                 console.log("[Optimize] Starting optimization process");
+                sendStatus("optimizing_resume");
                 const optimized = await optimizeResume(
                     uploadedResume.content,
                     finalJobDescription,
@@ -617,6 +632,7 @@ export function registerRoutes(app: Express): Server {
                 }
 
                 console.log("[Optimize] Calculating match scores...");
+                sendStatus("calculating_scores");
                 const beforeMetrics = await calculateMatchScores(
                     uploadedResume.content,
                     finalJobDescription,
@@ -672,6 +688,8 @@ export function registerRoutes(app: Express): Server {
                 });
 
                 console.log("[Optimize] Successfully completed optimization");
+                sendStatus("completed");
+                res.end();
                 return res.status(200).json({
                     ...optimizedResume,
                     session,
@@ -681,6 +699,8 @@ export function registerRoutes(app: Express): Server {
                     "[Optimize] Error during optimization process:",
                     error,
                 );
+                sendStatus("error");
+                res.end();
                 // Check if the error is due to timeout
                 if (error instanceof Error && error.message.includes('aborted')) {
                     return res.status(504).json({
@@ -901,7 +921,7 @@ export function registerRoutes(app: Express): Server {
                         ".pdf",
                         "_cover.pdf",
                     ),
-                    generatedAt: new Date().toISOString(),
+                    generatedAt: new Date().toISOString`,
                     version: 1.0,
                 },
             });

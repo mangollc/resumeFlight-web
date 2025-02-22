@@ -506,7 +506,31 @@ export default function Dashboard() {
       updateStep("analyze", "loading");
       const optimizationData = {
         jobDetails,
-        version: nextVersion
+        version: nextVersion || 1.0
+      };
+
+      const eventSource = new EventSource(`/api/optimize-status`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        switch(data.status) {
+          case "extracting_details":
+            updateStep("analyze", "completed");
+            updateStep("keywords", "loading");
+            break;
+          case "analyzing_requirements":
+            updateStep("keywords", "completed");
+            updateStep("matching", "loading");
+            break;
+          case "optimizing":
+            updateStep("matching", "completed");
+            updateStep("optimize", "loading");
+            break;
+          case "completed":
+            updateStep("optimize", "completed");
+            eventSource.close();
+            break;
+        }
       };
 
       // Keywords extraction
