@@ -921,7 +921,7 @@ export function registerRoutes(app: Express): Server {
                         ".pdf",
                         "_cover.pdf",
                     ),
-                    generatedAt: new Date().toISOString`,
+                    generatedAt: new Date().toISOString(),
                     version: 1.0,
                 },
             });
