@@ -76,17 +76,17 @@ if (process.env.NODE_ENV === "development") {
 }
 
 const port = process.env.PORT || 5000;
-const startServer = (retryPort = port) => {
-  server.listen(retryPort, "0.0.0.0", () => {
-    log(`Server started on port ${retryPort}`);
-  }).on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
-      log(`Port ${retryPort} is busy, trying ${retryPort + 1}`);
-      startServer(retryPort + 1);
-    } else {
-      console.error('Server error:', err);
-    }
-  });
-};
-
-startServer();
+server.listen(port, "0.0.0.0", () => {
+  log(`Server started on port ${port}`);
+}).on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    const nextPort = port + 1;
+    log(`Port ${port} is busy, trying ${nextPort}`);
+    server.listen(nextPort, "0.0.0.0", () => {
+      log(`Server started on port ${nextPort}`);
+    });
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
+  }
+});
