@@ -243,10 +243,10 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             description: enhancedDetails._internal?.fullDescription || description,
             salary: enhancedDetails.salary || "Not specified",
             positionLevel: enhancedDetails.positionLevel || "Not specified",
-            keyRequirements: (enhancedDetails.keyRequirements || []).map(req => 
+            keyRequirements: (enhancedDetails.keyRequirements || []).map(req =>
                 req.length > 30 ? req.substring(0, 30) + '...' : req
             ),
-            skillsAndTools: (enhancedDetails.skillsAndTools || []).filter(skill => 
+            skillsAndTools: (enhancedDetails.skillsAndTools || []).filter(skill =>
                 skill.split(' ').length <= 2
             ),
             _internalDetails: enhancedDetails._internal || null
@@ -863,16 +863,16 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    // Cover letter generation route
+    // Cover letter generation route (NEW)
     app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
         try {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({ error: "Unauthorized" });
             }
 
-            const optimizedResume = await storage.getOptimizedResume(
-                parseInt(req.params.id),
-            );
+            const resumeId = parseInt(req.params.id);
+            const optimizedResume = await storage.getOptimizedResume(resumeId);
+
             if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
@@ -881,71 +881,39 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            console.log(
-                "[Cover Letter] Generating cover letter for resume:",
-                req.params.id,
-            );
+            // Extract contact information
+            console.log("[Cover Letter] Extracting contact information...");
+            const contactInfo = await extractContactInfo(optimizedResume.content);
 
-            // Extract contact info from the first section of the resume
-            const firstSection = optimizedResume.content.split('\n\n')[0];
-
-            // More robust name matching
-            const nameMatch = firstSection.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m) || 
-                                optimizedResume.content.match(/^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/m);
-
-            // More robust email matching
-            const emailMatch = firstSection.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i) ||
-                                 optimizedResume.content.match(/([a-zA-Z0-9._%+-]+@[aZ0-9.-]+\.[a-zA-Z]{2,})/i);
-
-            // More robust phone matching
-            const phoneMatch = firstSection.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/) ||
-                                 optimizedResume.content.match(/(\+?\d{1,2}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/);
-
-            // More robust address matching
-            const addressMatch = firstSection.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i) ||
-                                   optimizedResume.content.match(/(\d+[^@\n]+(?:Avenue|Lane|Road|Boulevard|Drive|Street|Ave|Ln|Rd|Blvd|Dr|St)\.?(?:[^@\n]+)?(?:\s+[^@\n]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?)?)/i);
-
-            const contactInfo = {
-                fullName: nameMatch ? nameMatch[1].trim() : '',
-                email: emailMatch ? emailMatch[1].trim() : '',
-                phone: phoneMatch ? phoneMatch[0].trim() : '',
-                address: addressMatch ? addressMatch[1].trim() : ''
-            };
-
-            if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
-                throw new Error("Unable to extract complete contact information (name, email, and phone) from resume");
-            }
-
-            const coverLetterResult = await generateCoverLetter(
+            console.log("[Cover Letter] Generating cover letter for resume:", resumeId);
+            const coverLetter = await generateCoverLetter(
                 optimizedResume.content,
                 optimizedResume.jobDescription,
-                contactInfo
+                contactInfo,
+                req.body.version
             );
 
-            const coverLetter = await storage.createCoverLetter({
-                content: coverLetterResult.coverLetter,
+            // Store the cover letter in the database
+            const storedCoverLetter = await storage.createCoverLetter({
                 optimizedResumeId: optimizedResume.id,
                 userId: req.user!.id,
+                content: coverLetter.content,
                 metadata: {
-                    filename: optimizedResume.metadata.filename.replace(
-                        ".pdf",
-                        "_cover.pdf",
-                    ),
-                    generatedAt: new Date().toISOString(),
-                    version: 1.0,
+                    filename: optimizedResume.metadata.filename.replace(/\.[^/.]+$/, "") + "_cover_letter",
+                    version: coverLetter.version,
+                    generatedAt: new Date().toISOString()
                 },
+                highlights: coverLetter.highlights,
+                confidence: coverLetter.confidence,
+                version: coverLetter.version
             });
 
-            return res.status(200).json({
-                ...coverLetter,
-                highlights: coverLetterResult.highlights,
-                confidence: coverLetterResult.confidence,
-            });
+            return res.json(storedCoverLetter);
         } catch (error: any) {
             console.error("[Cover Letter] Error:", error);
             return res.status(500).json({
                 error: "Failed to generate cover letter",
-                details: error.message,
+                details: error.message
             });
         }
     });
@@ -1102,4 +1070,44 @@ function getInitials(text: string): string {
     }
 
     return "RES";
+}
+
+// Add this helper function after existing helpers
+function extractContactInfo(resumeContent: string) {
+    try {
+        // Use OpenAI to extract contact information
+        return openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                {
+                    role: "system",
+                    content: `Extract contact information from the resume. Return a JSON object with these fields:
+{
+    "fullName": "full name of the candidate",
+    "email": "email address",
+    "phone": "phone number",
+    "address": "full address if available"
+}
+If any field is not found, set it to null.`
+                },
+                {
+                    role: "user",
+                    content: resumeContent
+                }
+            ],
+            response_format: { type: "json_object" }
+        }).then(response => {
+            const content = response.choices[0].message.content;
+            if (!content) throw new Error("Failed to parse contact information");
+
+            const contactInfo = JSON.parse(content);
+            if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
+                throw new Error("Missing required contact information");
+            }
+            return contactInfo;
+        });
+    } catch (error) {
+        console.error("[Contact Info] Extraction error:", error);
+        throw new Error("Failed to extract contact information from resume");
+    }
 }
