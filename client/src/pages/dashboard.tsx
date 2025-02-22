@@ -801,107 +801,14 @@ export default function Dashboard() {
                   <CoverLetter
                     resume={optimizedResume}
                     onGenerated={handleCoverLetterGenerated}
-                    generatedCoverLetter={coverLetter}
                   />
                 ) : (
                   <div className="mt-6 space-y-8">
-                    <div className="bg-muted/30 rounded-lg p-8 transition-all duration-300 hover:bg-muted/40">
-                      <div className="flex justify-between items-center mb-6">
-                        <h4 className="font-semibold text-foreground/90">
-                          Preview {coverLetters?.find(
-                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                          )?.metadata.version ? `(v${coverLetters.find(
-                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                          )?.metadata.version.toFixed(1)})` : `(v${coverLetterVersion.toFixed(1)})`}
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            onClick={handleRegenerateCoverLetter}
-                            variant="default"
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                            disabled={isGeneratingCoverLetter}
-                          >
-                            {isGeneratingCoverLetter ? (
-                              <>
-                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                                Regenerating...
-                              </>
-                            ) : (
-                              <>
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Regenerate Cover Letter
-                              </>
-                            )}
-                          </Button>
-                          {coverLetters.length <= 1 && (
-                            <Button
-                              onClick={() => {
-                                if (coverLetter) {
-                                  window.location.href = `/api/cover-letter/${coverLetter.id}/download?filename=${
-                                    formatDownloadFilename(
-                                      coverLetter.metadata.filename,
-                                      optimizedResume.jobDetails?.title || '',
-                                      coverLetter.metadata.version
-                                    )
-                                  }_cover.pdf`;
-                                }
-                              }}
-                              variant="outline"
-                              className="transition-all duration-300 hover:bg-primary/10"
-                            >
-                              Download Cover Letter
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      {coverLetters && coverLetters.length > 1 && (
-                        <div className="mb-6">
-                          <Select
-                            value={selectedCoverLetterVersion}
-                            onValueChange={setSelectedCoverLetterVersion}
-                          >
-                            <SelectTrigger className="w-[200px]">
-                              <SelectValue placeholder="Select version" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {coverLetters.map((letter) => (
-                                <SelectItem
-                                  key={letter.metadata.version}
-                                  value={letter.metadata.version.toString()}
-                                >
-                                  Version {letter.metadata.version.toFixed(1)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                      <div className="prose prose-sm max-w-none text-foreground/80">
-                        <pre className="whitespace-pre-wrap">
-                          {coverLetters?.find(
-                            (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                          )?.content || coverLetter.content}
-                        </pre>
-                      </div>
-                    </div>
-                    {coverLetters && coverLetters.length > 1 && (
-                      <div className="flex justify-end">
-                        <Button
-                          onClick={() => {
-                            const selectedLetter = coverLetters.find(
-                              (l) => l.metadata.version.toString() === selectedCoverLetterVersion
-                            );
-                            if (selectedLetter) {
-                              window.location.href = `/api/cover-letter/${selectedLetter.id}/download`;
-                            }
-                          }}
-                          variant="outline"
-                          className="transition-all duration-300 hover:bg-primary/10"
-                        >
-                          Download Version {selectedCoverLetterVersion}
-                        </Button>
-                      </div>
-                    )}
+                    <CoverLetter
+                      resume={optimizedResume}
+                      onGenerated={handleCoverLetterGenerated}
+                      generatedCoverLetter={coverLetter}
+                    />
                   </div>
                 )}
                 {renderNavigation()}
@@ -921,11 +828,29 @@ export default function Dashboard() {
       case 5:
         return optimizedResume && uploadedResume ? (
           <div className="fade-in space-y-8">
-            <ReviewSection
-              optimizedResume={optimizedResume}
-              coverLetter={coverLetter}
-              onDownload={handleDownload}
-            />
+            {/* Show optimized resume */}
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-foreground/90">Optimized Resume</h3>
+                </div>
+                <Preview resume={optimizedResume} />
+              </CardContent>
+            </Card>
+
+            {/* Show cover letter if generated */}
+            {coverLetter && (
+              <Card {...commonCardProps}>
+                <CardContent className="p-8">
+                  <CoverLetter
+                    resume={optimizedResume}
+                    onGenerated={handleCoverLetterGenerated}
+                    generatedCoverLetter={coverLetter}
+                    readOnly={true}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : null;
 

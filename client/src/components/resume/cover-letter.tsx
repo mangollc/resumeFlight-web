@@ -44,7 +44,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
           showAddress: false,
           showFullLocation: false,
           signatureStyle: "simple",
-          includeDate: true
+          includeDate: true,
+          includeSkills: false // Explicitly disable skills section
         }
       });
 
