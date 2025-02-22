@@ -4,7 +4,8 @@ import { WelcomeAnimation } from "@/components/ui/welcome-animation";
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
-import { StepTracker, Step } from "@/components/resume/step-tracker";
+import { Step } from "@/components/resume/step-tracker";
+import ResumeStepTracker from "@/components/resume/step-tracker";
 import CoverLetter from "@/components/resume/cover-letter";
 import ComparisonView from "@/components/resume/comparison-view";
 import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
@@ -918,7 +919,8 @@ export default function Dashboard() {
   if (isLoadingReview) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">Loading optimization session...</p>
         </div>
       </div>
@@ -943,7 +945,7 @@ export default function Dashboard() {
               <WelcomeAnimation text={proverb} />
             ) : (
               <div className="space-y-8">
-                <StepTracker
+                <ResumeStepTracker
                   steps={steps}
                   currentStep={currentStep}
                   completedSteps={completedSteps}
