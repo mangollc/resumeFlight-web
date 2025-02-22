@@ -787,20 +787,21 @@ export default function Dashboard() {
     }
   };
 
-  // Set random proverb on mount
   useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
-    setProverb(jobProverbs[randomIndex]);
-  }, []);
+    // Set random proverb and show welcome animation
+    if (!isReviewMode) {
+      const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+      setProverb(jobProverbs[randomIndex]);
+      setShowWelcome(true);
 
-  // Handle welcome animation timeout separately
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowWelcome(false);
-    }, 3000);
+      // Only hide welcome animation after timeout
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 3000);
 
-    return () => clearTimeout(timer);
-  }, []);
+      return () => clearTimeout(timer);
+    }
+  }, [isReviewMode]);
 
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
