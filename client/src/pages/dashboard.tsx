@@ -462,7 +462,7 @@ export default function Dashboard() {
     </div>
   );
 
-  const renderOptimizationReview = () => {
+  const renderOptimizedContent = () => {
     if (!optimizedResume) return null;
 
     const handleDownload = async (resumeId: string) => {
@@ -524,7 +524,6 @@ export default function Dashboard() {
   };
 
   const renderCurrentStep = () => {
-    // When in review mode, show the optimization review component
     if (isReviewMode) {
       if (isLoadingReview) {
         return (
@@ -536,7 +535,13 @@ export default function Dashboard() {
           </div>
         );
       }
-      return renderOptimizationReview();
+      return optimizedResume ? (
+        <ReviewSection 
+          optimizedResume={optimizedResume} 
+          coverLetter={coverLetter}
+          onDownload={handleDownload}
+        />
+      ) : null;
     }
 
     // Don't render steps if we're in review mode and don't have all required data
