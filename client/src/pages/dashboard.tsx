@@ -17,8 +17,29 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ReviewSection } from "@/components/resume/review-section"; // Added import
 
-const handleDownload = async (id: number) => {
+const handleDownload = async (id: string) => {
   try {
     const response = await fetch(`/api/uploaded-resume/${id}/download`);
     if (!response.ok) {
@@ -42,28 +63,6 @@ const handleDownload = async (id: number) => {
     });
   }
 };
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ReviewSection } from "@/components/resume/review-section"; // Added import
 
 const jobProverbs = [
   "Your next career move starts with a great resume",
@@ -167,6 +166,13 @@ const coverLetterSteps = [
   }
 ];
 
+type ProgressStep = {
+  id: string;
+  label: string;
+  status: "pending" | "loading" | "completed" | "error";
+};
+
+
 export default function Dashboard() {
   const { user } = useAuth();
   const params = useParams<{ id?: string }>();
@@ -199,8 +205,12 @@ export default function Dashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
-  const [currentOptimizationSteps, setCurrentOptimizationSteps] = useState(optimizationSteps);
-  const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState(coverLetterSteps);
+  const [currentOptimizationSteps, setCurrentOptimizationSteps] = useState<ProgressStep[]>(
+    optimizationSteps.map(step => ({ ...step, status: "pending" as const }))
+  );
+  const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressStep[]>(
+    coverLetterSteps.map(step => ({ ...step, status: "pending" as const }))
+  );
 
 
   // Fetch optimized resume data when in review mode
@@ -265,7 +275,6 @@ export default function Dashboard() {
       return () => clearTimeout(timer);
     }
   }, [isReviewMode, currentStep]);
-
 
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
@@ -769,7 +778,7 @@ export default function Dashboard() {
                       </Select>
                       {uploadedResume && (
                         <div className="mt-4">
-                          <Button onClick={() => handleDownload(uploadedResume.id)} size="sm">
+                          <Button onClick={() => handleDownload(uploadedResume.id.toString())} size="sm">
                             Download
                           </Button>
                         </div>
@@ -807,7 +816,7 @@ export default function Dashboard() {
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
-                  initialJobDetails={jobDetails}
+                  initialJobDetails={jobDetails || undefined}
                 />
                 {renderNavigation()}
               </CardContent>
@@ -965,7 +974,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      <div className="min-h-screen flex flex-col">
+      <div className="minh-screen flex flex-col">
         {!isReviewMode && (
           <>
             {proverb && !optimizedId && !window.location.search.includes('review') && (
