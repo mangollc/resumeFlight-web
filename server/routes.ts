@@ -689,11 +689,7 @@ export function registerRoutes(app: Express): Server {
 
                 console.log("[Optimize] Successfully completed optimization");
                 sendStatus("completed");
-                res.end();
-                return res.status(200).json({
-                    ...optimizedResume,
-                    session,
-                });
+                return res.end();
             } catch (error) {
                 console.error(
                     "[Optimize] Error during optimization process:",
