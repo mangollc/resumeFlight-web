@@ -35,22 +35,22 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
         version: versions.length > 0 ? Math.max(...versions) + 0.1 : 1.0,
         jobDetails: {
           ...resume.jobDetails,
-          // Only include necessary location details
+          // Ensure proper location formatting
           location: resume.jobDetails?.location?.split(',').slice(0, 2).join(', '), // City, State only
         },
-        includePositionInSignature: false,
-        signatureFormat: "simple",
+        contactInfo: resume.contactInfo,
         format: {
           showAddress: false,
           showFullLocation: false,
           signatureStyle: "simple",
           includeDate: true,
-          includeSkills: false // Explicitly disable skills section
+          includeSkills: false
         }
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate cover letter");
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || "Failed to generate cover letter");
       }
 
       return response.json();
@@ -129,7 +129,6 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     return `${baseName}_${formattedJobTitle}_v${version.toFixed(1)}`;
   };
 
-  // Initialize versions array when component mounts or when generatedCoverLetter changes
   useEffect(() => {
     if (generatedCoverLetter) {
       setVersions(prev => {

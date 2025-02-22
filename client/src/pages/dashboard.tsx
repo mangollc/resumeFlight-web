@@ -527,7 +527,7 @@ export default function Dashboard() {
       setCurrentOptimizationSteps(optimizationSteps.map(step => ({ ...step, status: "pending" })));
 
       // Simulate progress through optimization steps
-      const updateStep = (stepId: string, status: "loading" | "completed") => {
+      const updateStep = (stepId: string, status: "loading" | "completed" | "error") => {
         setCurrentOptimizationSteps(prev =>
           prev.map(step =>
             step.id === stepId
@@ -539,44 +539,14 @@ export default function Dashboard() {
 
       // Start analysis
       updateStep("analyze", "loading");
+
+      // Create a properly formatted optimization request
       const optimizationData = {
-        jobDetails,
-        version: nextVersion || 1.0
+        jobDetails: jobDetails, // Send as is, let the API handle serialization
+        version: nextVersion
       };
 
-      const eventSource = new EventSource(`/api/optimize-status`);
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        switch(data.status) {
-          case "extracting_details":
-            updateStep("analyze", "completed");
-            updateStep("keywords", "loading");
-            break;
-          case "analyzing_requirements":
-            updateStep("keywords", "completed");
-            updateStep("matching", "loading");
-            break;
-          case "optimizing":
-            updateStep("matching", "completed");
-            updateStep("optimize", "loading");
-            break;
-          case "completed":
-            updateStep("optimize", "completed");
-            eventSource.close();
-            break;
-        }
-      };
-
-      // Keywords extraction
-      updateStep("keywords", "loading");
-
-      // Matching process
-      updateStep("matching", "loading");
-
-      // Final optimization
-      updateStep("optimize", "loading");
-
+      // Make the optimization request
       const response = await apiRequest(
         "POST",
         `/api/uploaded-resumes/${uploadedResume.id}/optimize`,
@@ -974,7 +944,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      <div className="minh-screen flex flex-col">
+      <div className="min-h-screen flex flex-col">
         {!isReviewMode && (
           <>
             {proverb && !optimizedId && !window.location.search.includes('review') && (
@@ -983,7 +953,7 @@ export default function Dashboard() {
               </div>
             )}
             {showWelcome ? (
-              <WelcomeAnimation text={proverb} />
+              <WelcomeAnimation />
             ) : (
               <div className="space-y-8">
                 <ResumeStepTracker
