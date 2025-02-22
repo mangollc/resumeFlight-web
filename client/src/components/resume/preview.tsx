@@ -214,10 +214,11 @@ export default function Preview({ resume }: PreviewProps) {
                       </Button>
                     </a>
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={analyzeResume}
                       disabled={isAnalyzing}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <LineChart className="h-4 w-4 mr-2" />
                       {isAnalyzing ? "Analyzing..." : "Analyze Match"}
