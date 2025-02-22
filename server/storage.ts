@@ -1,4 +1,4 @@
-import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
@@ -472,6 +472,23 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting optimization sessions by user:', error);
       throw new Error('Failed to get optimization sessions');
+    }
+  }
+
+  async createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore> {
+    try {
+      const [result] = await db
+        .insert(resumeMatchScores)
+        .values({
+          ...score,
+          createdAt: new Date().toISOString(),
+        })
+        .returning();
+
+      return result;
+    } catch (error) {
+      console.error('Error creating resume match score:', error);
+      throw new Error('Failed to create resume match score');
     }
   }
 }
