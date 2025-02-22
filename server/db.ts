@@ -22,14 +22,14 @@ const poolerUrl = process.env.DATABASE_URL?.replace('postgres://', 'postgres://'
 export const pool = new Pool({ 
   connectionString: poolerUrl,
   ssl: true,
-  max: 2,                         // Reduce max connections for more stability
-  idleTimeoutMillis: 30000,       // 30 seconds idle timeout
-  connectionTimeoutMillis: 10000,  // 10 seconds connection timeout
-  maxUses: 7500,                  // Reduce max uses per connection for stability
+  max: 5,                         // Increase max connections for parallel processing
+  idleTimeoutMillis: 60000,       // 60 seconds idle timeout
+  connectionTimeoutMillis: 30000,  // 30 seconds connection timeout
+  maxUses: 10000,                 // Increase max uses per connection
   keepAlive: true,                // Enable keepalive
   allowExitOnIdle: true,          // Allow the pool to exit when idle
-  statement_timeout: 30000,        // 30 second query timeout
-  query_timeout: 30000,           // 30 second query timeout
+  statement_timeout: 300000,       // 5 minute query timeout
+  query_timeout: 300000,          // 5 minute query timeout
   application_name: 'resume-app',  // Add application name for better monitoring
 });
 

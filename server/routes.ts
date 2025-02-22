@@ -20,11 +20,11 @@ import { v4 as uuidv4 } from 'uuid';
 // Constants
 const MAX_ALLOWED_TIMEOUT = 2147483647;
 const DEFAULT_TIMEOUT = 30000;
-const API_TIMEOUT = 60000; // Increased to 60 seconds
-const PARSING_TIMEOUT = 30000; // Increased to 30 seconds
-const SAFE_TIMEOUT = 45000; // Increased to 45 seconds
+const API_TIMEOUT = 300000; // Increased to 5 minutes
+const PARSING_TIMEOUT = 60000; // Increased to 1 minute
+const SAFE_TIMEOUT = 240000; // Increased to 4 minutes
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // Increased to 10MB
 const SUPPORTED_MIME_TYPES = [
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -545,8 +545,14 @@ export function registerRoutes(app: Express): Server {
 
     // Optimize resume route (modified)
     app.post("/api/resume/:id/optimize", async (req: Request, res) => {
-        // Add timeout to the request
-        req.setTimeout(60000);
+        // Increase timeout to 5 minutes for long-running optimizations
+        req.setTimeout(300000);
+        res.setTimeout(300000);
+
+        // Enable keep-alive for longer connections
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('Keep-Alive', 'timeout=300');
+
         try {
             console.log("[Optimize] Starting optimization request...");
             if (!req.isAuthenticated()) {
@@ -562,6 +568,7 @@ export function registerRoutes(app: Express): Server {
                 });
             }
 
+            console.log("[Optimize] Fetching uploaded resume...");
             const uploadedResume = await storage.getUploadedResume(
                 parseInt(req.params.id),
             );
@@ -576,6 +583,7 @@ export function registerRoutes(app: Express): Server {
 
             // Generate a unique session ID
             const sessionId = uuidv4();
+            console.log("[Optimize] Generated session ID:", sessionId);
 
             let finalJobDescription: string;
             let jobDetails: JobDetails;
@@ -585,6 +593,7 @@ export function registerRoutes(app: Express): Server {
                     console.log("[Optimize] Processing job URL:", jobUrl);
                     const extractedDetails = await extractJobDetails(jobUrl);
                     finalJobDescription = extractedDetails.description;
+                    console.log("[Optimize] Job details extracted, analyzing description...");
                     jobDetails = await analyzeJobDescription(finalJobDescription);
                     jobDetails = {
                         ...extractedDetails,
@@ -603,6 +612,7 @@ export function registerRoutes(app: Express): Server {
                 );
 
                 if (!optimized || !optimized.optimizedContent) {
+                    console.error("[Optimize] Failed to generate optimized content");
                     throw new Error("Failed to generate optimized content");
                 }
 
@@ -624,7 +634,7 @@ export function registerRoutes(app: Express): Server {
 
                 const newFilename = `${initials}_${cleanJobTitle}.pdf`;
 
-                console.log("[Optimize] Saving optimized resume");
+                console.log("[Optimize] Creating optimized resume record");
                 const optimizedResume = await storage.createOptimizedResume({
                     sessionId,
                     content: optimized.optimizedContent,
@@ -671,18 +681,34 @@ export function registerRoutes(app: Express): Server {
                     "[Optimize] Error during optimization process:",
                     error,
                 );
-                throw new Error(
-                    `Optimization failed: ${error instanceof Error ? error.message : "Unknown error"}`,
-                );
+                // Check if the error is due to timeout
+                if (error instanceof Error && error.message.includes('aborted')) {
+                    return res.status(504).json({
+                        error: "Request timeout - optimization process took too long",
+                        details: "The resume or job description might be too large. Try breaking it into smaller sections."
+                    });
+                }
+                // Check for memory-related errors
+                if (error instanceof Error && error.message.includes('memory')) {
+                    return res.status(503).json({
+                        error: "Server resource limit reached",
+                        details: "The content is too large to process. Try reducing the size of your resume or job description."
+                    });
+                }
+                throw error;
             }
         } catch (error) {
             console.error("[Optimize] Error:", error);
             const errorMessage =
                 error instanceof Error ? error.message : "Failed to optimize resume";
-            return res.status(500).json({
-                error: errorMessage,
-                details: error instanceof Error ? error.message : "Unknown error",
-            });
+
+            // If headers are already sent, we can't send another response
+            if (!res.headersSent) {
+                return res.status(500).json({
+                    error: errorMessage,
+                    details: error instanceof Error ? error.message : "Unknown error",
+                });
+            }
         }
     });
 
