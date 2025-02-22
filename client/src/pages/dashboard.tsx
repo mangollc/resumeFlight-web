@@ -198,7 +198,7 @@ export default function Dashboard() {
   const [optimizationVersion, setOptimizationVersion] = useState('1.0');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isComparingResumes, setIsComparingResumes] = useState(false);
-  const [coverLetterVersion, setCoverLetterVersion] = useState(1.0);
+  const [coverLetterVersion, setCoverLetterVersion] = useState('1.0');
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
   const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);

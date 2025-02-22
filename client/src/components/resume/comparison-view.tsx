@@ -58,7 +58,7 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
       <label className="block text-sm font-medium mb-2">Select Version</label>
       <select 
         value={selectedVersion}
-        onChange={(e) => handleVersionChange(Number(e.target.value))}
+        onChange={(e) => handleVersionChange(e.target.value)}
         className="w-full p-2 border rounded-md"
       >
         {versions.map((version) => (
