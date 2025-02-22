@@ -76,8 +76,10 @@ export const coverLetters = pgTable("cover_letters", {
   optimizedResumeId: integer("optimized_resume_id").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
-  version: integer("version").notNull().default(1),
+  version: text("version").notNull().default('1.0'),
   versionHistory: jsonb("version_history").notNull().default([]),
+  highlights: jsonb("highlights").notNull().default([]),
+  confidence: integer("confidence").notNull().default(0),
   createdAt: text("created_at").notNull(),
 }, (table) => ({
   optimizedResumeIdIdx: index("cover_letter_optimized_resume_id_idx").on(table.optimizedResumeId),
