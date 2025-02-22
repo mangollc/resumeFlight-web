@@ -731,7 +731,6 @@ export default function Dashboard() {
                           const resume = resumes.find(r => r.id.toString() === value);
                           if (resume) {
                             setUploadedResume(resume);
-                            setCompletedSteps(prev => [...prev, 1]);
                           }
                         }}
                       >
@@ -771,6 +770,61 @@ export default function Dashboard() {
                   {uploadMode === 'upload' && (
                     <UploadForm onSuccess={handleResumeUploaded} />
                   )}
+                  {/* Job Details Display Section */}
+                  {optimizedResume?.jobDetails && (
+                    <div className="mt-6 p-4 rounded-lg border bg-card">
+                      <h3 className="text-lg font-semibold mb-4">Job Details</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="font-medium">Title</p>
+                          <p className="text-muted-foreground">{optimizedResume.jobDetails.title}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Company</p>
+                          <p className="text-muted-foreground">{optimizedResume.jobDetails.company}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium">Location</p>
+                          <p className="text-muted-foreground">{optimizedResume.jobDetails.location}</p>
+                        </div>
+                        {optimizedResume.jobDetails.salary && (
+                          <div>
+                            <p className="font-medium">Salary</p>
+                            <p className="text-muted-foreground">{optimizedResume.jobDetails.salary}</p>
+                          </div>
+                        )}
+                        {optimizedResume.jobDetails.positionLevel && (
+                          <div>
+                            <p className="font-medium">Position Level</p>
+                            <p className="text-muted-foreground">{optimizedResume.jobDetails.positionLevel}</p>
+                          </div>
+                        )}
+                        {optimizedResume.jobDetails.keyRequirements && optimizedResume.jobDetails.keyRequirements.length > 0 && (
+                          <div>
+                            <p className="font-medium">Key Requirements</p>
+                            <ul className="list-disc list-inside text-muted-foreground">
+                              {optimizedResume.jobDetails.keyRequirements.map((req, index) => (
+                                <li key={index}>{req}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {optimizedResume.jobDetails.skillsAndTools && optimizedResume.jobDetails.skillsAndTools.length > 0 && (
+                          <div>
+                            <p className="font-medium">Skills & Tools</p>
+                            <div className="flex flex-wrap gap-2">
+                              {optimizedResume.jobDetails.skillsAndTools.map((skill, index) => (
+                                <span key={index} className="px-2 py-1 bg-primary/10 rounded-md text-sm">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
                 {renderNavigation()}
               </CardContent>
