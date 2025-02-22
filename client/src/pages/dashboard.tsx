@@ -745,13 +745,6 @@ export default function Dashboard() {
                           ))}
                         </SelectContent>
                       </Select>
-                      {uploadedResume && (
-                        <div className="mt-4">
-                          <Button onClick={() => handleDownload(uploadedResume.id.toString())} size="sm">
-                            Download
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   ) : uploadMode === 'choose' ? (
                     <div className="text-center py-6 bg-muted/30 rounded-lg">
