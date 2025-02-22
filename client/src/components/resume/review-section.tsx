@@ -21,6 +21,17 @@ interface ReviewSectionProps {
   versions: number[]; // Added versions prop
 }
 
+const formatDownloadFilename = (filename: string, jobTitle: string, version: number, type: 'resume' | 'cover_letter' = 'resume'): string => {
+  const baseFilename = filename.replace(/\.[^/.]+$/, '');
+  const formattedJobTitle = (jobTitle || 'job')
+    .replace(/[^a-zA-Z0-9\s]/g, '')
+    .replace(/\s+/g, '_')
+    .toLowerCase();
+  const suffix = type === 'cover_letter' ? '_cover_letter' : '';
+  return `${baseFilename}_${formattedJobTitle}${suffix}_v${version.toFixed(1)}`;
+}
+
+
 export function ReviewSection({ optimizedResume, coverLetter, onDownload, versions }: ReviewSectionProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
@@ -38,7 +49,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload, versio
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${optimizedResume?.metadata.filename}_v${selectedVersion}.${selectedFormat}`; // Added version to filename
+      a.download = formatDownloadFilename(optimizedResume?.metadata.filename || 'resume', optimizedResume?.metadata.jobTitle || '', selectedVersion, 'resume'); // Updated filename
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

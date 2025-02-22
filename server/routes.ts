@@ -965,9 +965,18 @@ export function registerRoutes(app: Express): Server {
 
             // Set response headers
             res.setHeader("Content-Type", "application/pdf");
+            const baseFilename = resume.metadata.filename.replace(/\.[^/.]+$/, '');
+            const jobTitle = (resume.jobDetails?.title || 'job')
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .toLowerCase();
+            const version = resume.metadata.version.toFixed(1);
+            const fileExt = format === 'docx' ? 'docx' : 'pdf';
+            const filename = `${baseFilename}_${jobTitle}_v${version}.${fileExt}`;
+            
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=${resume.metadata.filename || `resume-${Date.now()}.pdf`}`
+                `attachment; filename=${filename}`
             );
 
             // Handle potential stream errors
@@ -1188,7 +1197,7 @@ export function registerRoutes(app: Express): Server {
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=${coverLetter.metadata.filename}`,
+                `attachment; filename=${coverLetter.metadata.filename}_cover_letter_v${coverLetter.metadata.version.toFixed(1)}.${format}`,
             );
 
             // Pipe the PDF document to the response
