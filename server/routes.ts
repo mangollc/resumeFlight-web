@@ -186,17 +186,21 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             model: "gpt-4o",
             messages: [{
                 role: "system",
-                content: `Extract detailed job information from the LinkedIn posting. Return a JSON object with these fields:
+                content: `Extract job information from the LinkedIn posting. Return a JSON object with these specific fields for display:
                 {
-                    "title": "exact job title",
-                    "company": "company name",
-                    "location": "job location",
-                    "salary": "salary range if available",
-                    "positionLevel": "seniority level",
-                    "keyRequirements": ["array of key requirements"],
-                    "skillsAndTools": ["array of required skills"],
-                    "description": "full job description"
-                }`
+                    "title": "exact job title, unchanged",
+                    "company": "company name, unchanged",
+                    "location": "job location, unchanged",
+                    "salary": "salary range if mentioned",
+                    "positionLevel": "seniority level (Entry/Junior/Mid/Senior/Lead)",
+                    "keyRequirements": ["key requirements in 2-3 word phrases"],
+                    "skillsAndTools": ["required skills, max 2 words each"],
+                    "_fullDescription": "complete job description with all details",
+                    "_duties": ["full list of job duties"],
+                    "_responsibilities": ["complete responsibilities"]
+                }
+                
+                Note: Fields starting with _ are for AI processing only, not for display.`
             }, {
                 role: "user",
                 content: `Title: ${title}\nCompany: ${company}\nLocation: ${location}\nContent: ${fullContent}`
@@ -219,11 +223,16 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             title: title || enhancedDetails.title || "Unknown Position",
             company: company || enhancedDetails.company || "Unknown Company",
             location: location || enhancedDetails.location || "Location Not Specified",
-            description: description,
+            description: enhancedDetails._fullDescription || description,
             salary: enhancedDetails.salary,
             positionLevel: enhancedDetails.positionLevel,
             keyRequirements: enhancedDetails.keyRequirements || [],
-            skillsAndTools: enhancedDetails.skillsAndTools || []
+            skillsAndTools: enhancedDetails.skillsAndTools || [],
+            _internalDescription: {
+                fullDescription: enhancedDetails._fullDescription,
+                duties: enhancedDetails._duties || [],
+                responsibilities: enhancedDetails._responsibilities || []
+            }
         };
     } catch (error: any) {
         console.error("[Job Details] Error:", error);
