@@ -178,55 +178,71 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         );
 
         if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to fetch job details");
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to fetch job details");
         }
 
         updateStepStatus("extract", "completed");
         updateStepStatus("analyze", "loading");
 
-        const jsonData = await response.json();
+        let jsonData;
+        try {
+          jsonData = await response.json();
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError);
+          throw new Error('Failed to parse server response');
+        }
 
         updateStepStatus("analyze", "completed");
         updateStepStatus("optimize", "loading");
 
         return jsonData;
       } catch (error) {
-        if (error instanceof Error && 
-            (error.name === "AbortError" || 
-             error.message === "cancelled" || 
+        if (error instanceof Error &&
+            (error.name === "AbortError" ||
+             error.message === "cancelled" ||
              error.message === "Request aborted by client")) {
           throw new Error("cancelled");
         }
         throw error;
       }
     },
-    onSuccess: (data: OptimizedResume) => {
+    onSuccess: (data) => {
       if (!abortControllerRef.current?.signal.aborted) {
-        updateStepStatus("optimize", "completed");
+        try {
+          updateStepStatus("optimize", "completed");
 
-        const details: JobDetails = {
-          title: data.jobDetails.title || "",
-          company: data.jobDetails.company || "",
-          location: data.jobDetails.location || "",
-          salary: data.jobDetails.salary,
-          positionLevel: data.jobDetails.positionLevel,
-          keyRequirements: data.jobDetails.keyRequirements || [],
-          skillsAndTools: data.jobDetails.skillsAndTools || [],
-        };
+          const details: JobDetails = {
+            title: data.jobDetails?.title || "",
+            company: data.jobDetails?.company || "",
+            location: data.jobDetails?.location || "",
+            salary: data.jobDetails?.salary,
+            positionLevel: data.jobDetails?.positionLevel,
+            keyRequirements: data.jobDetails?.keyRequirements || [],
+            skillsAndTools: data.jobDetails?.skillsAndTools || [],
+          };
 
-        setExtractedDetails(details);
-        setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
-        queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
+          setExtractedDetails(details);
+          setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
+          queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
-        toast({
-          title: "Success",
-          description: "Job details fetched successfully",
-          duration: 2000,
-        });
+          toast({
+            title: "Success",
+            description: "Job details fetched successfully",
+            duration: 2000,
+          });
 
-        setIsProcessing(false);
-        onOptimized(data, details);
+          setIsProcessing(false);
+          onOptimized(data, details);
+        } catch (error) {
+          console.error('Error processing optimization result:', error);
+          toast({
+            title: "Error",
+            description: "Failed to process optimization result",
+            variant: "destructive"
+          });
+          setIsProcessing(false);
+        }
       }
     },
     onError: (error: Error) => {
@@ -247,12 +263,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           });
         }
       }
-    },
-    onSettled: () => {
-      if (!fetchJobMutation.isSuccess || abortControllerRef.current?.signal.aborted) {
-        setIsProcessing(false);
-        abortControllerRef.current = null;
-      }
+      setIsProcessing(false);
     },
   });
 
