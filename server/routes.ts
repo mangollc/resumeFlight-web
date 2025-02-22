@@ -210,7 +210,15 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         });
 
         const enhancedDetails = JSON.parse(analysis.choices[0].message.content || "{}");
-        console.log("[Job Details] Enhanced details:", enhancedDetails);
+        console.log("[Job Details] Enhanced details:", {
+            title: enhancedDetails.title,
+            company: enhancedDetails.company,
+            location: enhancedDetails.location,
+            salary: enhancedDetails.salary || "Not mentioned",
+            positionLevel: enhancedDetails.positionLevel,
+            keyRequirements: enhancedDetails.keyRequirements,
+            skillsAndTools: enhancedDetails.skillsAndTools
+        });
 
         console.log("[Job Details] Successfully extracted and enhanced details:", {
             title,
