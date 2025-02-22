@@ -197,7 +197,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
   metadata: {
     filename: string;
     optimizedAt: string;
-    version: number;
+    version: string;
   };
   contactInfo: {
     fullName: string;

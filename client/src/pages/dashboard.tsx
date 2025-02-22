@@ -195,7 +195,7 @@ export default function Dashboard() {
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
-  const [optimizationVersion, setOptimizationVersion] = useState(1.0);
+  const [optimizationVersion, setOptimizationVersion] = useState('1.0');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isComparingResumes, setIsComparingResumes] = useState(false);
   const [coverLetterVersion, setCoverLetterVersion] = useState(1.0);
