@@ -170,20 +170,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         console.log('Making optimization request with data:', data);
 
-        const response = await apiRequest("POST", `/api/resume/${resumeId}/optimize`, {
-          ...data,
-          version: optimizationVersion
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Error Response:', errorText);
-          throw new Error("Failed to optimize resume");
-        }
+        const eventSource = new EventSource(`/api/resume/${resumeId}/optimize?${new URLSearchParams(data)}`);
 
         return new Promise((resolve, reject) => {
           let result = null;
-          const eventSource = new EventSource(`/api/resume/${resumeId}/optimize`);
 
           eventSource.onmessage = (event) => {
             try {
@@ -199,9 +189,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 if (data.result) {
                   result = data.result;
                   updateStepStatus("optimize", "completed");
-                  eventSource.close();
-                  resolve(result);
                 }
+                eventSource.close();
+                resolve(result);
               }
             } catch (error) {
               console.warn('Failed to parse event data:', error);
