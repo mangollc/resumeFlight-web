@@ -92,7 +92,7 @@ export default function Preview({ resume }: PreviewProps) {
   useEffect(() => {
     if (!resume) return;
 
-    const isOptimized = "metrics" in resume;
+    const isOptimized = "jobDescription" in resume;
     if (!isOptimized) return;
 
     const optimizedResume = resume as OptimizedResume;
@@ -122,15 +122,14 @@ export default function Preview({ resume }: PreviewProps) {
     );
   }
 
-  const isOptimized = "metrics" in resume;
+  const isOptimized = "jobDescription" in resume;
   const originalContent = isOptimized ? (resume as OptimizedResume).originalContent : resume.content;
   const optimizedContent = resume.content;
 
   const formatFilename = () => {
     const initials = getInitials(originalContent);
-    const jobTitle = isOptimized && (resume as OptimizedResume).jobDetails?.title
-      ? (resume as OptimizedResume).jobDetails.title
-          .replace(/[^a-zA-Z0-9\s]/g, "")
+    const jobTitle = isOptimized
+      ? (resume as OptimizedResume).jobDetails?.title?.replace(/[^a-zA-Z0-9\s]/g, "")
           .replace(/\s+/g, "_")
           .toLowerCase()
           .substring(0, 30)
