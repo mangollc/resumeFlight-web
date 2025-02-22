@@ -102,7 +102,6 @@ export async function optimizeResume(
 ) {
   try {
     const optimizationVersion = version || 1.0;
-    // Use larger chunks for resume optimization
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
@@ -121,7 +120,6 @@ export async function optimizeResume(
       ats: "",
     };
 
-    // Process each chunk of the resume
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
       const response = await openai.chat.completions.create({
@@ -129,17 +127,31 @@ export async function optimizeResume(
         messages: [
           {
             role: "system",
-            content: `You are an expert resume optimizer specializing in ATS optimization, industry transitions, and professional resume enhancement. Your task is to optimize this section of the resume while maintaining consistency with other sections.
+            content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Your task is to optimize this section of the resume while maintaining complete accuracy of all position information.
 
 Follow these optimization guidelines:
-1. Analyze job requirements and industry context thoroughly
-2. Create skill bridge mapping between current and target industry skills
-3. Transform experience descriptions to highlight transferable value
-4. Calculate industry transition success probability
-5. Enhance content while maintaining authenticity
-6. Use consistent formatting across sections
-7. Ensure optimized version scores higher than original
-8. Return valid JSON in this exact format:
+1. DO NOT modify or exaggerate:
+   - Job titles and positions
+   - Company names
+   - Employment dates and timelines
+   - Educational qualifications
+   - Degrees and certifications
+   These must remain exactly as provided in the original resume.
+
+2. Focus optimization on:
+   - Clarity of achievement descriptions
+   - Matching relevant skills to job requirements
+   - Improving bullet point structure
+   - Enhancing keyword optimization for ATS
+   - Making accomplishments more measurable
+
+3. Ensure all optimizations:
+   - Maintain 100% truthfulness
+   - Keep original chronology intact
+   - Preserve all position details exactly as stated
+   - Focus on clarity and presentation, not content modification
+
+Return valid JSON in this exact format:
 {
   "optimizedContent": "the enhanced resume section text",
   "changes": ["list of specific improvements made"],
@@ -158,7 +170,7 @@ Follow these optimization guidelines:
               "\n\n",
             )}${
               optimizationVersion > 1
-                ? `\n\nThis is reoptimization attempt. Current version: ${optimizationVersion}. Please make additional improvements while maintaining previous optimizations.`
+                ? `\n\nThis is reoptimization attempt. Current version: ${optimizationVersion}. Please make additional improvements while maintaining previous optimizations and original position information.`
                 : ""
             }`,
           },
@@ -180,8 +192,10 @@ Follow these optimization guidelines:
 
         // Merge improvements
         Object.keys(improvements).forEach((key) => {
-          const newValue = result.improvements?.[key] || "";
-          improvements[key] = improvements[key] ? `${improvements[key]}\n${newValue}` : newValue;
+          const newValue = result.improvements?.[key as keyof typeof improvements] || "";
+          improvements[key as keyof typeof improvements] = improvements[key as keyof typeof improvements] 
+            ? `${improvements[key as keyof typeof improvements]}\n${newValue}` 
+            : newValue;
         });
       } catch (error) {
         console.error('[Optimize] Failed to parse OpenAI response:', error);
@@ -190,7 +204,6 @@ Follow these optimization guidelines:
       }
     }
 
-    // Calculate final match score
     const finalScore = Math.min(
       100,
       Math.max(0, Math.round(overallMatchScore / resumeChunks.length)),

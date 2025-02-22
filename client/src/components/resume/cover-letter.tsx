@@ -57,7 +57,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cover-letter"] });
       if (onGenerated) onGenerated(data);
-      const newVersion = data.version;
+      const newVersion = data.metadata?.version ?? 1.0;
       setVersions(prev => Array.from(new Set([...prev, newVersion])).sort((a, b) => b - a));
       setSelectedVersion(newVersion.toString());
       toast({
@@ -74,12 +74,24 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     },
   });
 
+  useEffect(() => {
+    if (generatedCoverLetter?.metadata?.version) {
+      setVersions(prev => {
+        const newVersions = Array.from(new Set([...prev, generatedCoverLetter.metadata.version])).sort((a, b) => b - a);
+        if (!selectedVersion) {
+          setSelectedVersion(generatedCoverLetter.metadata.version.toString());
+        }
+        return newVersions;
+      });
+    }
+  }, [generatedCoverLetter]);
+
   const handleDownload = async (version?: string) => {
     if (!generatedCoverLetter?.id) return;
 
     try {
       setIsDownloading(true);
-      const versionToUse = version || selectedVersion || generatedCoverLetter.version.toString();
+      const versionToUse = version || selectedVersion || (generatedCoverLetter.metadata?.version ?? 1.0).toString();
       const response = await fetch(
         `/api/cover-letter/${generatedCoverLetter.id}/download?format=${selectedFormat}&version=${versionToUse}`,
         {
@@ -128,17 +140,6 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     return `${baseName}_${formattedJobTitle}_v${version.toFixed(1)}.${selectedFormat}`;
   };
 
-  useEffect(() => {
-    if (generatedCoverLetter) {
-      setVersions(prev => {
-        const newVersions = Array.from(new Set([...prev, generatedCoverLetter.version])).sort((a, b) => b - a);
-        if (!selectedVersion) {
-          setSelectedVersion(generatedCoverLetter.version.toString());
-        }
-        return newVersions;
-      });
-    }
-  }, [generatedCoverLetter]);
 
   const selectedCoverLetterContent = versions.length > 0 && selectedVersion && generatedCoverLetter
     ? generatedCoverLetter.content
