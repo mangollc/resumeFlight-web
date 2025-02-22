@@ -27,7 +27,7 @@ const getMetricsColor = (value: number) => {
 export default function ComparisonView({ beforeContent, afterContent, resumeId }: ComparisonViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [differences, setDifferences] = useState<any>(null);
-  const [selectedVersion, setSelectedVersion] = useState<number>(1);
+  const [selectedVersion, setSelectedVersion] = useState<string>('1.0');
   const [versions, setVersions] = useState<number[]>([]);
   const [metrics, setMetrics] = useState<{
     before: { overall: number; keywords: number; skills: number; experience: number };

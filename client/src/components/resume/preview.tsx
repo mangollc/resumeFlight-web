@@ -21,6 +21,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {Badge} from "@/components/ui/badge"; // Added Badge component
 
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
@@ -190,6 +191,11 @@ export default function Preview({ resume }: PreviewProps) {
               <div className="flex items-center gap-3">
                 <div className="font-semibold truncate max-w-[200px] sm:max-w-none">
                   {resume.metadata.filename}
+                  {resume.metadata.version && ( // Added conditional rendering for version
+                    <Badge variant="outline" className="ml-2">
+                      v{typeof resume.metadata.version === 'number' ? resume.metadata.version.toFixed(1) : resume.metadata.version}
+                    </Badge>
+                  )}
                 </div>
                 {isOptimized ? (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100">

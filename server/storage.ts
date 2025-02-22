@@ -224,10 +224,10 @@ export class DatabaseStorage implements IStorage {
         .insert(optimizedResumes)
         .values({
           ...resume,
-          version: nextVersion,
+          version: nextVersion.toFixed(1),
           versionHistory: [],
           versionMetrics: [{
-            version: nextVersion,
+            version: nextVersion.toFixed(1),
             metrics: {
               before: {
                 overall: 0,
