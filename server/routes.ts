@@ -54,6 +54,7 @@ interface JobDetails {
     improvements?: string[];
     changes?: string[];
     matchScore?: number;
+    _internalDetails?: any;
 }
 
 // Multer configuration
@@ -173,7 +174,6 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             .trim()
             .replace(/\d+\s*applicants?/gi, "")
             .trim();
-        // Get all text content to maximize data extraction
         const fullContent = $("main").text().trim();
         const description = $(linkedInSelectors.description).text().trim() || fullContent;
 
@@ -181,26 +181,41 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             throw new Error("Could not extract job description.");
         }
 
-        // Use AI to extract structured information from the scraped content
+        // Use AI to extract comprehensive job information
         const analysis = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [{
                 role: "system",
-                content: `Extract job information from the LinkedIn posting. Return a JSON object with these specific fields for display:
+                content: `Extract detailed job information from the LinkedIn posting. Return a JSON object with two sets of fields:
+
+                1. Client-side display fields (clean, concise):
                 {
                     "title": "exact job title, unchanged",
                     "company": "company name, unchanged",
-                    "location": "job location, unchanged",
-                    "salary": "salary range if mentioned",
-                    "positionLevel": "seniority level (Entry/Junior/Mid/Senior/Lead)",
+                    "location": "job location with remote/hybrid/onsite tag",
+                    "salary": "salary range if mentioned, otherwise 'Not specified'",
+                    "positionLevel": "seniority level (Entry/Junior/Mid/Senior/Lead/Executive)",
                     "keyRequirements": ["key requirements in 2-3 word phrases"],
                     "skillsAndTools": ["required skills, max 2 words each"],
-                    "_fullDescription": "complete job description with all details",
-                    "_duties": ["full list of job duties"],
-                    "_responsibilities": ["complete responsibilities"]
                 }
 
-                Note: Fields starting with _ are for AI processing only, not for display.`
+                2. Internal AI processing fields (comprehensive):
+                {
+                    "_internal": {
+                        "fullDescription": "complete job description",
+                        "responsibilities": ["detailed list of all responsibilities"],
+                        "requirements": ["detailed list of all requirements"],
+                        "qualifications": ["detailed list of all qualifications"],
+                        "benefits": ["detailed list of benefits if mentioned"],
+                        "technicalSkills": ["detailed technical skills"],
+                        "softSkills": ["detailed soft skills"],
+                        "workplaceType": "detailed workplace arrangement",
+                        "department": "department or team information",
+                        "reportingStructure": "reporting relationships if mentioned",
+                        "travelRequirements": "travel requirements if any",
+                        "industries": ["relevant industry sectors"]
+                    }
+                }`
             }, {
                 role: "user",
                 content: `Title: ${title}\nCompany: ${company}\nLocation: ${location}\nContent: ${fullContent}`
@@ -214,51 +229,27 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             title: enhancedDetails.title,
             company: enhancedDetails.company,
             location: enhancedDetails.location,
-            salary: enhancedDetails.salary || "Not mentioned",
-            positionLevel: enhancedDetails.positionLevel,
-            keyRequirements: enhancedDetails.keyRequirements,
-            skillsAndTools: enhancedDetails.skillsAndTools
-        });
-
-        console.log("[Job Details] Successfully extracted and enhanced details:", {
-            title: enhancedDetails.title,
-            company: enhancedDetails.company,
-            location: enhancedDetails.location,
             salary: enhancedDetails.salary,
             positionLevel: enhancedDetails.positionLevel,
             keyRequirements: enhancedDetails.keyRequirements,
             skillsAndTools: enhancedDetails.skillsAndTools
         });
 
-        // Internal object for AI processing with full details
-        const fullDetails = {
+        // Return client-visible details and store internal details for AI processing
+        return {
             title: enhancedDetails.title || title || "Unknown Position",
             company: enhancedDetails.company || company || "Unknown Company",
             location: enhancedDetails.location || location || "Location Not Specified",
-            description: enhancedDetails._fullDescription || description,
-            fullDuties: enhancedDetails._duties || [],
-            fullResponsibilities: enhancedDetails._responsibilities || [],
-            salary: enhancedDetails.salary,
-            positionLevel: enhancedDetails.positionLevel,
-            keyRequirements: enhancedDetails.keyRequirements || [],
-            skillsAndTools: enhancedDetails.skillsAndTools || []
-        };
-
-        // Client-side visible object with limited fields
-        return {
-            title: fullDetails.title,
-            company: fullDetails.company,
-            location: enhancedDetails.location || location || "Location Not Specified", // Prioritize extracted location
-            description: fullDetails.description,
-            salary: fullDetails.salary,
-            positionLevel: fullDetails.positionLevel,
-            keyRequirements: fullDetails.keyRequirements.map(req => req.length > 30 ? req.substring(0, 30) + '...' : req),
-            skillsAndTools: fullDetails.skillsAndTools.filter(skill => skill.split(' ').length <= 2),
-            _internalDescription: {
-                fullDescription: fullDetails.description,
-                duties: fullDetails.fullDuties,
-                responsibilities: fullDetails.fullResponsibilities
-            }
+            description: enhancedDetails._internal?.fullDescription || description,
+            salary: enhancedDetails.salary || "Not specified",
+            positionLevel: enhancedDetails.positionLevel || "Not specified",
+            keyRequirements: (enhancedDetails.keyRequirements || []).map(req => 
+                req.length > 30 ? req.substring(0, 30) + '...' : req
+            ),
+            skillsAndTools: (enhancedDetails.skillsAndTools || []).filter(skill => 
+                skill.split(' ').length <= 2
+            ),
+            _internalDetails: enhancedDetails._internal || null
         };
     } catch (error: any) {
         console.error("[Job Details] Error:", error);
@@ -999,7 +990,7 @@ export function registerRoutes(app: Express): Server {
             const sections = coverLetter.content.split("\n\n");
             sections.forEach((section, index) => {
                 if (index > 0) doc.moveDown();
-                                doc.fontSize(index === 0 ? 16 : 12)
+                doc.fontSize(index === 0 ? 16 : 12)
                     .font(index === 0 ? "Helvetica-Bold" : "Helvetica")
                     .text(section.trim());
             });
