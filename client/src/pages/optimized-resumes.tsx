@@ -92,7 +92,7 @@ function formatJobDetails(resume: OptimizedResume) {
           <h4 className="font-semibold mb-2">Key Requirements</h4>
           <ul className="list-disc list-inside space-y-2">
             {resume.jobDetails.keyRequirements.map((requirement, index) => (
-              <li key={index} className="text-muted-foreground">{requirement}</li>
+              <li key={index} className="text-sm text-muted-foreground">{requirement}</li>
             ))}
           </ul>
         </div>
@@ -103,7 +103,7 @@ function formatJobDetails(resume: OptimizedResume) {
           <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
           <div className="flex flex-wrap gap-2">
             {resume.jobDetails.skillsAndTools.map((skill, index) => (
-              <Badge key={index} variant={getMetricsColor(resume.metrics?.after?.skills || 0)}>
+              <Badge key={index} variant="default">
                 {skill}
               </Badge>
             ))}
