@@ -691,28 +691,9 @@ export function registerRoutes(app: Express): Server {
                 sendStatus("completed");
                 return res.end();
             } catch (error) {
-                console.error("[Optimize] Error during optimization process:",
+                console.error("[Optimize] Error during optimization process:", error);
                 sendStatus("error");
                 return res.end();
-                    error,
-                );
-                sendStatus("error");
-                res.end();
-                // Check if the error is due to timeout
-                if (error instanceof Error && error.message.includes('aborted')) {
-                    return res.status(504).json({
-                        error: "Request timeout - optimization process took too long",
-                        details: "The resume or job description might be too large. Try breaking it into smaller sections."
-                    });
-                }
-                // Check for memory-related errors
-                if (error instanceof Error && error.message.includes('memory')) {
-                    return res.status(503).json({
-                        error: "Server resource limit reached",
-                        details: "The content is too large to process. Try reducing the size of your resume or job description."
-                    });
-                }
-                throw error;
             }
         } catch (error) {
             console.error("[Optimize] Error:", error);
