@@ -239,24 +239,24 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
             </div>
 
             <div className="prose prose-sm max-w-none dark:prose-invert">
-                {selectedCoverLetter?.confidence && (
-                  <div className="mb-4 flex items-center gap-2">
-                    <span className="text-sm font-medium">Match Confidence:</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      selectedCoverLetter.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                      selectedCoverLetter.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {selectedCoverLetter.confidence}%
-                    </span>
-                  </div>
-                )}
-                <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
-                  <pre className="whitespace-pre-wrap font-sans text-sm">
-                    {selectedCoverLetter?.content || generateMutation.data?.content}
-                  </pre>
+              {selectedCoverLetter?.confidence && (
+                <div className="mb-4 flex items-center gap-2">
+                  <span className="text-sm font-medium">Match Confidence:</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    selectedCoverLetter.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                    selectedCoverLetter.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {selectedCoverLetter.confidence}%
+                  </span>
                 </div>
+              )}
+              <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
+                <pre className="whitespace-pre-wrap font-sans text-sm">
+                  {selectedCoverLetter?.content || generateMutation.data?.content}
+                </pre>
               </div>
+            </div>
           </CardContent>
         </Card>
       )}
