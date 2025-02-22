@@ -45,19 +45,38 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 function formatJobDetails(resume: OptimizedResume) {
+  const getWorkArrangementBadge = (jobDetails: any) => {
+    const arrangement = jobDetails?.workArrangement?.toLowerCase();
+    if (!arrangement) return null;
+
+    const variants = {
+      remote: "outline",
+      hybrid: "secondary",
+      onsite: "default"
+    };
+
+    return (
+      <Badge variant={variants[arrangement as keyof typeof variants] || "default"}>
+        {arrangement.charAt(0).toUpperCase() + arrangement.slice(1)}
+      </Badge>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-semibold text-lg mb-2">Job Details</h3>
         <div className="grid gap-4">
           <div>
-            <p className="font-medium mb-1">Title</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.title || "Not specified"}
-            </p>
+            <p className="font-medium mb-1">Job Title</p>
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-muted-foreground">
+                {resume.jobDetails?.title || "Not specified"}
+              </p>
+              {getWorkArrangementBadge(resume.jobDetails)}
+            </div>
           </div>
           <div>
-            <p className="font-medium mb-1">Company</p>
+            <p className="font-medium mb-1">Company Name</p>
             <p className="text-sm text-muted-foreground">
               {resume.jobDetails?.company || "Not specified"}
             </p>
