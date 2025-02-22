@@ -1,7 +1,14 @@
+
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Laptop } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Laptop } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface ResumeSideBySideCompareProps {
   originalResume: string;
@@ -48,14 +55,14 @@ export function ResumeSideBySideCompare({ originalResume, optimizedResume }: Res
   }
 
   return (
-    <div className="hidden lg:grid grid-cols-2 gap-4 h-full">
-      <div className="border rounded-lg p-4 bg-card">
-        <h3 className="text-lg font-semibold mb-4">Original Resume</h3>
-        <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: originalResume }} />
+    <div className="grid grid-cols-2 gap-4 h-full">
+      <div className="border rounded-lg p-4 overflow-auto">
+        <h3 className="font-semibold mb-2">Original Version</h3>
+        <pre className="whitespace-pre-wrap text-sm">{originalResume}</pre>
       </div>
-      <div className="border rounded-lg p-4 bg-card">
-        <h3 className="text-lg font-semibold mb-4">Optimized Resume</h3>
-        <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: optimizedResume }} />
+      <div className="border rounded-lg p-4 overflow-auto">
+        <h3 className="font-semibold mb-2">Optimized Version</h3>
+        <pre className="whitespace-pre-wrap text-sm">{optimizedResume}</pre>
       </div>
     </div>
   );
