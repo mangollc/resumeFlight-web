@@ -787,11 +787,14 @@ export default function Dashboard() {
     }
   };
 
+  // Set random proverb on mount
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * jobProverbs.length);
     setProverb(jobProverbs[randomIndex]);
+  }, []);
 
-    // Hide welcome message after 3 seconds
+  // Handle welcome animation timeout separately
+  useEffect(() => {
     const timer = setTimeout(() => {
       setShowWelcome(false);
     }, 3000);
