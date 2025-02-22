@@ -16,7 +16,10 @@ export const uploadedResumes = pgTable("uploaded_resumes", {
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
   createdAt: text("created_at").notNull(),
-});
+}, (table) => ({
+  userIdIdx: index("uploaded_resumes_user_id_idx").on(table.userId),
+  createdAtIdx: index("uploaded_resumes_created_at_idx").on(table.createdAt),
+}));
 
 export const optimizedResumes = pgTable("optimized_resumes", {
   id: serial("id").primaryKey(),
@@ -32,8 +35,8 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   version: integer("version").notNull(),
   versionHistory: jsonb("version_history").notNull().default([]),
   metrics: jsonb("metrics").notNull().default([]),
-  version: integer("version").notNull().default(1),
   versionMetrics: jsonb("version_metrics").notNull().default([]),
+  version: integer("version").notNull().default(1),
   createdAt: text("created_at").notNull(),
 });
 
@@ -74,7 +77,8 @@ export const coverLetters = pgTable("cover_letters", {
   optimizedResumeId: integer("optimized_resume_id").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
-  version: jsonb("version_history").notNull().default([]),
+  version: integer("version").notNull().default(1),
+  versionHistory: jsonb("version_history").notNull().default([]),
   createdAt: text("created_at").notNull(),
 }, (table) => ({
   optimizedResumeIdIdx: index("cover_letter_optimized_resume_id_idx").on(table.optimizedResumeId),
