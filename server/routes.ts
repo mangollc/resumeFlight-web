@@ -99,8 +99,9 @@ async function calculateMatchScores(
 ) {
     try {
         console.log("[Match Analysis] Starting analysis...");
+        const model = "gpt-4-turbo-preview"; // Updated to use the correct model name
         const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: model,
             messages: [
                 {
                     role: "system",
@@ -182,8 +183,10 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         }
 
         // Use AI to extract comprehensive job information
+        const model = "gpt-4-turbo-preview"; // Updated to use the correct model name
+
         const analysis = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: model,
             messages: [{
                 role: "system",
                 content: `Extract detailed job information from the LinkedIn posting. Return a JSON object with two sets of fields:
@@ -236,6 +239,15 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
         });
 
         // Return client-visible details and store internal details for AI processing
+        const cleanJobTitle = (enhancedDetails.title || "job")
+            .replace(/[^a-zA-Z0-9\s]/g, "")
+            .replace(/\s+/g, "_")
+            .substring(0, 30);
+
+        const skillsAndTools = (enhancedDetails.skillsAndTools || []).filter((skill: string) =>
+            skill.split(' ').length <= 2
+        );
+
         return {
             title: enhancedDetails.title || title || "Unknown Position",
             company: enhancedDetails.company || company || "Unknown Company",
@@ -246,9 +258,7 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             keyRequirements: (enhancedDetails.keyRequirements || []).map(req =>
                 req.length > 30 ? req.substring(0, 30) + '...' : req
             ),
-            skillsAndTools: (enhancedDetails.skillsAndTools || []).filter(skill =>
-                skill.split(' ').length <= 2
-            ),
+            skillsAndTools: skillsAndTools,
             _internalDetails: enhancedDetails._internal || null
         };
     } catch (error: any) {
@@ -260,8 +270,9 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
 async function analyzeJobDescription(description: string): Promise<JobDetails> {
     try {
         console.log("[Job Analysis] Analyzing description...");
+        const model = "gpt-4-turbo-preview"; // Updated to use the correct model name
         const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: model,
             messages: [
                 {
                     role: "system",
@@ -823,7 +834,7 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            // Create PDF document
+            // Create PDF document with error handling
             const doc = new PDFDocument({
                 size: "A4",
                 margin: 50,
@@ -833,33 +844,62 @@ export function registerRoutes(app: Express): Server {
             res.setHeader("Content-Type", "application/pdf");
             res.setHeader(
                 "Content-Disposition",
-                `attachment; filename=${resume.metadata.filename || `resume-${Date.now()}.pdf`}`,
+                `attachment; filename=${resume.metadata.filename || `resume-${Date.now()}.pdf`}`
             );
 
-            // Pipe the PDF document to the response
-            doc.pipe(res);
-
-            // Add content to PDF
-            doc.fontSize(16).font("Helvetica-Bold");
-
-            // Format the content properly with sections
-            const sections = resume.content.split("\n\n");
-            sections.forEach((section, index) => {
-                if (index > 0) doc.moveDown();
-                doc.fontSize(index === 0 ? 16 : 12)
-                    .font(index === 0 ? "Helvetica-Bold" : "Helvetica")
-                    .text(section.trim());
+            // Handle potential stream errors
+            doc.on('error', (err) => {
+                console.error('PDF generation error:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error: "Failed to generate PDF",
+                        details: "Internal server error during PDF generation"
+                    });
+                }
             });
 
-            // Finalize the PDF
-            doc.end();
+            // Pipe the PDF document to the response with error handling
+            const stream = doc.pipe(res);
+            stream.on('error', (err) => {
+                console.error('Stream error:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error: "Failed to stream PDF",
+                        details: "Error streaming PDF to client"
+                    });
+                }
+            });
+
+            // Add content to PDF with proper error handling
+            try {
+                doc.fontSize(16).font("Helvetica-Bold");
+                const sections = resume.content.split("\n\n");
+                sections.forEach((section, index) => {
+                    if (index > 0) doc.moveDown();
+                    doc.fontSize(index === 0 ? 16 : 12)
+                        .font(index === 0 ? "Helvetica-Bold" : "Helvetica")
+                        .text(section.trim());
+                });
+
+                // Finalize the PDF
+                doc.end();
+            } catch (pdfError) {
+                console.error('Error generating PDF content:', pdfError);
+                if (!res.headersSent) {
+                    res.status(500).json({
+                        error: "Failed to generate PDF content",
+                        details: "Error while writing PDF content"
+                    });
+                }
+            }
         } catch (error) {
             console.error("[Download] Error:", error);
-            res.status(500).json({
-                error: "Failed to generate PDF",
-                details:
-                    error instanceof Error ? error.message : "Unknown error",
-            });
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: "Failed to generate PDF",
+                    details: error instanceof Error ? error.message : "Unknown error",
+                });
+            }
         }
     });
 
@@ -1073,11 +1113,12 @@ function getInitials(text: string): string {
 }
 
 // Add this helper function after existing helpers
-function extractContactInfo(resumeContent: string) {
+async function extractContactInfo(resumeContent: string) {
     try {
         // Use OpenAI to extract contact information
-        return openai.chat.completions.create({
-            model: "gpt-4o",
+        const model = "gpt-4-turbo-preview"; // Updated to use the correct model name
+        const response = await openai.chat.completions.create({
+            model: model,
             messages: [
                 {
                     role: "system",
@@ -1096,16 +1137,15 @@ If any field is not found, set it to null.`
                 }
             ],
             response_format: { type: "json_object" }
-        }).then(response => {
-            const content = response.choices[0].message.content;
-            if (!content) throw new Error("Failed to parse contact information");
-
-            const contactInfo = JSON.parse(content);
-            if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
-                throw new Error("Missing required contact information");
-            }
-            return contactInfo;
         });
+        const content = response.choices[0].message.content;
+        if (!content) throw new Error("Failed to parse contact information");
+
+        const contactInfo = JSON.parse(content);
+        if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
+            throw new Error("Missing required contact information");
+        }
+        return contactInfo;
     } catch (error) {
         console.error("[Contact Info] Extraction error:", error);
         throw new Error("Failed to extract contact information from resume");
