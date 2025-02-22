@@ -14,12 +14,6 @@ import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface ProgressStep {
-  id: string;
-  label: string;
-  status: "pending" | "loading" | "completed" | "error";
-}
-
 interface JobDetails {
   title: string;
   company: string;
@@ -57,7 +51,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
-  const [optimizationVersion, setOptimizationVersion] = useState(1.0);
 
   useEffect(() => {
     return () => {
@@ -106,12 +99,21 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     const lowerSkill = skill.toLowerCase();
 
     if (skillTypes.technical.some(s => lowerSkill.includes(s))) return "default";
-    if (skillTypes.framework.some(s => lowerSkill.includes(s))) return "outline";
-    if (skillTypes.database.some(s => lowerSkill.includes(s))) return "secondary";
-    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) return "destructive";
+    if (skillTypes.framework.some(s => lowerSkill.includes(s))) return "secondary";
+    if (skillTypes.database.some(s => lowerSkill.includes(s))) return "destructive";
+    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) return "outline";
     if (skillTypes.tools.some(s => lowerSkill.includes(s))) return "ghost";
-    if (skillTypes.soft.some(s => lowerSkill.includes(s))) return "link";
+    if (skillTypes.soft.some(s => lowerSkill.includes(s))) return "default";
     return "default";
+  };
+
+  const isValidLinkedInUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.includes('linkedin.com') && urlObj.pathname.includes('/jobs/view/');
+    } catch {
+      return false;
+    }
   };
 
   const checkUnsupportedJobSite = (url: string): string | null => {
@@ -146,11 +148,18 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         }
         abortControllerRef.current = new AbortController();
 
+        // Validate LinkedIn URL if provided
+        if (data.jobUrl && !isValidLinkedInUrl(data.jobUrl)) {
+          throw new Error('Please provide a valid LinkedIn job posting URL');
+        }
+
         console.log('Making optimization request with data:', data);
+
+        updateStepStatus("extract", "loading");
 
         const response = await apiRequest(
           'POST',
-          `/api/resume/${resumeId}/optimize`,
+          `/api/uploaded-resumes/${resumeId}/optimize`,
           data,
           abortControllerRef.current.signal
         );
@@ -202,12 +211,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
           };
 
-          if (!details.title || !details.company || !details.location) {
-            throw new Error('Missing required job details');
-          }
-
           setExtractedDetails(details);
-          setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
           queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
           toast({
@@ -260,7 +264,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
     setIsProcessing(true);
     setProgressSteps(INITIAL_STEPS);
-    updateStepStatus("extract", "loading");
 
     fetchJobMutation.mutate(
       activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
@@ -295,7 +298,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             <div className="flex flex-col space-y-2">
               <Input
                 type="url"
-                placeholder="Paste job posting URL here..."
+                placeholder="Paste LinkedIn job posting URL here..."
                 value={jobUrl}
                 onChange={handleUrlChange}
                 className="w-full"
@@ -304,7 +307,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               <Alert className="mt-2">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Note: Indeed and ZipRecruiter URLs are not supported. Please use manual input for these job sites.
+                  Note: Only LinkedIn job URLs are supported. For other job sites, please use manual input.
                 </AlertDescription>
               </Alert>
             </div>
@@ -363,7 +366,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               ))}
           </div>
 
-          {extractedDetails.keyRequirements?.length > 0 && (
+          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Key Requirements</h4>
               <ul className="list-disc list-inside space-y-2">
@@ -374,7 +377,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             </div>
           )}
 
-          {extractedDetails.skillsAndTools?.length > 0 && (
+          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
               <div className="flex flex-wrap gap-2">
