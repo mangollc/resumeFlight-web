@@ -894,6 +894,69 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
+            if (format === 'docx') {
+                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
+                
+                // Parse resume content
+                const sections = resume.content.split('\n\n');
+                const doc = new Document({
+                    sections: [{
+                        properties: {},
+                        children: sections.map((section, index) => {
+                            if (index === 0) {
+                                // Name at the top
+                                return new Paragraph({
+                                    alignment: AlignmentType.CENTER,
+                                    heading: HeadingLevel.HEADING_1,
+                                    children: [
+                                        new TextRun({
+                                            text: section.trim(),
+                                            bold: true,
+                                            size: 28
+                                        })
+                                    ]
+                                });
+                            } else if (section.toUpperCase() === section) {
+                                // Section headers
+                                return new Paragraph({
+                                    heading: HeadingLevel.HEADING_2,
+                                    children: [
+                                        new TextRun({
+                                            text: section.trim(),
+                                            bold: true,
+                                            size: 24
+                                        })
+                                    ],
+                                    spacing: {
+                                        before: 400,
+                                        after: 200
+                                    }
+                                });
+                            } else {
+                                // Regular content
+                                return new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: section.trim(),
+                                            size: 22
+                                        })
+                                    ],
+                                    spacing: {
+                                        before: 200,
+                                        after: 200
+                                    }
+                                });
+                            }
+                        })
+                    }]
+                });
+
+                const buffer = await doc.save();
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                res.setHeader('Content-Disposition', `attachment; filename=${resume.metadata.filename.replace('.pdf', '.docx')}`);
+                return res.send(buffer);
+            }
+
             // Create PDF document with error handling
             const doc = new PDFDocument({
                 size: "A4",
