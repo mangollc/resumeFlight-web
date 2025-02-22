@@ -218,14 +218,20 @@ export class DatabaseStorage implements IStorage {
         .from(optimizedResumes)
         .where(eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId));
 
-      const nextVersion = existingVersions.length + 1;
+      const nextVersion = (existingVersions.length + 1).toFixed(1);
+      const timestamp = new Date().toISOString();
 
       const [result] = await db
         .insert(optimizedResumes)
         .values({
           ...resume,
-          version: nextVersion.toFixed(1),
-          versionHistory: [],
+          version: nextVersion,
+          versionHistory: [{
+            version: nextVersion,
+            content: resume.content,
+            timestamp: timestamp,
+            changes: []
+          }],
           versionMetrics: [{
             version: nextVersion.toFixed(1),
             metrics: {
