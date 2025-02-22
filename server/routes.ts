@@ -882,6 +882,8 @@ export function registerRoutes(app: Express): Server {
             }
 
             const resumeId = parseInt(req.params.id);
+            const version = req.query.version ? Number(req.query.version) : undefined;
+            const format = (req.query.format as string)?.toLowerCase() || 'pdf';
             const resume = await storage.getOptimizedResume(resumeId);
 
             if (!resume) {

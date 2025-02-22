@@ -18,17 +18,19 @@ interface ReviewSectionProps {
   optimizedResume: OptimizedResume;
   coverLetter?: CoverLetterType;
   onDownload?: (id: string) => void;
+  versions: number[]; // Added versions prop
 }
 
-export function ReviewSection({ optimizedResume, coverLetter, onDownload }: ReviewSectionProps) {
+export function ReviewSection({ optimizedResume, coverLetter, onDownload, versions }: ReviewSectionProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
+  const [selectedVersion, setSelectedVersion] = useState(versions[0] || 1); // Added version state
   const { toast } = useToast();
 
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}`);
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}&version=${selectedVersion}`); // Added version to URL
       if (!response.ok) {
         throw new Error('Failed to download resume');
       }
@@ -36,7 +38,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${optimizedResume?.metadata.filename}.${selectedFormat}`;
+      a.download = `${optimizedResume?.metadata.filename}_v${selectedVersion}.${selectedFormat}`; // Added version to filename
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -72,6 +74,21 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload }: Revi
                 Optimized Resume
               </h3>
               <div className="flex items-center gap-2">
+                <Select
+                  value={selectedVersion.toString()}
+                  onValueChange={(value) => setSelectedVersion(Number(value))}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {versions.map((version) => (
+                      <SelectItem key={version} value={version.toString()}>
+                        Version {version.toFixed(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select
                   value={selectedFormat}
                   onValueChange={(value) => setSelectedFormat(value as "pdf" | "docx")}
