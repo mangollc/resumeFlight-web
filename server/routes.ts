@@ -760,10 +760,9 @@ export function registerRoutes(app: Express): Server {
                     finalJobDescription,
                 );
 
-                if (!optimized || !optimized.optimizedContent) {
-                    console.error("[Optimize] Failed to generate optimized content");
-                    sendEvent({ status: "error", message: "Failed to generate optimized content" });
-                    return res.end();
+                // Ensure content isn't truncated
+                if (!optimized || !optimized.optimizedContent || optimized.optimizedContent.length < 100) {
+                    throw new Error('Invalid optimization result: Content appears to be truncated');
                 }
 
 
@@ -800,7 +799,27 @@ export function registerRoutes(app: Express): Server {
                 return res.end();
             } catch (error) {
                 console.error("[Optimize] Error during optimization process:", error);
-                sendEvent({ status: "error", message: error instanceof Error ? error.message : "Optimization failed" });
+                const errorMessage = error instanceof Error ? error.message : "Optimization failed";
+
+                // Attempt recovery if possible
+                if (uploadedResume?.content) {
+                  try {
+                    sendEvent({ status: "recovery", message: "Attempting recovery..." });
+                    const recoveryOptimization = await optimizeResume(
+                      uploadedResume.content,
+                      finalJobDescription || jobDescription as string,
+                      1.0
+                    );
+                    if (recoveryOptimization?.optimizedContent) {
+                      sendEvent({ status: "recovered", optimizedResume: recoveryOptimization });
+                      return res.end();
+                    }
+                  } catch (recoveryError) {
+                    console.error("[Optimize] Recovery failed:", recoveryError);
+                  }
+                }
+
+                sendEvent({ status: "error", message: errorMessage });
                 return res.end();
             }
         } catch (error) {
@@ -896,14 +915,13 @@ export function registerRoutes(app: Express): Server {
 
             if (format === 'docx') {
                 const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
-                
+
                 // Parse resume content
                 const sections = resume.content.split('\n\n');
                 const doc = new Document({
                     sections: [{
                         properties: {},
-                        children: sections.map((section, index) => {
-                            if (index === 0) {
+                        children: sections.map((section, index) => {                            if (index === 0) {
                                 // Name at the top
                                 return new Paragraph({
                                     alignment: AlignmentType.CENTER,
@@ -973,7 +991,7 @@ export function registerRoutes(app: Express): Server {
             const versionNumber = resume.metadata.version.toFixed(1);
             const fileExt = format === 'docx' ? 'docx' : 'pdf';
             const filename = `${baseFilename}_${jobTitle}_v${versionNumber}.${fileExt}`;
-            
+
             res.setHeader(
                 "Content-Disposition",
                 `attachment; filename=${filename}`
