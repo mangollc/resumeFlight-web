@@ -927,10 +927,6 @@ export default function Dashboard() {
     </div>
   );
 }
-</The modification improves the conditional rendering logic to prevent the display of the welcome animation and step tracker when in review mode, ensuring only the final review component is shown as intended.
-
-
-<replit_final_file>
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
