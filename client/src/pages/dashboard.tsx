@@ -107,12 +107,12 @@ export default function Dashboard() {
   const [reviewLoadError, setReviewLoadError] = useState<string | null>(null);
 
   // Initialize all state variables
-  const [currentStep, setCurrentStep] = useState(5); // Always set to 5 in review mode
+  const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
-  const [showWelcome, setShowWelcome] = useState(false); // Don't show welcome in review mode
+  const [showWelcome, setShowWelcome] = useState(!isReviewMode);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
   const [optimizationVersion, setOptimizationVersion] = useState(1.0);
@@ -124,7 +124,6 @@ export default function Dashboard() {
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
-
 
   // Fetch optimized resume data in review mode
   useEffect(() => {
@@ -165,95 +164,6 @@ export default function Dashboard() {
     }
   }, [isReviewMode, optimizedId, toast]);
 
-  const renderCurrentStep = () => {
-    // Show loading state while fetching review data
-    if (isReviewMode && isLoadingReview) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-            <p className="text-muted-foreground">Loading optimization session...</p>
-          </div>
-        </div>
-      );
-    }
-
-    // Show error state if review mode loading failed
-    if (isReviewMode && reviewLoadError) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
-            <p className="text-muted-foreground">{reviewLoadError}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.href = '/optimized-resumes'}
-            >
-              Return to Optimized Resumes
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    // In review mode, only render step 5
-    if (isReviewMode) {
-      if (!optimizedResume || !uploadedResume) {
-        return (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4">
-              <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
-              <p className="text-muted-foreground">Unable to load optimization session</p>
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.href = '/optimized-resumes'}
-              >
-                Return to Optimized Resumes
-              </Button>
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div className="fade-in space-y-8">
-          <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-            <CardContent className="p-8">
-              <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                Optimization Review
-              </h2>
-              <div className="space-y-12">
-                {/* Resume Preview */}
-                <div>
-                  <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                    Optimized Resume
-                  </h3>
-                  <Preview resume={optimizedResume} />
-                </div>
-
-                {/* Cover Letter (if available) */}
-                {coverLetter && (
-                  <div>
-                    <h3 className="text-xl font-semibold mb-6 text-foreground/90">
-                      Cover Letter
-                    </h3>
-                    <div className="bg-muted/30 rounded-lg p-8">
-                      <pre className="whitespace-pre-wrap text-sm text-foreground/80">
-                        {coverLetter.content}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-
-    return null; // Don't render anything else in review mode
-  };
-
   // Welcome animation effect
   useEffect(() => {
     if (!isReviewMode) {
@@ -267,7 +177,6 @@ export default function Dashboard() {
       return () => clearTimeout(timer);
     }
   }, [isReviewMode]);
-
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -792,6 +701,115 @@ export default function Dashboard() {
   ) : null;
 
 
+  const renderStep5 = () => (
+    <div>Step 5</div>
+  );
+
+  const renderReviewStep5 = () => {
+    // Show loading state while fetching review data
+    if (isLoadingReview) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+            <p className="text-muted-foreground">Loading optimization session...</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Show error state if review mode loading failed
+    if (reviewLoadError) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
+            <p className="text-muted-foreground">{reviewLoadError}</p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/optimized-resumes'}
+            >
+              Return to Optimized Resumes
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    // Render review content
+    if (!optimizedResume || !uploadedResume) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="w-8 h-8 mx-auto text-destructive" />
+            <p className="text-muted-foreground">Unable to load optimization session</p>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/optimized-resumes'}
+            >
+              Return to Optimized Resumes
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="fade-in space-y-8">
+        <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
+          <CardContent className="p-8">
+            <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
+              Optimization Review
+            </h2>
+            <div className="space-y-12">
+              {/* Resume Preview */}
+              <div>
+                <h3 className="text-xl font-semibold mb-6 text-foreground/90">
+                  Optimized Resume
+                </h3>
+                <Preview resume={optimizedResume} />
+              </div>
+
+              {/* Cover Letter (if available) */}
+              {coverLetter && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-6 text-foreground/90">
+                    Cover Letter
+                  </h3>
+                  <div className="bg-muted/30 rounded-lg p-8">
+                    <pre className="whitespace-pre-wrap text-sm text-foreground/80">
+                      {coverLetter.content}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderStep = (step: number) => {
+    switch (step) {
+      case 1:
+        return renderStep1();
+      case 2:
+        return renderStep2();
+      case 3:
+        return renderStep3();
+      case 4:
+        return renderStep4();
+      case 5:
+        if (isReviewMode) {
+          return renderReviewStep5();
+        }
+        return renderStep5();
+      default:
+        return null;
+    }
+  };
+
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -813,20 +831,13 @@ export default function Dashboard() {
               completedSteps={completedSteps}
             />
           )}
-          {renderCurrentStep()}
+          {renderStep(currentStep)}
         </div>
       )}
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
-        description={
-          <div className="space-y-4">
-            <p>Please wait while we optimize your resume using AI...</p>
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          </div>
-        }
+        description="Please wait while we optimize your resume using AI..."
         onOpenChange={(open) => {
           if (!open && isOptimizing) {
             handleCancel();
