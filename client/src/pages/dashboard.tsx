@@ -880,7 +880,7 @@ export default function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
       <div className="min-h-screen flex flex-col">
-        {!isReviewMode && !optimizedId && (
+        {!isReviewMode && !optimizedId && !window.location.search.includes('review') && (
           <>
             {proverb && (
               <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
