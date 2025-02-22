@@ -114,16 +114,23 @@ export default function Dashboard() {
   const { user } = useAuth();
   const params = useParams<{ id?: string }>();
   const [location] = useLocation();
-  const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Extract optimizedId from URL if present
+  const searchParams = new URLSearchParams(location.split('?')[1]);
+  const optimizedId = searchParams.get('optimizedId');
+  const isReviewMode = params.id && optimizedId;
+
+  // Initialize all state variables
+  const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>(isReviewMode ? [1, 2, 3, 4, 5] : []);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
   const [optimizationVersion, setOptimizationVersion] = useState(1.0);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isComparingResumes, setIsComparingResumes] = useState(false);
   const [coverLetterVersion, setCoverLetterVersion] = useState(1.0);
@@ -132,12 +139,7 @@ export default function Dashboard() {
   const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
-  const [showWelcome, setShowWelcome] = useState(true);
-
-  // Extract optimizedId from URL if present
-  const searchParams = new URLSearchParams(location.split('?')[1]);
-  const optimizedId = searchParams.get('optimizedId');
-  const isReviewMode = params.id && optimizedId;
+  const [showWelcome, setShowWelcome] = useState(!isReviewMode);
 
   // Fetch optimized resume data when in review mode
   useEffect(() => {
@@ -149,14 +151,21 @@ export default function Dashboard() {
             throw new Error('Failed to fetch optimized resume');
           }
           const data = await response.json();
+
+          // Set uploaded resume from the optimized resume data
+          if (data.uploadedResume) {
+            setUploadedResume(data.uploadedResume);
+          }
+
           setOptimizedResume(data);
           setJobDetails(data.jobDetails);
+
           if (data.coverLetter) {
             setCoverLetter(data.coverLetter);
             setCoverLetters([data.coverLetter]);
             setSelectedCoverLetterVersion(data.coverLetter.metadata.version.toString());
           }
-          // Set all steps as completed and move to review step
+
           setCompletedSteps([1, 2, 3, 4, 5]);
           setCurrentStep(5);
           setShowWelcome(false);
@@ -173,6 +182,21 @@ export default function Dashboard() {
       fetchOptimizedResume();
     }
   }, [isReviewMode, optimizedId, toast]);
+
+  // Welcome animation effect - Moved this useEffect here
+  useEffect(() => {
+    if (!isReviewMode) {
+      const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+      setProverb(jobProverbs[randomIndex]);
+
+      const timer = setTimeout(() => {
+        setShowWelcome(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isReviewMode]);
+
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -835,6 +859,10 @@ export default function Dashboard() {
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
 
+  const handleCancel = () => {
+    setIsOptimizing(false);
+    //Add any other cancellation logic here if needed.
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
@@ -886,7 +914,11 @@ export default function Dashboard() {
             </div>
           </div>
         }
-        onOpenChange={setIsOptimizing}
+        onOpenChange={(open) => {
+          if (!open && isOptimizing) {
+            handleCancel();
+          }
+        }}
       />
     </div>
   );
