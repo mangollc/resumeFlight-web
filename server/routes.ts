@@ -368,10 +368,47 @@ async function optimizeResume(
 }
 
 // Routes registration
+// Route handlers
+const handlers = {
+  health: async (_req: Request, res: Response) => {
+    try {
+      const dbConnected = await checkDatabaseConnection();
+      const status = dbConnected ? 200 : 503;
+      const message = {
+        status: dbConnected ? "healthy" : "unhealthy",
+        database: dbConnected ? "connected" : "disconnected",
+        timestamp: new Date().toISOString()
+      };
+      res.status(status).json(message);
+    } catch (error) {
+      res.status(500).json({
+        status: "error",
+        message: "Health check failed",
+        timestamp: new Date().toISOString()
+      });
+    }
+  },
+
+  getResumes: async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const resumes = await storage.getUploadedResumesByUser(req.user!.id);
+      return res.status(200).json(resumes);
+    } catch (error: any) {
+      return res.status(500).json({
+        error: "Failed to fetch resumes",
+        details: error.message,
+      });
+    }
+  }
+};
+
 export function registerRoutes(app: Express): Server {
     setupAuth(app);
 
-    // Add error handling middleware
+    // Global middleware
     app.use((req, res, next) => {
         res.setHeader("Content-Type", "application/json");
         next();

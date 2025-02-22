@@ -29,8 +29,23 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Authentication configuration
+const getSessionSettings = (): session.SessionOptions => ({
+  secret: process.env.REPL_ID!,
+  resave: false,
+  saveUninitialized: false,
+  store: storage.sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+  rolling: true
+});
+
+// Auth setup function
 export function setupAuth(app: Express) {
-  const sessionSettings: session.SessionOptions = {
+  const sessionSettings = getSessionSettings();
     secret: process.env.REPL_ID!,
     resave: false,
     saveUninitialized: false,

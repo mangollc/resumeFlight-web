@@ -37,6 +37,13 @@ function splitIntoChunks(text: string, maxChunkSize: number = 16000): string[] {
   return chunks;
 }
 
+// OpenAI error handler
+const handleOpenAIError = (error: any, context: string) => {
+  console.error(`[${context}] Error:`, error);
+  throw new Error(`Failed in ${context}: ${error.message}`);
+};
+
+// Analysis functions
 export async function analyzeResumeDifferences(
   originalContent: string,
   optimizedContent: string,
