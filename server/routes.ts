@@ -219,20 +219,35 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             hasDescription: !!description
         });
 
-        return {
-            title: title || enhancedDetails.title || "Unknown Position",
-            company: company || enhancedDetails.company || "Unknown Company",
-            location: location || enhancedDetails.location || "Location Not Specified",
-            description: enhancedDetails._fullDescription || description,
-            salary: enhancedDetails.salary,
-            positionLevel: enhancedDetails.positionLevel,
-            keyRequirements: enhancedDetails.keyRequirements || [],
-            skillsAndTools: enhancedDetails.skillsAndTools || [],
-            _internalDescription: {
-                fullDescription: enhancedDetails._fullDescription,
-                duties: enhancedDetails._duties || [],
-                responsibilities: enhancedDetails._responsibilities || []
-            }
+        // Internal object for AI processing with full details
+            const fullDetails = {
+                title: title || enhancedDetails.title || "Unknown Position",
+                company: company || enhancedDetails.company || "Unknown Company",
+                location: location || enhancedDetails.location || "Location Not Specified",
+                description: enhancedDetails._fullDescription || description,
+                fullDuties: enhancedDetails._duties || [],
+                fullResponsibilities: enhancedDetails._responsibilities || [],
+                salary: enhancedDetails.salary,
+                positionLevel: enhancedDetails.positionLevel,
+                keyRequirements: enhancedDetails.keyRequirements || [],
+                skillsAndTools: enhancedDetails.skillsAndTools || []
+            };
+
+            // Client-side visible object with limited fields
+            return {
+                title: fullDetails.title,
+                company: fullDetails.company,
+                location: enhancedDetails.location || location || "Location Not Specified", // Prioritize extracted location
+                description: fullDetails.description,
+                salary: fullDetails.salary,
+                positionLevel: fullDetails.positionLevel,
+                keyRequirements: fullDetails.keyRequirements.map(req => req.length > 30 ? req.substring(0, 30) + '...' : req),
+                skillsAndTools: fullDetails.skillsAndTools.filter(skill => skill.split(' ').length <= 2),
+                _internalDescription: {
+                    fullDescription: fullDetails.description,
+                    duties: fullDetails.fullDuties,
+                    responsibilities: fullDetails.fullResponsibilities
+                }
         };
     } catch (error: any) {
         console.error("[Job Details] Error:", error);
