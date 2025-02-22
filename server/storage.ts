@@ -331,18 +331,57 @@ export class DatabaseStorage implements IStorage {
 
   async createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter> {
     try {
-      const [result] = await db
-        .insert(coverLetters)
-        .values({
-          ...coverLetter,
-          createdAt: new Date().toISOString(),
-        })
-        .returning();
+      // Get existing cover letter if this is a regeneration
+      let existingCoverLetter;
+      if (coverLetter.optimizedResumeId) {
+        [existingCoverLetter] = await db
+          .select()
+          .from(coverLetters)
+          .where(eq(coverLetters.optimizedResumeId, coverLetter.optimizedResumeId));
+      }
 
-      return {
-        ...result,
-        metadata: result.metadata as CoverLetter['metadata']
-      };
+      if (existingCoverLetter) {
+        // Update existing cover letter with new version
+        const versionHistory = [...(existingCoverLetter.version || []), {
+          content: coverLetter.content,
+          version: coverLetter.metadata.version,
+          generatedAt: new Date().toISOString()
+        }];
+
+        const [result] = await db
+          .update(coverLetters)
+          .set({
+            content: coverLetter.content,
+            metadata: coverLetter.metadata,
+            version: versionHistory
+          })
+          .where(eq(coverLetters.id, existingCoverLetter.id))
+          .returning();
+
+        return {
+          ...result,
+          metadata: result.metadata as CoverLetter['metadata']
+        };
+      } else {
+        // Create new cover letter
+        const [result] = await db
+          .insert(coverLetters)
+          .values({
+            ...coverLetter,
+            version: [{
+              content: coverLetter.content,
+              version: coverLetter.metadata.version,
+              generatedAt: new Date().toISOString()
+            }],
+            createdAt: new Date().toISOString(),
+          })
+          .returning();
+
+        return {
+          ...result,
+          metadata: result.metadata as CoverLetter['metadata']
+        };
+      }
     } catch (error) {
       console.error('Error creating cover letter:', error);
       throw new Error('Failed to create cover letter');
