@@ -177,19 +177,30 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           }
         );
 
+        // First check if response is ok
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "Failed to fetch job details");
+          const errorText = await response.text();
+          let errorMessage = "Failed to fetch job details";
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            console.error('Error parsing error response:', e);
+          }
+          throw new Error(errorMessage);
         }
 
         updateStepStatus("extract", "completed");
         updateStepStatus("analyze", "loading");
 
+        // Get response text first
+        const responseText = await response.text();
         let jsonData;
         try {
-          jsonData = await response.json();
+          jsonData = JSON.parse(responseText);
+          console.log('Parsed response data:', jsonData); // Debug log
         } catch (parseError) {
-          console.error('JSON Parse Error:', parseError);
+          console.error('JSON Parse Error:', parseError, 'Response text:', responseText);
           throw new Error('Failed to parse server response');
         }
 
@@ -212,14 +223,18 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         try {
           updateStepStatus("optimize", "completed");
 
+          if (!data || !data.jobDetails) {
+            throw new Error('Invalid response format: missing job details');
+          }
+
           const details: JobDetails = {
             title: data.jobDetails?.title || "",
             company: data.jobDetails?.company || "",
             location: data.jobDetails?.location || "",
             salary: data.jobDetails?.salary,
             positionLevel: data.jobDetails?.positionLevel,
-            keyRequirements: data.jobDetails?.keyRequirements || [],
-            skillsAndTools: data.jobDetails?.skillsAndTools || [],
+            keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
+            skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : [],
           };
 
           setExtractedDetails(details);
