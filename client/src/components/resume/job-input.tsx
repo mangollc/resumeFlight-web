@@ -14,6 +14,12 @@ import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+interface ProgressStep {
+  id: string;
+  label: string;
+  status: "pending" | "loading" | "completed" | "error";
+}
+
 interface JobDetails {
   title: string;
   company: string;
@@ -61,7 +67,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     };
   }, []);
 
-  const updateStepStatus = (stepId: string, status: "pending" | "loading" | "completed" | "error") => {
+  const updateStepStatus = (stepId: string, status: ProgressStep["status"]) => {
     setProgressSteps(prev =>
       prev.map(step =>
         step.id === stepId ? { ...step, status } : step
@@ -142,14 +148,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         console.log('Making optimization request with data:', data);
 
-        // Use apiRequest instead of fetch
         const response = await apiRequest(
           'POST',
           `/api/resume/${resumeId}/optimize`,
           data,
-          {
-            signal: abortControllerRef.current.signal,
-          }
+          abortControllerRef.current.signal
         );
 
         if (!response.ok) {
@@ -164,25 +167,21 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           throw new Error('Invalid response format: missing job details');
         }
 
-        // Update progress after successful response
         updateStepStatus("extract", "completed");
         updateStepStatus("analyze", "completed");
         updateStepStatus("optimize", "completed");
 
         return result;
       } catch (error) {
-        // Log the full error object for debugging
         console.error('Full error object:', error);
 
         if (error instanceof Error) {
           if (error.name === "AbortError" || error.message === "cancelled") {
             throw new Error("cancelled");
           }
-          // Try to extract a more specific error message if available
-          const message = error.message || "Failed to process job details";
-          throw new Error(message);
+          throw error;
         }
-        throw error;
+        throw new Error("An unexpected error occurred");
       }
     },
     onSuccess: (data) => {
@@ -228,7 +227,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     onError: (error: Error) => {
       console.error('Mutation error:', error);
 
-      // Don't show error toast if the request was cancelled
       if (error.message !== "cancelled") {
         toast({
           title: "Error",
@@ -239,7 +237,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       setIsProcessing(false);
 
-      // Mark remaining steps as error
       setProgressSteps(prev =>
         prev.map(step =>
           step.status === "pending" || step.status === "loading"
