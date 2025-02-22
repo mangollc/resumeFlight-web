@@ -94,55 +94,87 @@ function validateTimeout(
 }
 
 async function calculateMatchScores(
-    resumeContent: string,
-    jobDescription: string,
+  resumeContent: string,
+  jobDescription: string,
 ) {
-    try {
-        console.log("[Match Analysis] Starting analysis...");
-        const model = "gpt-4-turbo-preview"; // Updated to use the correct model name
-        const response = await openai.chat.completions.create({
-            model: model,
-            messages: [
-                {
-                    role: "system",
-                    content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores based on likelyhood of ATS selecting the resume.
+  try {
+    console.log("[Match Analysis] Starting analysis...");
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a resume analysis expert. Compare the resume against the job description and calculate match scores based on likelihood of ATS selecting the resume.
+
+Scoring Guidelines:
+1. Keywords (0-100):
+   - Measure presence and context of job-specific keywords
+   - Consider keyword placement and relevance
+   - Account for variations and synonyms
+   - Weight industry-specific terms higher
+
+2. Skills (0-100):
+   - Evaluate technical and soft skills match
+   - Consider skill level and recency
+   - Look for practical applications
+   - Check for required vs nice-to-have skills
+
+3. Experience (0-100):
+   - Assess relevance of past roles
+   - Consider years of experience
+   - Evaluate accomplishments
+   - Check for industry alignment
+
+4. Overall (0-100):
+   - Calculate weighted average favoring most critical factors
+   - Consider ATS optimization level
+   - Account for presentation and clarity
+   - Factor in quantifiable achievements
+
 Return a JSON object in this exact format:
 {
  "keywords": <number between 0-100>,
  "skills": <number between 0-100>,
  "experience": <number between 0-100>,
- "overall": <number between 0-100>
+ "overall": <number between 0-100>,
+ "analysis": {
+   "strengths": ["list of strong matches"],
+   "gaps": ["list of potential gaps"],
+   "suggestions": ["improvement suggestions"]
+ }
 }`,
-                },
-                {
-                    role: "user",
-                    content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`,
-                },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.3,
-        });
+        },
+        {
+          role: "user",
+          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`,
+        },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+    });
 
-        const content = response.choices[0].message.content;
-        if (!content) {
-            console.warn("[Match Analysis] Empty response from OpenAI");
-            return getDefaultMetrics();
-        }
-
-        const metrics = JSON.parse(content);
-        return {
-            keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
-            skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
-            experience: Math.min(
-                100,
-                Math.max(0, Number(metrics.experience) || 0),
-            ),
-            overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0)),
-        };
-    } catch (error) {
-        console.error("[Match Analysis] Error calculating scores:", error);
-        return getDefaultMetrics();
+    const content = response.choices[0].message.content;
+    if (!content) {
+      console.warn("[Match Analysis] Empty response from OpenAI");
+      return getDefaultMetrics();
     }
+
+    const metrics = JSON.parse(content);
+    return {
+      keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
+      skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
+      experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
+      overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0)),
+      analysis: metrics.analysis || {
+        strengths: [],
+        gaps: [],
+        suggestions: []
+      }
+    };
+  } catch (error) {
+    console.error("[Match Analysis] Error calculating scores:", error);
+    return getDefaultMetrics();
+  }
 }
 
 async function extractJobDetails(url: string): Promise<JobDetails> {

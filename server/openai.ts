@@ -108,7 +108,6 @@ export async function optimizeResume(
     console.log(`[Optimize] Starting resume optimization...`);
     console.log(`[Optimize] Version: ${optimizationVersion}`);
     console.log(`[Optimize] Processing resume in ${resumeChunks.length} chunks`);
-    console.log(`[Optimize] Job Description: ${jobDescription}`);
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
@@ -139,17 +138,21 @@ Follow these optimization guidelines:
    These must remain exactly as provided in the original resume.
 
 2. Focus optimization on:
-   - Clarity of achievement descriptions
-   - Matching relevant skills to job requirements
-   - Improving bullet point structure
+   - Incorporating key job requirements naturally into work experience descriptions
+   - Using industry-specific language and terminology from the job description
+   - Matching relevant skills to job requirements with specific examples
+   - Improving bullet point structure and quantifiable achievements
    - Enhancing keyword optimization for ATS
-   - Making accomplishments more measurable
+   - Making accomplishments more measurable and impactful
+   - Ensuring each experience demonstrates relevant skills for the position
 
 3. Ensure all optimizations:
    - Maintain 100% truthfulness
    - Keep original chronology intact
    - Preserve all position details exactly as stated
-   - Focus on clarity and presentation, not content modification
+   - Focus on clarity and presentation
+   - Include relevant keywords from job requirements in context
+   - Use industry-standard terminology from the job description
 
 Return valid JSON in this exact format:
 {
@@ -193,8 +196,8 @@ Return valid JSON in this exact format:
         // Merge improvements
         Object.keys(improvements).forEach((key) => {
           const newValue = result.improvements?.[key as keyof typeof improvements] || "";
-          improvements[key as keyof typeof improvements] = improvements[key as keyof typeof improvements] 
-            ? `${improvements[key as keyof typeof improvements]}\n${newValue}` 
+          improvements[key as keyof typeof improvements] = improvements[key as keyof typeof improvements]
+            ? `${improvements[key as keyof typeof improvements]}\n${newValue}`
             : newValue;
         });
       } catch (error) {
@@ -215,9 +218,8 @@ Return valid JSON in this exact format:
       matchScore: finalScore,
       improvements,
     };
-  } catch (err) {
-    const error = err as Error;
-    console.error("[Optimize] Error in optimizeResume:", error);
+  } catch (error: any) {
+    console.error("[Optimize] Error:", error);
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
 }
