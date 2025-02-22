@@ -1101,6 +1101,83 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
+            const format = (req.query.format as string)?.toLowerCase() || 'pdf';
+
+            if (format === 'docx') {
+                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
+
+                const sections = coverLetter.content.split("\n\n");
+                const doc = new Document({
+                    sections: [{
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: convertInchesToTwip(1),
+                                    right: convertInchesToTwip(1),
+                                    bottom: convertInchesToTwip(1),
+                                    left: convertInchesToTwip(1),
+                                },
+                                orientation: PageOrientation.PORTRAIT,
+                            },
+                        },
+                        children: sections.map((section, index) => {
+                            if (index === 0) {
+                                // Contact information header
+                                return new Paragraph({
+                                    alignment: AlignmentType.LEFT,
+                                    spacing: {
+                                        after: 400,
+                                    },
+                                    children: [
+                                        new TextRun({
+                                            text: section.trim(),
+                                            size: 24,
+                                            font: "Calibri",
+                                        })
+                                    ]
+                                });
+                            } else if (section.toUpperCase() === section) {
+                                // Section headers
+                                return new Paragraph({
+                                    spacing: {
+                                        before: 400,
+                                        after: 200,
+                                    },
+                                    children: [
+                                        new TextRun({
+                                            text: section.trim(),
+                                            size: 24,
+                                            bold: true,
+                                            font: "Calibri",
+                                        })
+                                    ]
+                                });
+                            } else {
+                                // Regular paragraphs
+                                return new Paragraph({
+                                    spacing: {
+                                        before: 200,
+                                        after: 200,
+                                    },
+                                    children: [
+                                        new TextRun({
+                                            text: section.trim(),
+                                            size: 22,
+                                            font: "Calibri",
+                                        })
+                                    ]
+                                });
+                            }
+                        })
+                    }]
+                });
+
+                const buffer = await doc.save();
+                res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+                res.setHeader('Content-Disposition', `attachment; filename=${coverLetter.metadata.filename}.docx`);
+                return res.send(buffer);
+            }
+
             // Create PDF document
             const doc = new PDFDocument({
                 size: "A4",
