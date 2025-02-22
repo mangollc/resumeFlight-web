@@ -46,17 +46,6 @@ const getSessionSettings = (): session.SessionOptions => ({
 // Auth setup function
 export function setupAuth(app: Express) {
   const sessionSettings = getSessionSettings();
-    secret: process.env.REPL_ID!,
-    resave: false,
-    saveUninitialized: false,
-    store: storage.sessionStore,
-    cookie: {
-      secure: app.get("env") === "production",
-      httpOnly: true,
-      maxAge: ONE_DAY,
-    },
-    rolling: true
-  };
 
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
