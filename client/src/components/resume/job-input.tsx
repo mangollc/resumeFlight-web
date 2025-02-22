@@ -181,46 +181,38 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           throw new Error("Failed to optimize resume");
         }
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        return new Promise((resolve, reject) => {
+          let result = null;
+          const eventSource = new EventSource(`/api/resume/${resumeId}/optimize`);
 
-        const allChunks = [];
-        while (reader) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          allChunks.push(decoder.decode(value));
-        }
-
-        const fullResponse = allChunks.join('');
-        const lines = fullResponse.split('\n');
-        let optimizedData = null;
-        
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          eventSource.onmessage = (event) => {
             try {
-              const eventData = JSON.parse(line.slice(5));
+              const data = JSON.parse(event.data);
               
-              if (eventData.status === "extracting_details") {
+              if (data.status === "extracting_details") {
                 updateStepStatus("extract", "completed");
                 updateStepStatus("analyze", "loading");
-              } else if (eventData.status === "optimizing_resume") {
+              } else if (data.status === "optimizing_resume") {
                 updateStepStatus("analyze", "completed");
                 updateStepStatus("optimize", "loading");
-              } else if (eventData.status === "completed" && eventData.data) {
-                optimizedData = eventData.data;
-                updateStepStatus("optimize", "completed");
+              } else if (data.status === "completed") {
+                if (data.result) {
+                  result = data.result;
+                  updateStepStatus("optimize", "completed");
+                  eventSource.close();
+                  resolve(result);
+                }
               }
-            } catch (e) {
-              console.warn('Failed to parse SSE data:', line);
+            } catch (error) {
+              console.warn('Failed to parse event data:', error);
             }
-          }
-        }
+          };
 
-        if (!optimizedData) {
-          throw new Error("No optimization data received");
-        }
-
-        let jsonData = optimizedData;
+          eventSource.onerror = (error) => {
+            eventSource.close();
+            reject(new Error("EventSource failed"));
+          };
+        });
 
         // Validate required fields
         if (!jsonData.jobDetails?.title || !jsonData.jobDetails?.company || !jsonData.jobDetails?.location) {
