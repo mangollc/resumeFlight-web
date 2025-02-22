@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Preview } from "@/components/resume/preview";
+import Preview from "@/components/resume/preview";
 import { OptimizedResume } from "@/types";
 
 interface ReviewSectionProps {
