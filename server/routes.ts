@@ -173,27 +173,46 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
             .trim()
             .replace(/\d+\s*applicants?/gi, "")
             .trim();
-        const description =
-            $(linkedInSelectors.description).text().trim() ||
-            $("main").text().trim();
+        // Get all text content to maximize data extraction
+        const fullContent = $("main").text().trim();
+        const description = $(linkedInSelectors.description).text().trim() || fullContent;
 
         if (!description) {
-            throw new Error(
-                "Could not extract job description. The page might require authentication.",
-            );
+            throw new Error("Could not extract job description.");
         }
 
-        console.log("[Job Details] Successfully extracted details:", {
+        // Use AI to extract structured information from the scraped content
+        const analysis = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{
+                role: "system",
+                content: "Extract job details from the following LinkedIn job posting. Return only the JSON object with extracted information, ensuring all fields are filled based on available content."
+            }, {
+                role: "user",
+                content: `Title: ${title}\nCompany: ${company}\nLocation: ${location}\nContent: ${fullContent}`
+            }],
+            response_format: { type: "json_object" },
+            temperature: 0.1
+        });
+
+        const enhancedDetails = JSON.parse(analysis.choices[0].message.content || "{}");
+
+        console.log("[Job Details] Successfully extracted and enhanced details:", {
             title,
             company,
             location,
+            hasDescription: !!description
         });
 
         return {
-            title: title || "Unknown Position",
-            company: company || "Unknown Company",
-            location: location || "Location Not Specified",
+            title: title || enhancedDetails.title || "Unknown Position",
+            company: company || enhancedDetails.company || "Unknown Company",
+            location: location || enhancedDetails.location || "Location Not Specified",
             description: description,
+            salary: enhancedDetails.salary,
+            positionLevel: enhancedDetails.positionLevel,
+            keyRequirements: enhancedDetails.keyRequirements || [],
+            skillsAndTools: enhancedDetails.skillsAndTools || []
         };
     } catch (error: any) {
         console.error("[Job Details] Error:", error);
