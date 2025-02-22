@@ -44,16 +44,16 @@ export class DatabaseStorage implements IStorage {
       createTableIfMissing: true,
       tableName: 'session',
       schemaName: 'public',
-      pruneSessionInterval: 900000, // 15 minutes
+      pruneSessionInterval: 1800000, // 30 minutes
       errorLog: console.error.bind(console),
       ttl: ONE_DAY,
-      disableTouch: false,
-      touchInterval: ONE_HOUR,
-      retries: 3,
+      disableTouch: true,           // Disable touch to reduce DB load
+      touchInterval: ONE_HOUR * 2,  // Increase touch interval
+      retries: 5,                   // Increase retry attempts
       retry: {
-        initial: 1000, // Start with 1 second delay
-        max: 5000,    // Maximum 5 seconds between retries
-        multiplier: 2 // Double the delay after each retry
+        initial: 500,               // Start with 500ms delay
+        max: 10000,                 // Maximum 10 seconds between retries
+        multiplier: 1.5             // More gradual retry backoff
       }
     });
 

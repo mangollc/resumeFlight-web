@@ -18,19 +18,21 @@ if (!process.env.DATABASE_URL) {
 // Use pooler URL for more stable connections
 const poolerUrl = process.env.DATABASE_URL?.replace('postgres://', 'postgres://').replace('.us-east-2', '-pooler.us-east-2');
 
-// Configure the connection pool with more conservative settings
+// Configure the connection pool with more resilient settings
 export const pool = new Pool({ 
   connectionString: poolerUrl,
   ssl: true,
-  max: 2,                         // Reduce max connections for more stability
-  idleTimeoutMillis: 30000,       // 30 seconds idle timeout
-  connectionTimeoutMillis: 10000,  // 10 seconds connection timeout
-  maxUses: 7500,                  // Reduce max uses per connection for stability
+  max: 5,                         // Increase max connections for better availability
+  idleTimeoutMillis: 60000,       // 60 seconds idle timeout
+  connectionTimeoutMillis: 15000,  // 15 seconds connection timeout
+  maxUses: 5000,                  // Reduce max uses for more frequent recycling
   keepAlive: true,                // Enable keepalive
   allowExitOnIdle: true,          // Allow the pool to exit when idle
-  statement_timeout: 30000,        // 30 second query timeout
-  query_timeout: 30000,           // 30 second query timeout
+  statement_timeout: 45000,        // 45 second query timeout
+  query_timeout: 45000,           // 45 second query timeout
   application_name: 'resume-app',  // Add application name for better monitoring
+  retryDelay: 1000,               // Add 1 second delay between retries
+  retryLimit: 3                   // Retry failed connections up to 3 times
 });
 
 // Add error handling for the pool
