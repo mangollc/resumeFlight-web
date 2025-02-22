@@ -297,9 +297,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
           <TabsContent value="url" className="space-y-4">
             <div className="flex flex-col space-y-2">
-              <Alert variant="destructive" className="py-2 text-xs">
+              <Alert variant="destructive" className="py-2">
                 <AlertTriangle className="h-3 w-3" />
-                <AlertDescription>
+                <AlertDescription className="text-[11px]">
                   Only LinkedIn job URLs are supported (e.g. https://linkedin.com/jobs/view/123456). Many job sites use bot protection - for those, please copy-paste all job details in the manual input tab.
                 </AlertDescription>
               </Alert>
