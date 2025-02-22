@@ -358,7 +358,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
           <div className="grid gap-4">
             {Object.entries(extractedDetails)
-              .filter(([key]) => !Array.isArray(extractedDetails[key as keyof JobDetails]) && key !== 'description')
+              .filter(([key]) => !Array.isArray(extractedDetails[key as keyof JobDetails]) && key !== 'description' && key !== 'roleDetails')
               .map(([key, value]) => value && (
                 <div key={key}>
                   <p className="font-medium mb-1">{key.charAt(0).toUpperCase() + key.slice(1)}</p>

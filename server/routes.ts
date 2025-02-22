@@ -238,9 +238,12 @@ async function extractJobDetails(url: string): Promise<JobDetails> {
                 {
                     "_internal": {
                         "fullDescription": "complete job description",
-                        "responsibilities": ["detailed list of all responsibilities"],
+                        "roleDetails": {
+                            "responsibilities": ["detailed list of all responsibilities"],
+                            "duties": ["detailed list of duties and daily tasks"],
+                            "qualifications": ["detailed list of required qualifications"]
+                        },
                         "requirements": ["detailed list of all requirements"],
-                        "qualifications": ["detailed list of all qualifications"],
                         "benefits": ["detailed list of benefits if mentioned"],
                         "technicalSkills": ["detailed technical skills"],
                         "softSkills": ["detailed soft skills"],
