@@ -148,7 +148,9 @@ export class DatabaseStorage implements IStorage {
         .insert(uploadedResumes)
         .values({
           ...resume,
-          createdAt: new Date().toISOString(),
+          userId: resume.userId,
+          content: resume.content,
+          metadata: resume.metadata,
         })
         .returning();
 
@@ -602,7 +604,7 @@ export class DatabaseStorage implements IStorage {
           originalScores: score.originalScores,
           optimizedScores: score.optimizedScores,
           analysis: score.analysis,
-          createdAt: new Date() 
+          createdAt: new Date()
         })
         .returning();
 
