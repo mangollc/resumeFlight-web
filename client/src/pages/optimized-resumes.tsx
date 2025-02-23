@@ -69,18 +69,17 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   const { data: matchScore } = useQuery({
     queryKey: [`/api/optimized-resume/${resume.id}/match-score`],
-    select: (data: ResumeMatchScore) => data
+    select: (data: ResumeMatchScore) => data,
   });
 
-  const getScoresDisplay = (original: boolean = false) => {
-    const scores = original ? matchScore?.originalScores : matchScore?.optimizedScores;
+  const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
 
     return (
       <div className="space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span>{original ? 'Original Score' : 'Optimized Score'}</span>
+            <span>Overall Score</span>
             <span className={getMetricsColor(scores.overall || 0, 'text')}>
               {formatScore(scores.overall)}%
             </span>
@@ -183,7 +182,10 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
     <>
       <TableRow 
         className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsExpanded(!isExpanded);
+        }}
       >
         <TableCell className="w-4">
           <Button
@@ -208,7 +210,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {matchScore && getScoresDisplay(false)}
+          {matchScore && getScoresDisplay(matchScore.optimizedScores)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -302,18 +304,18 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-medium mb-4">Original Scores</h4>
-                  {getScoresDisplay(true)}
+                  {getScoresDisplay(matchScore.originalScores)}
                 </div>
                 <div>
                   <h4 className="font-medium mb-4">Optimized Scores</h4>
-                  {getScoresDisplay(false)}
+                  {getScoresDisplay(matchScore.optimizedScores)}
                 </div>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold mb-4">Analysis</h3>
                 <div className="space-y-4">
-                  {matchScore.analysis.strengths.length > 0 && (
+                  {matchScore.analysis && matchScore.analysis.strengths && matchScore.analysis.strengths.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Strengths</h4>
                       <ul className="list-disc list-inside space-y-1">
@@ -326,7 +328,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {matchScore.analysis.gaps.length > 0 && (
+                  {matchScore.analysis && matchScore.analysis.gaps && matchScore.analysis.gaps.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
                       <ul className="list-disc list-inside space-y-1">
@@ -339,7 +341,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {matchScore.analysis.suggestions.length > 0 && (
+                  {matchScore.analysis && matchScore.analysis.suggestions && matchScore.analysis.suggestions.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="list-disc list-inside space-y-1">
