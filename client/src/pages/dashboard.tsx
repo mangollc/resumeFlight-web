@@ -301,13 +301,19 @@ export default function Dashboard() {
     }
   };
 
+  // Update version increment logic
+  const incrementVersion = (currentVersion: string): string => {
+    const [major, minor] = currentVersion.split('.').map(Number);
+    return `${major}.${minor + 1}`;
+  };
+
   const handleOptimizationComplete = (resume: OptimizedResume, details: JobDetails) => {
     setOptimizedResume(resume);
     setJobDetails(details);
     if (!completedSteps.includes(2)) {
       setCompletedSteps(prev => [...prev, 2]);
     }
-    setOptimizationVersion(prev => Number((prev + 0.1).toFixed(1)));
+    setOptimizationVersion(prev => incrementVersion(prev));
   };
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
@@ -329,7 +335,11 @@ export default function Dashboard() {
 
     try {
       setIsGeneratingCoverLetter(true);
-      const nextVersion = Number((Math.max(...coverLetters.map(l => l.metadata.version), 0) + 0.1).toFixed(1));
+      // Calculate next version by incrementing the highest existing version
+      const highestVersion = Math.max(...coverLetters.map(l => 
+        parseFloat(l.metadata.version)
+      ), 0);
+      const nextVersion = `${Math.floor(highestVersion)}.${(highestVersion % 1 * 10 + 1).toFixed(0)}`;
       setCoverLetterVersion(nextVersion);
 
       // Reset cover letter steps
@@ -363,7 +373,7 @@ export default function Dashboard() {
         "POST",
         `/api/optimized-resume/${optimizedResume.id}/cover-letter`,
         {
-          version: nextVersion,
+          version: parseFloat(nextVersion),
           contactInfo: optimizedResume.contactInfo
         }
       );
@@ -379,7 +389,7 @@ export default function Dashboard() {
 
       toast({
         title: "Success",
-        description: `Cover letter regenerated (v${nextVersion.toFixed(1)})`,
+        description: `Cover letter regenerated (v${nextVersion})`,
         duration: 2000,
       });
     } catch (error) {
@@ -521,7 +531,7 @@ export default function Dashboard() {
 
     try {
       setIsOptimizing(true);
-      const nextVersion = Number((optimizationVersion + 0.1).toFixed(1));
+      const nextVersion = incrementVersion(optimizationVersion);
 
       // Reset optimization steps
       setCurrentOptimizationSteps(optimizationSteps.map(step => ({ ...step, status: "pending" })));
@@ -542,7 +552,7 @@ export default function Dashboard() {
 
       // Create a properly formatted optimization request
       const optimizationData = {
-        jobDetails: jobDetails, // Send as is, let the API handle serialization
+        jobDetails: jobDetails,
         version: nextVersion
       };
 
@@ -571,7 +581,7 @@ export default function Dashboard() {
 
       toast({
         title: "Success",
-        description: `Resume optimized (v${nextVersion.toFixed(1)})`,
+        description: `Resume optimized (v${nextVersion})`,
         duration: 2000,
       });
     } catch (error) {

@@ -28,7 +28,7 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
   const [isLoading, setIsLoading] = useState(false);
   const [differences, setDifferences] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<string>('1.0');
-  const [versions, setVersions] = useState<number[]>([]);
+  const [versions, setVersions] = useState<string[]>([]); // Changed to string[]
   const [metrics, setMetrics] = useState<{
     before: { overall: number; keywords: number; skills: number; experience: number };
     after: { overall: number; keywords: number; skills: number; experience: number };
@@ -41,10 +41,10 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
         const response = await fetch(`/api/optimized-resume/${resumeId}/versions`);
         if (!response.ok) throw new Error('Failed to fetch versions');
         const data = await response.json();
-        setVersions(data);
+        setVersions(data.map(String)); //Convert numbers to strings
         if (data.length > 0) {
-          setSelectedVersion(data[0]);
-          await fetchMetricsForVersion(data[0]);
+          setSelectedVersion(data[0].toString()); //Convert to string
+          await fetchMetricsForVersion(data[0].toString()); //Convert to string
         }
       } catch (error) {
         console.error('Error fetching versions:', error);
@@ -56,26 +56,26 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
   const renderVersionSelector = () => (
     <div className="mb-4">
       <label className="block text-sm font-medium mb-2">Select Version</label>
-      <select 
+      <select
         value={selectedVersion}
         onChange={(e) => handleVersionChange(e.target.value)}
         className="w-full p-2 border rounded-md"
       >
         {versions.map((version) => (
           <option key={version} value={version}>
-            Version {version.toFixed(1)}
+            Version {version}
           </option>
         ))}
       </select>
     </div>
   );
 
-  const handleVersionChange = async (version: number) => {
+  const handleVersionChange = async (version: string) => {
     setSelectedVersion(version);
     await fetchMetricsForVersion(version);
   };
 
-  const fetchMetricsForVersion = async (version: number) => {
+  const fetchMetricsForVersion = async (version: string) => {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/optimized-resume/${resumeId}/metrics/${version}`);
@@ -129,9 +129,9 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
 
   return (
     <div className="space-y-4">
-      <ResumeSideBySideCompare 
-        originalResume={beforeContent} 
-        optimizedResume={afterContent} 
+      <ResumeSideBySideCompare
+        originalResume={beforeContent}
+        optimizedResume={afterContent}
       />
 
       {metrics && (
@@ -145,8 +145,8 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
                     <span className="capitalize">{key}</span>
                     <span className="font-medium">{value}%</span>
                   </div>
-                  <Progress 
-                    value={value} 
+                  <Progress
+                    value={value}
                     className={`h-2 ${getMetricsColor(value)}`}
                   />
                 </div>
@@ -163,8 +163,8 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
                     <span className="capitalize">{key}</span>
                     <span className="font-medium">{value}%</span>
                   </div>
-                  <Progress 
-                    value={value} 
+                  <Progress
+                    value={value}
                     className={`h-2 ${getMetricsColor(value)}`}
                   />
                 </div>
