@@ -111,12 +111,52 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
-    
-    const matchScore = scores.overall || 0;
-    const matchConfidence = scores.confidence || 0;
-    const keywordScore = scores.keywords || 0;
-    const skillScore = scores.skills || 0;
-    const experienceScore = scores.experience || 0;
+
+    return (
+      <div className="space-y-3">
+        <div>
+          <ScoreTooltip />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className={getMetricsColor(resume.metrics.before.overall, 'text')}>
+                {formatScore(resume.metrics.before.overall)}%
+              </span>
+              <span className="text-muted-foreground text-sm">
+                ({formatScore(resume.metrics.before.confidence || 0)}%)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={getMetricsColor(resume.metrics.after.overall, 'text')}>
+                {formatScore(resume.metrics.after.overall)}%
+              </span>
+              <span className="text-muted-foreground text-sm">
+                ({formatScore(resume.metrics.after.confidence || 0)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-sm">Keywords
+            <Progress value={resume.metrics.before.keywords || 0} className={`h-1.5 ${getMetricsColor(resume.metrics.before.keywords || 0)}`} />
+            <div className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.keywords || 0, 'text')}`}>
+              {formatScore(resume.metrics.before.keywords)}%
+            </div>
+          </div>
+          <div className="text-sm">Skills
+            <Progress value={resume.metrics.before.skills || 0} className={`h-1.5 ${getMetricsColor(resume.metrics.before.skills || 0)}`} />
+            <div className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.skills || 0, 'text')}`}>
+              {formatScore(resume.metrics.before.skills)}%
+            </div>
+          </div>
+          <div className="text-sm">Experience
+            <Progress value={resume.metrics.before.experience || 0} className={`h-1.5 ${getMetricsColor(resume.metrics.before.experience || 0)}`} />
+            <div className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.experience || 0, 'text')}`}>
+              {formatScore(resume.metrics.before.experience)}%
+            </div>
+          </div>
+        </div>
+      </div>
+    );
 
     return (
       <div className="space-y-3">
