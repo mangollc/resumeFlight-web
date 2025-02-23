@@ -1,20 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink, Info, ChevronDown, ChevronRight, Eye } from "lucide-react";
+import { Download, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
-import { useLocation } from "wouter";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,7 +117,7 @@ const formatDate = (dateString: string) => {
   }).format(date);
 };
 
-function getMetricsDisplay(metrics: any) {
+const getMetricsDisplay = (metrics: any) => {
   if (!metrics) return null;
 
   return (
@@ -163,13 +154,11 @@ function getMetricsDisplay(metrics: any) {
       </div>
     </div>
   );
-}
+};
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  const [, navigate] = useLocation();
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -190,28 +179,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       });
     },
   });
-
-  const formatDownloadFilename = (name: string, jobTitle: string, version: string) => {
-    const baseName = name.substring(0, name.lastIndexOf('.')) || name;
-    const cleanJobTitle = jobTitle
-      ?.replace(/[^a-zA-Z0-9\s]/g, '')
-      .replace(/\s+/g, '_')
-      .toLowerCase();
-
-    return `${baseName}_${cleanJobTitle}_v${version}`;
-  };
-
-  const getScoreImprovement = (before: number, after: number) => {
-    const improvement = after - before;
-    if (improvement > 0) {
-      return (
-        <span className="text-emerald-600 dark:text-emerald-500 text-xs">
-          (+{improvement.toFixed(1)}%)
-        </span>
-      );
-    }
-    return null;
-  };
 
   const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx') => {
     try {
@@ -283,15 +250,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate(`/resume/${resume.uploadedResumeId}/optimize/review?optimizedId=${resume.id}`);
-                }}
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                Review Optimization
-              </DropdownMenuItem>
 
               <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">Download Resume</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => downloadDocument('resume', 'pdf')}>
@@ -368,63 +326,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       {isExpanded && (
         <TableRow>
           <TableCell colSpan={5} className="bg-muted/5 p-6">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Original Resume Metrics */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-sm">Original Resume Match</h4>
-                  <div className="space-y-3">
-                    {['keywords', 'skills', 'experience'].map((metric) => (
-                      <div key={`before-${metric}`} className="space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="capitalize">{metric}</span>
-                          <span className="font-medium">
-                            {formatScore(resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0}
-                          className={`h-2 ${getMetricsColor(resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0)}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Optimized Resume Metrics */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-sm">Optimized Resume Match</h4>
-                  <div className="space-y-3">
-                    {['keywords', 'skills', 'experience'].map((metric) => (
-                      <div key={`after-${metric}`} className="space-y-2">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="capitalize">{metric}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className={getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0, 'text')}>
-                              {formatScore(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}%
-                            </span>
-                            {getScoreImprovement(
-                              resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0,
-                              resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0
-                            )}
-                          </div>
-                        </div>
-                        <Progress
-                          value={resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}
-                          className={`h-2 ${getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}`}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Job Details Section */}
-              <div>
-                <h4 className="font-semibold text-sm mb-4">Job Details</h4>
-                {formatJobDetails(resume)}
-              </div>
-            </div>
+            {formatJobDetails(resume)}
           </TableCell>
         </TableRow>
       )}
