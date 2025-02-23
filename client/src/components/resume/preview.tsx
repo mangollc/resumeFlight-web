@@ -284,7 +284,7 @@ export default function Preview({ resume }: PreviewProps) {
                   <div className="space-y-4">
                     <div className="grid gap-6">
                       <MetricRow
-                        label="Overall Match Score"
+                        label="Match Score"
                         before={matchScores.originalScores.overall}
                         after={matchScores.optimizedScores.overall}
                       />
