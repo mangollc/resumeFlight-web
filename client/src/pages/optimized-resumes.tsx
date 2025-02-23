@@ -125,7 +125,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 {formatScore(matchScore)}%
               </span>
               <span className="text-muted-foreground text-sm">
-                (Confidence: {formatScore(matchConfidence)}%)
+                (Confidence: {formatScore(confidence)}%)
               </span>
             </div>
           </div>
