@@ -72,6 +72,8 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   }]),
   highlights: jsonb("highlights").notNull().default([]),
   confidence: integer("confidence").notNull().default(0),
+  original_score: integer("original_score").notNull().default(0),
+  optimized_score: integer("optimized_score").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   contactInfo: jsonb("contact_info").notNull().default({
     fullName: '',
