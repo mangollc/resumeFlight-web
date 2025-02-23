@@ -231,7 +231,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         analysis: data.analysis,
       };
       queryClient.setQueryData(["/api/optimized-resumes"], (oldData: any) => {
-        return oldData.map((r: any) => 
+        return oldData.map((r: any) =>
           r.id === updatedResume.id ? updatedResume : r
         );
       });
@@ -255,13 +255,12 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <TableCell className="w-4">
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
-          </Button>
+          {/* Button removed */}
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
         </TableCell>
         <TableCell>
           <div className="flex flex-col gap-1">
@@ -436,63 +435,48 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 </div>
               </div>
 
-              {resume.analysis && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-medium">Analysis</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {resume.analysis.strengths && resume.analysis.strengths.length > 0 && (
+              <div className="space-y-6 mt-8">
+                <h3 className="text-lg font-medium">Analysis</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {resume.matchScore?.analysis && (
+                    <>
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Strengths</h4>
                         <ul className="space-y-2">
-                          {resume.analysis.strengths.map((strength:string, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2"
-                            >
+                          {resume.matchScore.analysis.strengths.map((strength, idx) => (
+                            <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2">
                               <span>•</span>
                               <span>{strength}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
-                    )}
-
-                    {resume.analysis.gaps && resume.analysis.gaps.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Areas for Improvement</h4>
+                        <h4 className="font-medium text-sm">Gaps</h4>
                         <ul className="space-y-2">
-                          {resume.analysis.gaps.map((gap:string, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-red-600 dark:text-red-400 flex gap-2"
-                            >
+                          {resume.matchScore.analysis.gaps.map((gap, idx) => (
+                            <li key={idx} className="text-sm text-red-600 dark:text-red-400 flex gap-2">
                               <span>•</span>
                               <span>{gap}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
-                    )}
-
-                    {resume.analysis.suggestions && resume.analysis.suggestions.length > 0 && (
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Suggestions</h4>
                         <ul className="space-y-2">
-                          {resume.analysis.suggestions.map((suggestion:string, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-blue-600 dark:text-blue-400 flex gap-2"
-                            >
+                          {resume.matchScore.analysis.suggestions.map((suggestion, idx) => (
+                            <li key={idx} className="text-sm text-blue-600 dark:text-blue-400 flex gap-2">
                               <span>•</span>
                               <span>{suggestion}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </TableCell>
         </TableRow>
