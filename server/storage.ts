@@ -602,11 +602,11 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db
         .update(optimizedResumes)
         .set({
-          matchScores: {
+          metrics: {
             before: scores.before,
             after: scores.after
           },
-          matchAnalysis: scores.analysis,
+          analysis: scores.analysis,
           confidence: Math.round((scores.after.keywords + scores.after.skills + scores.after.experience + scores.after.overall) / 4)
         })
         .where(eq(optimizedResumes.id, resumeId))

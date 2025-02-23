@@ -41,8 +41,8 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     changes: [],
     confidence: 0
   }]),
-  
-  matchAnalysis: jsonb("match_analysis").notNull().default({
+
+  analysis: jsonb("analysis").notNull().default({
     strengths: [],
     gaps: [],
     suggestions: []
@@ -76,22 +76,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   }),
 });
 
-export const resumeVersionScores = pgTable("resume_version_scores", {
-  id: serial("id").primaryKey(),
-  optimizedResumeId: integer("optimized_resume_id").notNull(),
-  version: integer("version").notNull(),
-  userId: integer("user_id").notNull(),
-  matchScore: jsonb("match_score").notNull().default({
-    overall: 0,
-    keywords: 0,
-    skills: 0,
-    experience: 0
-  }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => ({
-  optimizedResumeVersionIdx: index("resume_version_scores_idx").on(table.optimizedResumeId, table.version),
-  userIdIdx: index("resume_version_scores_user_id_idx").on(table.userId),
-}));
 
 export const optimizationSessions = pgTable("optimization_sessions", {
   id: serial("id").primaryKey(),
@@ -270,6 +254,11 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       experience: number;
     };
   };
+  analysis: {
+    strengths: string[];
+    gaps: string[];
+    suggestions: string[];
+  };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 
@@ -302,7 +291,3 @@ export type ResumeDifferences = {
     reason: string;
   }>;
 };
-
-
-
-// Match score types are now part of OptimizedResume table
