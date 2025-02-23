@@ -117,53 +117,6 @@ const getMetricsDisplay = (scores: any) => {
   );
 };
 
-const formatAnalysisDisplay = (analysis: any) => {
-  if (!analysis) return null;
-
-  return (
-    <div className="space-y-4">
-      {analysis.strengths && analysis.strengths.length > 0 && (
-        <div>
-          <h4 className="font-medium text-sm mb-2">Strengths</h4>
-          <ul className="list-disc list-inside space-y-1">
-            {analysis.strengths.map((strength: string, idx: number) => (
-              <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
-                {strength}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {analysis.gaps && analysis.gaps.length > 0 && (
-        <div>
-          <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
-          <ul className="list-disc list-inside space-y-1">
-            {analysis.gaps.map((gap: string, idx: number) => (
-              <li key={idx} className="text-sm text-red-600 dark:text-red-400">
-                {gap}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {analysis.suggestions && analysis.suggestions.length > 0 && (
-        <div>
-          <h4 className="font-medium text-sm mb-2">Suggestions</h4>
-          <ul className="list-disc list-inside space-y-1">
-            {analysis.suggestions.map((suggestion: string, idx: number) => (
-              <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-};
-
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
@@ -253,7 +206,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {matchScore && getMetricsDisplay(matchScore.optimizedScores)}
+          {matchScore && getMetricsDisplay(matchScore.optimized_scores)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -344,7 +297,46 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
-                {formatAnalysisDisplay(matchScore.analysis)}
+                <div className="space-y-4">
+                  {matchScore.analysis.strengths && matchScore.analysis.strengths.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Strengths</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {matchScore.analysis.strengths.map((strength: string, idx: number) => (
+                          <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
+                            {strength}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {matchScore.analysis.gaps && matchScore.analysis.gaps.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {matchScore.analysis.gaps.map((gap: string, idx: number) => (
+                          <li key={idx} className="text-sm text-red-600 dark:text-red-400">
+                            {gap}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {matchScore.analysis.suggestions && matchScore.analysis.suggestions.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {matchScore.analysis.suggestions.map((suggestion: string, idx: number) => (
+                          <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
+                            {suggestion}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </TableCell>
