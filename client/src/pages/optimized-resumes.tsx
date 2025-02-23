@@ -35,59 +35,47 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-function formatJobDetails(resume: OptimizedResume) {
-  const getWorkArrangementBadge = (jobDetails: any) => {
-    const arrangement = jobDetails?.workArrangement?.toLowerCase();
-    if (!arrangement) return null;
-
-    const variants = {
-      remote: "outline",
-      hybrid: "secondary",
-      onsite: "default"
-    } as const;
-
-    return (
-      <Badge variant={variants[arrangement as keyof typeof variants] || "default"}>
-        {arrangement.charAt(0).toUpperCase() + arrangement.slice(1)}
-      </Badge>
-    );
-  };
+function formatAnalysisDisplay(resume: OptimizedResume) {
+  const analysis = resume.metrics?.after?.analysis;
+  if (!analysis) return null;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4">
+    <div className="space-y-4">
+      {/* Strengths */}
+      {analysis.strengths && analysis.strengths.length > 0 && (
         <div>
-          <p className="font-medium mb-1">Job Title</p>
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.title || "Not specified"}
-            </p>
-            {getWorkArrangementBadge(resume.jobDetails)}
-          </div>
+          <h4 className="font-medium text-sm mb-2">Strengths</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {analysis.strengths.map((strength, idx) => (
+              <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-500">{strength}</li>
+            ))}
+          </ul>
         </div>
+      )}
+
+      {/* Gaps */}
+      {analysis.gaps && analysis.gaps.length > 0 && (
         <div>
-          <p className="font-medium mb-1">Company</p>
-          <p className="text-sm text-muted-foreground">
-            {resume.jobDetails?.company || "Not specified"}
-          </p>
+          <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {analysis.gaps.map((gap, idx) => (
+              <li key={idx} className="text-sm text-red-600 dark:text-red-500">{gap}</li>
+            ))}
+          </ul>
         </div>
+      )}
+
+      {/* Suggestions */}
+      {analysis.suggestions && analysis.suggestions.length > 0 && (
         <div>
-          <p className="font-medium mb-1">Location</p>
-          <p className="text-sm text-muted-foreground">
-            {resume.jobDetails?.location || "Not specified"}
-          </p>
+          <h4 className="font-medium text-sm mb-2">Recommendations</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {analysis.suggestions.map((suggestion, idx) => (
+              <li key={idx} className="text-sm text-blue-600 dark:text-blue-500">{suggestion}</li>
+            ))}
+          </ul>
         </div>
-        {resume.jobDetails?.keyRequirements && resume.jobDetails.keyRequirements.length > 0 && (
-          <div>
-            <p className="font-medium mb-1">Key Requirements</p>
-            <ul className="list-disc list-inside space-y-1">
-              {resume.jobDetails.keyRequirements.map((req, idx) => (
-                <li key={idx} className="text-sm text-muted-foreground">{req}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -124,7 +112,7 @@ const getMetricsDisplay = (metrics: any) => {
     <div className="space-y-3">
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span>Overall Match</span>
+          <span>Optimization Score</span>
           <span className={getMetricsColor(metrics.overall || 0, 'text')}>
             {formatScore(metrics.overall)}%
           </span>
@@ -254,12 +242,11 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
             </Badge>
           </div>
         </TableCell>
-        <TableCell>
-          <div className="font-medium">{resume.jobDetails?.title}</div>
-          <div className="text-sm text-muted-foreground">{resume.jobDetails?.company}</div>
-        </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
           {getMetricsDisplay(resume.metrics?.after)}
+        </TableCell>
+        <TableCell className="w-[40%]">
+          {formatAnalysisDisplay(resume)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -347,7 +334,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       {isExpanded && (
         <TableRow>
           <TableCell colSpan={6} className="bg-muted/5 p-6">
-            {formatJobDetails(resume)}
+            <div className="space-y-4">
+              {resume.metrics?.after?.analysis && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
+                  {formatAnalysisDisplay(resume)}
+                </div>
+              )}
+            </div>
           </TableCell>
         </TableRow>
       )}
@@ -397,8 +391,8 @@ export default function OptimizedResumesPage() {
                   <TableHead className="w-4"></TableHead>
                   <TableHead className="w-[150px]">Date & Version</TableHead>
                   <TableHead className="w-[100px]">Resume ID</TableHead>
-                  <TableHead>Position & Company</TableHead>
-                  <TableHead className="hidden lg:table-cell w-[300px]">Match Score</TableHead>
+                  <TableHead className="hidden lg:table-cell w-[300px]">Optimization Score</TableHead>
+                  <TableHead className="w-[40%]">Analysis</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>

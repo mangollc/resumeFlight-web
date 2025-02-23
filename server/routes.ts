@@ -897,8 +897,9 @@ export function registerRoutes(app: Express): Server {
 
     // Add the download route for optimized resumes
     const generateResumeDocx = (content: string) => {
+      // Split content into sections
       const sections = content.split('\n\n').filter(Boolean);
-  
+
       const doc = new Document({
         sections: [{
           properties: {
@@ -912,57 +913,87 @@ export function registerRoutes(app: Express): Server {
               }
             }
           },
-          children: sections.map(section => {
-            // Check if this is a header section
-            const isHeader = section.trim().startsWith('#');
-  
-            if (isHeader) {
+          children: sections.map((section, index) => {
+            // Check for different section types
+            if (index === 0) {
+              // Header/Name section
               return new Paragraph({
-                text: section.replace(/^#+\s/, ''),
-                heading: HeadingLevel.HEADING_1,
-                spacing: {
-                  before: 240,
-                  after: 120
-                },
-                style: {
-                  size: 24,
-                  bold: true
-                }
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 240, after: 240 },
+                children: [
+                  new TextRun({
+                    text: section.trim(),
+                    size: 32,
+                    bold: true
+                  })
+                ]
               });
             }
-  
-            // Split section into lines
-            const lines = section.split('\n');
-            return new Paragraph({
-              children: lines.map(line => {
-                const trimmedLine = line.trim();
-                // Check for bullet points
-                if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
-                  return new TextRun({
-                    text: trimmedLine.substring(1).trim(),
-                    break: 1
+
+            // Check for section headers (all caps followed by colon or newline)
+            if (section.match(/^[A-Z][A-Z\s]+(?::|$)/m)) {
+              const [header, ...content] = section.split(/\n/);
+              return [
+                new Paragraph({
+                  text: header.trim(),
+                  heading: HeadingLevel.HEADING_1,
+                  spacing: { before: 400, after: 200 },
+                  style: {
+                    size: 28,
+                    bold: true
+                  }
+                }),
+                ...content.map(line => {
+                  const trimmedLine = line.trim();
+                  // Check for bullet points
+                  if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+                    return new Paragraph({
+                      text: trimmedLine.substring(1).trim(),
+                      bullet: {
+                        level: 0
+                      },
+                      spacing: { before: 100, after: 100 }
+                    });
+                  }
+                  // Regular paragraph
+                  return new Paragraph({
+                    text: trimmedLine,
+                    spacing: { before: 100, after: 100 }
                   });
-                }
-                return new TextRun({
-                  text: trimmedLine,
-                  break: 1
-                });
-              }),
-              spacing: {
-                before: 120,
-                after: 120
-              }
+                })
+              ].flat();
+            }
+
+            // Contact info section (typically has email, phone, etc.)
+            if (section.includes('@') || section.match(/\d{3}[-.)]\d{3}[-.)]\d{4}/)) {
+              return new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 200, after: 200 },
+                style: { size: 24 },
+                children: section.split('\n').map(line => 
+                  new TextRun({
+                    text: line.trim(),
+                    break: 1
+                  })
+                )
+              });
+            }
+
+            // Regular content section
+            return new Paragraph({
+              text: section.trim(),
+              spacing: { before: 200, after: 200 }
             });
-          })
+          }).flat()
         }]
       });
-  
+
       return doc;
     };
-  
+
     const generateCoverLetterDocx = (content: string) => {
       const paragraphs = content.split('\n\n').filter(Boolean);
-  
+
       const doc = new Document({
         sections: [{
           properties: {
@@ -976,8 +1007,22 @@ export function registerRoutes(app: Express): Server {
               }
             }
           },
-          children: paragraphs.map(para => {
-            // Check for date line
+          children: paragraphs.map((para, index) => {
+            // Contact information block (usually first paragraph)
+            if (index === 0 && (para.includes('@') || para.match(/\d{3}[-.)]\d{3}[-.)]\d{4}/))) {
+              return new Paragraph({
+                children: para.split('\n').map(line => 
+                  new TextRun({
+                    text: line.trim(),
+                    size: 24,
+                    break: 1
+                  })
+                ),
+                spacing: { before: 240, after: 240 }
+              });
+            }
+
+            // Date line
             if (para.match(/^\d{1,2}\/\d{1,2}\/\d{4}/) || para.match(/^[A-Z][a-z]+ \d{1,2}, \d{4}/)) {
               return new Paragraph({
                 text: para,
@@ -985,15 +1030,7 @@ export function registerRoutes(app: Express): Server {
                 alignment: AlignmentType.RIGHT
               });
             }
-  
-            // Check for contact info block (usually at the top)
-            if (para.includes('@') || para.match(/^[A-Z][a-z]+ [A-Z][a-z]+/)) {
-              return new Paragraph({
-                text: para,
-                spacing: { before: 240, after: 240 }
-              });
-            }
-  
+
             // Regular paragraph
             return new Paragraph({
               text: para,
@@ -1002,28 +1039,28 @@ export function registerRoutes(app: Express): Server {
           })
         }]
       });
-  
+
       return doc;
     };
-  
+
     app.get("/api/optimized-resume/:id/download", async (req, res) => {
       try {
         if (!req.isAuthenticated()) {
           return res.status(401).json({ error: "Unauthorized" });
         }
-  
+
         const resumeId = parseInt(req.params.id);
         const format = (req.query.format as string) || 'pdf';
         const resume = await storage.getOptimizedResume(resumeId);
-  
+
         if (!resume) {
           return res.status(404).json({ error: "Resume not found" });
         }
-  
+
         if (resume.userId !== req.user!.id) {
           return res.status(403).json({ error: "Unauthorized access" });
         }
-  
+
         if (format === 'docx') {
           const doc = generateResumeDocx(resume.content);
           const buffer = await Packer.toBuffer(doc);
@@ -1034,7 +1071,7 @@ export function registerRoutes(app: Express): Server {
           const doc = new PDFDocument();
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename}"`);
-  
+
           doc.pipe(res);
           doc.fontSize(12).text(resume.content);
           doc.end();
@@ -1049,27 +1086,27 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-  
+
     // In the cover letter download route
     app.get("/api/cover-letter/:id/download", async (req, res) => {
       try {
         if (!req.isAuthenticated()) {
           return res.status(401).json({ error: "Unauthorized" });
         }
-  
+
         const coverId = parseInt(req.params.id);
         const format = (req.query.format as string) || 'pdf';
         const version = req.query.version as string;
         const coverLetter = await storage.getCoverLetter(coverId);
-  
+
         if (!coverLetter) {
           return res.status(404).json({ error: "Cover letter not found" });
         }
-  
+
         if (coverLetter.userId !== req.user!.id) {
           return res.status(403).json({ error: "Unauthorized access" });
         }
-  
+
         // Get content for specific version
         let content = coverLetter.content;
         if (version) {
@@ -1078,7 +1115,7 @@ export function registerRoutes(app: Express): Server {
             content = versionEntry.content;
           }
         }
-  
+
         if (format === 'docx') {
           const doc = generateCoverLetterDocx(content);
           const buffer = await Packer.toBuffer(doc);
@@ -1089,7 +1126,7 @@ export function registerRoutes(app: Express): Server {
           const doc = new PDFDocument();
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename="cover_letter_v${version || '1.0'}.pdf"`);
-  
+
           doc.pipe(res);
           doc.fontSize(12).text(content);
           doc.end();
@@ -1104,7 +1141,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-  
+
     // Add new analyze endpoint
     app.post("/api/optimized-resume/:id/analyze", async (req, res) => {
         try {
@@ -1112,27 +1149,27 @@ export function registerRoutes(app: Express): Server {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({ error: "Unauthorized" });
             }
-  
+
             const optimizedResume = await storage.getOptimizedResume(parseInt(req.params.id));
             if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
-  
+
             if (optimizedResume.userId !== req.user!.id) {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
-  
+
             console.log("[Analyze] Calculating match scores...");
             const originalScores = await calculateMatchScores(
                 optimizedResume.originalContent,
                 optimizedResume.jobDescription
             );
-  
+
             const optimizedScores = await calculateMatchScores(
                 optimizedResume.content,
                 optimizedResume.jobDescription
             );
-  
+
             const matchScore = await storage.createResumeMatchScore({
                 optimizedResumeId: optimizedResume.id,
                 userId: req.user!.id,
@@ -1145,7 +1182,7 @@ export function registerRoutes(app: Express): Server {
                 },
                 createdAt: new Date().toISOString()
             });
-  
+
             return res.status(200).json({
                 originalScores,
                 optimizedScores,
@@ -1159,34 +1196,34 @@ export function registerRoutes(app: Express): Server {
             });
         }
     });
-  
+
     // Add these routes after the existing cover letter routes
-  
+
     // Get specific version of cover letter
     app.get("/api/cover-letter/:id/version/:version", async (req, res) => {
       try {
         if (!req.isAuthenticated()) {
           return res.status(401).json({ error: "Unauthorized" });
         }
-  
+
         const coverId = parseInt(req.params.id);
         const version = req.params.version;
-  
+
         const coverLetter = await storage.getCoverLetter(coverId);
         if (!coverLetter) {
           return res.status(404).json({ error: "Cover letter not found" });
         }
-  
+
         if (coverLetter.userId !== req.user!.id) {
           return res.status(403).json({ error: "Unauthorized access" });
         }
-  
+
         // Find the specific version in version history
         const versionEntry = coverLetter.versionHistory?.find(v => v.version === version);
         if (!versionEntry) {
           return res.status(404).json({ error: "Version not found" });
         }
-  
+
         return res.status(200).json({
           content: versionEntry.content,
           version: versionEntry.version,
@@ -1200,27 +1237,27 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-  
+
     // Download cover letter
     app.get("/api/cover-letter/:id/download", async (req, res) => {
       try {
         if (!req.isAuthenticated()) {
           return res.status(401).json({ error: "Unauthorized" });
         }
-  
+
         const coverId = parseInt(req.params.id);
         const format = (req.query.format as string) || 'pdf';
         const version = req.query.version as string;
-  
+
         const coverLetter = await storage.getCoverLetter(coverId);
         if (!coverLetter) {
           return res.status(404).json({ error: "Cover letter not found" });
         }
-  
+
         if (coverLetter.userId !== req.user!.id) {
           return res.status(403).json({ error: "Unauthorized access" });
         }
-  
+
         // Get content for specific version
         let content = coverLetter.content;
         if (version) {
@@ -1229,7 +1266,7 @@ export function registerRoutes(app: Express): Server {
             content = versionEntry.content;
           }
         }
-  
+
         if (format === 'pdf') {
           const doc = new PDFDocument();
           res.setHeader('Content-Type', 'application/pdf');
@@ -1270,7 +1307,7 @@ export function registerRoutes(app: Express): Server {
                   })
               }]
           });
-  
+
           const buffer = await Packer.toBuffer(doc);
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
           res.setHeader('Content-Disposition', `attachment; filename=cover_letter_v${version || '1.0'}.docx`);
@@ -1286,7 +1323,7 @@ export function registerRoutes(app: Express): Server {
         });
       }
     });
-  
+
     // Cover letter generation route
     app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
         try {
@@ -1294,25 +1331,25 @@ export function registerRoutes(app: Express): Server {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({ error: "Unauthorized" });
             }
-  
+
             const resumeId = parseInt(req.params.id);
             const optimizedResume = await storage.getOptimizedResume(resumeId);
-  
+
             if (!optimizedResume) {
                 return res.status(404).json({ error: "Resume not found" });
             }
-  
+
             if (optimizedResume.userId !== req.user!.id) {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
-  
+
             // Set response type to JSON
             res.setHeader('Content-Type', 'application/json');
-  
+
             // Extract contact information
             console.log("[Cover Letter] Extracting contact information...");
             const contactInfo = await extractContactInfo(optimizedResume.content);
-  
+
             console.log("[Cover Letter] Generating cover letter for resume:", resumeId);
             const coverLetter = await generateCoverLetter(
                 optimizedResume.content,
@@ -1320,11 +1357,11 @@ export function registerRoutes(app: Express): Server {
                 contactInfo,
                 req.body.version
             );
-  
+
             if (!coverLetter || !coverLetter.content) {
                 throw new Error("Failed to generate cover letter content");
             }
-  
+
             console.log("[Cover Letter] Storing in database...");
             // Store the cover letter in the database
             const storedCoverLetter = await storage.createCoverLetter({
@@ -1340,7 +1377,7 @@ export function registerRoutes(app: Express): Server {
                 confidence: coverLetter.confidence,
                 version: coverLetter.version
             });
-  
+
             console.log("[Cover Letter] Generation completed successfully");
             return res.json(storedCoverLetter);
         } catch (error: any) {
@@ -1352,15 +1389,15 @@ export function registerRoutes(app: Express): Server {
             });
         }
     });
-  
+
     return createServer(app);
 }
-  
+
 // Helper functions for file operations
 async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
     const validatedTimeout = validateTimeout(PARSING_TIMEOUT, 10000);
     console.log(`[Parse Resume] Using timeout: ${validatedTimeout}ms`);
-  
+
     try {
         if (mimetype === "application/pdf") {
             return new Promise((resolve, reject) => {
@@ -1369,7 +1406,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
                     pdfParser.removeAllListeners();
                     reject(new Error("PDF parsing timed out"));
                 }, validatedTimeout);
-  
+
                 pdfParser.on("pdfParser_dataReady", (pdfData) => {
                     clearTimeout(timeoutId);
                     resolve(
@@ -1380,12 +1417,12 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
                         ).join("\n"),
                     );
                 });
-  
+
                 pdfParser.on("pdfParser_dataError", (error) => {
                     clearTimeout(timeoutId);
                     reject(error);
                 });
-  
+
                 pdfParser.parseBuffer(buffer);
             });
         } else if (
@@ -1396,7 +1433,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
                 const timeoutId = setTimeout(() => {
                     reject(new Error("DOCX parsing timed out"));
                 }, validatedTimeout);
-  
+
                 try {
                     const result = await mammoth.extractRawText({ buffer });
                     clearTimeout(timeoutId);
@@ -1417,7 +1454,7 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
         );
     }
 }
-  
+
 function getDefaultMetrics() {
     return {
         keywords: 0,
@@ -1426,7 +1463,7 @@ function getDefaultMetrics() {
         overall: 0,
     };
 }
-  
+
 function getInitials(text: string): string {
     const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
     if (nameMatch) {
@@ -1436,7 +1473,7 @@ function getInitials(text: string): string {
             .join("")
             .toUpperCase();
     }
-  
+
     const firstParagraph = text.split("\n\n")[0];
     const anyNameMatch = firstParagraph.match(/[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
     if (anyNameMatch) {
@@ -1446,10 +1483,10 @@ function getInitials(text: string): string {
             .join("")
             .toUpperCase();
     }
-  
+
     return "RES";
 }
-  
+
 // Add this helper function after existing helpers
 async function extractContactInfo(resumeContent: string) {
     try {
@@ -1478,7 +1515,7 @@ If any field is not found, set it to null.`
         });
         const content = response.choices[0].message.content;
         if (!content) throw new Error("Failed to parse contact information");
-  
+
         const contactInfo = JSON.parse(content);
         if (!contactInfo.fullName || !contactInfo.email || !contactInfo.phone) {
             throw new Error("Missing required contact information");
