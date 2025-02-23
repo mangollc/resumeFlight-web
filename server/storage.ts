@@ -218,7 +218,8 @@ export class DatabaseStorage implements IStorage {
         .from(optimizedResumes)
         .where(eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId));
 
-      const nextVersion = ((existingVersions.length + 1) * 1.0).toFixed(1);
+      const versionNumber = existingVersions.length + 1;
+      const nextVersion = Number(versionNumber).toFixed(1);
       const timestamp = new Date().toISOString();
 
       const [result] = await db
