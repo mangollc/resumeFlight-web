@@ -18,30 +18,29 @@ interface ReviewSectionProps {
   optimizedResume: OptimizedResume;
   coverLetter?: CoverLetterType;
   onDownload?: (id: string) => void;
-  versions: number[]; // Added versions prop
+  versions: string[]; // Changed to string[]
 }
 
-const formatDownloadFilename = (filename: string, jobTitle: string, version: number, type: 'resume' | 'cover_letter' = 'resume'): string => {
+const formatDownloadFilename = (filename: string, jobTitle: string, version: string, type: 'resume' | 'cover_letter' = 'resume'): string => {
   const baseFilename = filename.replace(/\.[^/.]+$/, '');
   const formattedJobTitle = (jobTitle || 'job')
     .replace(/[^a-zA-Z0-9\s]/g, '')
     .replace(/\s+/g, '_')
     .toLowerCase();
   const suffix = type === 'cover_letter' ? '_cover_letter' : '';
-  return `${baseFilename}_${formattedJobTitle}${suffix}_v${version.toFixed(1)}`;
+  return `${baseFilename}_${formattedJobTitle}${suffix}_v${version}`;
 }
-
 
 export function ReviewSection({ optimizedResume, coverLetter, onDownload, versions }: ReviewSectionProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
-  const [selectedVersion, setSelectedVersion] = useState(versions[0] || 1); // Added version state
+  const [selectedVersion, setSelectedVersion] = useState(versions[0] || '1.0');
   const { toast } = useToast();
 
   const handleDownload = async () => {
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}&version=${selectedVersion}`); // Added version to URL
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}&version=${selectedVersion}`);
       if (!response.ok) {
         throw new Error('Failed to download resume');
       }
@@ -49,7 +48,12 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload, versio
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = formatDownloadFilename(optimizedResume?.metadata.filename || 'resume', optimizedResume?.metadata.jobTitle || '', selectedVersion, 'resume'); // Updated filename
+      a.download = formatDownloadFilename(
+        optimizedResume.metadata.filename || 'resume',
+        optimizedResume.jobDetails?.title || '',
+        selectedVersion,
+        'resume'
+      );
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -86,16 +90,16 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload, versio
               </h3>
               <div className="flex items-center gap-2">
                 <Select
-                  value={selectedVersion.toString()}
-                  onValueChange={(value) => setSelectedVersion(Number(value))}
+                  value={selectedVersion}
+                  onValueChange={setSelectedVersion}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Select version" />
                   </SelectTrigger>
                   <SelectContent>
                     {versions.map((version) => (
-                      <SelectItem key={version} value={version.toString()}>
-                        Version {version.toFixed(1)}
+                      <SelectItem key={version} value={version}>
+                        Version {version}
                       </SelectItem>
                     ))}
                   </SelectContent>

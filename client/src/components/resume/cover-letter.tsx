@@ -27,16 +27,21 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const [isDownloading, setIsDownloading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
   const [selectedVersion, setSelectedVersion] = useState<string>("");
-  const [versions, setVersions] = useState<number[]>([]);
+  const [versions, setVersions] = useState<string[]>([]);
   const [currentCoverLetter, setCurrentCoverLetter] = useState<string>("");
 
   useEffect(() => {
     if (generatedCoverLetter?.metadata?.version) {
-      const version = generatedCoverLetter.metadata.version;
+      const version = generatedCoverLetter.metadata.version.toString();
       setVersions(prev => {
-        const newVersions = Array.from(new Set([...prev, version])).sort((a, b) => b - a);
+        const newVersions = Array.from(new Set([...prev, version]))
+          .sort((a, b) => {
+            const [aMajor, aMinor] = a.split('.').map(Number);
+            const [bMajor, bMinor] = b.split('.').map(Number);
+            return bMajor - aMajor || bMinor - aMinor;
+          });
         if (!selectedVersion) {
-          setSelectedVersion(version.toString());
+          setSelectedVersion(version);
           setCurrentCoverLetter(generatedCoverLetter.content);
         }
         return newVersions;
@@ -47,17 +52,16 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   // Effect to handle version changes
   useEffect(() => {
     if (selectedVersion && generatedCoverLetter) {
-      const version = parseFloat(selectedVersion);
-      if (version === generatedCoverLetter.metadata.version) {
+      if (selectedVersion === generatedCoverLetter.metadata.version.toString()) {
         setCurrentCoverLetter(generatedCoverLetter.content);
       } else {
         // Fetch the specific version content
-        fetchVersionContent(version);
+        fetchVersionContent(selectedVersion);
       }
     }
   }, [selectedVersion]);
 
-  const fetchVersionContent = async (version: number) => {
+  const fetchVersionContent = async (version: string) => {
     try {
       if (!generatedCoverLetter?.id) return;
 
@@ -78,8 +82,12 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const generateMutation = useMutation({
     mutationFn: async () => {
+      const currentVersion = versions.length > 0 ? versions[0] : '1.0';
+      const [major, minor] = currentVersion.split('.').map(Number);
+      const nextVersion = minor === 9 ? `${major + 1}.0` : `${major}.${minor + 1}`;
+
       const response = await apiRequest("POST", `/api/optimized-resume/${resume.id}/cover-letter`, {
-        version: versions.length > 0 ? Math.max(...versions) + 0.1 : 1.0,
+        version: nextVersion,
         jobDetails: {
           ...resume.jobDetails,
           location: resume.jobDetails?.location?.split(',').slice(0, 2).join(', '), // City, State only
@@ -104,9 +112,14 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cover-letter"] });
       if (onGenerated) onGenerated(data);
-      const newVersion = data.metadata?.version ?? 1.0;
-      setVersions(prev => Array.from(new Set([...prev, newVersion])).sort((a, b) => b - a));
-      setSelectedVersion(newVersion.toString());
+      const newVersion = data.metadata?.version.toString();
+      setVersions(prev => Array.from(new Set([...prev, newVersion]))
+        .sort((a, b) => {
+          const [aMajor, aMinor] = a.split('.').map(Number);
+          const [bMajor, bMinor] = b.split('.').map(Number);
+          return bMajor - aMajor || bMinor - aMinor;
+        }));
+      setSelectedVersion(newVersion);
       setCurrentCoverLetter(data.content);
       toast({
         title: "Success",
@@ -127,9 +140,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
     try {
       setIsDownloading(true);
-      const versionToUse = selectedVersion || (generatedCoverLetter.metadata?.version ?? 1.0).toString();
       const response = await fetch(
-        `/api/cover-letter/${generatedCoverLetter.id}/download?format=${selectedFormat}&version=${versionToUse}`,
+        `/api/cover-letter/${generatedCoverLetter.id}/download?format=${selectedFormat}&version=${selectedVersion}`,
         {
           headers: {
             'Accept': selectedFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -146,7 +158,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       a.download = formatDownloadFilename(
         generatedCoverLetter.metadata.filename,
         resume.jobDetails?.title || '',
-        parseFloat(versionToUse)
+        selectedVersion
       );
       document.body.appendChild(a);
       a.click();
@@ -170,11 +182,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     }
   };
 
-  const formatDownloadFilename = (filename: string, jobTitle: string, version: number): string => {
+  const formatDownloadFilename = (filename: string, jobTitle: string, version: string): string => {
     const baseName = filename.substring(0, filename.lastIndexOf('.')) || filename;
     const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
     const formattedDate = new Date().toISOString().split('T')[0];
-    return `${baseName}_${formattedJobTitle}_v${version.toFixed(1)}_${formattedDate}.${selectedFormat}`;
+    return `${baseName}_${formattedJobTitle}_v${version}_${formattedDate}.${selectedFormat}`;
   };
 
   return (
@@ -210,7 +222,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
               <div>
                 <h4 className="font-semibold">Cover Letter</h4>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Version {selectedVersion || (generatedCoverLetter?.metadata?.version ?? '1.0')}
+                  Version {selectedVersion || '1.0'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -236,8 +248,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
                       </SelectTrigger>
                       <SelectContent>
                         {versions.map((version) => (
-                          <SelectItem key={version} value={version.toString()}>
-                            Version {version.toFixed(1)}
+                          <SelectItem key={version} value={version}>
+                            Version {version}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -273,11 +285,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
               <div className="mb-4 flex items-center gap-2">
                 <span className="text-sm font-medium">Match Confidence:</span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                  generatedCoverLetter?.metrics?.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                  generatedCoverLetter?.metrics?.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                  generatedCoverLetter?.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                  generatedCoverLetter?.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
                   'bg-red-100 text-red-700'
                 }`}>
-                  {generatedCoverLetter?.metrics?.confidence ?? 85}%
+                  {generatedCoverLetter?.confidence ?? 85}%
                 </span>
               </div>
               <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">

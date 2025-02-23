@@ -219,12 +219,23 @@ export class DatabaseStorage implements IStorage {
         .where(eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId));
 
       // Calculate next version number
-      const currentVersion = existingVersions.length > 0
-        ? Math.max(...existingVersions.map(r => parseFloat(r.version)))
-        : 1.0;
-      const nextVersion = (Math.floor((currentVersion + 0.1) * 10) / 10).toFixed(1);
-      const timestamp = new Date().toISOString();
+      let nextVersion = '1.0';
+      if (existingVersions.length > 0) {
+        const versions = existingVersions.map(r => r.version);
+        const maxVersion = versions.reduce((max, current) => {
+          const [currentMajor, currentMinor] = current.split('.').map(Number);
+          const [maxMajor, maxMinor] = max.split('.').map(Number);
+          if (currentMajor > maxMajor || (currentMajor === maxMajor && currentMinor > maxMinor)) {
+            return current;
+          }
+          return max;
+        }, '1.0');
 
+        const [major, minor] = maxVersion.split('.').map(Number);
+        nextVersion = minor === 9 ? `${major + 1}.0` : `${major}.${minor + 1}`;
+      }
+
+      const timestamp = new Date().toISOString();
       const [result] = await db
         .insert(optimizedResumes)
         .values({
@@ -252,7 +263,7 @@ export class DatabaseStorage implements IStorage {
                 experience: 0
               }
             },
-            timestamp: new Date().toISOString()
+            timestamp: timestamp
           }],
           highlights: [],
           confidence: 0,
@@ -365,7 +376,6 @@ export class DatabaseStorage implements IStorage {
 
   async createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter> {
     try {
-      // Get existing cover letter if this is a regeneration
       let existingCoverLetter;
       if (coverLetter.optimizedResumeId) {
         [existingCoverLetter] = await db
@@ -375,10 +385,19 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (existingCoverLetter) {
+        // Calculate next version
+        const versions = existingCoverLetter.versionHistory || [];
+        let nextVersion = '1.0';
+        if (versions.length > 0) {
+          const currentVersion = versions[versions.length - 1].version;
+          const [major, minor] = currentVersion.split('.').map(Number);
+          nextVersion = minor === 9 ? `${major + 1}.0` : `${major}.${minor + 1}`;
+        }
+
         // Update existing cover letter with new version
-        const versionHistory = [...(existingCoverLetter.version || []), {
+        const versionHistory = [...versions, {
           content: coverLetter.content,
-          version: coverLetter.metadata.version,
+          version: nextVersion,
           generatedAt: new Date().toISOString()
         }];
 
@@ -386,8 +405,11 @@ export class DatabaseStorage implements IStorage {
           .update(coverLetters)
           .set({
             content: coverLetter.content,
-            metadata: coverLetter.metadata,
-            version: versionHistory
+            metadata: {
+              ...coverLetter.metadata,
+              version: nextVersion
+            },
+            versionHistory
           })
           .where(eq(coverLetters.id, existingCoverLetter.id))
           .returning();
@@ -402,9 +424,10 @@ export class DatabaseStorage implements IStorage {
           .insert(coverLetters)
           .values({
             ...coverLetter,
-            version: [{
+            version: '1.0',
+            versionHistory: [{
               content: coverLetter.content,
-              version: coverLetter.metadata.version,
+              version: '1.0',
               generatedAt: new Date().toISOString()
             }],
             createdAt: new Date().toISOString(),
