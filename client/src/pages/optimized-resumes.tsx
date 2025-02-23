@@ -121,22 +121,13 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             <ScoreTooltip type="overall">
               <span>Match Score</span>
             </ScoreTooltip>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Original:</span>
-                <span className={getMetricsColor(originalScore, 'text')}>
-                  {formatScore(originalScore)}%
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Optimized:</span>
-                <span className={getMetricsColor(matchScore, 'text')}>
-                  {formatScore(matchScore)}%
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  (Conf: {formatScore(confidence)}%)
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className={getMetricsColor(matchScore, 'text')}>
+                {formatScore(matchScore)}%
+              </span>
+              <span className="text-muted-foreground text-sm">
+                ({formatScore(confidence)}%)
+              </span>
             </div>
           </div>
           <Progress
