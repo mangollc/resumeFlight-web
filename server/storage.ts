@@ -520,11 +520,6 @@ export class DatabaseStorage implements IStorage {
 
   async createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore> {
     try {
-      // Get the overall score from the optimized scores
-      const overallScore = typeof score.optimizedScores === 'object' && score.optimizedScores !== null
-        ? Math.min(100, Math.max(0, Number(score.optimizedScores.overall) || 0))
-        : 0;
-
       const [result] = await db
         .insert(resumeMatchScores)
         .values({
@@ -533,7 +528,6 @@ export class DatabaseStorage implements IStorage {
           originalScores: score.originalScores,
           optimizedScores: score.optimizedScores,
           analysis: score.analysis,
-          confidence: overallScore,
           createdAt: await getCurrentESTTimestamp()
         })
         .returning();
