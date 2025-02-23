@@ -107,9 +107,10 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
-  const matchScore = resume.matchScore?.optimizedScores?.overall || 0;
+  const optimizedScore = resume.matchScore?.optimizedScores?.overall || 0;
   const originalScore = resume.matchScore?.originalScores?.overall || 0;
-  const confidence = resume.matchScore?.optimizedScores?.confidence || 0;
+  const optimizedConfidence = resume.matchScore?.optimizedScores?.confidence || 0;
+
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
@@ -122,17 +123,17 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <span>Match Score</span>
             </ScoreTooltip>
             <div className="flex items-center gap-2">
-              <span className={getMetricsColor(matchScore, 'text')}>
-                {formatScore(matchScore)}%
+              <span className={getMetricsColor(optimizedScore, 'text')}>
+                {formatScore(optimizedScore)}%
               </span>
               <span className="text-muted-foreground text-sm">
-                ({formatScore(confidence)}%)
+                ({formatScore(optimizedConfidence)}%)
               </span>
             </div>
           </div>
           <Progress
-            value={matchScore}
-            className={`h-2 ${getMetricsColor(matchScore)}`}
+            value={optimizedScore}
+            className={`h-2 ${getMetricsColor(optimizedScore)}`}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
