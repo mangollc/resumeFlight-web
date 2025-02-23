@@ -41,10 +41,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     changes: [],
     confidence: 0
   }]),
-  matchScores: jsonb("match_scores").notNull().default({
-    before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
-    after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
-  }),
+  
   matchAnalysis: jsonb("match_analysis").notNull().default({
     strengths: [],
     gaps: [],

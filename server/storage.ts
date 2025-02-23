@@ -307,7 +307,6 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        matchScores: result.matchScores,
         contactInfo: result.contactInfo as OptimizedResume['contactInfo']
       }));
     } catch (error) {
