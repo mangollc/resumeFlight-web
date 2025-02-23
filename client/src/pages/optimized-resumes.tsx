@@ -2,7 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume, ResumeMatchScore } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
+import {
+  Download,
+  FileText,
+  Trash2,
+  MoreVertical,
+  ExternalLink,
+  ChevronDown,
+  ChevronRight,
+  HelpCircle,
+} from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -46,8 +55,8 @@ interface ResumeWithScore extends OptimizedResume {
   versionMetrics?: any[];
 }
 
-const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
-  if (type === 'bg') {
+const getMetricsColor = (value: number, type: "bg" | "text" = "bg") => {
+  if (type === "bg") {
     if (value >= 80) return "bg-emerald-600 dark:bg-emerald-500";
     if (value >= 60) return "bg-yellow-500";
     return "bg-red-500";
@@ -59,35 +68,41 @@ const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
 };
 
 const formatScore = (value: number): string => {
-  return value?.toFixed(1) || '0';
+  return value?.toFixed(1) || "0";
 };
 
 const formatDate = (dateString: string) => {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
   }).format(new Date(dateString));
 };
 
 const getScoreMethodologyTooltip = (scoreType: string) => {
   switch (scoreType) {
-    case 'overall':
+    case "overall":
       return "Overall score is calculated as a weighted average of keywords (30%), skills (40%), and experience (30%) matches with the job requirements.";
-    case 'keywords':
+    case "keywords":
       return "Keyword score measures how well your resume's terminology matches the job posting's key terms and industry language.";
-    case 'skills':
+    case "skills":
       return "Skills score evaluates the alignment between your technical/professional capabilities and the job's required qualifications.";
-    case 'experience':
+    case "experience":
       return "Experience score assesses how well your work history and achievements match the job's required level and type of experience.";
     default:
       return "";
   }
 };
 
-const ScoreTooltip = ({ type, children }: { type: string; children: React.ReactNode }) => (
+const ScoreTooltip = ({
+  type,
+  children,
+}: {
+  type: string;
+  children: React.ReactNode;
+}) => (
   <TooltipProvider>
     <Tooltip>
       <TooltipTrigger asChild>
@@ -108,7 +123,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
 
-
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
 
@@ -118,7 +132,12 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           <ScoreTooltip />
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className={getMetricsColor(resume.metrics.before.overall, 'text')}>
+              <span
+                className={getMetricsColor(
+                  resume.metrics.before.overall,
+                  "text",
+                )}
+              >
                 {formatScore(resume.metrics.before.overall)}%
               </span>
               <span className="text-muted-foreground text-sm">
@@ -126,7 +145,12 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className={getMetricsColor(resume.metrics.after.overall, 'text')}>
+              <span
+                className={getMetricsColor(
+                  resume.metrics.after.overall,
+                  "text",
+                )}
+              >
                 {formatScore(resume.metrics.after.overall)}%
               </span>
               <span className="text-muted-foreground text-sm">
@@ -136,21 +160,39 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          <div className="text-sm">Keywords
-            <Progress value={resume.metrics.before.keywords || 0} className={`h-1.5 ${getMetricsColor(resume.metrics.before.keywords || 0)}`} />
-            <div className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.keywords || 0, 'text')}`}>
+          <div className="text-sm">
+            Keywords
+            <Progress
+              value={resume.metrics.before.keywords || 0}
+              className={`h-1.5 ${getMetricsColor(resume.metrics.before.keywords || 0)}`}
+            />
+            <div
+              className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.keywords || 0, "text")}`}
+            >
               {formatScore(resume.metrics.before.keywords)}%
             </div>
           </div>
-          <div className="text-sm">Skills
-            <Progress value={resume.metrics.before.skills || 0} className={`h-1.5 ${getMetricsColor(resume.metrics.before.skills || 0)}`} />
-            <div className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.skills || 0, 'text')}`}>
+          <div className="text-sm">
+            Skills
+            <Progress
+              value={resume.metrics.before.skills || 0}
+              className={`h-1.5 ${getMetricsColor(resume.metrics.before.skills || 0)}`}
+            />
+            <div
+              className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.skills || 0, "text")}`}
+            >
               {formatScore(resume.metrics.before.skills)}%
             </div>
           </div>
-          <div className="text-sm">Experience
-            <Progress value={resume.metrics.before.experience || 0} className={`h-1.5 ${getMetricsColor(resume.metrics.before.experience || 0)}`} />
-            <div className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.experience || 0, 'text')}`}>
+          <div className="text-sm">
+            Experience
+            <Progress
+              value={resume.metrics.before.experience || 0}
+              className={`h-1.5 ${getMetricsColor(resume.metrics.before.experience || 0)}`}
+            />
+            <div
+              className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.experience || 0, "text")}`}
+            >
               {formatScore(resume.metrics.before.experience)}%
             </div>
           </div>
@@ -167,7 +209,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </ScoreTooltip>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className={getMetricsColor(scores.overall, 'text')}>
+                <span className={getMetricsColor(scores.overall, "text")}>
                   {formatScore(scores.overall)}%
                 </span>
                 <span className="text-muted-foreground text-sm">
@@ -190,8 +232,13 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               value={scores.keywords || 0}
               className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
             />
-            <div className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, 'text')}`}>
-              {formatScore(scores.keywords)}% <span className="text-muted-foreground text-xs">({formatScore(scores.keywordConfidence)}%)</span>
+            <div
+              className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, "text")}`}
+            >
+              {formatScore(scores.keywords)}%{" "}
+              <span className="text-muted-foreground text-xs">
+                ({formatScore(scores.keywordConfidence)}%)
+              </span>
             </div>
           </div>
           <div className="text-sm">
@@ -202,8 +249,13 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               value={scores.skills || 0}
               className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
             />
-            <div className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, 'text')}`}>
-              {formatScore(scores.skills)}% <span className="text-muted-foreground text-xs">({formatScore(scores.skillConfidence)}%)</span>
+            <div
+              className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, "text")}`}
+            >
+              {formatScore(scores.skills)}%{" "}
+              <span className="text-muted-foreground text-xs">
+                ({formatScore(scores.skillConfidence)}%)
+              </span>
             </div>
           </div>
           <div className="text-sm">
@@ -214,8 +266,13 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               value={scores.experience || 0}
               className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
             />
-            <div className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, 'text')}`}>
-              {formatScore(scores.experience)}% <span className="text-muted-foreground text-xs">({formatScore(scores.experienceConfidence)}%)</span>
+            <div
+              className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, "text")}`}
+            >
+              {formatScore(scores.experience)}%{" "}
+              <span className="text-muted-foreground text-xs">
+                ({formatScore(scores.experienceConfidence)}%)
+              </span>
             </div>
           </div>
         </div>
@@ -243,20 +300,24 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
     },
   });
 
-  const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx') => {
+  const downloadDocument = async (
+    type: "resume" | "cover-letter",
+    format: "pdf" | "docx",
+  ) => {
     try {
-      const endpoint = type === 'resume'
-        ? `/api/optimized-resume/${resume.id}/download`
-        : `/api/cover-letter/${resume.id}/download`;
+      const endpoint =
+        type === "resume"
+          ? `/api/optimized-resume/${resume.id}/download`
+          : `/api/cover-letter/${resume.id}/download`;
 
       const response = await fetch(`${endpoint}?format=${format}`);
       if (!response.ok) throw new Error(`Failed to download ${type}`);
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${type === 'resume' ? 'resume' : 'cover_letter'}_v${resume.metadata.version}.${format}`;
+      a.download = `${type === "resume" ? "resume" : "cover_letter"}_v${resume.metadata.version}.${format}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -264,10 +325,10 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
       toast({
         title: "Success",
-        description: `${type === 'resume' ? 'Resume' : 'Cover Letter'} downloaded successfully as ${format.toUpperCase()}`,
+        description: `${type === "resume" ? "Resume" : "Cover Letter"} downloaded successfully as ${format.toUpperCase()}`,
       });
     } catch (error) {
-      console.error('Download error:', error);
+      console.error("Download error:", error);
       toast({
         title: "Error",
         description: `Failed to download ${type}`,
@@ -279,16 +340,16 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   return (
     <>
       <TableRow
-        className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}
+        className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? "bg-muted/5" : ""}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <TableCell className="w-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-          >
-            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </Button>
         </TableCell>
         <TableCell>
@@ -304,7 +365,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </TableCell>
         <TableCell>
-          <Badge variant="outline" className="w-fit">v{resume.metadata.version}</Badge>
+          <Badge variant="outline" className="w-fit">
+            v{resume.metadata.version}
+          </Badge>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
           {getScoresDisplay(resume.metrics.after)}
@@ -319,22 +382,34 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">Download Resume</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument('resume', 'pdf')}>
+              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">
+                Download Resume
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => downloadDocument("resume", "pdf")}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download as PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument('resume', 'docx')}>
+              <DropdownMenuItem
+                onSelect={() => downloadDocument("resume", "docx")}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download as DOCX
               </DropdownMenuItem>
 
-              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">Download Cover Letter</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument('cover-letter', 'pdf')}>
+              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">
+                Download Cover Letter
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => downloadDocument("cover-letter", "pdf")}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download as PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument('cover-letter', 'docx')}>
+              <DropdownMenuItem
+                onSelect={() => downloadDocument("cover-letter", "docx")}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download as DOCX
               </DropdownMenuItem>
@@ -372,12 +447,14 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete the optimized resume and its corresponding cover letter.
-                      This action cannot be undone.
+                      This will permanently delete the optimized resume and its
+                      corresponding cover letter. This action cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                      Cancel
+                    </AlertDialogCancel>
                     <AlertDialogAction
                       onClick={(e) => {
                         e.stopPropagation();
@@ -406,32 +483,75 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     <div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <span className={getMetricsColor(resume.matchScore?.originalScores.overall || 0, 'text')}>
-                            {formatScore(resume.matchScore?.originalScores.overall || 0)}%
+                          <span
+                            className={getMetricsColor(
+                              resume.matchScore?.originalScores.overall || 0,
+                              "text",
+                            )}
+                          >
+                            {formatScore(
+                              resume.matchScore?.originalScores.overall || 0,
+                            )}
+                            %
                           </span>
                           <span className="text-muted-foreground text-sm">
-                            (Confidence: {formatScore(resume.confidence || 0)}%)
+                            (Confidence:{" "}
+                            {formatScore(
+                              resume.matchScore?.originalScores.confidence || 0,
+                            )}
+                            %)
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="text-sm">Keywords
-                        <Progress value={resume.matchScore?.originalScores.keywords || 0} className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0)}`} />
-                        <div className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0, 'text')}`}>
-                          {formatScore(resume.matchScore?.originalScores.keywords || 0)}%
+                      <div className="text-sm">
+                        Keywords
+                        <Progress
+                          value={
+                            resume.matchScore?.originalScores.keywords || 0
+                          }
+                          className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0)}`}
+                        />
+                        <div
+                          className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0, "text")}`}
+                        >
+                          {formatScore(
+                            resume.matchScore?.originalScores.keywords || 0,
+                          )}
+                          %
                         </div>
                       </div>
-                      <div className="text-sm">Skills
-                        <Progress value={resume.matchScore?.originalScores.skills || 0} className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0)}`} />
-                        <div className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0, 'text')}`}>
-                          {formatScore(resume.matchScore?.originalScores.skills || 0)}%
+                      <div className="text-sm">
+                        Skills
+                        <Progress
+                          value={resume.matchScore?.originalScores.skills || 0}
+                          className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0)}`}
+                        />
+                        <div
+                          className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0, "text")}`}
+                        >
+                          {formatScore(
+                            resume.matchScore?.originalScores.skills || 0,
+                          )}
+                          %
                         </div>
                       </div>
-                      <div className="text-sm">Experience
-                        <Progress value={resume.matchScore?.originalScores.experience || 0} className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0)}`} />
-                        <div className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0, 'text')}`}>
-                          {formatScore(resume.matchScore?.originalScores.experience || 0)}%
+                      <div className="text-sm">
+                        Experience
+                        <Progress
+                          value={
+                            resume.matchScore?.originalScores.experience || 0
+                          }
+                          className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0)}`}
+                        />
+                        <div
+                          className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0, "text")}`}
+                        >
+                          {formatScore(
+                            resume.matchScore?.originalScores.experience || 0,
+                          )}
+                          %
                         </div>
                       </div>
                     </div>
@@ -446,44 +566,69 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Analysis</h3>
                 <div className="space-y-4">
-                  {resume.analysis && resume.analysis.strengths && resume.analysis.strengths.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Strengths</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {resume.analysis.strengths.map((strength: string, idx: number) => (
-                          <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
-                            {strength}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {resume.analysis &&
+                    resume.analysis.strengths &&
+                    resume.analysis.strengths.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Strengths</h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {resume.analysis.strengths.map(
+                            (strength: string, idx: number) => (
+                              <li
+                                key={idx}
+                                className="text-sm text-emerald-600 dark:text-emerald-400"
+                              >
+                                {strength}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                    )}
 
-                  {resume.analysis && resume.analysis.gaps && resume.analysis.gaps.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {resume.analysis.gaps.map((gap: string, idx: number) => (
-                          <li key={idx} className="text-sm text-red-600 dark:text-red-400">
-                            {gap}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {resume.analysis &&
+                    resume.analysis.gaps &&
+                    resume.analysis.gaps.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">
+                          Areas for Improvement
+                        </h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {resume.analysis.gaps.map(
+                            (gap: string, idx: number) => (
+                              <li
+                                key={idx}
+                                className="text-sm text-red-600 dark:text-red-400"
+                              >
+                                {gap}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                    )}
 
-                  {resume.analysis && resume.analysis.suggestions && resume.analysis.suggestions.length > 0 && (
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
-                      <ul className="list-disc list-inside space-y-1">
-                        {resume.analysis.suggestions.map((suggestion: string, idx: number) => (
-                          <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
-                            {suggestion}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {resume.analysis &&
+                    resume.analysis.suggestions &&
+                    resume.analysis.suggestions.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">
+                          Suggestions
+                        </h4>
+                        <ul className="list-disc list-inside space-y-1">
+                          {resume.analysis.suggestions.map(
+                            (suggestion: string, idx: number) => (
+                              <li
+                                key={idx}
+                                className="text-sm text-blue-600 dark:text-blue-400"
+                              >
+                                {suggestion}
+                              </li>
+                            ),
+                          )}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               </div>
             </div>
@@ -499,9 +644,12 @@ export default function OptimizedResumesPage() {
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
-        return new Date(b.metadata.optimizedAt).getTime() - new Date(a.metadata.optimizedAt).getTime();
+        return (
+          new Date(b.metadata.optimizedAt).getTime() -
+          new Date(a.metadata.optimizedAt).getTime()
+        );
       });
-    }
+    },
   });
 
   if (isLoading) {
@@ -537,7 +685,9 @@ export default function OptimizedResumesPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Resume ID</TableHead>
                   <TableHead>Version</TableHead>
-                  <TableHead className="hidden lg:table-cell">Match Score</TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    Match Score
+                  </TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -551,7 +701,9 @@ export default function OptimizedResumesPage() {
         ) : (
           <div className="text-center py-12">
             <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
+            <h3 className="mt-4 text-lg font-semibold">
+              No optimized resumes yet
+            </h3>
             <p className="text-muted-foreground">
               Upload and optimize a resume to see it here
             </p>
