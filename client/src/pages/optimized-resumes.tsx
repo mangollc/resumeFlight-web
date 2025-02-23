@@ -402,7 +402,40 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-medium mb-4">Original Scores</h4>
-                  {getScoresDisplay(resume.metrics.before)}
+                  <div className="space-y-3">
+                    <div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <span className={getMetricsColor(resume.matchScore?.originalScores.overall || 0, 'text')}>
+                            {formatScore(resume.matchScore?.originalScores.overall || 0)}%
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            (Confidence: {formatScore(resume.confidence || 0)}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-sm">Keywords
+                        <Progress value={resume.matchScore?.originalScores.keywords || 0} className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0)}`} />
+                        <div className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0, 'text')}`}>
+                          {formatScore(resume.matchScore?.originalScores.keywords || 0)}%
+                        </div>
+                      </div>
+                      <div className="text-sm">Skills
+                        <Progress value={resume.matchScore?.originalScores.skills || 0} className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0)}`} />
+                        <div className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0, 'text')}`}>
+                          {formatScore(resume.matchScore?.originalScores.skills || 0)}%
+                        </div>
+                      </div>
+                      <div className="text-sm">Experience
+                        <Progress value={resume.matchScore?.originalScores.experience || 0} className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0)}`} />
+                        <div className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0, 'text')}`}>
+                          {formatScore(resume.matchScore?.originalScores.experience || 0)}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <h4 className="font-medium mb-4">Optimized Scores</h4>
