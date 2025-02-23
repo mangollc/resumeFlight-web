@@ -54,10 +54,6 @@ export class DatabaseStorage implements IStorage {
         console.error('Session store error:', err);
       },
       disableTouch: true, // Disable touch to prevent connection issues
-      connectionConfig: {
-        statement_timeout: 10000, // 10 second timeout for session operations
-        idle_timeout: 30000, // 30 second idle timeout
-      }
     });
 
     // Add error handler for session store
@@ -239,27 +235,32 @@ export class DatabaseStorage implements IStorage {
       }
 
       const timestamp = (await getCurrentESTTimestamp()).toISOString();
+
+      // Calculate the overall match score from metrics
+      const overallMatchScore = this.getOverallMatchScore(resume.metrics);
+
       const [result] = await db
         .insert(optimizedResumes)
         .values({
           ...resume,
+          userId: resume.userId,
           version: nextVersion,
           versionHistory: [{
             version: nextVersion,
             content: resume.content,
             timestamp: timestamp,
-            changes: []
+            changes: [],
+            confidence: overallMatchScore,
+            metrics: resume.metrics
           }],
           versionMetrics: [{
             version: nextVersion,
-            metrics: {
-              before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
-              after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
-            },
+            metrics: resume.metrics,
+            confidence: overallMatchScore,
             timestamp: timestamp
           }],
           highlights: [],
-          confidence: 0,
+          confidence: overallMatchScore, // Use overall match score for confidence
           contactInfo: {
             fullName: '',
             email: '',
@@ -454,11 +455,12 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession> {
     try {
-      const now = new Date().toISOString();
+      const now = await getCurrentESTTimestamp();
       const [result] = await db
         .insert(optimizationSessions)
         .values({
           ...session,
+          userId: session.userId,
           createdAt: now,
           updatedAt: now,
         })
@@ -480,11 +482,12 @@ export class DatabaseStorage implements IStorage {
     data: Partial<InsertOptimizationSession>,
   ): Promise<OptimizationSession> {
     try {
+      const now = await getCurrentESTTimestamp();
       const [result] = await db
         .update(optimizationSessions)
         .set({
           ...data,
-          updatedAt: new Date().toISOString(),
+          updatedAt: now,
         })
         .where(eq(optimizationSessions.sessionId, sessionId))
         .returning();
@@ -537,6 +540,26 @@ export class DatabaseStorage implements IStorage {
       console.error('Error creating resume match score:', error);
       throw new Error('Failed to create resume match score');
     }
+  }
+  // Update version comparison to handle string versions properly
+  private compareVersions(v1: string, v2: string): number {
+    const [major1, minor1] = v1.split('.').map(Number);
+    const [major2, minor2] = v2.split('.').map(Number);
+
+    if (major1 !== major2) {
+      return major1 - major2;
+    }
+    return minor1 - minor2;
+  }
+
+  // Fix metrics access with proper type checking
+  private getOverallMatchScore(metrics: any): number {
+    if (typeof metrics === 'object' && metrics !== null &&
+        typeof metrics.after === 'object' && metrics.after !== null &&
+        typeof metrics.after.overall === 'number') {
+      return metrics.after.overall;
+    }
+    return 0;
   }
 }
 
