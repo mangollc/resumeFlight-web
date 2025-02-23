@@ -307,7 +307,17 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: result.contactInfo as OptimizedResume['contactInfo']
+        analysis: result.analysis || {
+          strengths: [],
+          gaps: [],
+          suggestions: []
+        },
+        contactInfo: result.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+          address: ''
+        }
       }));
     } catch (error) {
       console.error('Error getting optimized resumes by user:', error);
