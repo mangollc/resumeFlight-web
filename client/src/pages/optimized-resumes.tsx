@@ -66,6 +66,8 @@ const formatDate = (dateString: string) => {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
   }).format(new Date(dateString));
 };
 
@@ -244,7 +246,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         <TableCell>
           <div className="flex flex-col">
             <span>{formatDate(resume.metadata.optimizedAt)}</span>
-            <Badge variant="outline" className="w-fit mt-1">v{resume.metadata.version}</Badge>
           </div>
         </TableCell>
         <TableCell>
@@ -253,6 +254,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               ID: {resume.id}
             </Badge>
           </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className="w-fit">v{resume.metadata.version}</Badge>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
           {matchScore && getScoresDisplay(matchScore.optimizedScores)}
@@ -448,9 +452,10 @@ export default function OptimizedResumesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-4"></TableHead>
-                  <TableHead className="w-[150px]">Date & Version</TableHead>
-                  <TableHead className="w-[100px]">Resume ID</TableHead>
-                  <TableHead className="hidden lg:table-cell w-[300px]">Match Score</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Resume ID</TableHead>
+                  <TableHead>Version</TableHead>
+                  <TableHead className="hidden lg:table-cell">Match Score</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
