@@ -309,7 +309,33 @@ export type ResumeDifferences = {
 
 
 // Add relations for match scores
-export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
+export type ResumeMatchScore = {
+  id: number;
+  optimizedResumeId: number;
+  userId: number;
+  originalScores: {
+    overall: number;
+    keywords: number;
+    skills: number;
+    experience: number;
+  };
+  optimizedScores: {
+    overall: number;
+    keywords: number;
+    skills: number;
+    experience: number;
+  };
+  analysis: {
+    strengths: string[];
+    gaps: string[];
+    suggestions: string[];
+  };
+  createdAt: string;
+};
+
+export type InsertResumeMatchScore = Omit<ResumeMatchScore, 'id' | 'createdAt'>;
+
+export const resumeMatchScoresRelations = relations(optimizedResumes, ({ one }) => ({
   optimizedResume: one(optimizedResumes, {
     fields: [resumeMatchScores.optimizedResumeId],
     references: [optimizedResumes.id],

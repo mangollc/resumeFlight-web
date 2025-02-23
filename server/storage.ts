@@ -592,24 +592,28 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore> {
+  async updateOptimizedResumeScores(resumeId: number, scores: { 
+    originalScores: any, 
+    optimizedScores: any, 
+    analysis: any 
+  }): Promise<OptimizedResume> {
     try {
       const [result] = await db
-        .insert(resumeMatchScores)
-        .values({
-          userId: score.userId,
-          optimizedResumeId: score.optimizedResumeId,
-          originalScores: score.originalScores,
-          optimizedScores: score.optimizedScores,
-          analysis: score.analysis,
-          createdAt: new Date() 
+        .update(optimizedResumes)
+        .set({
+          matchScores: {
+            before: scores.originalScores,
+            after: scores.optimizedScores
+          },
+          matchAnalysis: scores.analysis
         })
+        .where(eq(optimizedResumes.id, resumeId))
         .returning();
 
       return result;
     } catch (error) {
-      console.error('Error creating resume match score:', error);
-      throw new Error('Failed to create resume match score');
+      console.error('Error updating resume scores:', error);
+      throw new Error('Failed to update resume scores');
     }
   }
 }
