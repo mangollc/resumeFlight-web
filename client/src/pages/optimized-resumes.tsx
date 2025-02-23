@@ -108,6 +108,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
   const matchScore = resume.metrics?.after?.overall || 0;
+  const matchConfidence = resume.metrics?.after?.confidence || 0; // Added to get confidence
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
@@ -122,6 +123,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             <div className="flex items-center gap-2">
               <span className={getMetricsColor(matchScore, 'text')}>
                 {formatScore(matchScore)}%
+              </span>
+              <span className="text-muted-foreground text-sm">
+                (Confidence: {formatScore(matchConfidence)}%)
               </span>
             </div>
           </div>
