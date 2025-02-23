@@ -121,23 +121,18 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </ScoreTooltip>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className={getMetricsColor(resume.metrics.before.overall, 'text')}>
-                  {formatScore(resume.metrics.before.overall)}%
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={getMetricsColor(resume.metrics.after.overall, 'text')}>
-                  {formatScore(resume.metrics.after.overall)}%
+                <span className={getMetricsColor(scores.overall, 'text')}>
+                  {formatScore(scores.overall)}%
                 </span>
                 <span className="text-muted-foreground text-sm">
-                  (Confidence: {formatScore(resume.confidence)}%)
+                  ({formatScore(scores.confidence)}%)
                 </span>
               </div>
             </div>
           </div>
           <Progress
-            value={resume.metrics.after.overall}
-            className={`h-2 ${getMetricsColor(resume.metrics.after.overall)}`}
+            value={scores.overall || 0}
+            className={`h-2 ${getMetricsColor(scores.overall || 0)}`}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -150,7 +145,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
             />
             <div className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, 'text')}`}>
-              {formatScore(scores.keywords)}%
+              {formatScore(scores.keywords)}% <span className="text-muted-foreground text-xs">({formatScore(scores.keywordConfidence)}%)</span>
             </div>
           </div>
           <div className="text-sm">
@@ -162,7 +157,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
             />
             <div className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, 'text')}`}>
-              {formatScore(scores.skills)}%
+              {formatScore(scores.skills)}% <span className="text-muted-foreground text-xs">({formatScore(scores.skillConfidence)}%)</span>
             </div>
           </div>
           <div className="text-sm">
@@ -174,7 +169,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
             />
             <div className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, 'text')}`}>
-              {formatScore(scores.experience)}%
+              {formatScore(scores.experience)}% <span className="text-muted-foreground text-xs">({formatScore(scores.experienceConfidence)}%)</span>
             </div>
           </div>
         </div>
