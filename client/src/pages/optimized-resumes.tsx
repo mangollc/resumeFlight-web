@@ -342,6 +342,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 <div className="space-y-4">
                   <h4 className="font-medium">Original Scores</h4>
                   <div className="space-y-3">
+                    <div className="text-xs text-muted-foreground mb-1">Match Score</div>
                     <div className="flex items-center gap-2">
                       <TooltipProvider>
                         <Tooltip>
