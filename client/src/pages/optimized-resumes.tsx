@@ -2,10 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume, ResumeMatchScore } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight, HelpCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +69,37 @@ const formatDate = (dateString: string) => {
   }).format(new Date(dateString));
 };
 
+const getScoreMethodologyTooltip = (scoreType: string) => {
+  switch (scoreType) {
+    case 'overall':
+      return "Overall score is calculated as a weighted average of keywords (30%), skills (40%), and experience (30%) matches with the job requirements.";
+    case 'keywords':
+      return "Keyword score measures how well your resume's terminology matches the job posting's key terms and industry language.";
+    case 'skills':
+      return "Skills score evaluates the alignment between your technical/professional capabilities and the job's required qualifications.";
+    case 'experience':
+      return "Experience score assesses how well your work history and achievements match the job's required level and type of experience.";
+    default:
+      return "";
+  }
+};
+
+const ScoreTooltip = ({ type, children }: { type: string; children: React.ReactNode }) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="flex items-center gap-1 cursor-help">
+          {children}
+          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+        </div>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="max-w-xs text-sm">{getScoreMethodologyTooltip(type)}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
@@ -79,7 +116,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
       <div className="space-y-3">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span>Overall Score</span>
+            <ScoreTooltip type="overall">
+              <span>Overall Score</span>
+            </ScoreTooltip>
             <span className={getMetricsColor(scores.overall || 0, 'text')}>
               {formatScore(scores.overall)}%
             </span>
@@ -91,7 +130,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div className="text-sm">
-            <div className="text-muted-foreground mb-1">Keywords</div>
+            <ScoreTooltip type="keywords">
+              <div className="text-muted-foreground mb-1">Keywords</div>
+            </ScoreTooltip>
             <Progress
               value={scores.keywords || 0}
               className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
@@ -101,7 +142,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </div>
           </div>
           <div className="text-sm">
-            <div className="text-muted-foreground mb-1">Skills</div>
+            <ScoreTooltip type="skills">
+              <div className="text-muted-foreground mb-1">Skills</div>
+            </ScoreTooltip>
             <Progress
               value={scores.skills || 0}
               className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
@@ -111,7 +154,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </div>
           </div>
           <div className="text-sm">
-            <div className="text-muted-foreground mb-1">Experience</div>
+            <ScoreTooltip type="experience">
+              <div className="text-muted-foreground mb-1">Experience</div>
+            </ScoreTooltip>
             <Progress
               value={scores.experience || 0}
               className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
@@ -180,7 +225,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   return (
     <>
-      <TableRow 
+      <TableRow
         className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}
         onClick={(e) => {
           e.stopPropagation();
