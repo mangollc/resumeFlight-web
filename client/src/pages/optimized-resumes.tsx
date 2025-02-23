@@ -107,10 +107,8 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
-  const optimizedScore = resume.matchScore?.optimizedScores?.overall || 0;
-  const originalScore = resume.matchScore?.originalScores?.overall || 0;
-  const optimizedConfidence = resume.matchScore?.optimizedScores?.confidence || 0;
-
+  const matchScore = resume.metrics?.after?.overall || 0;
+  const confidence = resume.confidence || 0;
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
@@ -123,16 +121,16 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <span>Match Score</span>
             </ScoreTooltip>
             <div className="flex items-center gap-2">
-              <span className={getMetricsColor(optimizedScore, 'text')}>
-                {formatScore(optimizedScore)}%
+              <span className={getMetricsColor(matchScore, 'text')}>
+                {formatScore(matchScore)}%
               </span>
               <span className="text-muted-foreground text-sm">
-                ({formatScore(optimizedConfidence)}%)
+                (Confidence: {formatScore(confidence)}%)
               </span>
             </div>
           </div>
           <Progress
-            value={optimizedScore}
+            value={matchScore}
             className={`h-2 ${getMetricsColor(optimizedScore)}`}
           />
         </div>
