@@ -53,6 +53,7 @@ import { Badge } from "@/components/ui/badge";
 interface ResumeWithScore extends OptimizedResume {
   matchScore?: ResumeMatchScore;
   versionMetrics?: any[];
+  analysis?: any; // Add analysis property
 }
 
 const getMetricsColor = (value: number, type: "bg" | "text" = "bg") => {
@@ -120,6 +121,7 @@ const ScoreTooltip = ({
 
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false); // Added state for analysis
   const { toast } = useToast();
 
   const getScoresDisplay = (scores: any) => {
@@ -212,6 +214,37 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         description: `Failed to download ${type}`,
         variant: "destructive",
       });
+    }
+  };
+
+  const analyzeResume = async () => {
+    try {
+      setIsAnalyzing(true);
+      const response = await fetch(`/api/optimized-resume/${(resume as OptimizedResume).id}/analyze`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to analyze resume');
+      const data = await response.json();
+
+      const updatedResume = {
+        ...resume,
+        analysis: data.analysis,
+      };
+      queryClient.setQueryData(["/api/optimized-resumes"], (oldData: any) => {
+        return oldData.map((r: any) => 
+          r.id === updatedResume.id ? updatedResume : r
+        );
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] }); //added to refresh the data
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to analyze resume",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -411,7 +444,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Strengths</h4>
                         <ul className="space-y-2">
-                          {resume.analysis.strengths.map((strength, idx) => (
+                          {resume.analysis.strengths.map((strength:string, idx) => (
                             <li
                               key={idx}
                               className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2"
@@ -428,7 +461,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Areas for Improvement</h4>
                         <ul className="space-y-2">
-                          {resume.analysis.gaps.map((gap, idx) => (
+                          {resume.analysis.gaps.map((gap:string, idx) => (
                             <li
                               key={idx}
                               className="text-sm text-red-600 dark:text-red-400 flex gap-2"
@@ -445,65 +478,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Suggestions</h4>
                         <ul className="space-y-2">
-                          {resume.analysis.suggestions.map((suggestion, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-blue-600 dark:text-blue-400 flex gap-2"
-                            >
-                              <span>•</span>
-                              <span>{suggestion}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {resume.analysis && (
-                <div className="space-y-6 mt-8">
-                  <h3 className="text-lg font-medium">Analysis</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {resume.analysis.strengths && resume.analysis.strengths.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Strengths</h4>
-                        <ul className="space-y-2">
-                          {resume.analysis.strengths.map((strength, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2"
-                            >
-                              <span>•</span>
-                              <span>{strength}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {resume.analysis.gaps && resume.analysis.gaps.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Areas for Improvement</h4>
-                        <ul className="space-y-2">
-                          {resume.analysis.gaps.map((gap, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-red-600 dark:text-red-400 flex gap-2"
-                            >
-                              <span>•</span>
-                              <span>{gap}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {resume.analysis.suggestions && resume.analysis.suggestions.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Suggestions</h4>
-                        <ul className="space-y-2">
-                          {resume.analysis.suggestions.map((suggestion, idx) => (
+                          {resume.analysis.suggestions.map((suggestion:string, idx) => (
                             <li
                               key={idx}
                               className="text-sm text-blue-600 dark:text-blue-400 flex gap-2"
