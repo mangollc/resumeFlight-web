@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
+import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -121,35 +121,49 @@ const getMetricsDisplay = (metrics: any) => {
   if (!metrics) return null;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <span>Overall</span>
-        <span className={getMetricsColor(metrics.overall || 0, 'text')}>
-          {formatScore(metrics.overall)}%
-        </span>
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-sm">
+          <span>Overall Match</span>
+          <span className={getMetricsColor(metrics.overall || 0, 'text')}>
+            {formatScore(metrics.overall)}%
+          </span>
+        </div>
+        <Progress
+          value={metrics.overall || 0}
+          className={`h-2 ${getMetricsColor(metrics.overall || 0)}`}
+        />
       </div>
-      <Progress
-        value={metrics.overall || 0}
-        className={`h-2 ${getMetricsColor(metrics.overall || 0)}`}
-      />
-      <div className="grid grid-cols-3 gap-2 mt-2">
-        <div className="text-xs">
-          <span className="text-muted-foreground">Keywords:</span>{' '}
-          <span className={getMetricsColor(metrics.keywords || 0, 'text')}>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="text-sm">
+          <div className="text-muted-foreground mb-1">Keywords</div>
+          <Progress
+            value={metrics.keywords || 0}
+            className={`h-1.5 ${getMetricsColor(metrics.keywords || 0)}`}
+          />
+          <div className={`text-xs mt-1 ${getMetricsColor(metrics.keywords || 0, 'text')}`}>
             {formatScore(metrics.keywords)}%
-          </span>
+          </div>
         </div>
-        <div className="text-xs">
-          <span className="text-muted-foreground">Skills:</span>{' '}
-          <span className={getMetricsColor(metrics.skills || 0, 'text')}>
+        <div className="text-sm">
+          <div className="text-muted-foreground mb-1">Skills</div>
+          <Progress
+            value={metrics.skills || 0}
+            className={`h-1.5 ${getMetricsColor(metrics.skills || 0)}`}
+          />
+          <div className={`text-xs mt-1 ${getMetricsColor(metrics.skills || 0, 'text')}`}>
             {formatScore(metrics.skills)}%
-          </span>
+          </div>
         </div>
-        <div className="text-xs">
-          <span className="text-muted-foreground">Exp:</span>{' '}
-          <span className={getMetricsColor(metrics.experience || 0, 'text')}>
+        <div className="text-sm">
+          <div className="text-muted-foreground mb-1">Experience</div>
+          <Progress
+            value={metrics.experience || 0}
+            className={`h-1.5 ${getMetricsColor(metrics.experience || 0)}`}
+          />
+          <div className={`text-xs mt-1 ${getMetricsColor(metrics.experience || 0, 'text')}`}>
             {formatScore(metrics.experience)}%
-          </span>
+          </div>
         </div>
       </div>
     </div>
@@ -234,15 +248,22 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
           </div>
         </TableCell>
         <TableCell>
+          <div className="flex items-center space-x-2">
+            <Badge variant="secondary" className="w-fit">
+              ID: {resume.id}
+            </Badge>
+          </div>
+        </TableCell>
+        <TableCell>
           <div className="font-medium">{resume.jobDetails?.title}</div>
           <div className="text-sm text-muted-foreground">{resume.jobDetails?.company}</div>
         </TableCell>
-        <TableCell className="hidden lg:table-cell">
+        <TableCell className="hidden lg:table-cell w-[300px]">
           {getMetricsDisplay(resume.metrics?.after)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm">
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">Actions</span>
@@ -325,7 +346,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       </TableRow>
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={5} className="bg-muted/5 p-6">
+          <TableCell colSpan={6} className="bg-muted/5 p-6">
             {formatJobDetails(resume)}
           </TableCell>
         </TableRow>
@@ -375,8 +396,9 @@ export default function OptimizedResumesPage() {
                 <TableRow>
                   <TableHead className="w-4"></TableHead>
                   <TableHead className="w-[150px]">Date & Version</TableHead>
+                  <TableHead className="w-[100px]">Resume ID</TableHead>
                   <TableHead>Position & Company</TableHead>
-                  <TableHead className="hidden lg:table-cell w-[200px]">Match Score</TableHead>
+                  <TableHead className="hidden lg:table-cell w-[300px]">Match Score</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
