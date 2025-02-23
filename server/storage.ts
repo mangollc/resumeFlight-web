@@ -1,7 +1,7 @@
 import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { db, pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
@@ -297,17 +297,18 @@ export class DatabaseStorage implements IStorage {
 
   async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
     try {
-      const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
+      const results = await db.select()
+        .from(optimizedResumes)
+        .where(eq(optimizedResumes.userId, userId))
+        .orderBy(desc(optimizedResumes.createdAt));
+
       return results.map(result => ({
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: (result.jobDetails as any)?.contactInfo || {
-          fullName: '',
-          email: '',
-          phone: '',
-        }
+        matchScores: result.matchScores,
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo']
       }));
     } catch (error) {
       console.error('Error getting optimized resumes by user:', error);
