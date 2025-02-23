@@ -107,7 +107,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
-  const versionMetrics = resume.versionMetrics?.find(v => v.version === currentVersion);
   const matchScore = resume.metrics?.after?.overall || 0;
 
   const getScoresDisplay = (scores: any) => {
@@ -121,14 +120,14 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <span>Match Score</span>
             </ScoreTooltip>
             <div className="flex items-center gap-2">
-              <span className={getMetricsColor(confidence, 'text')}>
-                {formatScore(confidence)}%
+              <span className={getMetricsColor(matchScore, 'text')}>
+                {formatScore(matchScore)}%
               </span>
             </div>
           </div>
           <Progress
-            value={confidence}
-            className={`h-2 ${getMetricsColor(confidence)}`}
+            value={matchScore}
+            className={`h-2 ${getMetricsColor(matchScore)}`}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -257,7 +256,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           <Badge variant="outline" className="w-fit">v{resume.metadata.version}</Badge>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {getScoresDisplay(versionMetrics?.metrics.after || resume.metrics.after)}
+          {getScoresDisplay(resume.metrics.after)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -352,22 +351,22 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-medium mb-4">Original Scores</h4>
-                  {getScoresDisplay(versionMetrics?.metrics.before || resume.metrics.before)}
+                  {getScoresDisplay(resume.metrics.before)}
                 </div>
                 <div>
                   <h4 className="font-medium mb-4">Optimized Scores</h4>
-                  {getScoresDisplay(versionMetrics?.metrics.after || resume.metrics.after)}
+                  {getScoresDisplay(resume.metrics.after)}
                 </div>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold mb-4">Analysis</h3>
                 <div className="space-y-4">
-                  {versionMetrics?.analysis && versionMetrics.analysis.strengths && versionMetrics.analysis.strengths.length > 0 && (
+                  {resume.analysis && resume.analysis.strengths && resume.analysis.strengths.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Strengths</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {versionMetrics.analysis.strengths.map((strength: string, idx: number) => (
+                        {resume.analysis.strengths.map((strength: string, idx: number) => (
                           <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
                             {strength}
                           </li>
@@ -376,11 +375,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {versionMetrics?.analysis && versionMetrics.analysis.gaps && versionMetrics.analysis.gaps.length > 0 && (
+                  {resume.analysis && resume.analysis.gaps && resume.analysis.gaps.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {versionMetrics.analysis.gaps.map((gap: string, idx: number) => (
+                        {resume.analysis.gaps.map((gap: string, idx: number) => (
                           <li key={idx} className="text-sm text-red-600 dark:text-red-400">
                             {gap}
                           </li>
@@ -389,11 +388,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {versionMetrics?.analysis && versionMetrics.analysis.suggestions && versionMetrics.analysis.suggestions.length > 0 && (
+                  {resume.analysis && resume.analysis.suggestions && resume.analysis.suggestions.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {versionMetrics.analysis.suggestions.map((suggestion: string, idx: number) => (
+                        {resume.analysis.suggestions.map((suggestion: string, idx: number) => (
                           <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
                             {suggestion}
                           </li>
