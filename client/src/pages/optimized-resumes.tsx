@@ -107,9 +107,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
-  const matchScore = resume.metrics?.after?.overall || 0;
-  const confidence = resume.confidence || 0;
-  const originalScore = resume.metrics?.before?.overall || 0;
 
 
   const getScoresDisplay = (scores: any) => {
@@ -124,26 +121,23 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </ScoreTooltip>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className={getMetricsColor(originalScore, 'text')}>
-                  {formatScore(originalScore)}%
-                </span>
-                <span className="text-muted-foreground text-sm">
-                  (Confidence: {formatScore(confidence)}%)
+                <span className={getMetricsColor(resume.metrics.before.overall, 'text')}>
+                  {formatScore(resume.metrics.before.overall)}%
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className={getMetricsColor(matchScore, 'text')}>
-                  {formatScore(matchScore)}%
+                <span className={getMetricsColor(resume.metrics.after.overall, 'text')}>
+                  {formatScore(resume.metrics.after.overall)}%
                 </span>
                 <span className="text-muted-foreground text-sm">
-                  (Confidence: {formatScore(confidence)}%)
+                  (Confidence: {formatScore(resume.confidence)}%)
                 </span>
               </div>
             </div>
           </div>
           <Progress
-            value={matchScore}
-            className={`h-2 ${getMetricsColor(matchScore)}`}
+            value={resume.metrics.after.overall}
+            className={`h-2 ${getMetricsColor(resume.metrics.after.overall)}`}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
