@@ -39,7 +39,10 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     timestamp: '',
     changes: []
   }]),
-  metrics: jsonb("metrics").notNull().default([]),
+  metrics: jsonb("metrics").notNull().default({
+    before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
+    after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
+  }),
   versionMetrics: jsonb("version_metrics").notNull().default([{
     version: '1.0',
     metrics: {
@@ -48,9 +51,15 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     },
     timestamp: ''
   }]),
-  highlights: jsonb("highlights").notNull().default([]), // Added highlights column
+  highlights: jsonb("highlights").notNull().default([]),
   confidence: integer("confidence").notNull().default(0),
   createdAt: text("created_at").notNull(),
+  contactInfo: jsonb("contact_info").notNull().default({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: ''
+  }),
 });
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
@@ -91,7 +100,11 @@ export const coverLetters = pgTable("cover_letters", {
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
   version: text("version").notNull().default('1.0'),
-  versionHistory: jsonb("version_history").notNull().default([]),
+  versionHistory: jsonb("version_history").notNull().default([{
+    content: '',
+    version: '1.0',
+    generatedAt: ''
+  }]),
   highlights: jsonb("highlights").notNull().default([]),
   confidence: integer("confidence").notNull().default(0),
   createdAt: text("created_at").notNull(),
