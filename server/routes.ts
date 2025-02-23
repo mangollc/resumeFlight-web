@@ -478,15 +478,23 @@ export function registerRoutes(app: Express): Server {
                 "[Get Optimized] Fetching optimized resumes for user:",
                 req.user!.id,
             );
-            const resumes = await storage.getOptimizedResumesByUser(
-                req.user!.id,
-            );
+            
+            // Fetch optimized resumes with their match scores
+            const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
+            const resumesWithScores = await Promise.all(resumes.map(async (resume) => {
+                const matchScore = await storage.getResumeMatchScore(resume.id);
+                return {
+                    ...resume,
+                    matchScore
+                };
+            }));
+
             console.log(
                 "[Get Optimized] Found optimized resumes:",
-                resumes.length,
+                resumesWithScores.length,
             );
 
-            return res.status(200).json(resumes);
+            return res.status(200).json(resumesWithScores);
         } catch (error: any) {
             console.error("[Get Optimized] Error:", error);
             return res.status(500).json({

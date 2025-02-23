@@ -348,6 +348,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Cover Letter methods
+  async getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(resumeMatchScores)
+        .where(eq(resumeMatchScores.optimizedResumeId, optimizedResumeId));
+      
+      return result;
+    } catch (error) {
+      console.error('Error getting resume match score:', error);
+      return undefined;
+    }
+  }
+
   async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
     try {
       const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
