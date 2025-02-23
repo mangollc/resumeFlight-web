@@ -34,11 +34,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   jobDetails: jsonb("job_details").notNull(),
   metadata: jsonb("metadata").notNull(),
   version: text("version").notNull().default('1.0'),
-  analysis: jsonb("analysis").notNull().default({
-    strengths: [],
-    gaps: [],
-    suggestions: []
-  }),
   versionHistory: jsonb("version_history").notNull().default([{
     version: '1.0',
     content: '',
