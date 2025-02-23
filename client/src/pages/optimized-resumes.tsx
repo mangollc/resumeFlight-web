@@ -1,11 +1,11 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { OptimizedResume } from "@shared/schema";
+import { OptimizedResume, ResumeMatchScore } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,19 +36,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 interface ResumeWithScore extends OptimizedResume {
-  matchScore?: {
-    optimizedScores: {
-      overall: number;
-      keywords: number;
-      skills: number;
-      experience: number;
-    };
-    analysis: {
-      strengths: string[];
-      gaps: string[];
-      suggestions: string[];
-    };
-  };
+  matchScore?: ResumeMatchScore;
 }
 
 const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
@@ -68,65 +56,11 @@ const formatScore = (value: number): string => {
 };
 
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  }).format(date);
-};
-
-const getMetricsDisplay = (scores: any) => {
-  if (!scores) return null;
-
-  return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span>Overall Match</span>
-          <span className={getMetricsColor(scores.overall || 0, 'text')}>
-            {formatScore(scores.overall)}%
-          </span>
-        </div>
-        <Progress
-          value={scores.overall || 0}
-          className={`h-2 ${getMetricsColor(scores.overall || 0)}`}
-        />
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <div className="text-sm">
-          <div className="text-muted-foreground mb-1">Keywords</div>
-          <Progress
-            value={scores.keywords || 0}
-            className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
-          />
-          <div className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, 'text')}`}>
-            {formatScore(scores.keywords)}%
-          </div>
-        </div>
-        <div className="text-sm">
-          <div className="text-muted-foreground mb-1">Skills</div>
-          <Progress
-            value={scores.skills || 0}
-            className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
-          />
-          <div className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, 'text')}`}>
-            {formatScore(scores.skills)}%
-          </div>
-        </div>
-        <div className="text-sm">
-          <div className="text-muted-foreground mb-1">Experience</div>
-          <Progress
-            value={scores.experience || 0}
-            className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
-          />
-          <div className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, 'text')}`}>
-            {formatScore(scores.experience)}%
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  }).format(new Date(dateString));
 };
 
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
@@ -135,20 +69,62 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   const { data: matchScore } = useQuery({
     queryKey: [`/api/optimized-resume/${resume.id}/match-score`],
-    select: (data: any) => ({
-      optimizedScores: {
-        overall: data.optimizedScores?.overall || 0,
-        keywords: data.optimizedScores?.keywords || 0,
-        skills: data.optimizedScores?.skills || 0,
-        experience: data.optimizedScores?.experience || 0
-      },
-      analysis: {
-        strengths: data.analysis?.strengths || [],
-        gaps: data.analysis?.gaps || [],
-        suggestions: data.analysis?.suggestions || []
-      }
-    })
+    select: (data: ResumeMatchScore) => data
   });
+
+  const getScoresDisplay = (original: boolean = false) => {
+    const scores = original ? matchScore?.originalScores : matchScore?.optimizedScores;
+    if (!scores) return null;
+
+    return (
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span>{original ? 'Original Score' : 'Optimized Score'}</span>
+            <span className={getMetricsColor(scores.overall || 0, 'text')}>
+              {formatScore(scores.overall)}%
+            </span>
+          </div>
+          <Progress
+            value={scores.overall || 0}
+            className={`h-2 ${getMetricsColor(scores.overall || 0)}`}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-sm">
+            <div className="text-muted-foreground mb-1">Keywords</div>
+            <Progress
+              value={scores.keywords || 0}
+              className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
+            />
+            <div className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, 'text')}`}>
+              {formatScore(scores.keywords)}%
+            </div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground mb-1">Skills</div>
+            <Progress
+              value={scores.skills || 0}
+              className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
+            />
+            <div className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, 'text')}`}>
+              {formatScore(scores.skills)}%
+            </div>
+          </div>
+          <div className="text-sm">
+            <div className="text-muted-foreground mb-1">Experience</div>
+            <Progress
+              value={scores.experience || 0}
+              className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
+            />
+            <div className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, 'text')}`}>
+              {formatScore(scores.experience)}%
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -177,7 +153,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         : `/api/cover-letter/${resume.id}/download`;
 
       const response = await fetch(`${endpoint}?format=${format}`);
-
       if (!response.ok) throw new Error(`Failed to download ${type}`);
 
       const blob = await response.blob();
@@ -206,13 +181,15 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   return (
     <>
-      <TableRow className="group cursor-pointer hover:bg-muted/60">
+      <TableRow 
+        className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <TableCell className="w-4">
           <Button
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => setIsExpanded(!isExpanded)}
           >
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
@@ -231,11 +208,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {matchScore && getMetricsDisplay(matchScore.optimizedScores)}
+          {matchScore && getScoresDisplay(false)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="sm">
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">Actions</span>
@@ -243,7 +220,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
               <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">Download Resume</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => downloadDocument('resume', 'pdf')}>
                 <Download className="mr-2 h-4 w-4" />
@@ -302,9 +278,12 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => deleteMutation.mutate(resume.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMutation.mutate(resume.id);
+                      }}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       Delete
@@ -319,9 +298,20 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
       {isExpanded && matchScore && (
         <TableRow>
           <TableCell colSpan={6} className="bg-muted/5 p-6">
-            <div className="space-y-4">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium mb-4">Original Scores</h4>
+                  {getScoresDisplay(true)}
+                </div>
+                <div>
+                  <h4 className="font-medium mb-4">Optimized Scores</h4>
+                  {getScoresDisplay(false)}
+                </div>
+              </div>
+
               <div>
-                <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
+                <h3 className="text-lg font-semibold mb-4">Analysis</h3>
                 <div className="space-y-4">
                   {matchScore.analysis.strengths.length > 0 && (
                     <div>

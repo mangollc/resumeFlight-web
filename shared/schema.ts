@@ -290,7 +290,6 @@ export type ResumeDifferences = {
   }>;
 };
 
-// Add new table for match scores with improved schema
 export const resumeMatchScores = pgTable("resume_match_scores", {
   id: serial("id").primaryKey(),
   optimizedResumeId: integer("optimized_resume_id").notNull(),
