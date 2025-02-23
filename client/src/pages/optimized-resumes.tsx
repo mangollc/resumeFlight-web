@@ -154,7 +154,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 {formatScore(resume.metrics.after.overall)}%
               </span>
               <span className="text-muted-foreground text-sm">
-                ({formatScore(resume.metrics.after.confidence || 0)}%)
+                (Confidence: {formatScore(resume.metrics.after.confidence || 0)}%)
               </span>
             </div>
           </div>
