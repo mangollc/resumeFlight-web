@@ -250,7 +250,16 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           {resume.jobDetails?.company || "N/A"}
         </TableCell>
         <TableCell className="hidden lg:table-cell">
-          {getScoresDisplay(resume.metrics.after)}
+          <div className="flex items-center gap-2">
+            <span className={getMetricsColor(resume.metrics.after.overall || 0, "text")}>
+              {formatScore(resume.metrics.after.overall || 0)}%
+            </span>
+          </div>
+        </TableCell>
+        <TableCell className="hidden lg:table-cell">
+          <span className="text-muted-foreground">
+            {formatScore(resume.confidence || 0)}%
+          </span>
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -342,7 +351,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={7} className="bg-muted/30 border-t border-muted">
+          <TableCell colSpan={8} className="bg-muted/30 border-t border-muted">
             <div className="p-6 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
@@ -528,6 +537,11 @@ export default function OptimizedResumesPage() {
                   <TableHead className="hidden lg:table-cell">
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                       Match Score
+                    </span>
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Confidence Score
                     </span>
                   </TableHead>
                   <TableHead className="w-[60px]"></TableHead>
