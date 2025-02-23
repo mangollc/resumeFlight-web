@@ -114,33 +114,41 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || "Failed to generate cover letter");
+        const errorData = await response.json().catch(() => ({ error: "Failed to generate cover letter" }));
+        throw new Error(errorData.error || "Failed to generate cover letter");
       }
 
-      return response.json();
+      const data = await response.json();
+      if (!data || !data.content) {
+        throw new Error("Invalid response format from server");
+      }
+
+      return data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cover-letter"] });
       if (onGenerated) onGenerated(data);
       const newVersion = data.metadata?.version.toString();
-      setVersions(prev => Array.from(new Set([...prev, newVersion]))
-        .sort((a, b) => {
-          const [aMajor, aMinor] = a.split('.').map(Number);
-          const [bMajor, bMinor] = b.split('.').map(Number);
-          return bMajor - aMajor || bMinor - aMinor;
-        }));
-      setSelectedVersion(newVersion);
-      setCurrentCoverLetter(data.content);
+      if (newVersion) {
+        setVersions(prev => Array.from(new Set([...prev, newVersion]))
+          .sort((a, b) => {
+            const [aMajor, aMinor] = a.split('.').map(Number);
+            const [bMajor, bMinor] = b.split('.').map(Number);
+            return bMajor - aMajor || bMinor - aMinor;
+          }));
+        setSelectedVersion(newVersion);
+        setCurrentCoverLetter(data.content);
+      }
       toast({
         title: "Success",
         description: "Cover letter generated successfully",
       });
     },
     onError: (error: Error) => {
+      console.error("Cover letter generation error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to generate cover letter",
         variant: "destructive",
       });
     },
@@ -300,8 +308,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
                 <span className="text-sm font-medium">Match Confidence:</span>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                   generatedCoverLetter?.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                  generatedCoverLetter?.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
+                    generatedCoverLetter?.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-red-100 text-red-700'
                 }`}>
                   {generatedCoverLetter?.confidence ?? 85}%
                 </span>

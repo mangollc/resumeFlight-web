@@ -1021,8 +1021,8 @@ export function registerRoutes(app: Express): Server {
             const coverId = parseInt(req.params.id);
             const format = (req.query.format as string || 'pdf').toLowerCase();
             const version = req.query.version as string;
-
             const coverLetter = await storage.getCoverLetter(coverId);
+
             if (!coverLetter) {
                 return res.status(404).json({ error: "Cover letter not found" });
             }
@@ -1315,6 +1315,72 @@ export function registerRoutes(app: Express): Server {
           details: error.message
         });
       }
+    });
+
+    // Cover letter generation route
+    app.post("/api/optimized-resume/:id/cover-letter", async (req, res) => {
+        try {
+            console.log("[Cover Letter] Starting generation process");
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const resumeId = parseInt(req.params.id);
+            const optimizedResume = await storage.getOptimizedResume(resumeId);
+
+            if (!optimizedResume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (optimizedResume.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Set response type to JSON
+            res.setHeader('Content-Type', 'application/json');
+
+            // Extract contact information
+            console.log("[Cover Letter] Extracting contact information...");
+            const contactInfo = await extractContactInfo(optimizedResume.content);
+
+            console.log("[Cover Letter] Generating cover letter for resume:", resumeId);
+            const coverLetter = await generateCoverLetter(
+                optimizedResume.content,
+                optimizedResume.jobDescription,
+                contactInfo,
+                req.body.version
+            );
+
+            if (!coverLetter || !coverLetter.content) {
+                throw new Error("Failed to generate cover letter content");
+            }
+
+            console.log("[Cover Letter] Storing in database...");
+            // Store the cover letter in the database
+            const storedCoverLetter = await storage.createCoverLetter({
+                optimizedResumeId: optimizedResume.id,
+                userId: req.user!.id,
+                content: coverLetter.content,
+                metadata: {
+                    filename: optimizedResume.metadata.filename.replace(/\.[^/.]+$/, "") + "_cover_letter",
+                    version: coverLetter.version,
+                    generatedAt: new Date().toISOString()
+                },
+                highlights: coverLetter.highlights,
+                confidence: coverLetter.confidence,
+                version: coverLetter.version
+            });
+
+            console.log("[Cover Letter] Generation completed successfully");
+            return res.json(storedCoverLetter);
+        } catch (error: any) {
+            console.error("[Cover Letter] Error:", error);
+            // Ensure we're still sending JSON even in error cases
+            res.status(500).json({
+                error: "Failed to generate cover letter",
+                details: error.message || "Unknown error occurred"
+            });
+        }
     });
 
     return createServer(app);
