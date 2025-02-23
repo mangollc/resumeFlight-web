@@ -1206,24 +1206,23 @@ export function registerRoutes(app: Express): Server {
                 optimizedResume.jobDescription
             );
 
-            const updatedResume = await storage.updateResumeMatchScores(
-                optimizedResume.id,
-                {
-                    before: originalScores,
-                    after: optimizedScores,
-                    analysis: {
-                        strengths: optimizedScores.analysis.strengths,
-                        gaps: optimizedScores.analysis.gaps,
-                        suggestions: optimizedScores.analysis.suggestions
-                    }
-                }
-            );
+            const matchScore = await storage.createResumeMatchScore({
+                optimizedResumeId: optimizedResume.id,
+                userId: req.user!.id,
+                originalScores,
+                optimizedScores,
+                analysis: {
+                    strengths: optimizedScores.analysis.strengths,
+                    gaps: optimizedScores.analysis.gaps,
+                    suggestions: optimizedScores.analysis.suggestions
+                },
+                createdAt: new Date().toISOString()
+            });
 
             return res.status(200).json({
-                before: updatedResume.matchScores.before,
-                after: updatedResume.matchScores.after,
-                analysis: updatedResume.matchAnalysis,
-                confidence: updatedResume.confidence
+                originalScores,
+                optimizedScores,
+                analysis: matchScore.analysis
             });
         } catch (error: any) {
             console.error("[Analyze] Error:", error);

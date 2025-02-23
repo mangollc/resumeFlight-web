@@ -40,21 +40,14 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     timestamp: '',
     changes: [],
     confidence: 0,
-    matchScore: {
-      overall: 0,
-      keywords: 0,
-      skills: 0,
-      experience: 0
+    metrics: {
+      before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
+      after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
     }
   }]),
   metrics: jsonb("metrics").notNull().default({
     before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
     after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
-  }),
-  analysis: jsonb("analysis").notNull().default({
-    strengths: [],
-    gaps: [],
-    suggestions: []
   }),
   versionMetrics: jsonb("version_metrics").notNull().default([{
     version: '1.0',
@@ -63,17 +56,10 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
     },
     confidence: 0,
-    analysis: {
-      strengths: [],
-      gaps: [],
-      suggestions: []
-    },
-    timestamp: new Date().toISOString()
+    timestamp: ''
   }]),
   highlights: jsonb("highlights").notNull().default([]),
   confidence: integer("confidence").notNull().default(0),
-  original_score: integer("original_score").notNull().default(0),
-  optimized_score: integer("optimized_score").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   contactInfo: jsonb("contact_info").notNull().default({
     fullName: '',
@@ -83,6 +69,22 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   }),
 });
 
+export const resumeVersionScores = pgTable("resume_version_scores", {
+  id: serial("id").primaryKey(),
+  optimizedResumeId: integer("optimized_resume_id").notNull(),
+  version: integer("version").notNull(),
+  userId: integer("user_id").notNull(),
+  matchScore: jsonb("match_score").notNull().default({
+    overall: 0,
+    keywords: 0,
+    skills: 0,
+    experience: 0
+  }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  optimizedResumeVersionIdx: index("resume_version_scores_idx").on(table.optimizedResumeId, table.version),
+  userIdIdx: index("resume_version_scores_user_id_idx").on(table.userId),
+}));
 
 export const optimizationSessions = pgTable("optimization_sessions", {
   id: serial("id").primaryKey(),
@@ -261,11 +263,6 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       experience: number;
     };
   };
-  analysis: {
-    strengths: string[];
-    gaps: string[];
-    suggestions: string[];
-  };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 
@@ -298,3 +295,51 @@ export type ResumeDifferences = {
     reason: string;
   }>;
 };
+
+export const resumeMatchScores = pgTable("resume_match_scores", {
+  id: serial("id").primaryKey(),
+  optimizedResumeId: integer("optimized_resume_id").notNull(),
+  userId: integer("user_id").notNull(),
+  originalScores: jsonb("original_scores").notNull().default({
+    overall: 0,
+    keywords: 0,
+    skills: 0,
+    experience: 0
+  }),
+  optimizedScores: jsonb("optimized_scores").notNull().default({
+    overall: 0,
+    keywords: 0,
+    skills: 0,
+    experience: 0
+  }),
+  analysis: jsonb("analysis").notNull().default({
+    strengths: [],
+    gaps: [],
+    suggestions: []
+  }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  optimizedResumeIdIdx: index("resume_match_scores_resume_id_idx").on(table.optimizedResumeId),
+  userIdIdx: index("resume_match_scores_user_id_idx").on(table.userId),
+}));
+
+// Add relations for match scores
+export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
+  optimizedResume: one(optimizedResumes, {
+    fields: [resumeMatchScores.optimizedResumeId],
+    references: [optimizedResumes.id],
+  }),
+}));
+
+// Add schema for match scores
+export const insertResumeMatchScoreSchema = createInsertSchema(resumeMatchScores)
+  .pick({
+    optimizedResumeId: true,
+    originalScores: true,
+    optimizedScores: true,
+    analysis: true,
+  });
+
+// Add types for match scores
+export type InsertResumeMatchScore = z.infer<typeof insertResumeMatchScoreSchema>;
+export type ResumeMatchScore = typeof resumeMatchScores.$inferSelect;

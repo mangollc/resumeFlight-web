@@ -1,7 +1,7 @@
-import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
@@ -37,7 +37,6 @@ export interface IStorage {
   createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession>;
   updateOptimizationSession(sessionId: string, data: Partial<InsertOptimizationSession>): Promise<OptimizationSession>;
   getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]>;
-  updateResumeMatchScores(resumeId: number, scores: { before: any; after: any; analysis: any }): Promise<OptimizedResume>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -297,26 +296,16 @@ export class DatabaseStorage implements IStorage {
 
   async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
     try {
-      const results = await db.select()
-        .from(optimizedResumes)
-        .where(eq(optimizedResumes.userId, userId))
-        .orderBy(desc(optimizedResumes.createdAt));
-
+      const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
       return results.map(result => ({
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        analysis: result.analysis || {
-          strengths: [],
-          gaps: [],
-          suggestions: []
-        },
-        contactInfo: result.contactInfo || {
+        contactInfo: (result.jobDetails as any)?.contactInfo || {
           fullName: '',
           email: '',
           phone: '',
-          address: ''
         }
       }));
     } catch (error) {
@@ -603,50 +592,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateResumeMatchScores(resumeId: number, scores: { 
-    before: any, 
-    after: any, 
-    analysis: any 
-  }): Promise<OptimizedResume> {
+  async createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore> {
     try {
-      const confidence = Math.round((scores.after.keywords + scores.after.skills + scores.after.experience + scores.after.overall) / 4);
       const [result] = await db
-        .update(optimizedResumes)
-        .set({
-          metrics: {
-            before: scores.before,
-            after: scores.after
-          },
-          analysis: scores.analysis,
-          confidence: confidence,
-          versionMetrics: [{
-            version: '1.0',
-            metrics: {
-              before: scores.before,
-              after: scores.after
-            },
-            confidence: confidence,
-            analysis: scores.analysis,
-            timestamp: new Date().toISOString()
-          }]
+        .insert(resumeMatchScores)
+        .values({
+          userId: score.userId,
+          optimizedResumeId: score.optimizedResumeId,
+          originalScores: score.originalScores,
+          optimizedScores: score.optimizedScores,
+          analysis: score.analysis,
+          createdAt: new Date() 
         })
-        .where(eq(optimizedResumes.id, resumeId))
         .returning();
 
-      return {
-        ...result,
-        metadata: result.metadata as OptimizedResume['metadata'],
-        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: (result.jobDetails as any)?.contactInfo || {
-          fullName: '',
-          email: '',
-          phone: '',
-        }
-      };
+      return result;
     } catch (error) {
-      console.error('Error updating resume scores:', error);
-      throw new Error('Failed to update resume scores');
+      console.error('Error creating resume match score:', error);
+      throw new Error('Failed to create resume match score');
     }
   }
 }
