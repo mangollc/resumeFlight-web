@@ -218,8 +218,11 @@ export class DatabaseStorage implements IStorage {
         .from(optimizedResumes)
         .where(eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId));
 
-      const versionNumber = existingVersions.length + 1;
-      const nextVersion = Number(versionNumber).toFixed(1);
+      // Calculate next version number
+      const currentVersion = existingVersions.length > 0
+        ? Math.max(...existingVersions.map(r => parseFloat(r.version)))
+        : 1.0;
+      const nextVersion = (Math.floor((currentVersion + 0.1) * 10) / 10).toFixed(1);
       const timestamp = new Date().toISOString();
 
       const [result] = await db
@@ -234,7 +237,7 @@ export class DatabaseStorage implements IStorage {
             changes: []
           }],
           versionMetrics: [{
-            version: nextVersion.toFixed(1),
+            version: nextVersion,
             metrics: {
               before: {
                 overall: 0,
@@ -259,7 +262,7 @@ export class DatabaseStorage implements IStorage {
             phone: '',
             address: ''
           },
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
         })
         .returning();
 
