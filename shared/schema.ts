@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, jsonb, index, timestamp } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").default(''),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const uploadedResumes = pgTable("uploaded_resumes", {
@@ -15,7 +16,7 @@ export const uploadedResumes = pgTable("uploaded_resumes", {
   userId: integer("user_id").notNull(),
   content: text("content").notNull(),
   metadata: jsonb("metadata").notNull(),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   userIdIdx: index("uploaded_resumes_user_id_idx").on(table.userId),
   createdAtIdx: index("uploaded_resumes_created_at_idx").on(table.createdAt),
@@ -53,14 +54,18 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   }]),
   highlights: jsonb("highlights").notNull().default([]),
   confidence: integer("confidence").notNull().default(0),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
   contactInfo: jsonb("contact_info").notNull().default({
     fullName: '',
     email: '',
     phone: '',
     address: ''
   }),
-});
+}, (table) => ({
+  userIdIdx: index("optimized_resumes_user_id_idx").on(table.userId),
+  uploadedResumeIdIdx: index("optimized_resumes_uploaded_resume_id_idx").on(table.uploadedResumeId),
+  sessionIdIdx: index("optimized_resumes_session_id_idx").on(table.sessionId),
+}));
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
   id: serial("id").primaryKey(),
@@ -73,9 +78,10 @@ export const resumeVersionScores = pgTable("resume_version_scores", {
     skills: 0,
     experience: 0
   }),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   optimizedResumeVersionIdx: index("resume_version_scores_idx").on(table.optimizedResumeId, table.version),
+  userIdIdx: index("resume_version_scores_user_id_idx").on(table.userId),
 }));
 
 export const optimizationSessions = pgTable("optimization_sessions", {
@@ -86,11 +92,12 @@ export const optimizationSessions = pgTable("optimization_sessions", {
   coverLetterId: integer("cover_letter_id"),
   comparisons: jsonb("comparisons").notNull(),
   reviewState: jsonb("review_state").notNull(),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (table) => ({
   sessionIdIdx: index("optimization_session_id_idx").on(table.sessionId),
   optimizedResumeIdIdx: index("optimization_session_resume_id_idx").on(table.optimizedResumeId),
+  userIdIdx: index("optimization_session_user_id_idx").on(table.userId),
 }));
 
 export const coverLetters = pgTable("cover_letters", {
@@ -107,9 +114,10 @@ export const coverLetters = pgTable("cover_letters", {
   }]),
   highlights: jsonb("highlights").notNull().default([]),
   confidence: integer("confidence").notNull().default(0),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   optimizedResumeIdIdx: index("cover_letter_optimized_resume_id_idx").on(table.optimizedResumeId),
+  userIdIdx: index("cover_letter_user_id_idx").on(table.userId),
 }));
 
 // Define relations
@@ -286,7 +294,7 @@ export type ResumeDifferences = {
   }>;
 };
 
-// Add new table for match scores
+// Add new table for match scores with improved schema
 export const resumeMatchScores = pgTable("resume_match_scores", {
   id: serial("id").primaryKey(),
   optimizedResumeId: integer("optimized_resume_id").notNull(),
@@ -308,20 +316,21 @@ export const resumeMatchScores = pgTable("resume_match_scores", {
     gaps: [],
     suggestions: []
   }),
-  createdAt: text("created_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   optimizedResumeIdIdx: index("resume_match_scores_resume_id_idx").on(table.optimizedResumeId),
+  userIdIdx: index("resume_match_scores_user_id_idx").on(table.userId),
 }));
 
-// Add relations
-export const resumeVersionScoresRelations = relations(resumeVersionScores, ({ one }) => ({
+// Add relations for match scores
+export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
   optimizedResume: one(optimizedResumes, {
-    fields: [resumeVersionScores.optimizedResumeId],
+    fields: [resumeMatchScores.optimizedResumeId],
     references: [optimizedResumes.id],
   }),
 }));
 
-// Add schema
+// Add schema for match scores
 export const insertResumeMatchScoreSchema = createInsertSchema(resumeMatchScores)
   .pick({
     optimizedResumeId: true,
@@ -330,6 +339,6 @@ export const insertResumeMatchScoreSchema = createInsertSchema(resumeMatchScores
     analysis: true,
   });
 
-// Add type
+// Add types for match scores
 export type InsertResumeMatchScore = z.infer<typeof insertResumeMatchScoreSchema>;
 export type ResumeMatchScore = typeof resumeMatchScores.$inferSelect;
