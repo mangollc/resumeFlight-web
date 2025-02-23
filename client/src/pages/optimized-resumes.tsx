@@ -231,16 +231,15 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </Button>
         </TableCell>
         <TableCell>
-          <div className="text-sm">{formatDate(resume.metadata.optimizedAt)}</div>
+          <div className="flex flex-col gap-1">
+            <div className="text-sm">{new Date(resume.metadata.optimizedAt).toLocaleDateString()}</div>
+            <div className="text-xs text-muted-foreground">{new Date(resume.metadata.optimizedAt).toLocaleTimeString()}</div>
+          </div>
         </TableCell>
         <TableCell>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" size="sm" className="text-xs">
-              ID: {resume.id}
-            </Badge>
-            <Badge variant="secondary" size="sm" className="text-xs">
-              v{resume.metadata.version}
-            </Badge>
+          <div className="flex flex-col gap-1">
+            <div className="text-sm">ID: {resume.id}</div>
+            <div className="text-xs text-muted-foreground">v{resume.metadata.version}</div>
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell">
@@ -258,7 +257,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         </TableCell>
         <TableCell className="hidden lg:table-cell">
           <span className="text-muted-foreground">
-            {formatScore(resume.confidence || 0)}%
+            {formatScore(resume.metrics.after.overall || 0)}%
           </span>
         </TableCell>
         <TableCell className="text-right">
@@ -534,12 +533,12 @@ export default function OptimizedResumesPage() {
                       Company Name
                     </span>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">
+                  <TableHead className="hidden lg:table-cell w-28">
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                       Match Score
                     </span>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">
+                  <TableHead className="hidden lg:table-cell w-28">
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                       Confidence Score
                     </span>
