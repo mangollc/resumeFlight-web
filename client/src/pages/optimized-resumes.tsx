@@ -527,7 +527,7 @@ export default function OptimizedResumesPage() {
         {resumes && resumes.length > 0 ? (
           <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
             <Table>
-              <TableHeader className="bg-muted/50">
+              <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-4"></TableHead>
                   <TableHead>
