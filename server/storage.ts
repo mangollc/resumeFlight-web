@@ -2,7 +2,7 @@ import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
-import { db, pool } from "./db";
+import { db, pool, getCurrentESTTimestamp } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -151,6 +151,7 @@ export class DatabaseStorage implements IStorage {
           userId: resume.userId,
           content: resume.content,
           metadata: resume.metadata,
+          createdAt: await getCurrentESTTimestamp(),
         })
         .returning();
 
@@ -237,7 +238,7 @@ export class DatabaseStorage implements IStorage {
         nextVersion = minor === 9 ? `${major + 1}.0` : `${major}.${minor + 1}`;
       }
 
-      const timestamp = new Date().toISOString();
+      const timestamp = (await getCurrentESTTimestamp()).toISOString();
       const [result] = await db
         .insert(optimizedResumes)
         .values({
@@ -252,18 +253,8 @@ export class DatabaseStorage implements IStorage {
           versionMetrics: [{
             version: nextVersion,
             metrics: {
-              before: {
-                overall: 0,
-                keywords: 0,
-                skills: 0,
-                experience: 0
-              },
-              after: {
-                overall: 0,
-                keywords: 0,
-                skills: 0,
-                experience: 0
-              }
+              before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
+              after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
             },
             timestamp: timestamp
           }],
@@ -275,7 +266,7 @@ export class DatabaseStorage implements IStorage {
             phone: '',
             address: ''
           },
-          createdAt: new Date(),
+          createdAt: await getCurrentESTTimestamp(),
         })
         .returning();
 
@@ -284,11 +275,7 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: (result.jobDetails as any)?.contactInfo || {
-          fullName: '',
-          email: '',
-          phone: '',
-        }
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo']
       };
     } catch (error) {
       console.error('Error creating optimized resume:', error);
@@ -378,90 +365,27 @@ export class DatabaseStorage implements IStorage {
 
   async createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter> {
     try {
-      let existingCoverLetter;
-      if (coverLetter.optimizedResumeId) {
-        [existingCoverLetter] = await db
-          .select()
-          .from(coverLetters)
-          .where(eq(coverLetters.optimizedResumeId, coverLetter.optimizedResumeId));
-      }
-
-      const now = new Date();
-
-      if (existingCoverLetter) {
-        // Get existing versions
-        const versionHistory = existingCoverLetter.versionHistory || [];
-
-        // Calculate next version
-        let nextVersion = '1.0';
-        if (versionHistory.length > 0) {
-          const versions = versionHistory.map(v => v.version);
-          const maxVersion = versions.reduce((max, current) => {
-            const [currentMajor, currentMinor] = current.split('.').map(Number);
-            const [maxMajor, maxMinor] = max.split('.').map(Number);
-            if (currentMajor > maxMajor || (currentMajor === maxMajor && currentMinor > maxMinor)) {
-              return current;
-            }
-            return max;
-          }, '1.0');
-
-          const [major, minor] = maxVersion.split('.').map(Number);
-          nextVersion = minor === 9 ? `${major + 1}.0` : `${major}.${minor + 1}`;
-        }
-
-        // Update existing cover letter with new version
-        const updatedVersionHistory = [
-          ...versionHistory,
-          {
+      const now = await getCurrentESTTimestamp();
+      const [result] = await db
+        .insert(coverLetters)
+        .values({
+          ...coverLetter,
+          userId: coverLetter.userId,
+          version: '1.0',
+          versionHistory: [{
             content: coverLetter.content,
-            version: nextVersion,
-            generatedAt: now.toISOString()
-          }
-        ];
-
-        const [result] = await db
-          .update(coverLetters)
-          .set({
-            content: coverLetter.content,
-            metadata: {
-              ...coverLetter.metadata,
-              version: nextVersion,
-              generatedAt: now.toISOString()
-            },
-            versionHistory: updatedVersionHistory,
-            confidence: coverLetter.metadata.confidence || 0, // Ensure confidence is updated
-            createdAt: now
-          })
-          .where(eq(coverLetters.id, existingCoverLetter.id))
-          .returning();
-
-        return {
-          ...result,
-          metadata: result.metadata as CoverLetter['metadata']
-        };
-      } else {
-        // Create new cover letter
-        const [result] = await db
-          .insert(coverLetters)
-          .values({
-            ...coverLetter,
-            userId: coverLetter.userId,
             version: '1.0',
-            versionHistory: [{
-              content: coverLetter.content,
-              version: '1.0',
-              generatedAt: now.toISOString()
-            }],
-            confidence: coverLetter.metadata.confidence || 0,
-            createdAt: now
-          })
-          .returning();
+            generatedAt: now.toISOString()
+          }],
+          confidence: 0,
+          createdAt: now
+        })
+        .returning();
 
-        return {
-          ...result,
-          metadata: result.metadata as CoverLetter['metadata']
-        };
-      }
+      return {
+        ...result,
+        metadata: result.metadata as CoverLetter['metadata']
+      };
     } catch (error) {
       console.error('Error creating cover letter:', error);
       throw new Error('Failed to create cover letter');
@@ -604,7 +528,7 @@ export class DatabaseStorage implements IStorage {
           originalScores: score.originalScores,
           optimizedScores: score.optimizedScores,
           analysis: score.analysis,
-          createdAt: new Date()
+          createdAt: await getCurrentESTTimestamp()
         })
         .returning();
 
