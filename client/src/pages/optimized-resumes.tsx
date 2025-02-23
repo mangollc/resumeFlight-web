@@ -111,6 +111,12 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
+    
+    const matchScore = scores.overall || 0;
+    const matchConfidence = scores.confidence || 0;
+    const keywordScore = scores.keywords || 0;
+    const skillScore = scores.skills || 0;
+    const experienceScore = scores.experience || 0;
 
     return (
       <div className="space-y-3">
