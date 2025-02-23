@@ -39,7 +39,13 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     content: '',
     timestamp: '',
     changes: [],
-    confidence: 0
+    confidence: 0,
+    matchScore: {
+      overall: 0,
+      keywords: 0,
+      skills: 0,
+      experience: 0
+    }
   }]),
 
   analysis: jsonb("analysis").notNull().default({
