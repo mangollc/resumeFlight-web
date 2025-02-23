@@ -460,6 +460,64 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                   </div>
                 </div>
               )}
+
+              {resume.analysis && (
+                <div className="space-y-6 mt-8">
+                  <h3 className="text-lg font-medium">Analysis</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {resume.analysis.strengths && resume.analysis.strengths.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Strengths</h4>
+                        <ul className="space-y-2">
+                          {resume.analysis.strengths.map((strength, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2"
+                            >
+                              <span>•</span>
+                              <span>{strength}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {resume.analysis.gaps && resume.analysis.gaps.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Areas for Improvement</h4>
+                        <ul className="space-y-2">
+                          {resume.analysis.gaps.map((gap, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-red-600 dark:text-red-400 flex gap-2"
+                            >
+                              <span>•</span>
+                              <span>{gap}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {resume.analysis.suggestions && resume.analysis.suggestions.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Suggestions</h4>
+                        <ul className="space-y-2">
+                          {resume.analysis.suggestions.map((suggestion, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-blue-600 dark:text-blue-400 flex gap-2"
+                            >
+                              <span>•</span>
+                              <span>{suggestion}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </TableCell>
         </TableRow>
