@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
@@ -913,15 +913,27 @@ export function registerRoutes(app: Express): Server {
                 return res.status(403).json({ error: "Unauthorized access" });
             }
 
-            if (format === 'docx') {
-                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } = require('docx');
+                        if (format === 'docx') {
+                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
+                const { Packer } = require('docx');
 
                 // Parse resume content
                 const sections = resume.content.split('\n\n');
                 const doc = new Document({
                     sections: [{
-                        properties: {},
-                        children: sections.map((section, index) => {                            if (index === 0) {
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: convertInchesToTwip(1),
+                                    right: convertInchesToTwip(1),
+                                    bottom: convertInchesToTwip(1),
+                                    left: convertInchesToTwip(1),
+                                },
+                                orientation: PageOrientation.PORTRAIT,
+                            },
+                        },
+                        children: sections.map((section, index) => {
+                            if (index === 0) {
                                 // Name at the top
                                 return new Paragraph({
                                     alignment: AlignmentType.CENTER,
@@ -969,7 +981,7 @@ export function registerRoutes(app: Express): Server {
                     }]
                 });
 
-                const buffer = await doc.save();
+                const buffer = await Packer.toBuffer(doc);
                 res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
                 res.setHeader('Content-Disposition', `attachment; filename=${resume.metadata.filename.replace('.pdf', '.docx')}`);
                 return res.send(buffer);
@@ -1132,6 +1144,7 @@ export function registerRoutes(app: Express): Server {
 
             if (format === 'docx') {
                 const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
+                const { Packer } = require('docx');
 
                 const sections = coverLetter.content.split("\n\n");
                 const doc = new Document({
@@ -1199,7 +1212,7 @@ export function registerRoutes(app: Express): Server {
                     }]
                 });
 
-                const buffer = await doc.save();
+                const buffer = await Packer.toBuffer(doc);
                 res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
                 res.setHeader('Content-Disposition', `attachment; filename=${coverLetter.metadata.filename}.docx`);
                 return res.send(buffer);
@@ -1295,6 +1308,136 @@ export function registerRoutes(app: Express): Server {
                 details: error.message
             });
         }
+    });
+
+    // Add these routes after the existing cover letter routes
+
+    // Get specific version of cover letter
+    app.get("/api/cover-letter/:id/version/:version", async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const coverId = parseInt(req.params.id);
+        const version = req.params.version;
+
+        const coverLetter = await storage.getCoverLetter(coverId);
+        if (!coverLetter) {
+          return res.status(404).json({ error: "Cover letter not found" });
+        }
+
+        if (coverLetter.userId !== req.user!.id) {
+          return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        // Find the specific version in version history
+        const versionEntry = coverLetter.versionHistory?.find(v => v.version === version);
+        if (!versionEntry) {
+          return res.status(404).json({ error: "Version not found" });
+        }
+
+        return res.status(200).json({
+          content: versionEntry.content,
+          version: versionEntry.version,
+          generatedAt: versionEntry.generatedAt
+        });
+      } catch (error: any) {
+        console.error("[Get Cover Letter Version] Error:", error);
+        return res.status(500).json({
+          error: "Failed to fetch cover letter version",
+          details: error.message
+        });
+      }
+    });
+
+    // Download cover letter
+    app.get("/api/cover-letter/:id/download", async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const coverId = parseInt(req.params.id);
+        const format = (req.query.format as string || 'pdf').toLowerCase();
+        const version = req.query.version as string;
+
+        const coverLetter = await storage.getCoverLetter(coverId);
+        if (!coverLetter) {
+          return res.status(404).json({ error: "Cover letter not found" });
+        }
+
+        if (coverLetter.userId !== req.user!.id) {
+          return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        // Get content for specific version
+        let content = coverLetter.content;
+        if (version) {
+          const versionEntry = coverLetter.versionHistory?.find(v => v.version === version);
+          if (versionEntry) {
+            content = versionEntry.content;
+          }
+        }
+
+        if (format === 'pdf') {
+          const doc = new PDFDocument();
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=cover_letter_v${version || '1.0'}.pdf`);
+          doc.pipe(res);
+          doc.fontSize(12).text(content);
+          doc.end();
+        } else if (format === 'docx') {
+          // Create DOCX document
+          const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
+          const { Packer } = require('docx');
+
+          const sections = content.split("\n\n");
+          const doc = new Document({
+              sections: [{
+                  properties: {
+                      page: {
+                          margin: {
+                              top: convertInchesToTwip(1),
+                              right: convertInchesToTwip(1),
+                              bottom: convertInchesToTwip(1),
+                              left: convertInchesToTwip(1),
+                          },
+                          orientation: PageOrientation.PORTRAIT,
+                      },
+                  },
+                  children: sections.map((section, index) => {
+                      return new Paragraph({
+                          spacing: {
+                              before: 200,
+                              after: 200,
+                          },
+                          children: [
+                              new TextRun({
+                                  text: section.trim(),
+                                  size: 22,
+                                  font: "Calibri",
+                              })
+                          ]
+                      });
+                  })
+              }]
+          });
+
+          const buffer = await Packer.toBuffer(doc);
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+          res.setHeader('Content-Disposition', `attachment; filename=cover_letter_v${version || '1.0'}.docx`);
+          res.send(buffer);
+        } else {
+          return res.status(400).json({ error: "Unsupported format" });
+        }
+      } catch (error: any) {
+        console.error("[Download Cover Letter] Error:", error);
+        return res.status(500).json({
+          error: "Failed to download cover letter",
+          details: error.message
+        });
+      }
     });
 
     return createServer(app);

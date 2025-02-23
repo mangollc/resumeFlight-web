@@ -65,17 +65,28 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     try {
       if (!generatedCoverLetter?.id) return;
 
-      const response = await fetch(`/api/cover-letter/${generatedCoverLetter.id}/version/${version}`);
-      if (!response.ok) throw new Error('Failed to fetch version content');
+      const response = await fetch(`/api/cover-letter/${generatedCoverLetter.id}/version/${version}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch version ${version}`);
+      }
 
       const data = await response.json();
-      setCurrentCoverLetter(data.content);
+      if (data.content) {
+        setCurrentCoverLetter(data.content);
+      } else {
+        throw new Error('Invalid response format');
+      }
     } catch (error) {
       console.error('Failed to fetch version content:', error);
       toast({
         title: "Error",
         description: "Failed to load cover letter version",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
@@ -149,14 +160,17 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
         }
       );
 
-      if (!response.ok) throw new Error('Download failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Download failed');
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = formatDownloadFilename(
-        generatedCoverLetter.metadata.filename,
+        generatedCoverLetter.metadata.filename || 'cover_letter',
         resume.jobDetails?.title || '',
         selectedVersion
       );
@@ -174,7 +188,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       console.error('Download error:', error);
       toast({
         title: "Error",
-        description: "Failed to download cover letter",
+        description: error instanceof Error ? error.message : "Failed to download cover letter",
         variant: "destructive",
       });
     } finally {
