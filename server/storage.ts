@@ -250,6 +250,7 @@ export class DatabaseStorage implements IStorage {
             },
             timestamp: new Date().toISOString()
           }],
+          highlights: [],
           createdAt: new Date().toISOString(),
         })
         .returning();
