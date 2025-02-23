@@ -1,4 +1,4 @@
-import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
@@ -37,6 +37,7 @@ export interface IStorage {
   createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession>;
   updateOptimizationSession(sessionId: string, data: Partial<InsertOptimizationSession>): Promise<OptimizationSession>;
   getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]>;
+  updateResumeMatchScores(resumeId: number, scores: { before: any; after: any; analysis: any }): Promise<OptimizedResume>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -592,9 +593,9 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateOptimizedResumeScores(resumeId: number, scores: { 
-    originalScores: any, 
-    optimizedScores: any, 
+  async updateResumeMatchScores(resumeId: number, scores: { 
+    before: any, 
+    after: any, 
     analysis: any 
   }): Promise<OptimizedResume> {
     try {
@@ -602,8 +603,8 @@ export class DatabaseStorage implements IStorage {
         .update(optimizedResumes)
         .set({
           matchScores: {
-            before: scores.originalScores,
-            after: scores.optimizedScores
+            before: scores.before,
+            after: scores.after
           },
           matchAnalysis: scores.analysis
         })
