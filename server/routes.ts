@@ -16,6 +16,8 @@ import { insertUploadedResumeSchema } from "@shared/schema";
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { v4 as uuidv4 } from 'uuid';
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } from 'docx';
+import { Packer } from 'docx';
 
 // Constants
 const MAX_ALLOWED_TIMEOUT = 2147483647;
@@ -914,10 +916,6 @@ export function registerRoutes(app: Express): Server {
             }
 
             if (format === 'docx') {
-                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
-                const { Packer } = require('docx');
-
-                // Parse resume content with proper formatting
                 const sections = resume.content.split('\nn').filter(Boolean);
                 const doc = new Document({
                     sections: [{
@@ -1041,9 +1039,6 @@ export function registerRoutes(app: Express): Server {
             }
 
             if (format === 'docx') {
-                const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
-                const { Packer } = require('docx');
-
                 const paragraphs = content.split('\n\n').filter(Boolean);
                 const doc = new Document({
                     sections: [{
@@ -1266,9 +1261,6 @@ export function registerRoutes(app: Express): Server {
           doc.end();
         } else if (format === 'docx') {
           // Create DOCX document
-          const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, convertInchesToTwip, PageOrientation } = require('docx');
-          const { Packer } = require('docx');
-
           const sections = content.split("\n\n");
           const doc = new Document({
               sections: [{
