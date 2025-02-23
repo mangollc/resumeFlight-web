@@ -121,160 +121,38 @@ const ScoreTooltip = ({
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
-  const currentVersion = resume.metadata.version;
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
 
     return (
       <div className="space-y-3">
-        <div>
-          <ScoreTooltip />
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span
-                className={getMetricsColor(
-                  resume.metrics.before.overall,
-                  "text",
-                )}
-              >
-                {formatScore(resume.metrics.before.overall)}%
-              </span>
-              <span className="text-muted-foreground text-sm">
-                ({formatScore(resume.metrics.before.confidence || 0)}%)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span
-                className={getMetricsColor(
-                  resume.metrics.after.overall,
-                  "text",
-                )}
-              >
-                {formatScore(resume.metrics.after.overall)}%
-              </span>
-              <span className="text-muted-foreground text-sm">
-                (Confidence: {formatScore(resume.metrics.after.confidence || 0)}%)
-              </span>
-            </div>
+        <div className="flex items-center gap-2">
+          <ScoreTooltip type="overall">
+            <span className="text-sm text-muted-foreground">Match Score:</span>
+          </ScoreTooltip>
+          <div className="flex items-center gap-2">
+            <span className={getMetricsColor(scores.overall, "text")}>
+              {formatScore(scores.overall)}%
+            </span>
+            <span className="text-muted-foreground text-sm">
+              (Confidence: {formatScore(scores.confidence)}%)
+            </span>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-sm">
-            Keywords
-            <Progress
-              value={resume.metrics.before.keywords || 0}
-              className={`h-1.5 ${getMetricsColor(resume.metrics.before.keywords || 0)}`}
-            />
-            <div
-              className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.keywords || 0, "text")}`}
-            >
-              {formatScore(resume.metrics.before.keywords)}%
-            </div>
-          </div>
-          <div className="text-sm">
-            Skills
-            <Progress
-              value={resume.metrics.before.skills || 0}
-              className={`h-1.5 ${getMetricsColor(resume.metrics.before.skills || 0)}`}
-            />
-            <div
-              className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.skills || 0, "text")}`}
-            >
-              {formatScore(resume.metrics.before.skills)}%
-            </div>
-          </div>
-          <div className="text-sm">
-            Experience
-            <Progress
-              value={resume.metrics.before.experience || 0}
-              className={`h-1.5 ${getMetricsColor(resume.metrics.before.experience || 0)}`}
-            />
-            <div
-              className={`text-xs mt-1 ${getMetricsColor(resume.metrics.before.experience || 0, "text")}`}
-            >
-              {formatScore(resume.metrics.before.experience)}%
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-
-    return (
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <ScoreTooltip type="overall">
-              <span>Match Score</span>
-            </ScoreTooltip>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className={getMetricsColor(scores.overall, "text")}>
-                  {formatScore(scores.overall)}%
-                </span>
-                <span className="text-muted-foreground text-sm">
-                  ({formatScore(scores.confidence)}%)
-                </span>
+        <div className="grid grid-cols-3 gap-4">
+          {["keywords", "skills", "experience"].map((metric) => (
+            <div key={metric} className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-muted-foreground capitalize">
+                <span>{metric}</span>
+                <span>{formatScore(scores[metric])}%</span>
               </div>
+              <Progress
+                value={scores[metric] || 0}
+                className={`h-1 ${getMetricsColor(scores[metric] || 0)}`}
+              />
             </div>
-          </div>
-          <Progress
-            value={scores.overall || 0}
-            className={`h-2 ${getMetricsColor(scores.overall || 0)}`}
-          />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-sm">
-            <ScoreTooltip type="keywords">
-              <div className="text-muted-foreground mb-1">Keywords</div>
-            </ScoreTooltip>
-            <Progress
-              value={scores.keywords || 0}
-              className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
-            />
-            <div
-              className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, "text")}`}
-            >
-              {formatScore(scores.keywords)}%{" "}
-              <span className="text-muted-foreground text-xs">
-                ({formatScore(scores.keywordConfidence)}%)
-              </span>
-            </div>
-          </div>
-          <div className="text-sm">
-            <ScoreTooltip type="skills">
-              <div className="text-muted-foreground mb-1">Skills</div>
-            </ScoreTooltip>
-            <Progress
-              value={scores.skills || 0}
-              className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
-            />
-            <div
-              className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, "text")}`}
-            >
-              {formatScore(scores.skills)}%{" "}
-              <span className="text-muted-foreground text-xs">
-                ({formatScore(scores.skillConfidence)}%)
-              </span>
-            </div>
-          </div>
-          <div className="text-sm">
-            <ScoreTooltip type="experience">
-              <div className="text-muted-foreground mb-1">Experience</div>
-            </ScoreTooltip>
-            <Progress
-              value={scores.experience || 0}
-              className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
-            />
-            <div
-              className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, "text")}`}
-            >
-              {formatScore(scores.experience)}%{" "}
-              <span className="text-muted-foreground text-xs">
-                ({formatScore(scores.experienceConfidence)}%)
-              </span>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     );
@@ -340,7 +218,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   return (
     <>
       <TableRow
-        className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? "bg-muted/5" : ""}`}
+        className={`group transition-colors ${isExpanded ? "bg-muted/50" : "hover:bg-muted/30"}`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <TableCell className="w-4">
@@ -353,65 +231,49 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </Button>
         </TableCell>
         <TableCell>
-          <div className="flex flex-col">
-            <span>{formatDate(resume.metadata.optimizedAt)}</span>
-          </div>
+          <div className="text-sm">{formatDate(resume.metadata.optimizedAt)}</div>
         </TableCell>
         <TableCell>
-          <div className="flex items-center space-x-2">
-            <Badge variant="secondary" className="w-fit">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" size="sm" className="text-xs">
               ID: {resume.id}
+            </Badge>
+            <Badge variant="secondary" size="sm" className="text-xs">
+              v{resume.metadata.version}
             </Badge>
           </div>
         </TableCell>
-        <TableCell>
-          <Badge variant="outline" className="w-fit">
-            v{resume.metadata.version}
-          </Badge>
-        </TableCell>
-        <TableCell className="hidden lg:table-cell w-[300px]">
+        <TableCell className="hidden lg:table-cell">
           {getScoresDisplay(resume.metrics.after)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <MoreVertical className="h-4 w-4" />
                 <span className="sr-only">Actions</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">
-                Download Resume
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                onSelect={() => downloadDocument("resume", "pdf")}
-              >
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Download Resume</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => downloadDocument("resume", "pdf")}>
                 <Download className="mr-2 h-4 w-4" />
-                Download as PDF
+                PDF Format
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => downloadDocument("resume", "docx")}
-              >
+              <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx")}>
                 <Download className="mr-2 h-4 w-4" />
-                Download as DOCX
+                DOCX Format
               </DropdownMenuItem>
 
-              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">
-                Download Cover Letter
-              </DropdownMenuLabel>
-              <DropdownMenuItem
-                onSelect={() => downloadDocument("cover-letter", "pdf")}
-              >
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf")}>
                 <Download className="mr-2 h-4 w-4" />
-                Download as PDF
+                PDF Format
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={() => downloadDocument("cover-letter", "docx")}
-              >
+              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx")}>
                 <Download className="mr-2 h-4 w-4" />
-                Download as DOCX
+                DOCX Format
               </DropdownMenuItem>
 
               {resume.jobUrl && (
@@ -474,163 +336,101 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={6} className="bg-muted/5 p-6">
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium mb-4">Original Scores</h4>
+          <TableCell colSpan={5} className="bg-muted/30 border-t border-muted">
+            <div className="p-6 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Original Scores</h4>
                   <div className="space-y-3">
-                    <div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={getMetricsColor(
-                              resume.matchScore?.originalScores.overall || 0,
-                              "text",
-                            )}
-                          >
-                            {formatScore(
-                              resume.matchScore?.originalScores.overall || 0,
-                            )}
-                            %
-                          </span>
-                          <span className="text-muted-foreground text-sm">
-                            (Confidence:{" "}
-                            {formatScore(
-                              resume.matchScore?.originalScores.confidence || 0,
-                            )}
-                            %)
-                          </span>
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className={getMetricsColor(resume.matchScore?.originalScores.overall || 0, "text")}>
+                        {formatScore(resume.matchScore?.originalScores.overall || 0)}%
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        (Confidence: {formatScore(resume.matchScore?.originalScores.confidence || 0)}%)
+                      </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-sm">
-                        Keywords
-                        <Progress
-                          value={
-                            resume.matchScore?.originalScores.keywords || 0
-                          }
-                          className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0)}`}
-                        />
-                        <div
-                          className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.keywords || 0, "text")}`}
-                        >
-                          {formatScore(
-                            resume.matchScore?.originalScores.keywords || 0,
-                          )}
-                          %
+                    <div className="grid grid-cols-3 gap-4">
+                      {["keywords", "skills", "experience"].map((metric) => (
+                        <div key={metric} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground capitalize">
+                            <span>{metric}</span>
+                            <span>
+                              {formatScore(resume.matchScore?.originalScores[metric] || 0)}%
+                            </span>
+                          </div>
+                          <Progress
+                            value={resume.matchScore?.originalScores[metric] || 0}
+                            className={`h-1 ${getMetricsColor(resume.matchScore?.originalScores[metric] || 0)}`}
+                          />
                         </div>
-                      </div>
-                      <div className="text-sm">
-                        Skills
-                        <Progress
-                          value={resume.matchScore?.originalScores.skills || 0}
-                          className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0)}`}
-                        />
-                        <div
-                          className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.skills || 0, "text")}`}
-                        >
-                          {formatScore(
-                            resume.matchScore?.originalScores.skills || 0,
-                          )}
-                          %
-                        </div>
-                      </div>
-                      <div className="text-sm">
-                        Experience
-                        <Progress
-                          value={
-                            resume.matchScore?.originalScores.experience || 0
-                          }
-                          className={`h-1.5 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0)}`}
-                        />
-                        <div
-                          className={`text-xs mt-1 ${getMetricsColor(resume.matchScore?.originalScores.experience || 0, "text")}`}
-                        >
-                          {formatScore(
-                            resume.matchScore?.originalScores.experience || 0,
-                          )}
-                          %
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-medium mb-4">Optimized Scores</h4>
+                <div className="space-y-4">
+                  <h4 className="font-medium">Optimized Scores</h4>
                   {getScoresDisplay(resume.metrics.after)}
                 </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Analysis</h3>
-                <div className="space-y-4">
-                  {resume.analysis &&
-                    resume.analysis.strengths &&
-                    resume.analysis.strengths.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Strengths</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {resume.analysis.strengths.map(
-                            (strength: string, idx: number) => (
-                              <li
-                                key={idx}
-                                className="text-sm text-emerald-600 dark:text-emerald-400"
-                              >
-                                {strength}
-                              </li>
-                            ),
-                          )}
+              {resume.analysis && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-medium">Analysis</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {resume.analysis.strengths && resume.analysis.strengths.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Strengths</h4>
+                        <ul className="space-y-2">
+                          {resume.analysis.strengths.map((strength, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2"
+                            >
+                              <span>•</span>
+                              <span>{strength}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
 
-                  {resume.analysis &&
-                    resume.analysis.gaps &&
-                    resume.analysis.gaps.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">
-                          Areas for Improvement
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {resume.analysis.gaps.map(
-                            (gap: string, idx: number) => (
-                              <li
-                                key={idx}
-                                className="text-sm text-red-600 dark:text-red-400"
-                              >
-                                {gap}
-                              </li>
-                            ),
-                          )}
+                    {resume.analysis.gaps && resume.analysis.gaps.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Areas for Improvement</h4>
+                        <ul className="space-y-2">
+                          {resume.analysis.gaps.map((gap, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-red-600 dark:text-red-400 flex gap-2"
+                            >
+                              <span>•</span>
+                              <span>{gap}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
 
-                  {resume.analysis &&
-                    resume.analysis.suggestions &&
-                    resume.analysis.suggestions.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">
-                          Suggestions
-                        </h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {resume.analysis.suggestions.map(
-                            (suggestion: string, idx: number) => (
-                              <li
-                                key={idx}
-                                className="text-sm text-blue-600 dark:text-blue-400"
-                              >
-                                {suggestion}
-                              </li>
-                            ),
-                          )}
+                    {resume.analysis.suggestions && resume.analysis.suggestions.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Suggestions</h4>
+                        <ul className="space-y-2">
+                          {resume.analysis.suggestions.map((suggestion, idx) => (
+                            <li
+                              key={idx}
+                              className="text-sm text-blue-600 dark:text-blue-400 flex gap-2"
+                            >
+                              <span>•</span>
+                              <span>{suggestion}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </TableCell>
         </TableRow>
@@ -670,23 +470,34 @@ export default function OptimizedResumesPage() {
   }
 
   return (
-    <div className="flex-1 h-full">
+    <div className="flex-1 h-full bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-2xl font-bold">Optimized Resumes</h1>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent">
+            Optimized Resumes
+          </h1>
         </div>
 
         {resumes && resumes.length > 0 ? (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
             <Table>
-              <TableHeader>
-                <TableRow>
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent">
                   <TableHead className="w-4"></TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Resume ID</TableHead>
-                  <TableHead>Version</TableHead>
+                  <TableHead>
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Date
+                    </span>
+                  </TableHead>
+                  <TableHead>
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Details
+                    </span>
+                  </TableHead>
                   <TableHead className="hidden lg:table-cell">
-                    Match Score
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Match Score
+                    </span>
                   </TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
@@ -699,13 +510,13 @@ export default function OptimizedResumesPage() {
             </Table>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">
-              No optimized resumes yet
+          <div className="text-center py-16 bg-gradient-to-b from-background to-muted/20 rounded-lg border-2 border-dashed">
+            <FileText className="mx-auto h-16 w-16 text-primary/60 animate-pulse" />
+            <h3 className="mt-6 text-xl font-semibold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">
+              Ready to Enhance Your Resume?
             </h3>
-            <p className="text-muted-foreground">
-              Upload and optimize a resume to see it here
+            <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+              Transform your resume with AI-powered optimization to stand out from the crowd
             </p>
           </div>
         )}
