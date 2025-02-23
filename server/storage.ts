@@ -395,10 +395,11 @@ export class DatabaseStorage implements IStorage {
         }
 
         // Update existing cover letter with new version
+        const now = new Date();
         const versionHistory = [...versions, {
           content: coverLetter.content,
           version: nextVersion,
-          generatedAt: new Date().toISOString()
+          generatedAt: now.toISOString()
         }];
 
         const [result] = await db
@@ -409,7 +410,8 @@ export class DatabaseStorage implements IStorage {
               ...coverLetter.metadata,
               version: nextVersion
             },
-            versionHistory
+            versionHistory,
+            createdAt: now // Fix: Use Date object for timestamp
           })
           .where(eq(coverLetters.id, existingCoverLetter.id))
           .returning();
@@ -420,17 +422,19 @@ export class DatabaseStorage implements IStorage {
         };
       } else {
         // Create new cover letter
+        const now = new Date();
         const [result] = await db
           .insert(coverLetters)
           .values({
             ...coverLetter,
+            userId: coverLetter.userId,
             version: '1.0',
             versionHistory: [{
               content: coverLetter.content,
               version: '1.0',
-              generatedAt: new Date().toISOString()
+              generatedAt: now.toISOString()
             }],
-            createdAt: new Date().toISOString(),
+            createdAt: now // Fix: Use Date object for timestamp
           })
           .returning();
 
@@ -576,8 +580,12 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db
         .insert(resumeMatchScores)
         .values({
-          ...score,
-          createdAt: new Date().toISOString(),
+          userId: score.userId,
+          optimizedResumeId: score.optimizedResumeId,
+          originalScores: score.originalScores,
+          optimizedScores: score.optimizedScores,
+          analysis: score.analysis,
+          createdAt: new Date() // Fix: Use Date object instead of string
         })
         .returning();
 
