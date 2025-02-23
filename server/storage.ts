@@ -251,6 +251,13 @@ export class DatabaseStorage implements IStorage {
             timestamp: new Date().toISOString()
           }],
           highlights: [],
+          confidence: 0,
+          contactInfo: {
+            fullName: '',
+            email: '',
+            phone: '',
+            address: ''
+          },
           createdAt: new Date().toISOString(),
         })
         .returning();
