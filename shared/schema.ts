@@ -47,7 +47,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       experience: 0
     }
   }]),
-
   analysis: jsonb("analysis").notNull().default({
     strengths: [],
     gaps: [],

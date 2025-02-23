@@ -599,6 +599,7 @@ export class DatabaseStorage implements IStorage {
     analysis: any 
   }): Promise<OptimizedResume> {
     try {
+      const confidence = Math.round((scores.after.keywords + scores.after.skills + scores.after.experience + scores.after.overall) / 4);
       const [result] = await db
         .update(optimizedResumes)
         .set({
@@ -607,7 +608,17 @@ export class DatabaseStorage implements IStorage {
             after: scores.after
           },
           analysis: scores.analysis,
-          confidence: Math.round((scores.after.keywords + scores.after.skills + scores.after.experience + scores.after.overall) / 4)
+          confidence: confidence,
+          versionMetrics: [{
+            version: '1.0',
+            metrics: {
+              before: scores.before,
+              after: scores.after
+            },
+            confidence: confidence,
+            analysis: scores.analysis,
+            timestamp: new Date().toISOString()
+          }]
         })
         .where(eq(optimizedResumes.id, resumeId))
         .returning();
