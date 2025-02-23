@@ -28,7 +28,7 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
   const [isLoading, setIsLoading] = useState(false);
   const [differences, setDifferences] = useState<any>(null);
   const [selectedVersion, setSelectedVersion] = useState<string>('1.0');
-  const [versions, setVersions] = useState<string[]>([]); // Changed to string[]
+  const [versions, setVersions] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<{
     before: { overall: number; keywords: number; skills: number; experience: number };
     after: { overall: number; keywords: number; skills: number; experience: number };
@@ -41,10 +41,23 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
         const response = await fetch(`/api/optimized-resume/${resumeId}/versions`);
         if (!response.ok) throw new Error('Failed to fetch versions');
         const data = await response.json();
-        setVersions(data.map(String)); //Convert numbers to strings
-        if (data.length > 0) {
-          setSelectedVersion(data[0].toString()); //Convert to string
-          await fetchMetricsForVersion(data[0].toString()); //Convert to string
+
+        // Ensure versions are properly sorted
+        const sortedVersions = data
+          .map(String)
+          .sort((a: string, b: string) => {
+            const [aMajor, aMinor] = a.split('.').map(Number);
+            const [bMajor, bMinor] = b.split('.').map(Number);
+            if (aMajor === bMajor) {
+              return aMinor - bMinor;
+            }
+            return aMajor - bMajor;
+          });
+
+        setVersions(sortedVersions);
+        if (sortedVersions.length > 0) {
+          setSelectedVersion(sortedVersions[0]); // Set to first version
+          await fetchMetricsForVersion(sortedVersions[0]);
         }
       } catch (error) {
         console.error('Error fetching versions:', error);
@@ -129,6 +142,7 @@ export default function ComparisonView({ beforeContent, afterContent, resumeId }
 
   return (
     <div className="space-y-4">
+      {versions.length > 1 && renderVersionSelector()}
       <ResumeSideBySideCompare
         originalResume={beforeContent}
         optimizedResume={afterContent}
