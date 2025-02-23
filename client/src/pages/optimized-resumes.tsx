@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { OptimizedResume, ResumeMatchScore } from "@shared/schema";
+import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -36,7 +36,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 interface ResumeWithScore extends OptimizedResume {
-  matchScore?: ResumeMatchScore;
+  matchScore?: {
+    optimizedScores: {
+      overall: number;
+      keywords: number;
+      skills: number;
+      experience: number;
+    };
+    analysis: {
+      strengths: string[];
+      gaps: string[];
+      suggestions: string[];
+    };
+  };
 }
 
 const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
@@ -121,8 +133,21 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
 
-  const { data: matchScore } = useQuery<ResumeMatchScore>({
+  const { data: matchScore } = useQuery({
     queryKey: [`/api/optimized-resume/${resume.id}/match-score`],
+    select: (data: any) => ({
+      optimizedScores: {
+        overall: data.optimizedScores?.overall || 0,
+        keywords: data.optimizedScores?.keywords || 0,
+        skills: data.optimizedScores?.skills || 0,
+        experience: data.optimizedScores?.experience || 0
+      },
+      analysis: {
+        strengths: data.analysis?.strengths || [],
+        gaps: data.analysis?.gaps || [],
+        suggestions: data.analysis?.suggestions || []
+      }
+    })
   });
 
   const deleteMutation = useMutation({
@@ -181,7 +206,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
   return (
     <>
-      <TableRow className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}>
+      <TableRow className="group cursor-pointer hover:bg-muted/60">
         <TableCell className="w-4">
           <Button
             variant="ghost"
@@ -206,7 +231,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {matchScore && getMetricsDisplay(matchScore.optimized_scores)}
+          {matchScore && getMetricsDisplay(matchScore.optimizedScores)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -298,11 +323,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
               <div>
                 <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
                 <div className="space-y-4">
-                  {matchScore.analysis.strengths && matchScore.analysis.strengths.length > 0 && (
+                  {matchScore.analysis.strengths.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Strengths</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {matchScore.analysis.strengths.map((strength: string, idx: number) => (
+                        {matchScore.analysis.strengths.map((strength, idx) => (
                           <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
                             {strength}
                           </li>
@@ -311,11 +336,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {matchScore.analysis.gaps && matchScore.analysis.gaps.length > 0 && (
+                  {matchScore.analysis.gaps.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {matchScore.analysis.gaps.map((gap: string, idx: number) => (
+                        {matchScore.analysis.gaps.map((gap, idx) => (
                           <li key={idx} className="text-sm text-red-600 dark:text-red-400">
                             {gap}
                           </li>
@@ -324,11 +349,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {matchScore.analysis.suggestions && matchScore.analysis.suggestions.length > 0 && (
+                  {matchScore.analysis.suggestions.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {matchScore.analysis.suggestions.map((suggestion: string, idx: number) => (
+                        {matchScore.analysis.suggestions.map((suggestion, idx) => (
                           <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
                             {suggestion}
                           </li>
