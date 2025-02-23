@@ -109,6 +109,8 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const currentVersion = resume.metadata.version;
   const matchScore = resume.metrics?.after?.overall || 0;
   const confidence = resume.confidence || 0;
+  const originalScore = resume.metrics?.before?.overall || 0;
+
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
@@ -120,18 +122,28 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             <ScoreTooltip type="overall">
               <span>Match Score</span>
             </ScoreTooltip>
-            <div className="flex items-center gap-2">
-              <span className={getMetricsColor(matchScore, 'text')}>
-                {formatScore(matchScore)}%
-              </span>
-              <span className="text-muted-foreground text-sm">
-                (Confidence: {formatScore(confidence)}%)
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className={getMetricsColor(originalScore, 'text')}>
+                  {formatScore(originalScore)}%
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  (Confidence: {formatScore(confidence)}%)
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={getMetricsColor(matchScore, 'text')}>
+                  {formatScore(matchScore)}%
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  (Confidence: {formatScore(confidence)}%)
+                </span>
+              </div>
             </div>
           </div>
           <Progress
             value={matchScore}
-            className={`h-2 ${getMetricsColor(optimizedScore)}`}
+            className={`h-2 ${getMetricsColor(matchScore)}`}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
