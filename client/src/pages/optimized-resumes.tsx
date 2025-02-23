@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { OptimizedResume } from "@shared/schema";
+import { OptimizedResume, ResumeMatchScore } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Trash2, MoreVertical, ExternalLink, ChevronDown, ChevronRight } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -35,49 +35,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-function formatAnalysisDisplay(resume: OptimizedResume) {
-  const analysis = resume.metrics?.after?.analysis;
-  if (!analysis) return null;
-
-  return (
-    <div className="space-y-4">
-      {/* Strengths */}
-      {analysis.strengths && analysis.strengths.length > 0 && (
-        <div>
-          <h4 className="font-medium text-sm mb-2">Strengths</h4>
-          <ul className="list-disc list-inside space-y-1">
-            {analysis.strengths.map((strength, idx) => (
-              <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-500">{strength}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Gaps */}
-      {analysis.gaps && analysis.gaps.length > 0 && (
-        <div>
-          <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
-          <ul className="list-disc list-inside space-y-1">
-            {analysis.gaps.map((gap, idx) => (
-              <li key={idx} className="text-sm text-red-600 dark:text-red-500">{gap}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Suggestions */}
-      {analysis.suggestions && analysis.suggestions.length > 0 && (
-        <div>
-          <h4 className="font-medium text-sm mb-2">Recommendations</h4>
-          <ul className="list-disc list-inside space-y-1">
-            {analysis.suggestions.map((suggestion, idx) => (
-              <li key={idx} className="text-sm text-blue-600 dark:text-blue-500">{suggestion}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
+interface ResumeWithScore extends OptimizedResume {
+  matchScore?: ResumeMatchScore;
 }
 
 const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
@@ -92,7 +51,7 @@ const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
   }
 };
 
-const formatScore = (value: number) => {
+const formatScore = (value: number): string => {
   return value?.toFixed(1) || '0';
 };
 
@@ -105,52 +64,52 @@ const formatDate = (dateString: string) => {
   }).format(date);
 };
 
-const getMetricsDisplay = (metrics: any) => {
-  if (!metrics) return null;
+const getMetricsDisplay = (scores: any) => {
+  if (!scores) return null;
 
   return (
     <div className="space-y-3">
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span>Optimization Score</span>
-          <span className={getMetricsColor(metrics.overall || 0, 'text')}>
-            {formatScore(metrics.overall)}%
+          <span>Overall Match</span>
+          <span className={getMetricsColor(scores.overall || 0, 'text')}>
+            {formatScore(scores.overall)}%
           </span>
         </div>
         <Progress
-          value={metrics.overall || 0}
-          className={`h-2 ${getMetricsColor(metrics.overall || 0)}`}
+          value={scores.overall || 0}
+          className={`h-2 ${getMetricsColor(scores.overall || 0)}`}
         />
       </div>
       <div className="grid grid-cols-3 gap-2">
         <div className="text-sm">
           <div className="text-muted-foreground mb-1">Keywords</div>
           <Progress
-            value={metrics.keywords || 0}
-            className={`h-1.5 ${getMetricsColor(metrics.keywords || 0)}`}
+            value={scores.keywords || 0}
+            className={`h-1.5 ${getMetricsColor(scores.keywords || 0)}`}
           />
-          <div className={`text-xs mt-1 ${getMetricsColor(metrics.keywords || 0, 'text')}`}>
-            {formatScore(metrics.keywords)}%
+          <div className={`text-xs mt-1 ${getMetricsColor(scores.keywords || 0, 'text')}`}>
+            {formatScore(scores.keywords)}%
           </div>
         </div>
         <div className="text-sm">
           <div className="text-muted-foreground mb-1">Skills</div>
           <Progress
-            value={metrics.skills || 0}
-            className={`h-1.5 ${getMetricsColor(metrics.skills || 0)}`}
+            value={scores.skills || 0}
+            className={`h-1.5 ${getMetricsColor(scores.skills || 0)}`}
           />
-          <div className={`text-xs mt-1 ${getMetricsColor(metrics.skills || 0, 'text')}`}>
-            {formatScore(metrics.skills)}%
+          <div className={`text-xs mt-1 ${getMetricsColor(scores.skills || 0, 'text')}`}>
+            {formatScore(scores.skills)}%
           </div>
         </div>
         <div className="text-sm">
           <div className="text-muted-foreground mb-1">Experience</div>
           <Progress
-            value={metrics.experience || 0}
-            className={`h-1.5 ${getMetricsColor(metrics.experience || 0)}`}
+            value={scores.experience || 0}
+            className={`h-1.5 ${getMetricsColor(scores.experience || 0)}`}
           />
-          <div className={`text-xs mt-1 ${getMetricsColor(metrics.experience || 0, 'text')}`}>
-            {formatScore(metrics.experience)}%
+          <div className={`text-xs mt-1 ${getMetricsColor(scores.experience || 0, 'text')}`}>
+            {formatScore(scores.experience)}%
           </div>
         </div>
       </div>
@@ -158,9 +117,60 @@ const getMetricsDisplay = (metrics: any) => {
   );
 };
 
-function ResumeRow({ resume }: { resume: OptimizedResume }) {
+const formatAnalysisDisplay = (analysis: any) => {
+  if (!analysis) return null;
+
+  return (
+    <div className="space-y-4">
+      {analysis.strengths && analysis.strengths.length > 0 && (
+        <div>
+          <h4 className="font-medium text-sm mb-2">Strengths</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {analysis.strengths.map((strength: string, idx: number) => (
+              <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
+                {strength}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {analysis.gaps && analysis.gaps.length > 0 && (
+        <div>
+          <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {analysis.gaps.map((gap: string, idx: number) => (
+              <li key={idx} className="text-sm text-red-600 dark:text-red-400">
+                {gap}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {analysis.suggestions && analysis.suggestions.length > 0 && (
+        <div>
+          <h4 className="font-medium text-sm mb-2">Suggestions</h4>
+          <ul className="list-disc list-inside space-y-1">
+            {analysis.suggestions.map((suggestion: string, idx: number) => (
+              <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
+
+  const { data: matchScore } = useQuery<ResumeMatchScore>({
+    queryKey: [`/api/optimized-resume/${resume.id}/match-score`],
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -243,10 +253,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {getMetricsDisplay(resume.metrics?.after)}
-        </TableCell>
-        <TableCell className="w-[40%]">
-          {formatAnalysisDisplay(resume)}
+          {matchScore && getMetricsDisplay(matchScore.optimizedScores)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -331,16 +338,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
           </DropdownMenu>
         </TableCell>
       </TableRow>
-      {isExpanded && (
+      {isExpanded && matchScore && (
         <TableRow>
           <TableCell colSpan={6} className="bg-muted/5 p-6">
             <div className="space-y-4">
-              {resume.metrics?.after?.analysis && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
-                  {formatAnalysisDisplay(resume)}
-                </div>
-              )}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Detailed Analysis</h3>
+                {formatAnalysisDisplay(matchScore.analysis)}
+              </div>
             </div>
           </TableCell>
         </TableRow>
@@ -350,7 +355,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 }
 
 export default function OptimizedResumesPage() {
-  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
+  const { data: resumes, isLoading } = useQuery<ResumeWithScore[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
@@ -391,8 +396,7 @@ export default function OptimizedResumesPage() {
                   <TableHead className="w-4"></TableHead>
                   <TableHead className="w-[150px]">Date & Version</TableHead>
                   <TableHead className="w-[100px]">Resume ID</TableHead>
-                  <TableHead className="hidden lg:table-cell w-[300px]">Optimization Score</TableHead>
-                  <TableHead className="w-[40%]">Analysis</TableHead>
+                  <TableHead className="hidden lg:table-cell w-[300px]">Match Score</TableHead>
                   <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
