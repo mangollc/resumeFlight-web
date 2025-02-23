@@ -1222,7 +1222,8 @@ export function registerRoutes(app: Express): Server {
             return res.status(200).json({
                 before: updatedResume.matchScores.before,
                 after: updatedResume.matchScores.after,
-                analysis: updatedResume.matchAnalysis
+                analysis: updatedResume.matchAnalysis,
+                confidence: updatedResume.confidence
             });
         } catch (error: any) {
             console.error("[Analyze] Error:", error);

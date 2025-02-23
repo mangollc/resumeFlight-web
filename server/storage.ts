@@ -606,12 +606,23 @@ export class DatabaseStorage implements IStorage {
             before: scores.before,
             after: scores.after
           },
-          matchAnalysis: scores.analysis
+          matchAnalysis: scores.analysis,
+          confidence: Math.round((scores.after.keywords + scores.after.skills + scores.after.experience + scores.after.overall) / 4)
         })
         .where(eq(optimizedResumes.id, resumeId))
         .returning();
 
-      return result;
+      return {
+        ...result,
+        metadata: result.metadata as OptimizedResume['metadata'],
+        jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+        metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: (result.jobDetails as any)?.contactInfo || {
+          fullName: '',
+          email: '',
+          phone: '',
+        }
+      };
     } catch (error) {
       console.error('Error updating resume scores:', error);
       throw new Error('Failed to update resume scores');
