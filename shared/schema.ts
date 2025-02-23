@@ -48,7 +48,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     },
     timestamp: ''
   }]),
-  highlights: jsonb("highlights").notNull().default([]),
+  highlights: jsonb("highlights").notNull().default([]), // Added highlights column
   confidence: integer("confidence").notNull().default(0),
   createdAt: text("created_at").notNull(),
 });
