@@ -17,130 +17,58 @@ import {
 interface ReviewSectionProps {
   optimizedResume: OptimizedResume;
   coverLetter?: CoverLetterType;
-  onDownload?: (id: string) => void;
-  versions: string[]; // Changed to string[]
+  versions: string[];
 }
 
-const formatDownloadFilename = (filename: string, jobTitle: string, version: string, type: 'resume' | 'cover_letter' = 'resume'): string => {
-  const baseFilename = filename.replace(/\.[^/.]+$/, '');
-  const formattedJobTitle = (jobTitle || 'job')
-    .replace(/[^a-zA-Z0-9\s]/g, '')
-    .replace(/\s+/g, '_')
-    .toLowerCase();
-  const suffix = type === 'cover_letter' ? '_cover_letter' : '';
-  return `${baseFilename}_${formattedJobTitle}${suffix}_v${version}`;
-}
-
-export function ReviewSection({ optimizedResume, coverLetter, onDownload, versions }: ReviewSectionProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
+export function ReviewSection({ optimizedResume, coverLetter, versions }: ReviewSectionProps) {
   const [selectedVersion, setSelectedVersion] = useState(versions[0] || '1.0');
-  const { toast } = useToast();
-
-  const handleDownload = async () => {
-    try {
-      setIsDownloading(true);
-      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/download?format=${selectedFormat}&version=${selectedVersion}`);
-      if (!response.ok) {
-        throw new Error('Failed to download resume');
-      }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = formatDownloadFilename(
-        optimizedResume.metadata.filename || 'resume',
-        optimizedResume.jobDetails?.title || '',
-        selectedVersion,
-        'resume'
-      ) + `.${selectedFormat}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success",
-        description: `Resume downloaded successfully as ${selectedFormat.toUpperCase()}`,
-        duration: 2000
-      });
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download resume",
-        variant: "destructive"
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
 
   return (
-    <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95">
-      <CardContent className="p-8">
-        <h2 className="text-2xl font-bold mb-8 bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-          Final Summary
-        </h2>
-        <div className="space-y-12">
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-foreground/90">
-                Optimized Resume
-              </h3>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={selectedVersion}
-                  onValueChange={setSelectedVersion}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select version" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {versions.map((version) => (
-                      <SelectItem key={version} value={version}>
-                        Version {version}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={selectedFormat}
-                  onValueChange={(value) => setSelectedFormat(value as "pdf" | "docx")}
-                >
-                  <SelectTrigger className="w-[100px]">
-                    <SelectValue placeholder="Format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdf">PDF</SelectItem>
-                    <SelectItem value="docx">DOCX</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button onClick={handleDownload} disabled={isDownloading}>
-                  {isDownloading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  Download Resume
-                </Button>
-              </div>
-            </div>
-            <Preview resume={optimizedResume} />
+    <div className="space-y-6">
+      {/* Optimized Resume Section */}
+      <Card className="border-2 border-primary/10 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold text-foreground/90">
+              Optimized Resume
+            </h3>
+            <Select
+              value={selectedVersion}
+              onValueChange={setSelectedVersion}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select version" />
+              </SelectTrigger>
+              <SelectContent>
+                {versions.map((version) => (
+                  <SelectItem key={version} value={version}>
+                    Version {version}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          <Preview resume={optimizedResume} />
+        </CardContent>
+      </Card>
 
-          {/* Cover Letter Section */}
-          {coverLetter && (
-            <div className="mt-8">
-              <CoverLetter
-                resume={optimizedResume}
-                generatedCoverLetter={coverLetter}
-                readOnly={true}
-              />
+      {/* Cover Letter Section */}
+      {coverLetter && (
+        <Card className="border-2 border-primary/10 shadow-lg">
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-foreground/90">
+                Cover Letter
+              </h3>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <CoverLetter
+              resume={optimizedResume}
+              generatedCoverLetter={coverLetter}
+              readOnly={true}
+            />
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
