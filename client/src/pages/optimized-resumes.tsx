@@ -107,9 +107,8 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
-  const matchScore = resume.metrics?.after?.overall || 0;
-  const versionMetric = resume.versionMetrics?.find(v => v.version === currentVersion);
-  const confidence = versionMetric?.confidence || 0;
+  const matchScore = resume.optimizedScores?.overall || resume.metrics?.after?.overall || 0;
+  const confidence = resume.optimizedScores?.confidence || 0;
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
