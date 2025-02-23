@@ -317,6 +317,7 @@ export const resumeMatchScores = pgTable("resume_match_scores", {
     gaps: [],
     suggestions: []
   }),
+  confidence: integer("confidence").notNull().default(0), // Adding confidence field
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => ({
   optimizedResumeIdIdx: index("resume_match_scores_resume_id_idx").on(table.optimizedResumeId),
@@ -338,6 +339,7 @@ export const insertResumeMatchScoreSchema = createInsertSchema(resumeMatchScores
     originalScores: true,
     optimizedScores: true,
     analysis: true,
+    confidence: true, //Adding confidence field to schema
   });
 
 // Add types for match scores
