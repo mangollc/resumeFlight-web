@@ -53,7 +53,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload, versio
         optimizedResume.jobDetails?.title || '',
         selectedVersion,
         'resume'
-      );
+      ) + `.${selectedFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -61,7 +61,7 @@ export function ReviewSection({ optimizedResume, coverLetter, onDownload, versio
 
       toast({
         title: "Success",
-        description: "Resume downloaded successfully",
+        description: `Resume downloaded successfully as ${selectedFormat.toUpperCase()}`,
         duration: 2000
       });
     } catch (error) {
