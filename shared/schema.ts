@@ -61,11 +61,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     phone: '',
     address: ''
   }),
-}, (table) => ({
-  userIdIdx: index("optimized_resumes_user_id_idx").on(table.userId),
-  uploadedResumeIdIdx: index("optimized_resumes_uploaded_resume_id_idx").on(table.uploadedResumeId),
-  sessionIdIdx: index("optimized_resumes_session_id_idx").on(table.sessionId),
-}));
+});
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
   id: serial("id").primaryKey(),
@@ -218,7 +214,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
   metadata: {
     filename: string;
     optimizedAt: string;
-    version: string;
+    version: string; // This should be a string formatted as "X.Y" where X is integer and Y is 0-9
   };
   contactInfo: {
     fullName: string;
