@@ -98,7 +98,18 @@ function validateTimeout(
 async function calculateMatchScores(
   resumeContent: string,
   jobDescription: string,
-) {
+): Promise<{
+  keywords: number;
+  skills: number;
+  experience: number;
+  overall: number;
+  analysis: {
+    strengths: string[];
+    gaps: string[];
+    suggestions: string[];
+  };
+  confidence: number;
+}> {
   try {
     console.log("[Match Analysis] Starting analysis...");
     const response = await openai.chat.completions.create({
@@ -144,12 +155,12 @@ Return a JSON object in this exact format:
    "gaps": ["list of potential gaps"],
    "suggestions": ["improvement suggestions"]
  }
-}`,
+}`
         },
         {
           role: "user",
-          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`,
-        },
+          content: `Resume Content:\n${resumeContent}\n\nJob Description:\n${jobDescription}`
+        }
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
@@ -162,7 +173,7 @@ Return a JSON object in this exact format:
     }
 
     const metrics = JSON.parse(content);
-    return {
+    const result = {
       keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
       skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
       experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
@@ -173,6 +184,13 @@ Return a JSON object in this exact format:
         suggestions: []
       }
     };
+
+    // Calculate confidence score based on metrics
+    const confidence = Math.round((result.keywords + result.skills + result.experience + result.overall) / 4);
+    result.confidence = confidence;
+
+    console.log("[Match Analysis] Calculated scores:", result);
+    return result;
   } catch (error) {
     console.error("[Match Analysis] Error calculating scores:", error);
     return getDefaultMetrics();
@@ -322,7 +340,7 @@ Return a JSON object in this format:
     "positionLevel": "Senior/Mid/Junior/Entry based on requirements",
     "keyRequirements": ["Array of key requirements with condensed word choices"],
     "skillsAndTools": ["Array of required skills and tools with max two words per skills or tools"]
-}`,
+}`
                 },
                 {
                     role: "user",
@@ -768,6 +786,10 @@ export function registerRoutes(app: Express): Server {
                 }
 
 
+                const beforeScores = await calculateMatchScores(uploadedResume.content, finalJobDescription);
+                const afterScores = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
+                const confidence = Math.round((afterScores.keywords + afterScores.skills + afterScores.experience + afterScores.overall) / 4);
+
                 const initials = getInitials(uploadedResume.content);
                 const cleanJobTitle = (jobDetails.title || "job")
                     .replace(/[^a-zA-Z0-9\s]/g, "")
@@ -790,7 +812,21 @@ export function registerRoutes(app: Express): Server {
                         filename: newFilename,
                         optimizedAt: new Date().toISOString(),
                         version: 1.0,
-                    }
+                    },
+                    metrics: {
+                      before: beforeScores,
+                      after: afterScores
+                    },
+                    versionMetrics: [{
+                      version: '1.0',
+                      metrics: {
+                        before: beforeScores,
+                        after: afterScores
+                      },
+                      confidence: confidence,
+                      timestamp: new Date().toISOString()
+                    }],
+                    confidence: confidence
                 });
 
                 console.log("[Optimize] Successfully completed optimization");

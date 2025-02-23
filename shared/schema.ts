@@ -38,7 +38,12 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     version: '1.0',
     content: '',
     timestamp: '',
-    changes: []
+    changes: [],
+    confidence: 0,
+    metrics: {
+      before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
+      after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
+    }
   }]),
   metrics: jsonb("metrics").notNull().default({
     before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
@@ -50,6 +55,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
       after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
     },
+    confidence: 0,
     timestamp: ''
   }]),
   highlights: jsonb("highlights").notNull().default([]),
