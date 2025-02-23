@@ -126,6 +126,45 @@ const formatDate = (dateString: string) => {
   }).format(date);
 };
 
+function getMetricsDisplay(metrics: any) {
+  if (!metrics) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm">
+        <span>Overall</span>
+        <span className={getMetricsColor(metrics.overall || 0, 'text')}>
+          {formatScore(metrics.overall)}%
+        </span>
+      </div>
+      <Progress
+        value={metrics.overall || 0}
+        className={`h-2 ${getMetricsColor(metrics.overall || 0)}`}
+      />
+      <div className="grid grid-cols-3 gap-2 mt-2">
+        <div className="text-xs">
+          <span className="text-muted-foreground">Keywords:</span>{' '}
+          <span className={getMetricsColor(metrics.keywords || 0, 'text')}>
+            {formatScore(metrics.keywords)}%
+          </span>
+        </div>
+        <div className="text-xs">
+          <span className="text-muted-foreground">Skills:</span>{' '}
+          <span className={getMetricsColor(metrics.skills || 0, 'text')}>
+            {formatScore(metrics.skills)}%
+          </span>
+        </div>
+        <div className="text-xs">
+          <span className="text-muted-foreground">Exp:</span>{' '}
+          <span className={getMetricsColor(metrics.experience || 0, 'text')}>
+            {formatScore(metrics.experience)}%
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -174,6 +213,40 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
     return null;
   };
 
+  const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx') => {
+    try {
+      const endpoint = type === 'resume'
+        ? `/api/optimized-resume/${resume.id}/download`
+        : `/api/cover-letter/${resume.id}/download`;
+
+      const response = await fetch(`${endpoint}?format=${format}`);
+
+      if (!response.ok) throw new Error(`Failed to download ${type}`);
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type === 'resume' ? 'resume' : 'cover_letter'}_v${resume.metadata.version}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: `${type === 'resume' ? 'Resume' : 'Cover Letter'} downloaded successfully as ${format.toUpperCase()}`,
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to download ${type}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <TableRow className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}>
@@ -198,24 +271,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
           <div className="text-sm text-muted-foreground">{resume.jobDetails?.company}</div>
         </TableCell>
         <TableCell className="hidden lg:table-cell">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between text-sm">
-              <span>Overall Match</span>
-              <div className="flex items-center gap-1.5">
-                <span className={getMetricsColor(resume.metrics?.after?.overall || 0, 'text')}>
-                  {formatScore(resume.metrics?.after?.overall)}%
-                </span>
-                {getScoreImprovement(
-                  resume.metrics?.before?.overall || 0,
-                  resume.metrics?.after?.overall || 0
-                )}
-              </div>
-            </div>
-            <Progress
-              value={resume.metrics?.after?.overall || 0}
-              className={`h-2 ${getMetricsColor(resume.metrics?.after?.overall || 0)}`}
-            />
-          </div>
+          {getMetricsDisplay(resume.metrics?.after)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -236,23 +292,27 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <Eye className="mr-2 h-4 w-4" />
                 Review Optimization
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a
-                  href={`/api/optimized-resume/${resume.id}/download?filename=${
-                    formatDownloadFilename(
-                      resume.metadata.filename,
-                      resume.jobDetails?.title || '',
-                      resume.metadata.version
-                    )
-                  }.pdf`}
-                  download
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Resume v{resume.metadata.version}
-                </a>
+
+              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">Download Resume</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => downloadDocument('resume', 'pdf')}>
+                <Download className="mr-2 h-4 w-4" />
+                Download as PDF
               </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => downloadDocument('resume', 'docx')}>
+                <Download className="mr-2 h-4 w-4" />
+                Download as DOCX
+              </DropdownMenuItem>
+
+              <DropdownMenuLabel className="text-xs text-muted-foreground mt-2">Download Cover Letter</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => downloadDocument('cover-letter', 'pdf')}>
+                <Download className="mr-2 h-4 w-4" />
+                Download as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => downloadDocument('cover-letter', 'docx')}>
+                <Download className="mr-2 h-4 w-4" />
+                Download as DOCX
+              </DropdownMenuItem>
+
               {resume.jobUrl && (
                 <>
                   <DropdownMenuSeparator />
@@ -270,6 +330,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   </DropdownMenuItem>
                 </>
               )}
+
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
