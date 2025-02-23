@@ -43,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface ResumeWithScore extends OptimizedResume {
   matchScore?: ResumeMatchScore;
+  versionMetrics?: any[];
 }
 
 const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
@@ -105,11 +106,9 @@ const ScoreTooltip = ({ type, children }: { type: string; children: React.ReactN
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
-
-  const { data: matchScore } = useQuery({
-    queryKey: [`/api/optimized-resume/${resume.id}/match-score`],
-    select: (data: ResumeMatchScore) => data,
-  });
+  const currentVersion = resume.metadata.version;
+  const versionMetrics = resume.versionMetrics?.find(v => v.version === currentVersion);
+  const confidence = versionMetrics?.confidence || resume.confidence || 0;
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
@@ -119,15 +118,17 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <ScoreTooltip type="overall">
-              <span>Overall Score</span>
+              <span>Match Score</span>
             </ScoreTooltip>
-            <span className={getMetricsColor(scores.overall || 0, 'text')}>
-              {formatScore(scores.overall)}%
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={getMetricsColor(confidence, 'text')}>
+                {formatScore(confidence)}%
+              </span>
+            </div>
           </div>
           <Progress
-            value={scores.overall || 0}
-            className={`h-2 ${getMetricsColor(scores.overall || 0)}`}
+            value={confidence}
+            className={`h-2 ${getMetricsColor(confidence)}`}
           />
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -229,10 +230,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
     <>
       <TableRow
         className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsExpanded(!isExpanded);
-        }}
+        onClick={() => setIsExpanded(!isExpanded)}
       >
         <TableCell className="w-4">
           <Button
@@ -259,7 +257,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           <Badge variant="outline" className="w-fit">v{resume.metadata.version}</Badge>
         </TableCell>
         <TableCell className="hidden lg:table-cell w-[300px]">
-          {matchScore && getScoresDisplay(matchScore.optimizedScores)}
+          {getScoresDisplay(versionMetrics?.metrics.after || resume.metrics.after)}
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -346,29 +344,30 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </DropdownMenu>
         </TableCell>
       </TableRow>
-      {isExpanded && matchScore && (
+
+      {isExpanded && (
         <TableRow>
           <TableCell colSpan={6} className="bg-muted/5 p-6">
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-medium mb-4">Original Scores</h4>
-                  {getScoresDisplay(matchScore.originalScores)}
+                  {getScoresDisplay(versionMetrics?.metrics.before || resume.metrics.before)}
                 </div>
                 <div>
                   <h4 className="font-medium mb-4">Optimized Scores</h4>
-                  {getScoresDisplay(matchScore.optimizedScores)}
+                  {getScoresDisplay(versionMetrics?.metrics.after || resume.metrics.after)}
                 </div>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold mb-4">Analysis</h3>
                 <div className="space-y-4">
-                  {matchScore.analysis && matchScore.analysis.strengths && matchScore.analysis.strengths.length > 0 && (
+                  {versionMetrics?.analysis && versionMetrics.analysis.strengths && versionMetrics.analysis.strengths.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Strengths</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {matchScore.analysis.strengths.map((strength, idx) => (
+                        {versionMetrics.analysis.strengths.map((strength: string, idx: number) => (
                           <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400">
                             {strength}
                           </li>
@@ -377,11 +376,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {matchScore.analysis && matchScore.analysis.gaps && matchScore.analysis.gaps.length > 0 && (
+                  {versionMetrics?.analysis && versionMetrics.analysis.gaps && versionMetrics.analysis.gaps.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Areas for Improvement</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {matchScore.analysis.gaps.map((gap, idx) => (
+                        {versionMetrics.analysis.gaps.map((gap: string, idx: number) => (
                           <li key={idx} className="text-sm text-red-600 dark:text-red-400">
                             {gap}
                           </li>
@@ -390,11 +389,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </div>
                   )}
 
-                  {matchScore.analysis && matchScore.analysis.suggestions && matchScore.analysis.suggestions.length > 0 && (
+                  {versionMetrics?.analysis && versionMetrics.analysis.suggestions && versionMetrics.analysis.suggestions.length > 0 && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="list-disc list-inside space-y-1">
-                        {matchScore.analysis.suggestions.map((suggestion, idx) => (
+                        {versionMetrics.analysis.suggestions.map((suggestion: string, idx: number) => (
                           <li key={idx} className="text-sm text-blue-600 dark:text-blue-400">
                             {suggestion}
                           </li>
