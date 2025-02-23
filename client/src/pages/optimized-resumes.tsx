@@ -342,24 +342,18 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 <div className="space-y-4">
                   <h4 className="font-medium">Original Scores</h4>
                   <div className="space-y-3">
-                    <div className="text-xs text-muted-foreground mb-1">Match Score</div>
                     <div className="flex items-center gap-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger className="flex items-center gap-1">
-                            <span className={getMetricsColor(resume.matchScore?.originalScores.overall || 0, "text")}>
-                              {formatScore(resume.matchScore?.originalScores.overall || 0)}%
-                            </span>
-                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs text-sm">{getScoreMethodologyTooltip("overall")}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <span className="text-muted-foreground text-sm">
-                        (Confidence: {formatScore(resume.matchScore?.originalScores.confidence || 0)}%)
-                      </span>
+                      <ScoreTooltip type="overall">
+                        <span className="text-sm text-muted-foreground">Match Score:</span>
+                      </ScoreTooltip>
+                      <div className="flex items-center gap-2">
+                        <span className={getMetricsColor(resume.matchScore?.originalScores.overall || 0, "text")}>
+                          {formatScore(resume.matchScore?.originalScores.overall || 0)}%
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          (Confidence: {formatScore(resume.matchScore?.originalScores.confidence || 0)}%)
+                        </span>
+                      </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
                       {["keywords", "skills", "experience"].map((metric) => (
