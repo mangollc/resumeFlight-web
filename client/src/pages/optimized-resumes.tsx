@@ -512,7 +512,7 @@ export default function OptimizedResumesPage() {
                   </TableHead>
                   <TableHead>
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Details
+                      Resume ID
                     </span>
                   </TableHead>
                   <TableHead className="hidden lg:table-cell">
