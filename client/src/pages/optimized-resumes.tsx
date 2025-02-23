@@ -107,8 +107,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const currentVersion = resume.metadata.version;
-  const matchScore = resume.optimizedScores?.overall || resume.metrics?.after?.overall || 0;
-  const confidence = resume.optimizedScores?.confidence || 0;
+  const matchScore = resume.matchScore?.optimizedScores?.overall || 0;
+  const originalScore = resume.matchScore?.originalScores?.overall || 0;
+  const confidence = resume.matchScore?.optimizedScores?.confidence || 0;
 
   const getScoresDisplay = (scores: any) => {
     if (!scores) return null;
@@ -120,13 +121,22 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
             <ScoreTooltip type="overall">
               <span>Match Score</span>
             </ScoreTooltip>
-            <div className="flex items-center gap-2">
-              <span className={getMetricsColor(matchScore, 'text')}>
-                {formatScore(matchScore)}%
-              </span>
-              <span className="text-muted-foreground text-sm">
-                (Confidence: {formatScore(confidence)}%)
-              </span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Original:</span>
+                <span className={getMetricsColor(originalScore, 'text')}>
+                  {formatScore(originalScore)}%
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Optimized:</span>
+                <span className={getMetricsColor(matchScore, 'text')}>
+                  {formatScore(matchScore)}%
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  (Conf: {formatScore(confidence)}%)
+                </span>
+              </div>
             </div>
           </div>
           <Progress
