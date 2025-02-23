@@ -64,76 +64,66 @@ function formatJobDetails(resume: OptimizedResume) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <div className="grid gap-4">
-          <div>
-            <p className="font-medium mb-1">Job Title</p>
-            <div className="flex items-center gap-2">
-              <p className="text-sm text-muted-foreground">
-                {resume.jobDetails?.title || "Not specified"}
-              </p>
-              {getWorkArrangementBadge(resume.jobDetails)}
-            </div>
-          </div>
-          <div>
-            <p className="font-medium mb-1">Company Name</p>
+      <div className="grid gap-4">
+        <div>
+          <p className="font-medium mb-1">Job Title</p>
+          <div className="flex items-center gap-2">
             <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.company || "Not specified"}
+              {resume.jobDetails?.title || "Not specified"}
             </p>
+            {getWorkArrangementBadge(resume.jobDetails)}
           </div>
-          <div>
-            <p className="font-medium mb-1">Location</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.location || "Not specified"}
-            </p>
-          </div>
-          <div>
-            <p className="font-medium mb-1">Position Level</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.positionLevel || "Not specified"}
-            </p>
-          </div>
-          <div>
-            <p className="font-medium mb-1">Salary</p>
-            <p className="text-sm text-muted-foreground">
-              {resume.jobDetails?.salary || "Not specified"}
-            </p>
-          </div>
-          {/* Description hidden but data preserved in resume.jobDetails.description */}
         </div>
+        <div>
+          <p className="font-medium mb-1">Company</p>
+          <p className="text-sm text-muted-foreground">
+            {resume.jobDetails?.company || "Not specified"}
+          </p>
+        </div>
+        <div>
+          <p className="font-medium mb-1">Location</p>
+          <p className="text-sm text-muted-foreground">
+            {resume.jobDetails?.location || "Not specified"}
+          </p>
+        </div>
+        {resume.jobDetails?.keyRequirements && resume.jobDetails.keyRequirements.length > 0 && (
+          <div>
+            <p className="font-medium mb-1">Key Requirements</p>
+            <ul className="list-disc list-inside space-y-1">
+              {resume.jobDetails.keyRequirements.map((req, idx) => (
+                <li key={idx} className="text-sm text-muted-foreground">{req}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
-
-      {resume.jobDetails?.keyRequirements && resume.jobDetails.keyRequirements.length > 0 && (
-        <div>
-          <h4 className="font-semibold mb-2">Key Requirements</h4>
-          <ul className="list-disc list-inside space-y-2">
-            {resume.jobDetails.keyRequirements.map((requirement, index) => (
-              <li key={index} className="text-sm text-muted-foreground">{requirement}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {resume.jobDetails?.skillsAndTools && resume.jobDetails.skillsAndTools.length > 0 && (
-        <div>
-          <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-          <div className="flex flex-wrap gap-2">
-            {resume.jobDetails.skillsAndTools.map((skill, index) => (
-              <Badge key={index} variant="default">
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-const getMetricsColor = (value: number) => {
-  if (value >= 80) return "bg-green-600";
-  if (value >= 60) return "bg-yellow-500";
-  return "bg-red-500";
+const getMetricsColor = (value: number, type: 'bg' | 'text' = 'bg') => {
+  if (type === 'bg') {
+    if (value >= 80) return "bg-emerald-600 dark:bg-emerald-500";
+    if (value >= 60) return "bg-yellow-500";
+    return "bg-red-500";
+  } else {
+    if (value >= 80) return "text-emerald-600 dark:text-emerald-500";
+    if (value >= 60) return "text-yellow-500";
+    return "text-red-500";
+  }
+};
+
+const formatScore = (value: number) => {
+  return value?.toFixed(1) || '0';
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
 };
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
@@ -172,38 +162,53 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
     return `${baseName}_${cleanJobTitle}_v${version}`;
   };
 
+  const getScoreImprovement = (before: number, after: number) => {
+    const improvement = after - before;
+    if (improvement > 0) {
+      return (
+        <span className="text-emerald-600 dark:text-emerald-500 text-xs">
+          (+{improvement.toFixed(1)}%)
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <>
-      <TableRow
-        className={`cursor-pointer hover:bg-muted/60 ${
-          isExpanded
-            ? 'bg-muted/5 dark:bg-muted/10'
-            : 'even:bg-slate-50 dark:even:bg-slate-800/50'
-        }`}
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      <TableRow className={`group cursor-pointer hover:bg-muted/60 ${isExpanded ? 'bg-muted/5' : ''}`}>
+        <TableCell className="w-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
+        </TableCell>
         <TableCell>
-          {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
+          <div className="flex flex-col">
+            <span>{formatDate(resume.metadata.optimizedAt)}</span>
+            <Badge variant="outline" className="w-fit mt-1">v{resume.metadata.version}</Badge>
+          </div>
         </TableCell>
-        <TableCell className="whitespace-nowrap">
-          {new Date(resume.createdAt).toLocaleDateString()}
-        </TableCell>
-        <TableCell>{resume.jobDetails?.title}</TableCell>
-        <TableCell className="hidden sm:table-cell">
-          {resume.jobDetails?.company}
+        <TableCell>
+          <div className="font-medium">{resume.jobDetails?.title}</div>
+          <div className="text-sm text-muted-foreground">{resume.jobDetails?.company}</div>
         </TableCell>
         <TableCell className="hidden lg:table-cell">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
               <span>Overall Match</span>
-              <div className="flex items-center gap-2">
-                <span className="font-medium">
-                  {resume.metrics?.after?.overall || 0}%
+              <div className="flex items-center gap-1.5">
+                <span className={getMetricsColor(resume.metrics?.after?.overall || 0, 'text')}>
+                  {formatScore(resume.metrics?.after?.overall)}%
                 </span>
+                {getScoreImprovement(
+                  resume.metrics?.before?.overall || 0,
+                  resume.metrics?.after?.overall || 0
+                )}
               </div>
             </div>
             <Progress
@@ -241,53 +246,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     )
                   }.pdf`}
                   download
+                  onClick={(e) => e.stopPropagation()}
                   className="flex items-center"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download Resume v{resume.metadata.version}
                 </a>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  fetch(`/api/optimized-resume/${resume.id}/cover-letter/latest/download`, {
-                    headers: {
-                      'Accept': 'application/pdf'
-                    }
-                  })
-                    .then(response => {
-                      if (!response.ok) throw new Error('Download failed');
-                      return response.blob();
-                    })
-                    .then(blob => {
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${formatDownloadFilename(
-                        resume.metadata.filename,
-                        resume.jobDetails?.title || '',
-                        resume.metadata.version
-                      )}_cover.pdf`;
-                      document.body.appendChild(a);
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                      document.body.removeChild(a);
-                    })
-                    .catch(error => {
-                      console.error('Download error:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to download cover letter",
-                        variant: "destructive",
-                      });
-                    });
-                }}
-                className="flex items-center"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Latest Cover Letter
-              </DropdownMenuItem>
-              {resume.jobUrl ? (
+              {resume.jobUrl && (
                 <>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
@@ -296,36 +262,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
                       View Job Posting
                     </a>
                   </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuSeparator />
-                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        <Info className="mr-2 h-4 w-4" />
-                        View Job Details
-                      </DropdownMenuItem>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>Job Details</DialogTitle>
-                        <DialogDescription>
-                          {formatJobDetails(resume)}
-                        </DialogDescription>
-                      </DialogHeader>
-                    </DialogContent>
-                  </Dialog>
                 </>
               )}
               <DropdownMenuSeparator />
@@ -364,18 +306,19 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       </TableRow>
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={6} className="bg-muted/5 dark:bg-muted/10">
-            <div className="py-4 space-y-6">
+          <TableCell colSpan={5} className="bg-muted/5 p-6">
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Original Resume Metrics */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold">Original Resume Match</h4>
-                  <div className="space-y-4">
-                    {['overall', 'keywords', 'skills', 'experience'].map((metric) => (
+                  <h4 className="font-semibold text-sm">Original Resume Match</h4>
+                  <div className="space-y-3">
+                    {['keywords', 'skills', 'experience'].map((metric) => (
                       <div key={`before-${metric}`} className="space-y-2">
                         <div className="flex justify-between items-center text-sm">
                           <span className="capitalize">{metric}</span>
                           <span className="font-medium">
-                            {resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0}%
+                            {formatScore(resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0)}%
                           </span>
                         </div>
                         <Progress
@@ -386,16 +329,24 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     ))}
                   </div>
                 </div>
+
+                {/* Optimized Resume Metrics */}
                 <div className="space-y-4">
-                  <h4 className="font-semibold">Optimized Resume Match</h4>
-                  <div className="space-y-4">
-                    {['overall', 'keywords', 'skills', 'experience'].map((metric) => (
+                  <h4 className="font-semibold text-sm">Optimized Resume Match</h4>
+                  <div className="space-y-3">
+                    {['keywords', 'skills', 'experience'].map((metric) => (
                       <div key={`after-${metric}`} className="space-y-2">
                         <div className="flex justify-between items-center text-sm">
                           <span className="capitalize">{metric}</span>
-                          <span className="font-medium">
-                            {resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}%
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className={getMetricsColor(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0, 'text')}>
+                              {formatScore(resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0)}%
+                            </span>
+                            {getScoreImprovement(
+                              resume.metrics?.before?.[metric as keyof typeof resume.metrics.before] || 0,
+                              resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0
+                            )}
+                          </div>
                         </div>
                         <Progress
                           value={resume.metrics?.after?.[metric as keyof typeof resume.metrics.after] || 0}
@@ -405,6 +356,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     ))}
                   </div>
                 </div>
+              </div>
+
+              {/* Job Details Section */}
+              <div>
+                <h4 className="font-semibold text-sm mb-4">Job Details</h4>
+                {formatJobDetails(resume)}
               </div>
             </div>
           </TableCell>
@@ -419,9 +376,7 @@ export default function OptimizedResumesPage() {
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
-        const dateA = new Date(a.metadata.optimizedAt).getTime();
-        const dateB = new Date(b.metadata.optimizedAt).getTime();
-        return dateB - dateA;
+        return new Date(b.metadata.optimizedAt).getTime() - new Date(a.metadata.optimizedAt).getTime();
       });
     }
   });
@@ -431,8 +386,12 @@ export default function OptimizedResumesPage() {
       <div className="flex-1 h-full">
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-muted rounded w-1/4"></div>
-            <div className="h-32 bg-muted rounded"></div>
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+            <div className="space-y-2">
+              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 bg-muted rounded"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -447,16 +406,15 @@ export default function OptimizedResumesPage() {
         </div>
 
         {resumes && resumes.length > 0 ? (
-          <div className="border rounded-lg overflow-x-auto">
+          <div className="border rounded-lg overflow-hidden">
             <Table>
-              <TableHeader className="bg-primary/5 dark:bg-primary/10">
+              <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[30px]"></TableHead>
-                  <TableHead className="w-[100px] font-bold text-primary">Date</TableHead>
-                  <TableHead className="font-bold text-primary w-[30%]">Position</TableHead>
-                  <TableHead className="hidden sm:table-cell font-bold text-primary w-[20%]">Company</TableHead>
-                  <TableHead className="hidden lg:table-cell font-bold text-primary w-[20%]">Match Score</TableHead>
-                  <TableHead className="text-right font-bold text-primary w-[60px]">Actions</TableHead>
+                  <TableHead className="w-4"></TableHead>
+                  <TableHead className="w-[150px]">Date & Version</TableHead>
+                  <TableHead>Position & Company</TableHead>
+                  <TableHead className="hidden lg:table-cell w-[200px]">Match Score</TableHead>
+                  <TableHead className="w-[60px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
