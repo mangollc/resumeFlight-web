@@ -244,6 +244,12 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell">
+          {resume.jobDetails?.title || "N/A"}
+        </TableCell>
+        <TableCell className="hidden lg:table-cell">
+          {resume.jobDetails?.company || "N/A"}
+        </TableCell>
+        <TableCell className="hidden lg:table-cell">
           {getScoresDisplay(resume.metrics.after)}
         </TableCell>
         <TableCell className="text-right">
@@ -336,7 +342,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
       {isExpanded && (
         <TableRow>
-          <TableCell colSpan={5} className="bg-muted/30 border-t border-muted">
+          <TableCell colSpan={7} className="bg-muted/30 border-t border-muted">
             <div className="p-6 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">
@@ -507,6 +513,16 @@ export default function OptimizedResumesPage() {
                   <TableHead>
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                       Details
+                    </span>
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Job Position
+                    </span>
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Company Name
                     </span>
                   </TableHead>
                   <TableHead className="hidden lg:table-cell">
