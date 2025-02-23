@@ -41,6 +41,15 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     changes: [],
     confidence: 0
   }]),
+  matchScores: jsonb("match_scores").notNull().default({
+    before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
+    after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
+  }),
+  matchAnalysis: jsonb("match_analysis").notNull().default({
+    strengths: [],
+    gaps: [],
+    suggestions: []
+  }),
   metrics: jsonb("metrics").notNull().default({
     before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
     after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
@@ -297,32 +306,7 @@ export type ResumeDifferences = {
   }>;
 };
 
-export const resumeMatchScores = pgTable("resume_match_scores", {
-  id: serial("id").primaryKey(),
-  optimizedResumeId: integer("optimized_resume_id").notNull(),
-  userId: integer("user_id").notNull(),
-  originalScores: jsonb("original_scores").notNull().default({
-    overall: 0,
-    keywords: 0,
-    skills: 0,
-    experience: 0
-  }),
-  optimizedScores: jsonb("optimized_scores").notNull().default({
-    overall: 0,
-    keywords: 0,
-    skills: 0,
-    experience: 0
-  }),
-  analysis: jsonb("analysis").notNull().default({
-    strengths: [],
-    gaps: [],
-    suggestions: []
-  }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (table) => ({
-  optimizedResumeIdIdx: index("resume_match_scores_resume_id_idx").on(table.optimizedResumeId),
-  userIdIdx: index("resume_match_scores_user_id_idx").on(table.userId),
-}));
+
 
 // Add relations for match scores
 export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
