@@ -193,19 +193,19 @@ export default function Preview({ resume }: PreviewProps) {
       setIsScoresExpanded(true);
 
       // Update match scores state
-  setMatchScores({
-    originalScores: data.originalScores,
-    optimizedScores: data.optimizedScores,
-    analysis: data.analysis
-  });
+      setMatchScores({
+        originalScores: data.originalScores,
+        optimizedScores: data.optimizedScores,
+        analysis: data.analysis
+      });
 
-  if (data.optimizedScores.overall >= 80) {
-    setShowConfetti(true);
-    toast({
-      title: "Outstanding Achievement! 🎉",
-      description: "Your resume has achieved excellent optimization scores.",
-    });
-  }
+      if (data.optimizedScores.overall >= 80) {
+        setShowConfetti(true);
+        toast({
+          title: "Outstanding Achievement! 🎉",
+          description: "Your resume has achieved excellent optimization scores.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Analysis Failed",
@@ -427,61 +427,63 @@ export default function Preview({ resume }: PreviewProps) {
                       </div>
                     ))}
                   </div>
-                </div>e-y-3">
-                          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                            <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
-                          ))}
-                        </div>
-                      </CollapsibleContent>
-                    </div>
 
-                    {matchScores?.analysis && (
-                      <div className="mt-6 space-y-4 border-t pt-4">
-                        <h4 className="font-medium">Analysis Results</h4>
-                        {matchScores.analysis.strengths.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Strengths</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              {matchScores.analysis.strengths.map((strength, i) => (
-                                <li key={i} className="text-sm text-emerald-600 dark:text-emerald-400">
-                                  {strength}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {matchScores.analysis.gaps.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Areas for Improvement</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              {matchScores.analysis.gaps.map((gap, i) => (
-                                <li key={i} className="text-sm text-red-600 dark:text-red-400">
-                                  {gap}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {matchScores.analysis.suggestions.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Suggestions</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              {matchScores.analysis.suggestions.map((suggestion, i) => (
-                                <li key={i} className="text-sm text-blue-600 dark:text-blue-400">
-                                  {suggestion}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                  <div className="space-y-3 mt-4">
+                    {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
+                      <MetricRow 
+                        key={`after-${metric}`} 
+                        label={metric} 
+                        before={matchScores.originalScores[metric] || 0} 
+                        after={matchScores.optimizedScores[metric] || 0} 
+                      />
+                    ))}
                   </div>
                 </div>
               </CollapsibleContent>
             </Collapsible>
           )}
 
+          {matchScores?.analysis && (
+            <div className="mt-6 space-y-4 border-t pt-4">
+              <h4 className="font-medium">Analysis Results</h4>
+              {matchScores.analysis.strengths.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Strengths</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {matchScores.analysis.strengths.map((strength, i) => (
+                      <li key={i} className="text-sm text-emerald-600 dark:text-emerald-400">
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {matchScores.analysis.gaps.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Areas for Improvement</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {matchScores.analysis.gaps.map((gap, i) => (
+                      <li key={i} className="text-sm text-red-600 dark:text-red-400">
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {matchScores.analysis.suggestions.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Suggestions</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {matchScores.analysis.suggestions.map((suggestion, i) => (
+                      <li key={i} className="text-sm text-blue-600 dark:text-blue-400">
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
           <LoadingDialog
             open={isAnalyzing}
             onOpenChange={setIsAnalyzing}
@@ -505,7 +507,14 @@ export default function Preview({ resume }: PreviewProps) {
               },
             ]}
           />
-          <SavePrompt isOpen={isSavePromptOpen} onConfirm={() => {handleSave(editedContent); setIsSavePromptOpen(false);}} onCancel={() => setIsSavePromptOpen(false)}/>
+          <SavePrompt 
+            isOpen={isSavePromptOpen} 
+            onConfirm={() => {
+              handleSave(editedContent);
+              setIsSavePromptOpen(false);
+            }} 
+            onCancel={() => setIsSavePromptOpen(false)}
+          />
         </div>
       </CardContent>
     </Card>
