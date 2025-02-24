@@ -1465,15 +1465,19 @@ export function registerRoutes(app: Express): Server {
             }
 
             console.log("[Analyze] Calculating match scores...");
-            const originalScores = await calculateMatchScores(
-                optimizedResume.originalContent,
-                optimizedResume.jobDescription
-            );
-
-            const optimizedScores = await calculateMatchScores(
-                optimizedResume.content,
-                optimizedResume.jobDescription
-            );
+            const { originalScores, optimizedScores } = await storage.getResumeMatchScores(optimizedResume.id);
+            if (!originalScores || !optimizedScores) {
+                const newOriginalScores = await calculateMatchScores(
+                    optimizedResume.originalContent,
+                    optimizedResume.jobDescription
+                );
+                const newOptimizedScores = await calculateMatchScores(
+                    optimizedResume.content,
+                    optimizedResume.jobDescription
+                );
+                return { originalScores: newOriginalScores, optimizedScores: newOptimizedScores };
+            }
+            return { originalScores, optimizedScores };
 
             const matchScore = await storage.createResumeMatchScore({
                 optimizedResumeId: optimizedResume.id,
