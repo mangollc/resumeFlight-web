@@ -121,6 +121,9 @@ export default function Preview({ resume }: PreviewProps) {
   const { toast } = useToast();
   const [isEdited, setIsEdited] = useState(false); // Added state for edited status
   const [selectedFormat, setSelectedFormat] = useState('pdf'); // Added state for download format
+  const [isEditing, setIsEditing] = useState(false); // Added state for editing mode
+  const [editedContent, setEditedContent] = useState(resume?.content || ""); //State to hold edited content
+
 
   const handleSave = async (content: string) => {
     try {
@@ -134,6 +137,7 @@ export default function Preview({ resume }: PreviewProps) {
 
       if (!response.ok) throw new Error('Failed to save changes');
       setIsEdited(true);
+      setIsEditing(false); //Exit edit mode after save
       toast({
         title: "Success",
         description: "Changes saved successfully",
@@ -145,6 +149,10 @@ export default function Preview({ resume }: PreviewProps) {
         variant: "destructive",
       });
     }
+  };
+
+  const handleContentChange = (newContent: string) => {
+    setEditedContent(newContent);
   };
 
   const analyzeResume = async () => {
@@ -187,6 +195,10 @@ export default function Preview({ resume }: PreviewProps) {
       setMatchScores(null);
       setIsScoresExpanded(false);
       setIsEdited(false); // Reset edited status when resume changes
+      setEditedContent(""); // Clear edited content
+      setIsEditing(false); // Exit edit mode
+    } else {
+      setEditedContent(resume.content); //update edited content when resume changes.
     }
   }, [resume]);
 
@@ -323,7 +335,16 @@ export default function Preview({ resume }: PreviewProps) {
           </div>
 
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <RichTextEditor content={optimizedContent} readOnly={false} onChange={handleSave} /> {/* Added onChange handler */}
+            <div className="flex justify-end mb-4">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
+                {isEditing ? 'Save' : 'Edit'}
+              </Button>
+            </div>
+            {isEditing ? (
+              <RichTextEditor content={editedContent} onChange={handleContentChange} />
+            ) : (
+              <div className="whitespace-pre-wrap formatted-content">{optimizedContent}</div>
+            )}
           </div>
 
           {isOptimized && matchScores && (

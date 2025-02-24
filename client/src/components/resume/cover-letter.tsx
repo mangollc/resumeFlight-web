@@ -14,20 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface CoverLetterProps {
-  resume: OptimizedResume;
-  onGenerated?: (coverLetter: CoverLetterType) => void;
-  generatedCoverLetter?: CoverLetterType | null;
-  readOnly?: boolean;
-}
-
 // Placeholder RichTextEditor component
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
-const RichTextEditor = ({ content, readOnly, onChange }: { content: string; readOnly: boolean; onChange: (content: string) => void }) => {
+const RichTextEditor = ({ content, readOnly, onChange, menuItems }: { content: string; readOnly: boolean; onChange: (content: string) => void; menuItems?: string[] }) => {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, ...(menuItems ? menuItems.map(item => ({ name: item })) : [])],
     content: content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
@@ -353,18 +346,44 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
             </div>
 
             <div className="prose prose-sm max-w-none dark:prose-invert">
-              <div className="mb-4 flex items-center gap-2">
-                <span className="text-sm font-medium">Match Confidence:</span>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                  generatedCoverLetter?.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
-                    generatedCoverLetter?.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                }`}>
-                  {generatedCoverLetter?.confidence ?? 85}%
-                </span>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Match Confidence:</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                    generatedCoverLetter?.confidence >= 80 ? 'bg-emerald-100 text-emerald-700' :
+                      generatedCoverLetter?.confidence >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                  }`}>
+                    {generatedCoverLetter?.confidence ?? 85}%
+                  </span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setReadOnly(!readOnly)}
+                >
+                  {readOnly ? 'Edit' : 'Save'}
+                </Button>
               </div>
               <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
-                <RichTextEditor content={editorContent} readOnly={readOnly} onChange={handleContentChange} />
+                <RichTextEditor 
+                  content={editorContent} 
+                  readOnly={readOnly} 
+                  onChange={handleContentChange}
+                  menuItems={[
+                    'bold',
+                    'italic',
+                    'underline',
+                    'strike',
+                    'heading',
+                    'bulletList',
+                    'orderedList',
+                    'blockquote',
+                    'alignLeft',
+                    'alignCenter',
+                    'alignRight'
+                  ]}
+                />
               </div>
             </div>
           </CardContent>
