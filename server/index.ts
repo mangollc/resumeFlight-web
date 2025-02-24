@@ -34,9 +34,7 @@ app.use((req, res, next) => {
                 logLine = logLine.slice(0, 79) + "…";
             }
 
-            const date = new Date();
-            const estTime = date.toLocaleString("en-US", { timeZone: "America/New_York" });
-            log(logLine, "express", estTime);
+            log(logLine);
         }
     });
 

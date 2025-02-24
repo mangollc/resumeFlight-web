@@ -24,15 +24,11 @@ export const pool = new Pool({
 export const db = drizzle(pool, { schema });
 
 // Set timezone to EST for all connections
-pool.on('connect', async (client) => {
+pool.on('connect', (client) => {
   console.log('Database connection established');
-  try {
-    await client.query("SET timezone='EST'");
-    const result = await client.query('SHOW timezone');
-    console.log('Current timezone:', result.rows[0].TimeZone);
-  } catch (err) {
+  client.query("SET timezone='America/New_York';").catch(err => {
     console.error('Error setting timezone:', err);
-  }
+  });
 });
 
 pool.on('error', (err) => {
@@ -53,7 +49,7 @@ export const checkDatabaseConnection = async () => {
 
 // Helper function to get current EST timestamp
 export const getCurrentESTTimestamp = async () => {
-  const result = await pool.query('SELECT NOW() AT TIME ZONE \'EST\' as now');
+  const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
   return result.rows[0].now;
 };
 
