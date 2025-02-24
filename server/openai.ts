@@ -320,7 +320,7 @@ export async function generateCoverLetter(
   version?: number,
 ) {
   try {
-    const coverLetterVersion = version || 1.0;
+    const coverLetterVersion = parseFloat(version?.toString() || '1.0');
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
