@@ -448,6 +448,15 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     <>
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Strengths</h4>
+                         {resume.analysis?.strengths?.length > 0 ? (
+                           <ul className="list-disc list-inside space-y-1 text-sm">
+                             {resume.analysis.strengths.map((strength, i) => (
+                               <li key={i}>{strength}</li>
+                             ))}
+                           </ul>
+                         ) : (
+                           <p className="text-sm text-muted-foreground">No strengths found.</p>
+                         )}s</h4>
                         <ul className="space-y-2">
                           {resume.matchScore.analysis.strengths.map((strength, idx) => (
                             <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2">
