@@ -180,20 +180,21 @@ Return a JSON object in this exact format:
       education: Math.min(100, Math.max(0, Number(metrics.education) || 0)),
       personalization: Math.min(100, Math.max(0, Number(metrics.personalization) || 0)),
       aiReadiness: Math.min(100, Math.max(0, Number(metrics.aiReadiness) || 0)),
-      overall: Math.min(100, Math.max(0, 
-        (Number(metrics.keywords) * 0.25) +
-        (Number(metrics.skills) * 0.20) +
-        (Number(metrics.experience) * 0.20) +
-        (Number(metrics.education) * 0.15) +
-        (Number(metrics.personalization) * 0.10) +
-        (Number(metrics.aiReadiness) * 0.10) || 0
-      )),
       analysis: metrics.analysis || {
         strengths: [],
         gaps: [],
         suggestions: []
       }
     };
+
+    result.overall = Math.min(100, Math.max(0, Math.round(
+      (result.keywords * 0.25) +
+      (result.skills * 0.20) +
+      (result.experience * 0.20) +
+      (result.education * 0.15) +
+      (result.personalization * 0.10) +
+      (result.aiReadiness * 0.10)
+    )));
 
     // Calculate confidence score based on metrics
     const confidence = Math.round((result.keywords + result.skills + result.experience + result.overall) / 4);
@@ -488,7 +489,7 @@ export function registerRoutes(app: Express): Server {
                 "[Get Optimized] Fetching optimized resumes for user:",
                 req.user!.id,
             );
-            
+
             // Fetch optimized resumes with their match scores
             const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
             const resumesWithScores = await Promise.all(resumes.map(async (resume) => {
@@ -1515,6 +1516,14 @@ function getDefaultMetrics() {
         skills: 0,
         experience: 0,
         overall: 0,
+        education: 0,
+        personalization: 0,
+        aiReadiness: 0,
+        analysis: {
+          strengths: [],
+          gaps: [],
+          suggestions: []
+        }
     };
 }
 
