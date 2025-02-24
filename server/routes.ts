@@ -102,6 +102,9 @@ async function calculateMatchScores(
   keywords: number;
   skills: number;
   experience: number;
+  education: number;
+  personalization: number;
+  aiReadiness: number;
   overall: number;
   analysis: {
     strengths: string[];
@@ -180,12 +183,22 @@ Return a JSON object in this exact format:
       education: Math.min(100, Math.max(0, Number(metrics.education) || 0)),
       personalization: Math.min(100, Math.max(0, Number(metrics.personalization) || 0)),
       aiReadiness: Math.min(100, Math.max(0, Number(metrics.aiReadiness) || 0)),
-      analysis: metrics.analysis || {
-        strengths: [],
-        gaps: [],
-        suggestions: []
+      analysis: {
+        strengths: metrics.analysis?.strengths || [],
+        gaps: metrics.analysis?.gaps || [],
+        suggestions: metrics.analysis?.suggestions || []
       }
     };
+
+    // Calculate overall score with proper weighting
+    result.overall = Math.min(100, Math.max(0, Math.round(
+      (result.keywords * 0.25) +
+      (result.skills * 0.20) +
+      (result.experience * 0.20) +
+      (result.education * 0.15) +
+      (result.personalization * 0.10) +
+      (result.aiReadiness * 0.10)
+    )));
 
     result.overall = Math.min(100, Math.max(0, Math.round(
       (result.keywords * 0.25) +
