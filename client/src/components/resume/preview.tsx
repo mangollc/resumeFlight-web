@@ -393,16 +393,18 @@ export default function Preview({ resume }: PreviewProps) {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-6">
-                        <div className="space-y-4">
-                          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                            <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
-                          ))}
-                        </div>
-                      </div>
-                    </CollapsibleContent>
+                  <div className="space-y-4">
+                    {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
+                      <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
+                    ))}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
-                    {matchScores?.analysis && (
-                      <div className="mt-6 space-y-4 border-t pt-4">
+          {matchScores?.analysis && (
+            <div className="mt-6 space-y-4 border-t pt-4">
                         <h4 className="font-medium">Analysis Results</h4>
                         {matchScores.analysis.strengths.length > 0 && (
                           <div>
