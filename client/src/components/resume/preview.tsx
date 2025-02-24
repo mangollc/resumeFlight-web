@@ -119,6 +119,33 @@ export default function Preview({ resume }: PreviewProps) {
   } | null>(null);
   const [isScoresExpanded, setIsScoresExpanded] = useState(false);
   const { toast } = useToast();
+  const [isEdited, setIsEdited] = useState(false); // Added state for edited status
+  const [selectedFormat, setSelectedFormat] = useState('pdf'); // Added state for download format
+
+  const handleSave = async (content: string) => {
+    try {
+      const response = await fetch(`/api/optimized-resume/${resume.id}/edit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save changes');
+      setIsEdited(true);
+      toast({
+        title: "Success",
+        description: "Changes saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save changes",
+        variant: "destructive",
+      });
+    }
+  };
 
   const analyzeResume = async () => {
     if (!resume || !("id" in resume)) return;
@@ -159,6 +186,7 @@ export default function Preview({ resume }: PreviewProps) {
     if (!resume) {
       setMatchScores(null);
       setIsScoresExpanded(false);
+      setIsEdited(false); // Reset edited status when resume changes
     }
   }, [resume]);
 
@@ -190,8 +218,34 @@ export default function Preview({ resume }: PreviewProps) {
           .toLowerCase()
           .substring(0, 30)
       : "resume";
-    return `${initials}_${jobTitle}`;
+    return `${initials}_${jobTitle}_${isEdited ? 'edited' : 'original'}`;
   };
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(
+        `/api/optimized-resume/${resume.id}/download?format=${selectedFormat}&edited=${isEdited}`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to download resume");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${formatFilename()}.${selectedFormat}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "Unable to download the resume. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   return (
     <Card className="h-full">
@@ -222,15 +276,10 @@ export default function Preview({ resume }: PreviewProps) {
               <div className="flex items-center gap-2">
                 {isOptimized && (
                   <>
-                    <a
-                      href={`/api/optimized-resume/${(resume as OptimizedResume).id}/download?filename=${formatFilename()}.pdf`}
-                      download
-                    >
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Resume
-                      </Button>
-                    </a>
+                    <Button onClick={handleDownload} variant="outline" size="sm">
+                      <Download className="h-4 w-4 mr-2" />
+                      Download Resume
+                    </Button>
                     <Button
                       variant="default"
                       size="sm"
@@ -274,7 +323,7 @@ export default function Preview({ resume }: PreviewProps) {
           </div>
 
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <RichTextEditor content={optimizedContent} readOnly={false} onChange={() => {}} />
+            <RichTextEditor content={optimizedContent} readOnly={false} onChange={handleSave} /> {/* Added onChange handler */}
           </div>
 
           {isOptimized && matchScores && (

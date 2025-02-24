@@ -55,7 +55,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const [selectedVersion, setSelectedVersion] = useState<string>("");
   const [versions, setVersions] = useState<string[]>([]);
   const [currentCoverLetter, setCurrentCoverLetter] = useState<string>("");
-  const [editorContent, setEditorContent] = useState(""); // Added state for rich text editor content
+  const [editorContent, setEditorContent] = useState("");
+  const [isEdited, setIsEdited] = useState(false);
 
   useEffect(() => {
     if (generatedCoverLetter?.metadata?.version) {
@@ -185,34 +186,46 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     },
   });
 
-  const handleDownload = async () => {
-    if (!generatedCoverLetter?.id) return;
+  const handleSave = async (content: string) => {
+    try {
+      const response = await fetch(`/api/cover-letter/${generatedCoverLetter?.id}/edit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content }),
+      });
 
+      if (!response.ok) throw new Error('Failed to save changes');
+      setIsEdited(true);
+      toast({
+        title: "Success",
+        description: "Changes saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save changes",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownload = async () => {
     try {
       setIsDownloading(true);
+      const filename = isEdited ? 'cover_letter_edited' : 'cover_letter';
       const response = await fetch(
-        `/api/cover-letter/${generatedCoverLetter.id}/download?format=${selectedFormat}&version=${selectedVersion}`,
-        {
-          headers: {
-            'Accept': selectedFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          }
-        }
+        `/api/cover-letter/${generatedCoverLetter?.id}/download?format=${selectedFormat}&edited=${isEdited}`
       );
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || 'Download failed');
-      }
+      if (!response.ok) throw new Error('Failed to download');
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
-      a.download = formatDownloadFilename(
-        generatedCoverLetter.metadata.filename || 'cover_letter',
-        resume.jobDetails?.title || '',
-        selectedVersion
-      );
+      a.download = `${filename}_v${selectedVersion}.${selectedFormat}`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -221,13 +234,11 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       toast({
         title: "Success",
         description: `Cover letter downloaded successfully as ${selectedFormat.toUpperCase()}`,
-        duration: 2000,
       });
     } catch (error) {
-      console.error('Download error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download cover letter",
+        description: "Failed to download cover letter",
         variant: "destructive",
       });
     } finally {
@@ -237,6 +248,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const handleContentChange = (newContent: string) => {
     setCurrentCoverLetter(newContent);
+    handleSave(newContent); // Save changes immediately
   };
 
   const formatDownloadFilename = (filename: string, jobTitle: string, version: string): string => {

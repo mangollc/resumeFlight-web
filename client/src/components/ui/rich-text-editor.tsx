@@ -1,66 +1,51 @@
-
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useState, useEffect } from 'react';
 import { Button } from './button';
-import { Bold, Italic, List, ListOrdered } from 'lucide-react';
+import { Save } from 'lucide-react';
 
 interface RichTextEditorProps {
   content: string;
-  onChange?: (content: string) => void;
   readOnly?: boolean;
+  onSave?: (content: string) => void;
 }
 
-export function RichTextEditor({ content, onChange, readOnly = false }: RichTextEditorProps) {
+export function RichTextEditor({ content, readOnly = false, onSave }: RichTextEditorProps) {
+  const [isEdited, setIsEdited] = useState(false);
+
   const editor = useEditor({
     extensions: [StarterKit],
     content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
-      onChange?.(editor.getHTML());
+      setIsEdited(true);
     },
   });
 
-  if (!editor) return null;
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
+
+  const handleSave = () => {
+    if (editor && onSave) {
+      onSave(editor.getHTML());
+      setIsEdited(false);
+    }
+  };
 
   return (
     <div className="border rounded-md">
-      {!readOnly && (
-        <div className="border-b p-2 flex gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            className={editor.isActive('bold') ? 'bg-muted' : ''}
-          >
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={editor.isActive('italic') ? 'bg-muted' : ''}
-          >
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive('bulletList') ? 'bg-muted' : ''}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            className={editor.isActive('orderedList') ? 'bg-muted' : ''}
-          >
-            <ListOrdered className="h-4 w-4" />
+      <EditorContent editor={editor} className="p-4 min-h-[200px]" />
+      {!readOnly && isEdited && (
+        <div className="flex justify-end border-t p-2 bg-muted/20">
+          <Button onClick={handleSave} size="sm">
+            <Save className="w-4 h-4 mr-2" />
+            Save Changes
           </Button>
         </div>
       )}
-      <EditorContent className="prose max-w-none p-4" editor={editor} />
     </div>
   );
 }
