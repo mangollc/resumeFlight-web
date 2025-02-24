@@ -11,12 +11,12 @@ interface ComparisonSliderProps {
   onFullScreen?: () => void;
 }
 
-export default function ComparisonSlider({ 
-  beforeContent, 
-  afterContent, 
+export default function ComparisonSlider({
+  beforeContent,
+  afterContent,
   isLoading = false,
   showFullScreen = false,
-  onFullScreen
+  onFullScreen,
 }: ComparisonSliderProps) {
   const [isResizing, setIsResizing] = useState(false);
   const [position, setPosition] = useState(50);
@@ -30,7 +30,7 @@ export default function ComparisonSlider({
       if (!isResizing || !range) return;
 
       const rangeRect = range.getBoundingClientRect();
-      const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const x = "touches" in e ? e.touches[0].clientX : e.clientX;
       const position = ((x - rangeRect.left) / rangeRect.width) * 100;
 
       setPosition(Math.min(Math.max(0, position), 100));
@@ -39,17 +39,17 @@ export default function ComparisonSlider({
     const stopResizing = () => setIsResizing(false);
 
     if (isResizing) {
-      document.addEventListener('mousemove', updatePosition);
-      document.addEventListener('touchmove', updatePosition);
-      document.addEventListener('mouseup', stopResizing);
-      document.addEventListener('touchend', stopResizing);
+      document.addEventListener("mousemove", updatePosition);
+      document.addEventListener("touchmove", updatePosition);
+      document.addEventListener("mouseup", stopResizing);
+      document.addEventListener("touchend", stopResizing);
     }
 
     return () => {
-      document.removeEventListener('mousemove', updatePosition);
-      document.removeEventListener('touchmove', updatePosition);
-      document.removeEventListener('mouseup', stopResizing);
-      document.removeEventListener('touchend', stopResizing);
+      document.removeEventListener("mousemove", updatePosition);
+      document.removeEventListener("touchmove", updatePosition);
+      document.removeEventListener("mouseup", stopResizing);
+      document.removeEventListener("touchend", stopResizing);
     };
   }, [isResizing]);
 
@@ -57,19 +57,23 @@ export default function ComparisonSlider({
     const originalWords = original.split(/\s+/);
     const optimizedWords = optimized.split(/\s+/);
 
-    return optimizedWords.map((word, index) => {
-      const isNew = !originalWords.includes(word);
-      return isNew ? 
-        `<span class="bg-green-200/30 px-1 rounded">${word}</span>` : 
-        word;
-    }).join(' ');
+    return optimizedWords
+      .map((word, index) => {
+        const isNew = !originalWords.includes(word);
+        return isNew
+          ? `<span class="bg-green-200/30 px-1 rounded">${word}</span>`
+          : word;
+      })
+      .join(" ");
   };
 
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] h-full w-full bg-background/50 rounded-lg border">
         <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-        <p className="text-sm text-muted-foreground">Generating comparison...</p>
+        <p className="text-sm text-muted-foreground">
+          Generating comparison...
+        </p>
       </div>
     );
   }
@@ -87,12 +91,12 @@ export default function ComparisonSlider({
       </div>
 
       {/* Comparison Container */}
-      <div 
+      <div
         className="relative w-full h-[400px] overflow-hidden rounded-lg border bg-background shadow-lg"
         ref={rangeRef}
       >
         {/* Original Content (Left Side) */}
-        <div 
+        <div
           className="absolute inset-0 w-full h-full bg-red-50/5"
           style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
         >
@@ -104,15 +108,15 @@ export default function ComparisonSlider({
         </div>
 
         {/* Optimized Content (Right Side) */}
-        <div 
+        <div
           className="absolute inset-0 w-full h-full bg-green-50/5"
           style={{ clipPath: `inset(0 0 0 ${position}%)` }}
         >
           <div className="h-full overflow-auto p-4">
-            <pre 
+            <pre
               className="whitespace-pre-wrap font-sans text-sm"
-              dangerouslySetInnerHTML={{ 
-                __html: highlightDifferences(beforeContent, afterContent) 
+              dangerouslySetInnerHTML={{
+                __html: highlightDifferences(beforeContent, afterContent),
               }}
             />
           </div>
@@ -136,13 +140,15 @@ export default function ComparisonSlider({
               isResizing && "scale-110 shadow-2xl",
               "after:absolute after:inset-0 after:rounded-full after:shadow-[0_0_0_12px_rgba(var(--primary),.1)]",
               "after:transition-transform after:duration-200",
-              isResizing && "after:scale-110"
+              isResizing && "after:scale-110",
             )}
           >
-            <ArrowLeftRight className={cn(
-              "h-6 w-6 text-primary transition-all duration-200",
-              isResizing && "scale-110"
-            )} />
+            <ArrowLeftRight
+              className={cn(
+                "h-6 w-6 text-primary transition-all duration-200",
+                isResizing && "scale-110",
+              )}
+            />
           </div>
         </div>
       </div>

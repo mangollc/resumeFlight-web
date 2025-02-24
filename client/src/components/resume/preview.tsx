@@ -3,8 +3,6 @@ import { FileText, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Scale, ZoomIn } from "lucide-react";
-import { OptimizedResume } from "@shared/schema";
 
 const RichTextEditor = ({
   content,
@@ -17,15 +15,16 @@ const RichTextEditor = ({
 }) => {
   return (
     <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
-      <pre className="whitespace-pre-wrap font-sans text-sm">
-        {content}
-      </pre>
+      <pre className="whitespace-pre-wrap font-sans text-sm">{content}</pre>
     </div>
   );
 };
 
 interface PreviewProps {
-  resume: OptimizedResume;
+  resume: {
+    id?: number;
+    content: string;
+  };
 }
 
 interface MatchScores {
@@ -59,11 +58,10 @@ export default function Preview({ resume }: PreviewProps) {
   const [matchScores, setMatchScores] = useState<MatchScores | null>(null);
   const [isScoresExpanded, setIsScoresExpanded] = useState(false);
   const [isEdited, setIsEdited] = useState(false);
-  const [selectedFormat, setSelectedFormat] = useState('pdf');
+  const [selectedFormat, setSelectedFormat] = useState("pdf");
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(resume?.content || "");
   const [isSavePromptOpen, setIsSavePromptOpen] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
   const renderScores = () => {
@@ -88,84 +86,15 @@ export default function Preview({ resume }: PreviewProps) {
     );
   };
 
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    try {
-      const response = await fetch(`/api/optimized-resume/${resume.id}/download`);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `optimized-resume-v${resume.version}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleAnalyzeMatch = async () => {
-    setIsAnalyzing(true);
-    try {
-      const response = await fetch(`/api/optimized-resume/${resume.id}/analyze-match`);
-      const data = await response.json();
-      // Handle the analysis data
-      console.log(data);
-    } catch (error) {
-      console.error('Analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   return (
     <Card className="w-full">
       <CardContent className="p-6">
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h3 className="text-lg font-semibold">Optimized Resume</h3>
-              <p className="text-sm text-muted-foreground">
-                Version {resume.version} • {resume.metadata?.filename}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleAnalyzeMatch} disabled={isAnalyzing}>
-                {isAnalyzing ? (
-                  <>Analyzing...</>
-                ) : (
-                  <>
-                    <Scale className="w-4 h-4 mr-2" />
-                    Analyze Match
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload} disabled={isDownloading}>
-                {isDownloading ? (
-                  <>Downloading...</>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </>
-                )}
-              </Button>
-              <Button variant="outline" size="sm">
-                <FileText className="w-4 h-4 mr-2" />
-                Compare
-              </Button>
-              <Button variant="outline" size="sm">
-                <ZoomIn className="w-4 h-4 mr-2" />
-                View Full
-              </Button>
-            </div>
-          </div>
-          <div className="prose prose-sm max-w-none dark:prose-invert">
-            <div dangerouslySetInnerHTML={{ __html: resume.content }} />
-          </div>
+          <RichTextEditor
+            content={isEditing ? editedContent : resume.content}
+            readOnly={!isEditing}
+            onChange={setEditedContent}
+          />
           {matchScores && renderScores()}
         </div>
       </CardContent>
