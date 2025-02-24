@@ -447,33 +447,33 @@ export default function Preview({ resume }: PreviewProps) {
         </div>
       </CardContent>
     </Card>
-
-          <LoadingDialog
-            open={isAnalyzing}
-            onOpenChange={setIsAnalyzing}
-            title="Analyzing Resume"
-            description="Please wait while we analyze your resume against the job requirements..."
-            steps={[
-              {
-                id: "analyze",
-                label: "Analyzing resume content",
-                status: isAnalyzing ? "loading" : "completed",
-              },
-              {
-                id: "compare",
-                label: "Comparing with job requirements",
-                status: isAnalyzing ? "loading" : "completed",
-              },
-              {
-                id: "calculate",
-                label: "Calculating match scores",
-                status: isAnalyzing ? "loading" : "completed",
-              },
-            ]}
-          />
-          <SavePrompt isOpen={isSavePromptOpen} onConfirm={() => {handleSave(editedContent); setIsSavePromptOpen(false);}} onCancel={() => setIsSavePromptOpen(false)}/>
-        </div>
-      </CardContent>
-    </Card>
+    <LoadingDialog
+      open={isAnalyzing}
+      onOpenChange={setIsAnalyzing}
+      title="Analyzing Resume"
+      description="Please wait while we analyze your resume against the job requirements..."
+      steps={[
+        {
+          id: "analyze",
+          label: "Analyzing resume content",
+          status: isAnalyzing ? "loading" : "completed",
+        },
+        {
+          id: "compare",
+          label: "Comparing with job requirements",
+          status: isAnalyzing ? "loading" : "completed",
+        },
+        {
+          id: "calculate",
+          label: "Calculating match scores",
+          status: isAnalyzing ? "loading" : "completed",
+        },
+      ]}
+    />
+    <SavePrompt 
+      isOpen={isSavePromptOpen} 
+      onConfirm={() => {handleSave(editedContent); setIsSavePromptOpen(false);}} 
+      onCancel={() => setIsSavePromptOpen(false)}
+    />
   );
 }
