@@ -126,7 +126,7 @@ const RichTextEditor = ({ content, readOnly, onChange }: { content: string; read
 };
 
 
-export function ResumePreview({ resume }: PreviewProps) {
+export default function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
