@@ -64,17 +64,19 @@ export async function analyzeResumeDifferences(
         messages: [
           {
             role: "system",
-            content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes.
-Return a JSON object with the following structure:
+            content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes.  Provide a detailed analysis including scoring for each change based on its impact (clarity, keyword relevance, conciseness, ATS compatibility, and overall effectiveness).  Return a JSON object with the following structure:
+
 {
   "changes": [
     {
       "original": "text from original resume",
       "optimized": "corresponding text from optimized resume",
       "type": "improvement type (e.g., 'clarity', 'keywords', 'structure', 'accomplishments')",
-      "reason": "brief explanation of why this change improves the resume"
+      "reason": "brief explanation of why this change improves the resume",
+      "score": <number between 0-100>
     }
-  ]
+  ],
+  "overallScore": <number between 0-100>
 }`,
           },
           {
@@ -94,7 +96,7 @@ Return a JSON object with the following structure:
       allChanges.push(...(result.changes || []));
     }
 
-    return { changes: allChanges };
+    return { changes: allChanges, overallScore: result.overallScore };
   } catch (err) {
     const error = err as Error;
     console.error("[Differences] Analysis error:", error);
