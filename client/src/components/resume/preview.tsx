@@ -288,10 +288,11 @@ export default function Preview({ resume }: PreviewProps) {
 
 
   return (
-    <Card className="h-full">
-      <Confetti trigger={showConfetti} />
-      <CardContent className="p-6">
-        <div className="space-y-4">
+    <div className="space-y-4">
+      <Card className="h-full">
+        <Confetti trigger={showConfetti} />
+        <CardContent className="p-6">
+          <div className="space-y-4">
           <div className="flex flex-col space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -445,35 +446,36 @@ export default function Preview({ resume }: PreviewProps) {
             </div>
           )}
         </div>
-      </CardContent>
-    </Card>
-    <LoadingDialog
-      open={isAnalyzing}
-      onOpenChange={setIsAnalyzing}
-      title="Analyzing Resume"
-      description="Please wait while we analyze your resume against the job requirements..."
-      steps={[
-        {
-          id: "analyze",
-          label: "Analyzing resume content",
-          status: isAnalyzing ? "loading" : "completed",
-        },
-        {
-          id: "compare",
-          label: "Comparing with job requirements",
-          status: isAnalyzing ? "loading" : "completed",
-        },
-        {
-          id: "calculate",
-          label: "Calculating match scores",
-          status: isAnalyzing ? "loading" : "completed",
-        },
-      ]}
-    />
-    <SavePrompt 
-      isOpen={isSavePromptOpen} 
-      onConfirm={() => {handleSave(editedContent); setIsSavePromptOpen(false);}} 
-      onCancel={() => setIsSavePromptOpen(false)}
-    />
+        </CardContent>
+      </Card>
+      <LoadingDialog
+        open={isAnalyzing}
+        onOpenChange={setIsAnalyzing}
+        title="Analyzing Resume"
+        description="Please wait while we analyze your resume against the job requirements..."
+        steps={[
+          {
+            id: "analyze",
+            label: "Analyzing resume content",
+            status: isAnalyzing ? "loading" : "completed",
+          },
+          {
+            id: "compare",
+            label: "Comparing with job requirements",
+            status: isAnalyzing ? "loading" : "completed",
+          },
+          {
+            id: "calculate",
+            label: "Calculating match scores",
+            status: isAnalyzing ? "loading" : "completed",
+          },
+        ]}
+      />
+      <SavePrompt 
+        isOpen={isSavePromptOpen} 
+        onConfirm={() => {handleSave(editedContent); setIsSavePromptOpen(false);}} 
+        onCancel={() => setIsSavePromptOpen(false)}
+      />
+    </div>
   );
 }
