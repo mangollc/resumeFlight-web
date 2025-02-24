@@ -433,7 +433,7 @@ export default function Preview({ resume }: PreviewProps) {
                           ))}
                         </div>
                       </CollapsibleContent>
-                    </Collapsible>
+                    </div>
 
                     {matchScores?.analysis && (
                       <div className="mt-6 space-y-4 border-t pt-4">
