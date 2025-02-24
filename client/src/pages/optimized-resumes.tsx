@@ -449,7 +449,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Strengths</h4>
                         <ul className="space-y-2">
-                          {resume.matchScore.analysis.strengths.map((strength, idx) => (
+                          {resume.matchScore?.analysis?.strengths?.map((strength, idx) => (
                             <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2">
                               <span>•</span>
                               <span>{strength}</span>
@@ -460,7 +460,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Gaps</h4>
                         <ul className="space-y-2">
-                          {resume.matchScore.analysis.gaps.map((gap, idx) => (
+                          {resume.matchScore?.analysis?.gaps?.map((gap, idx) => (
                             <li key={idx} className="text-sm text-red-600 dark:text-red-400 flex gap-2">
                               <span>•</span>
                               <span>{gap}</span>
@@ -471,7 +471,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Suggestions</h4>
                         <ul className="space-y-2">
-                          {resume.matchScore.analysis.suggestions.map((suggestion, idx) => (
+                          {resume.matchScore?.analysis?.suggestions?.map((suggestion, idx) => (
                             <li key={idx} className="text-sm text-blue-600 dark:text-blue-400 flex gap-2">
                               <span>•</span>
                               <span>{suggestion}</span>
