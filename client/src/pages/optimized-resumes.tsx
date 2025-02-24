@@ -514,9 +514,8 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </>
                   )}
                 </div>
-              </div>
-            </div>
-          </TableCell>
+              </TableCell>
+            </TableRow>
         </TableRow>
       )}
     </>
