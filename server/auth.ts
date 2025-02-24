@@ -1,11 +1,11 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
-import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { sessionConfig } from "./session";
 
 declare global {
   namespace Express {
@@ -14,7 +14,6 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
-const ONE_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
@@ -29,29 +28,14 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-// Authentication configuration
-const getSessionSettings = (): session.SessionOptions => ({
-  secret: process.env.REPL_ID!,
-  resave: false,
-  saveUninitialized: false,
-  store: storage.sessionStore,
-  cookie: {
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  },
-  rolling: true
-});
-
 // Auth setup function
 export function setupAuth(app: Express) {
-  const sessionSettings = getSessionSettings();
-
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
   }
 
-  app.use(session(sessionSettings));
+  // Use the new session configuration
+  app.use(sessionConfig);
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -66,18 +50,31 @@ export function setupAuth(app: Express) {
           }
           return done(null, user);
         } catch (error) {
+          console.error('[Auth] Login error:', error);
           return done(error);
         }
       }
     )
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    try {
+      done(null, user.id);
+    } catch (error) {
+      console.error('[Auth] Serialize error:', error);
+      done(error);
+    }
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(new Error('User not found'));
+      }
       done(null, user);
     } catch (error) {
+      console.error('[Auth] Deserialize error:', error);
       done(error);
     }
   });
@@ -96,39 +93,71 @@ export function setupAuth(app: Express) {
       });
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error('[Auth] Registration login error:', err);
+          return next(err);
+        }
         res.status(201).json(user);
       });
     } catch (error) {
+      console.error('[Auth] Registration error:', error);
       next(error);
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        console.error('[Auth] Login error:', err);
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error('[Auth] Session creation error:', loginErr);
+          return next(loginErr);
+        }
+        res.status(200).json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
-      if (err) return next(err);
-      res.sendStatus(200);
+      if (err) {
+        console.error('[Auth] Logout error:', err);
+        return next(err);
+      }
+      req.session.destroy((destroyErr) => {
+        if (destroyErr) {
+          console.error('[Auth] Session destruction error:', destroyErr);
+          return next(destroyErr);
+        }
+        res.sendStatus(200);
+      });
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
     res.json(req.user);
   });
 
-  // Add endpoint to update user profile
   app.patch("/api/user", async (req, res, next) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
     try {
       const user = await storage.updateUser(req.user.id, {
         name: req.body.name,
       });
       res.json(user);
     } catch (error) {
+      console.error('[Auth] User update error:', error);
       next(error);
     }
   });
