@@ -572,11 +572,11 @@ export default function OptimizedResumesPage() {
           </div>
         ) : (
           <div className="text-center py-16 bg-gradient-to-b from-background to-muted/20 rounded-lg border-2 border-dashed">
-            <FileText className="mx-auto h-16 w-16 text-primary/60 animate-pulse" />
-            <h3 className="mt-6 text-xl font-semibold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">
+            <FileText className="mx-auto h-16 w-16 text-primary/60 animate-heartbeat" />
+            <h3 className="mt-6 text-xl font-semibold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent animate-typing">
               Ready to Enhance Your Resume?
             </h3>
-            <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+            <p className="text-muted-foreground mt-2 max-w-sm mx-auto opacity-0 animate-[fadeIn_1s_ease-in_forwards_0.5s]">
               Transform your resume with AI-powered optimization to stand out from the crowd
             </p>
           </div>
