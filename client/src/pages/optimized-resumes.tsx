@@ -493,17 +493,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                   {resume.matchScore?.analysis && (
                     <>
                       <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Strengths</h4>
-                        <ul className="space-y-2">
-                          {resume.matchScore?.analysis?.strengths?.map((strength, idx) => (
-                            <li key={idx} className="text-sm text-emerald-600 dark:text-emerald-400 flex gap-2">
-                              <span>•</span>
-                              <span>{strength}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
                         <h4 className="font-medium text-sm">Matches</h4>
                         <ul className="space-y-2">
                           {resume.matchScore?.analysis?.matches?.map((match, idx) => (
