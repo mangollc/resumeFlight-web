@@ -40,19 +40,26 @@ const getScoreLabel = (score: number): string => {
   return "Needs Improvement";
 };
 
-const MetricRow = ({ label, before, after }: { label: string; before?: number; after: number }) => {
-  const scoreLabel = getScoreLabel(after);
+const Progress = ({ value, className }: { value: number; className: string }) => {
+  return (
+    <div
+      className={cn("h-2 rounded-full bg-muted", className)}
+      style={{ width: `${value}%` }}
+    />
+  );
+};
+
+
+const MetricRow = ({ label, before, after }: { label: string; before: number; after: number }) => {
+  const scoreLabelAfter = getScoreLabel(after);
+  const scoreLabelBefore = getScoreLabel(before);
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center text-sm">
         <span className="font-medium">{label}</span>
         <div className="flex items-center gap-2">
-          {before !== undefined && (
-            <>
-              <span className="text-muted-foreground">Before: {before}%</span>
-              <span className="text-muted-foreground" aria-hidden="true">→</span>
-            </>
-          )}
+          <span className="text-muted-foreground">Before: {before}% ({scoreLabelBefore})</span>
+          <span className="text-muted-foreground" aria-hidden="true">→</span>
           <span
             className={cn(
               "font-medium px-2 py-0.5 rounded text-xs",
@@ -64,28 +71,13 @@ const MetricRow = ({ label, before, after }: { label: string; before?: number; a
             )}
             aria-label={`Current score: ${after}%`}
           >
-            {after}%
+            {after}% ({scoreLabelAfter})
           </span>
         </div>
       </div>
-      <div
-        className="relative h-2 overflow-hidden rounded-full bg-muted"
-        role="progressbar"
-        aria-valuenow={after}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${label} progress: ${after}%`}
-      >
-        <div
-          className={cn(
-            "h-full transition-all duration-500 ease-out rounded-full",
-            getMetricsColor(after)
-          )}
-          style={{ width: `${after}%` }}
-        />
-      </div>
-      <div className="text-xs text-muted-foreground" aria-label={scoreLabel}>
-        {scoreLabel}
+      <div className="flex gap-2">
+        <Progress value={before} className={getMetricsColor(before)} />
+        <Progress value={after} className={getMetricsColor(after)} />
       </div>
     </div>
   );
@@ -174,11 +166,11 @@ export default function Preview({ resume }: PreviewProps) {
 
       // Update match scores state
   setMatchScores({
-    before: data.originalScores,
-    after: data.optimizedScores,
+    originalScores: data.originalScores,
+    optimizedScores: data.optimizedScores,
     analysis: data.analysis
   });
-  
+
   if (data.optimizedScores.overall >= 80) {
     setShowConfetti(true);
     toast({
@@ -348,7 +340,7 @@ export default function Preview({ resume }: PreviewProps) {
               </Button>
             </div>
             {isEditing ? (
-              <RichTextEditor content={editedContent} onChange={handleContentChange} />
+              <RichTextEditor content={editedContent} onChange={handleContentChange} readOnly={false} />
             ) : (
               <div className="whitespace-pre-wrap formatted-content">{optimizedContent}</div>
             )}
@@ -367,27 +359,23 @@ export default function Preview({ resume }: PreviewProps) {
               <CollapsibleContent>
                 <div className="mt-6 space-y-6">
                   <div className="space-y-4">
-                    <div className="grid gap-6">
-                      <MetricRow
-                        label="Match Score"
-                        before={matchScores.originalScores.overall}
-                        after={matchScores.optimizedScores.overall}
-                      />
-                      <MetricRow
-                        label="Keyword Alignment"
-                        before={matchScores.originalScores.keywords}
-                        after={matchScores.optimizedScores.keywords}
-                      />
-                      <MetricRow
-                        label="Skills Match"
-                        before={matchScores.originalScores.skills}
-                        after={matchScores.optimizedScores.skills}
-                      />
-                      <MetricRow
-                        label="Experience Relevance"
-                        before={matchScores.originalScores.experience}
-                        after={matchScores.optimizedScores.experience}
-                      />
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Before Optimization</h4>
+                        <div className="space-y-3">
+                          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
+                            <MetricRow key={`before-${metric}`} label={metric} before={matchScores.originalScores[metric]} after={matchScores.optimizedScores[metric]} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="font-medium">After Optimization</h4>
+                        <div className="space-y-3">
+                          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
+                            <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric]} after={matchScores.optimizedScores[metric]} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
                     {matchScores?.analysis && (
