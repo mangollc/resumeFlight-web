@@ -141,18 +141,32 @@ Scoring Guidelines:
    - Evaluate accomplishments
    - Check for industry alignment
 
-4. Overall (0-100):
-   - Calculate weighted average favoring most critical factors
-   - Consider ATS optimization level
-   - Account for presentation and clarity
-   - Factor in quantifiable achievements
+4. Education (0-100):
+   - Evaluate educational requirements match
+   - Consider relevant certifications
+   - Look at educational achievements
+   - Check for field alignment
 
-Return a JSON object in this exact format:
+5. Personalization (0-100):
+   - Assess resume tailoring to job
+   - Check for targeted content
+   - Evaluate role-specific emphasis
+   - Consider format appropriateness
+
+6. AI Readiness (0-100):
+   - Review ATS compatibility
+   - Check machine readability
+   - Assess format consistency
+   - Evaluate structure clarity
+
+Return a JSON object with exact numeric scores and analysis:
 {
  "keywords": <number between 0-100>,
  "skills": <number between 0-100>,
  "experience": <number between 0-100>,
- "overall": <number between 0-100>,
+ "education": <number between 0-100>,
+ "personalization": <number between 0-100>,
+ "aiReadiness": <number between 0-100>,
  "analysis": {
    "strengths": ["list of strong matches"],
    "gaps": ["list of potential gaps"],
@@ -190,7 +204,7 @@ Return a JSON object in this exact format:
       }
     };
 
-    // Calculate overall score with proper weighting
+    // Calculate overall score with proper weighting including all metrics
     result.overall = Math.min(100, Math.max(0, Math.round(
       (result.keywords * 0.25) +
       (result.skills * 0.20) +
@@ -200,17 +214,11 @@ Return a JSON object in this exact format:
       (result.aiReadiness * 0.10)
     )));
 
-    result.overall = Math.min(100, Math.max(0, Math.round(
-      (result.keywords * 0.25) +
-      (result.skills * 0.20) +
-      (result.experience * 0.20) +
-      (result.education * 0.15) +
-      (result.personalization * 0.10) +
-      (result.aiReadiness * 0.10)
-    )));
-
-    // Calculate confidence score based on metrics
-    const confidence = Math.round((result.keywords + result.skills + result.experience + result.overall) / 4);
+    // Calculate confidence score based on all available metrics
+    const confidence = Math.round(
+      (result.keywords + result.skills + result.experience + 
+       result.education + result.personalization + result.aiReadiness) / 6
+    );
     result.confidence = confidence;
 
     console.log("[Match Analysis] Calculated scores:", result);
@@ -870,7 +878,9 @@ export function registerRoutes(app: Express): Server {
                     },
                     metrics: {
                       before: beforeScores,
-                      after: afterScores
+                      after: afterScores,
+                      improvements: optimized.changes || [],
+                      confidence: afterScores.confidence
                     },
                     versionMetrics: [{
                       version: '1.0',
@@ -881,7 +891,20 @@ export function registerRoutes(app: Express): Server {
                       confidence: confidence,
                       timestamp: new Date().toISOString()
                     }],
-                    confidence: confidence
+                    confidence: confidence                });
+
+                // Create match score record
+                await storage.createResumeMatchScore({
+                  userId: req.user!.id,
+                  optimizedResumeId: optimizedResume.id,
+                  originalScores: beforeScores,
+                  optimizedScores: afterScores,
+                  analysis: {
+                    improvements: optimized.changes || [],
+                    matches: afterScores.analysis.strengths,
+                    gaps: afterScores.analysis.gaps,
+                    suggestions: afterScores.analysis.suggestions
+                  }
                 });
 
                 console.log("[Optimize] Successfully completed optimization");
@@ -1481,6 +1504,24 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
+    function getDefaultMetrics() {
+      return {
+        keywords: 0,
+        skills: 0,
+        experience: 0,
+        education: 0,
+        personalization: 0,
+        aiReadiness: 0,
+        overall: 0,
+        analysis: {
+          strengths: [],
+          gaps: [],
+          suggestions: []
+        },
+        confidence: 0
+      };
+    }
+
     return createServer(app);
 }
 
@@ -1544,23 +1585,6 @@ async function parseResume(buffer: Buffer, mimetype: string): Promise<string> {
                 : "Failed to parse resume file",
         );
     }
-}
-
-function getDefaultMetrics() {
-    return {
-        keywords: 0,
-        skills: 0,
-        experience: 0,
-        overall: 0,
-        education: 0,
-        personalization: 0,
-        aiReadiness: 0,
-        analysis: {
-          strengths: [],
-          gaps: [],
-          suggestions: []
-        }
-    };
 }
 
 function getInitials(text: string): string {
