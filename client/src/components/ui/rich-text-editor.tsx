@@ -1,3 +1,4 @@
+
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useState, useEffect } from 'react';
@@ -17,6 +18,11 @@ export function RichTextEditor({ content, readOnly = false, onSave }: RichTextEd
     extensions: [StarterKit],
     content,
     editable: !readOnly,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none',
+      },
+    },
     onUpdate: ({ editor }) => {
       setIsEdited(true);
     },
@@ -30,7 +36,20 @@ export function RichTextEditor({ content, readOnly = false, onSave }: RichTextEd
 
   const handleSave = () => {
     if (editor && onSave) {
-      onSave(editor.getHTML());
+      // Preserve formatting when saving
+      const formattedContent = editor.getHTML()
+        .replace(/<p>/g, '\n<p>')
+        .replace(/<\/p>/g, '</p>\n')
+        .replace(/<h([1-6])>/g, '\n<h$1>')
+        .replace(/<\/h([1-6])>/g, '</h$1>\n')
+        .replace(/<ul>/g, '\n<ul>')
+        .replace(/<\/ul>/g, '</ul>\n')
+        .replace(/<li>/g, '\n  <li>')
+        .replace(/<\/li>/g, '</li>')
+        .replace(/\n\s*\n/g, '\n')
+        .trim();
+
+      onSave(formattedContent);
       setIsEdited(false);
     }
   };
