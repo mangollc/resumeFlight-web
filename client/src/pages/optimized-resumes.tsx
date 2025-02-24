@@ -504,6 +504,28 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                         </ul>
                       </div>
                       <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Matches</h4>
+                        <ul className="space-y-2">
+                          {resume.matchScore?.analysis?.matches?.map((match, idx) => (
+                            <li key={idx} className="text-sm text-blue-600 dark:text-blue-400 flex gap-2">
+                              <span>•</span>
+                              <span>{match}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Improvements</h4>
+                        <ul className="space-y-2">
+                          {resume.matchScore?.analysis?.improvements?.map((improvement, idx) => (
+                            <li key={idx} className="text-sm text-amber-600 dark:text-amber-400 flex gap-2">
+                              <span>•</span>
+                              <span>{improvement}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="space-y-2">
                         <h4 className="font-medium text-sm">Gaps</h4>
                         <ul className="space-y-2">
                           {resume.matchScore?.analysis?.gaps?.map((gap, idx) => (
