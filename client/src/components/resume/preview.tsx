@@ -405,50 +405,48 @@ export default function Preview({ resume }: PreviewProps) {
 
           {matchScores?.analysis && (
             <div className="mt-6 space-y-4 border-t pt-4">
-                        <h4 className="font-medium">Analysis Results</h4>
-                        {matchScores.analysis.strengths.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Strengths</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              {matchScores.analysis.strengths.map((strength, i) => (
-                                <li key={i} className="text-sm text-emerald-600 dark:text-emerald-400">
-                                  {strength}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {matchScores.analysis.gaps.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Areas for Improvement</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              {matchScores.analysis.gaps.map((gap, i) => (
-                                <li key={i} className="text-sm text-red-600 dark:text-red-400">
-                                  {gap}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {matchScores.analysis.suggestions.length > 0 && (
-                          <div>
-                            <h4 className="font-medium mb-2">Suggestions</h4>
-                            <ul className="list-disc list-inside space-y-1">
-                              {matchScores.analysis.suggestions.map((suggestion, i) => (
-                                <li key={i} className="text-sm text-blue-600 dark:text-blue-400">
-                                  {suggestion}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+              <h4 className="font-medium">Analysis Results</h4>
+              {matchScores.analysis.strengths.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Strengths</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {matchScores.analysis.strengths.map((strength, i) => (
+                      <li key={i} className="text-sm text-emerald-600 dark:text-emerald-400">
+                        {strength}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
+              )}
+              {matchScores.analysis.gaps.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Areas for Improvement</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {matchScores.analysis.gaps.map((gap, i) => (
+                      <li key={i} className="text-sm text-red-600 dark:text-red-400">
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {matchScores.analysis.suggestions.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Suggestions</h4>
+                  <ul className="list-disc list-inside space-y-1">
+                    {matchScores.analysis.suggestions.map((suggestion, i) => (
+                      <li key={i} className="text-sm text-blue-600 dark:text-blue-400">
+                        {suggestion}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
+        </div>
+      </CardContent>
+    </Card>
 
           <LoadingDialog
             open={isAnalyzing}
