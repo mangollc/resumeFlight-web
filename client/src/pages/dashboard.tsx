@@ -170,7 +170,15 @@ type ProgressStep = {
   id: string;
   label: string;
   status: "pending" | "loading" | "completed" | "error";
+  score?: number;
 };
+
+const INITIAL_STEPS: ProgressStep[] = [
+  { id: "analyze", label: "Analyzing Resume", status: "pending" },
+  { id: "keywords", label: "Matching Keywords", status: "pending" },
+  { id: "matching", label: "Calculating Match Score", status: "pending" },
+  { id: "optimize", label: "Optimizing Content", status: "pending" }
+];
 
 
 export default function Dashboard() {
@@ -550,11 +558,19 @@ export default function Dashboard() {
       // Start analysis
       updateStep("analyze", "loading");
 
-      // Create a properly formatted optimization request
+      // Create a properly formatted optimization request with scoring
       const optimizationData = {
         jobDetails: jobDetails,
-        version: nextVersion
+        version: nextVersion,
+        includeScoring: true
       };
+
+      const steps = [...INITIAL_STEPS];
+      steps.forEach((step, index) => {
+        setTimeout(() => {
+          updateStep(step.id, "loading");
+        }, index * 1000);
+      });
 
       // Make the optimization request
       const response = await apiRequest(
