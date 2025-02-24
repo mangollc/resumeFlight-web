@@ -407,9 +407,9 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                         </span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-3">
                       {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                        <div key={metric} className="space-y-1.5">
+                        <div key={metric} className="space-y-1">
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <TooltipProvider>
                               <Tooltip>
@@ -437,6 +437,20 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 </div>
                 <div className="space-y-4">
                     <h4 className="font-medium">Optimized Scores</h4>
+                    <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ScoreTooltip type="overall">
+                        <span className="text-sm text-muted-foreground">Match Score:</span>
+                      </ScoreTooltip>
+                      <div className="flex items-center gap-2">
+                        <span className={getMetricsColor(resume.matchScore?.optimizedScores.overall || 0, "text")}>
+                          {formatScore(resume.matchScore?.optimizedScores.overall || 0)}%
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          (Confidence: {formatScore(resume.matchScore?.optimizedScores.confidence || 0)}%)
+                        </span>
+                      </div>
+                    </div>
                     <div className="space-y-3">
                       {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
                         <div key={metric} className="space-y-1">
