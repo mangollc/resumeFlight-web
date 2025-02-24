@@ -2138,29 +2138,6 @@ If any field is not found, set it to null.`
         throw new Error("Failed to extract contact information from resume");
     }
 }
-function getInitials(text: string): string {
-    const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-    if (nameMatch) {
-        return nameMatch[0]
-            .split(/\s+/)
-            .map((name) => name[0])
-            .join("")
-            .toUpperCase();
-    }
-
-    const firstParagraph = text.split("\n\n")[0];
-    const anyNameMatch = firstParagraph.match(/[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-    if (anyNameMatch) {
-        return anyNameMatch[0]
-            .split(/\s+/)
-            .map((name) => name[0])
-            .join("")
-            .toUpperCase();
-    }
-
-    return "RES";
-}
-
 // Update the optimized resume route to include editable flag
 app.post("/api/optimized-resume/:id/edit", async (req, res) => {
     try {
