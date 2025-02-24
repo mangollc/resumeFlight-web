@@ -1,0 +1,137 @@
+// Update the optimized resume route to include editable flag
+app.post("/api/optimized-resume/:id/edit", async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const resumeId = parseInt(req.params.id);
+        const { content } = req.body;
+
+        const resume = await storage.getOptimizedResume(resumeId);
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
+
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        // Update the version history
+        const currentVersion = resume.version;
+        const [major, minor] = currentVersion.split('.').map(Number);
+        const newVersion = `${major}.${minor + 1}`;
+
+        const timestamp = new Date().toISOString();
+        const versionHistory = [...resume.versionHistory, {
+            version: newVersion,
+            content: content,
+            timestamp: timestamp,
+            changes: ["Manual edit by user"]
+        }];
+
+        // Update the resume with new content and version
+        const updatedResume = await storage.updateOptimizedResume(resumeId, {
+            content,
+            version: newVersion,
+            versionHistory,
+            updatedAt: new Date()
+        });
+
+        return res.status(200).json(updatedResume);
+    } catch (error: any) {
+        console.error("[Edit Optimized] Error:", error);
+        return res.status(500).json({
+            error: "Failed to update optimized resume",
+            details: error.message
+        });
+    }
+});
+
+// Update the cover letter route to include editable flag and formatting
+app.post("/api/cover-letter/:id/edit", async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const coverId = parseInt(req.params.id);
+        const { content } = req.body;
+
+        const coverLetter = await storage.getCoverLetter(coverId);
+        if (!coverLetter) {
+            return res.status(404).json({ error: "Cover letter not found" });
+        }
+
+        if (coverLetter.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        // Update version
+        const currentVersion = coverLetter.version;
+        const [major, minor] = currentVersion.split('.').map(Number);
+        const newVersion = `${major}.${minor + 1}`;
+
+        const timestamp = new Date().toISOString();
+        const versionHistory = [...coverLetter.versionHistory, {
+            content: content,
+            version: newVersion,
+            generatedAt: timestamp
+        }];
+
+        // Update the cover letter with new content and version
+        const updatedCoverLetter = await storage.updateCoverLetter(coverId, {
+            content,
+            version: newVersion,
+            versionHistory,
+            updatedAt: new Date()
+        });
+
+        return res.status(200).json(updatedCoverLetter);
+    } catch (error: any) {
+        console.error("[Edit Cover Letter] Error:", error);
+        return res.status(500).json({
+            error: "Failed to update cover letter",
+            details: error.message
+        });
+    }
+});
+
+// Add the highlight score route
+app.post("/api/resume/:id/highlight-score", async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const resumeId = parseInt(req.params.id);
+        const { highlights } = req.body;
+
+        const resume = await storage.getOptimizedResume(resumeId);
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
+
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Unauthorized access" });
+        }
+
+        await storage.createHighlight({
+            userId: req.user!.id,
+            optimizedResumeId: resumeId,
+            content: resume.content,
+            metadata: {
+                highlights,
+                timestamp: new Date().toISOString()
+            }
+        });
+
+        return res.status(200).json({ message: "Highlights saved successfully" });
+    } catch (error: any) {
+        console.error("[Highlight Score] Error:", error);
+        return res.status(500).json({
+            error: "Failed to save highlights",
+            details: error.message
+        });
+    }
+});
