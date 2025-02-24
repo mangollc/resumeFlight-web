@@ -22,26 +22,28 @@ interface CoverLetterProps {
 }
 
 // Placeholder RichTextEditor component
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+
 const RichTextEditor = ({ content, readOnly, onChange }: { content: string; readOnly: boolean; onChange: (content: string) => void }) => {
-  const [editorContent, setEditorContent] = useState(content);
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: content,
+    editable: !readOnly,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getText());
+    },
+  });
 
   useEffect(() => {
-    setEditorContent(content);
-  }, [content]);
+    if (editor && content !== editor.getText()) {
+      editor.commands.setContent(content);
+    }
+  }, [content, editor]);
 
-  const handleEditorChange = (newContent: string) => {
-    setEditorContent(newContent);
-    onChange(newContent);
-  };
-
-  // Replace this with actual rich text editor implementation (e.g., TipTap)
   return (
-    <div>
-      {readOnly ? (
-        <pre className="whitespace-pre-wrap">{editorContent}</pre>
-      ) : (
-        <textarea value={editorContent} onChange={(e) => handleEditorChange(e.target.value)} />
-      )}
+    <div className={`prose prose-sm max-w-none ${readOnly ? 'pointer-events-none' : ''}`}>
+      <EditorContent editor={editor} className="min-h-[200px] p-4 bg-background border rounded-md" />
     </div>
   );
 };
