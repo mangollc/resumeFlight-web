@@ -42,6 +42,27 @@ const RichTextEditor = ({ content, readOnly, onChange, menuItems }: { content: s
 };
 
 
+const defaultFormat = `
+[Full Name]
+[Address]
+[City, State ZIP]
+[Email]
+[Phone]
+
+[Date]
+
+Dear Hiring Manager,
+
+[Body Paragraph 1]
+
+[Body Paragraph 2]
+
+[Body Paragraph 3]
+
+Best regards,
+[Full Name]
+`;
+
 export default function CoverLetterComponent({ resume, onGenerated, generatedCoverLetter, readOnly = false }: CoverLetterProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -49,8 +70,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
   const [selectedVersion, setSelectedVersion] = useState<string>("");
   const [versions, setVersions] = useState<string[]>([]);
-  const [currentCoverLetter, setCurrentCoverLetter] = useState<string>("");
-  const [editorContent, setEditorContent] = useState("");
+  const [currentCoverLetter, setCurrentCoverLetter] = useState<string>(defaultFormat); // Initialize with default format
+  const [editorContent, setEditorContent] = useState(defaultFormat); // Initialize editor content with default format
   const [isEdited, setIsEdited] = useState(false);
 
   useEffect(() => {

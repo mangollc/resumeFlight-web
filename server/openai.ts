@@ -64,20 +64,33 @@ export async function analyzeResumeDifferences(
         messages: [
           {
             role: "system",
-            content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes.  Provide a detailed analysis including scoring for each change based on its impact (clarity, keyword relevance, conciseness, ATS compatibility, and overall effectiveness).  Return a JSON object with the following structure:
+            content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes. Provide detailed analysis and scoring, with special attention to education, personalization, and ATS compatibility. Return a JSON object with the following structure:
 
 {
   "changes": [
     {
       "original": "text from original resume",
       "optimized": "corresponding text from optimized resume",
-      "type": "improvement type (e.g., 'clarity', 'keywords', 'structure', 'accomplishments')",
-      "reason": "brief explanation of why this change improves the resume",
-      "score": <number between 0-100>
+      "type": "type of change",
+      "reason": "explanation of improvement",
+      "score": number
     }
   ],
-  "overallScore": <number between 0-100>
-}`,
+  "scores": {
+    "keywords": number,
+    "skills": number,
+    "experience": number,
+    "education": number,
+    "personalization": number,
+    "aiReadiness": number
+  },
+  "overallScore": number
+}
+
+Ensure each score is calculated based on:
+- Education: Check degree relevance, certifications, training
+- Personalization: Measure alignment with job requirements
+- AI Readiness: Evaluate ATS compatibility and formatting`,
           },
           {
             role: "user",
@@ -96,7 +109,7 @@ export async function analyzeResumeDifferences(
       allChanges.push(...(result.changes || []));
     }
 
-    return { changes: allChanges, overallScore: result.overallScore };
+    return { changes: allChanges, overallScore: result.overallScore, scores: result.scores };
   } catch (err) {
     const error = err as Error;
     console.error("[Differences] Analysis error:", error);

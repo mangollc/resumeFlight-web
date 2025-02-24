@@ -23,6 +23,32 @@ import {
 } from "@/components/ui/collapsible";
 import {Badge} from "@/components/ui/badge"; // Added Badge component
 
+interface SavePromptProps {
+  isOpen: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function SavePrompt({ isOpen, onConfirm, onCancel }: SavePromptProps) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl">
+        <h3 className="text-lg font-semibold mb-4">Save Changes?</h3>
+        <p className="mb-4">Do you want to save your changes?</p>
+        <div className="flex justify-end gap-4">
+          <button onClick={onCancel} className="px-4 py-2 text-gray-600 hover:text-gray-800">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface PreviewProps {
   resume: UploadedResume | OptimizedResume | null;
 }
@@ -100,7 +126,7 @@ const RichTextEditor = ({ content, readOnly, onChange }: { content: string; read
 };
 
 
-export default function Preview({ resume }: PreviewProps) {
+export function ResumePreview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -115,6 +141,7 @@ export default function Preview({ resume }: PreviewProps) {
   const [selectedFormat, setSelectedFormat] = useState('pdf'); // Added state for download format
   const [isEditing, setIsEditing] = useState(false); // Added state for editing mode
   const [editedContent, setEditedContent] = useState(resume?.content || ""); //State to hold edited content
+  const [isSavePromptOpen, setIsSavePromptOpen] = useState(false); // Added state for save prompt
 
 
   const handleSave = async (content: string) => {
@@ -130,6 +157,7 @@ export default function Preview({ resume }: PreviewProps) {
       if (!response.ok) throw new Error('Failed to save changes');
       setIsEdited(true);
       setIsEditing(false); //Exit edit mode after save
+      setIsSavePromptOpen(false); //Close save prompt after save
       toast({
         title: "Success",
         description: "Changes saved successfully",
@@ -196,6 +224,7 @@ export default function Preview({ resume }: PreviewProps) {
       setIsEdited(false); // Reset edited status when resume changes
       setEditedContent(""); // Clear edited content
       setIsEditing(false); // Exit edit mode
+      setIsSavePromptOpen(false); //Close save prompt when resume changes
     } else {
       setEditedContent(resume.content); //update edited content when resume changes.
     }
@@ -335,7 +364,13 @@ export default function Preview({ resume }: PreviewProps) {
 
           <div className="prose prose-sm max-w-none dark:prose-invert">
             <div className="flex justify-end mb-4">
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
+              <Button variant="outline" size="sm" onClick={() => {
+                if (isEditing && isEdited === false) {
+                  setIsSavePromptOpen(true);
+                } else {
+                  setIsEditing(!isEditing);
+                }
+              }}>
                 {isEditing ? 'Save' : 'Edit'}
               </Button>
             </div>
@@ -364,7 +399,7 @@ export default function Preview({ resume }: PreviewProps) {
                         <h4 className="font-medium">Before Optimization</h4>
                         <div className="space-y-3">
                           {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                            <MetricRow key={`before-${metric}`} label={metric} before={matchScores.originalScores[metric]} after={matchScores.optimizedScores[metric]} />
+                            <MetricRow key={`before-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
                           ))}
                         </div>
                       </div>
@@ -372,7 +407,7 @@ export default function Preview({ resume }: PreviewProps) {
                         <h4 className="font-medium">After Optimization</h4>
                         <div className="space-y-3">
                           {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                            <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric]} after={matchScores.optimizedScores[metric]} />
+                            <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
                           ))}
                         </div>
                       </div>
@@ -448,6 +483,7 @@ export default function Preview({ resume }: PreviewProps) {
               },
             ]}
           />
+          <SavePrompt isOpen={isSavePromptOpen} onConfirm={() => {handleSave(editedContent); setIsSavePromptOpen(false);}} onCancel={() => setIsSavePromptOpen(false)}/>
         </div>
       </CardContent>
     </Card>
