@@ -172,13 +172,20 @@ export default function Preview({ resume }: PreviewProps) {
       setMatchScores(data);
       setIsScoresExpanded(true);
 
-      if (data.optimizedScores.overall >= 80) {
-        setShowConfetti(true);
-        toast({
-          title: "Outstanding Achievement! 🎉",
-          description: "Your resume has achieved excellent optimization scores.",
-        });
-      }
+      // Update match scores state
+  setMatchScores({
+    before: data.originalScores,
+    after: data.optimizedScores,
+    analysis: data.analysis
+  });
+  
+  if (data.optimizedScores.overall >= 80) {
+    setShowConfetti(true);
+    toast({
+      title: "Outstanding Achievement! 🎉",
+      description: "Your resume has achieved excellent optimization scores.",
+    });
+  }
     } catch (error) {
       toast({
         title: "Analysis Failed",
@@ -383,8 +390,9 @@ export default function Preview({ resume }: PreviewProps) {
                       />
                     </div>
 
-                    {matchScores.analysis && (
-                      <div className="mt-6 space-y-4">
+                    {matchScores?.analysis && (
+                      <div className="mt-6 space-y-4 border-t pt-4">
+                        <h4 className="font-medium">Analysis Results</h4>
                         {matchScores.analysis.strengths.length > 0 && (
                           <div>
                             <h4 className="font-medium mb-2">Strengths</h4>
