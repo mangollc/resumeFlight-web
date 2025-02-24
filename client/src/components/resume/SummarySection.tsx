@@ -193,12 +193,15 @@ export function SummarySection({ optimizedResume, coverLetter, versions }: Summa
               </div>
             </div>
             <Card>
-              <CardContent className="p-4">
-                <CoverLetter
-                  resume={optimizedResume}
-                  generatedCoverLetter={coverLetter}
-                  readOnly={true}
-                />
+              <CardContent className="p-8">
+                <div className="prose max-w-none dark:prose-invert">
+                  <CoverLetter
+                    resume={optimizedResume}
+                    generatedCoverLetter={coverLetter}
+                    version={selectedCoverLetterVersion}
+                    readOnly={true}
+                  />
+                </div>
               </CardContent>
             </Card>
           </div>
