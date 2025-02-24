@@ -74,8 +74,8 @@ const server = registerRoutes(app);
 
 // Set appropriate timeout values for long-running operations
 server.timeout = 300000; // 5 minutes for long-running operations
-server.keepAliveTimeout = 65000; // Slightly higher than 60 seconds
-server.headersTimeout = 66000; // Slightly higher than keepAliveTimeout
+server.keepAliveTimeout = 61000; // Slightly higher than 60 seconds
+server.headersTimeout = 62000; // Slightly higher than keepAliveTimeout
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
