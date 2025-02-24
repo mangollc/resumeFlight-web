@@ -514,11 +514,11 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                     </>
                   )}
                 </div>
-              </TableCell>
-            </TableRow>
-        </TableRow>
-      )}
-    </>
+              </div>
+            </TableCell>
+          </TableRow>
+        )}
+      </>
   );
 }
 
