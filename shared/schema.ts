@@ -311,12 +311,12 @@ export const resumeMatchScores = pgTable("resume_match_scores", {
   userId: integer("user_id").notNull(),
   originalScores: jsonb("original_scores").notNull().default({
     overall: 0,
-    keywords: 0,
-    skills: 0,
-    experience: 0,
-    education: 0,
-    personalization: 0,
-    aiReadiness: 0
+    keywords: 25,
+    skills: 20,
+    experience: 20,
+    education: 15,
+    personalization: 10,
+    aiReadiness: 10
   }),
   optimizedScores: jsonb("optimized_scores").notNull().default({
     overall: 0,

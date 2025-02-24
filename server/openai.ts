@@ -172,7 +172,44 @@ Return valid JSON in this exact format:
     "clarity": "clarity improvements",
     "ats": "ATS-specific enhancements"
   }
-}`,
+}
+Scoring Guidelines:
+1. Keywords (0-100): 25%
+   - Measure presence and context of job-specific keywords
+   - Consider keyword placement and relevance
+   - Account for variations and synonyms
+   - Weight industry-specific terms higher
+
+2. Skills (0-100): 20%
+   - Evaluate technical and soft skills match
+   - Consider skill level and recency
+   - Look for practical applications
+   - Check for required vs nice-to-have skills
+
+3. Experience (0-100): 20%
+   - Assess relevance of past roles
+   - Consider years of experience
+   - Evaluate accomplishments
+   - Check for industry alignment
+
+4. Education (0-100): 15%
+   - Evaluate educational background relevance
+   - Consider degree level and field alignment
+   - Assess additional certifications
+   - Check for continuing education
+
+5. Personalization (0-100): 10%
+   - Measure tailoring to specific role
+   - Assess company culture alignment
+   - Evaluate industry-specific customization
+   - Check for targeted achievements
+
+6. AI Readiness (0-100): 10%
+   - Evaluate ATS optimization
+   - Check format compatibility
+   - Assess machine readability
+   - Review semantic structure
+`,
           },
           {
             role: "user",

@@ -177,7 +177,17 @@ Return a JSON object in this exact format:
       keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
       skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
       experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
-      overall: Math.min(100, Math.max(0, Number(metrics.overall) || 0)),
+      education: Math.min(100, Math.max(0, Number(metrics.education) || 0)),
+      personalization: Math.min(100, Math.max(0, Number(metrics.personalization) || 0)),
+      aiReadiness: Math.min(100, Math.max(0, Number(metrics.aiReadiness) || 0)),
+      overall: Math.min(100, Math.max(0, 
+        (Number(metrics.keywords) * 0.25) +
+        (Number(metrics.skills) * 0.20) +
+        (Number(metrics.experience) * 0.20) +
+        (Number(metrics.education) * 0.15) +
+        (Number(metrics.personalization) * 0.10) +
+        (Number(metrics.aiReadiness) * 0.10) || 0
+      )),
       analysis: metrics.analysis || {
         strengths: [],
         gaps: [],
