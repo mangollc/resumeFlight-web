@@ -436,8 +436,40 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <h4 className="font-medium">Optimized Scores</h4>
-                  {getScoresDisplay(resume.metrics.after)}
+                    <h4 className="font-medium">Optimized Scores</h4>
+                    <div className="space-y-3">
+                      {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
+                        <div key={metric} className="space-y-1">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger className="flex items-center gap-1">
+                                  <span className="capitalize">{metric}</span>
+                                  <HelpCircle className="h-3 w-3" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs text-sm">{getScoreMethodologyTooltip(metric)}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground">
+                                {formatScore(resume.matchScore?.originalScores[metric] || 0)}%
+                              </span>
+                              <span>→</span>
+                              <span className="font-medium text-emerald-600">
+                                {formatScore(resume.matchScore?.optimizedScores[metric] || 0)}%
+                              </span>
+                            </div>
+                          </div>
+                          <Progress
+                            value={resume.matchScore?.optimizedScores[metric] || 0}
+                            className={`h-1 ${getMetricsColor(resume.matchScore?.optimizedScores[metric] || 0)}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
