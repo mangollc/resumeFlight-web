@@ -36,6 +36,22 @@ interface MulterRequest extends Request {
     file?: Express.Multer.File;
 }
 
+interface JobMetrics {
+    keywords: number;
+    skills: number;
+    experience: number;
+    education: number;
+    personalization: number;
+    aiReadiness: number;
+    overall: number;
+    analysis: {
+        strengths: string[];
+        gaps: string[];
+        suggestions: string[];
+    };
+    confidence: number;
+}
+
 interface JobDetails {
     title: string;
     company: string;
@@ -47,23 +63,103 @@ interface JobDetails {
     keyPoints?: string[];
     keyRequirements?: string[];
     skillsAndTools?: string[];
-    metrics?: {
-        keywords?: number;
-        skills?: number;
-        experience?: number;
-        overall?: number;
-    };
+    metrics?: JobMetrics;
     improvements?: string[];
     changes?: string[];
     matchScore?: number;
-    _internalDetails?: any;
+    _internalDetails?: Record<string, any>;
+}
+
+interface ResumeVersion {
+    version: string;
+    content: string;
+    timestamp: string;
+    changes?: string[];
+    metrics?: {
+        before: JobMetrics;
+        after: JobMetrics;
+    };
+    confidence?: number;
+}
+
+interface FileType {
+    size: number;
+    name: string;  
+    type: string;
+}
+
+interface CoverLetterVersion {
+    version: string; 
+    content: string;
+    timestamp: string;
+}
+
+// Database models 
+interface OptimizedResume {
+    id: number;
+    userId: number;
+    sessionId: string;
+    content: string;
+    originalContent: string;
+    jobDescription: string;
+    jobUrl?: string;
+    jobDetails: Record<string, any>;
+    uploadedResumeId: number;
+    version: string;
+    versionHistory: ResumeVersion[];
+    metadata: Record<string, any>;
+    metrics?: {
+        before: JobMetrics;
+        after: JobMetrics;
+        improvements: string[];
+        confidence: number;
+    };
+    versionMetrics?: Array<{
+        version: string;
+        metrics: {
+            before: JobMetrics;
+            after: JobMetrics;
+        };
+        confidence: number;
+        timestamp: string;
+    }>;
+    highlights?: Array<{
+        id: string;
+        type: string;
+        content: string;
+        position: number;
+    }>;
+    updatedAt?: Date;
+    createdAt?: Date;
+    confidence?: number;
+}
+
+interface CoverLetter {
+    id: number;
+    userId: number;
+    content: string;
+    version: string;
+    versionHistory: CoverLetterVersion[]; 
+    updatedAt?: Date;
+    createdAt?: Date;
+}
+
+interface OptimizationSession {
+    id: string;
+    userId: number;
+    optimizedResumeId: number;
+    originalScores?: Record<string, any>;
+    optimizedScores?: Record<string, any>;
+    analysis?: Record<string, any>;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 // Multer configuration
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: MAX_FILE_SIZE },
-    fileFilter: (_req, file, cb) => {
+    fileFilter: (_req, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
         if (SUPPORTED_MIME_TYPES.includes(file.mimetype)) {
             cb(null, true);
         } else {
@@ -193,7 +289,7 @@ Return a JSON object with exact numeric scores and analysis:
         }
 
         const metrics = JSON.parse(content);
-        const result = {
+        const result: JobMetrics = {
             keywords: Math.min(100, Math.max(0, Number(metrics.keywords) || 0)),
             skills: Math.min(100, Math.max(0, Number(metrics.skills) || 0)),
             experience: Math.min(100, Math.max(0, Number(metrics.experience) || 0)),
@@ -204,7 +300,9 @@ Return a JSON object with exact numeric scores and analysis:
                 strengths: metrics.analysis?.strengths || [],
                 gaps: metrics.analysis?.gaps || [],
                 suggestions: metrics.analysis?.suggestions || []
-            }
+            },
+            overall: 0,
+            confidence: 0
         };
 
         // For optimized version, ensure minimum improvement
@@ -227,7 +325,7 @@ Return a JSON object with exact numeric scores and analysis:
             (result.aiReadiness * 0.10)
         ));
 
-        // Calculate confidence score
+        // Calculate confidence score  
         result.confidence = Math.round(
             (result.keywords + result.skills + result.experience +
                 result.education + result.personalization + result.aiReadiness) / 6
@@ -434,30 +532,10 @@ async function optimizeResume(
     }
 }
 
-function getInitials(text: string): string {
-    const nameMatch = text.match(/^[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-    if (nameMatch) {
-        return nameMatch[0]
-            .split(/\s+/)
-            .map((name) => name[0])
-            .join("")
-            .toUpperCase();
-    }
+// Remove duplicate interface declaration
 
-    const firstParagraph = text.split("\n\n")[0];
-    const anyNameMatch = firstParagraph.match(/[A-Z][a-z]+(\s+[A-Z][a-z]+)+/);
-    if (anyNameMatch) {
-        return anyNameMatch[0]
-            .split(/\s+/)
-            .map((name) => name[0])
-            .join("")
-            .toUpperCase();
-    }
-
-    return "RES";
-}
-
-function getDefaultMetrics() {
+// Helper functions
+function getDefaultMetrics(): JobMetrics {
     return {
         keywords: 0,
         skills: 0,
@@ -477,79 +555,6 @@ function getDefaultMetrics() {
 
 async function getCurrentESTTimestamp(): Promise<Date> {
     return new Date(); // For now, return current time. Can be enhanced to convert to EST if needed
-}
-
-
-async function parseResume(buffer: Buffer, mimeType: string): Promise<string> {
-    const validatedTimeout = validateTimeout(PARSING_TIMEOUT, 10000);
-    console.log(`[Parse Resume] Using timeout: ${validatedTimeout}ms`);
-
-    try {
-        if (mimeType === "application/pdf") {
-            return new Promise((resolve, reject) => {
-                const pdfParser = new PDFParser(null);
-                const timeoutId = setTimeout(() => {
-                    pdfParser.removeAllListeners();
-                    reject(new Error("PDF parsing timed out"));
-                }, validatedTimeout);
-
-                pdfParser.on("pdfParser_dataReady", (pdfData) => {
-                    clearTimeout(timeoutId);
-                    resolve(
-                        pdfData.Pages.map((page) =>
-                            page.Texts.map((text) =>
-                                decodeURIComponent(text.R[0].T),
-                            ).join(" "),
-                        ).join("\n"),
-                    );
-                });
-
-                pdfParser.on("pdfParser_dataError", (error) => {
-                    clearTimeout(timeoutId);
-                    reject(error);
-                });
-
-                pdfParser.parseBuffer(buffer);
-            });
-        } else if (
-            mimeType ===
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ) {
-            return new Promise(async (resolve, reject) => {
-                const timeoutId = setTimeout(() => {
-                    reject(new Error("DOCX parsing timed out"));
-                }, validatedTimeout);
-
-                try {
-                    const result = await mammoth.extractRawText({ buffer });
-                    clearTimeout(timeoutId);
-                    resolve(result.value);
-                } catch (error) {
-                    clearTimeout(timeoutId);
-                    reject(error);
-                }
-            });
-        }
-        throw new Error("Unsupported file type");
-    } catch (error) {
-        console.error("[Parse Resume] Error:", error);
-        throw new Error(
-            error instanceof Error
-                ? error.message
-                : "Failed to parse resume file",
-        );
-    }
-}
-
-async function checkDatabaseConnection(): Promise<boolean> {
-    try {
-        // Simple query to test connection
-        await storage.getUploadedResumesByUser(1);
-        return true;
-    } catch (error) {
-        console.error("[Database Connection] Error:", error);
-        return false;
-    }
 }
 
 // Route handlers
@@ -582,28 +587,13 @@ const handlers = {
             return res.status(200).json(resumes);
         } catch (error: any) {
             return res.status(500).json({
-                error: "Failed to fetch resumes",
+                error: "Failed to fetch resumes", 
                 details: error.message,
             });
         }
-    }
-};
+    },
 
-export function registerRoutes(app: Express): Server {
-    setupAuth(app);
-
-    // Global middleware
-    app.use((req, res, next) => {
-        res.setHeader("Content-Type", "application/json");
-        next();
-    });
-
-    // Get uploaded resumes route
-    app.get("/api/uploaded-resumes", handlers.getResumes);
-
-
-    // Get optimized resumes route
-    app.get("/api/optimized-resumes", async (req, res) => {
+    getOptimizedResumes: async (req: Request, res: Response) => {
         try {
             console.log("[Get Optimized] Checking authentication");
             if (!req.isAuthenticated()) {
@@ -616,7 +606,6 @@ export function registerRoutes(app: Express): Server {
                 req.user!.id,
             );
 
-            // Fetch optimized resumes with their match scores
             const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
             const resumesWithScores = await Promise.all(resumes.map(async (resume) => {
                 const matchScore = await storage.getResumeMatchScore(resume.id);
@@ -639,7 +628,26 @@ export function registerRoutes(app: Express): Server {
                 details: error.message,
             });
         }
+    }
+};
+
+export function registerRoutes(app: Express): Server {
+    setupAuth(app);
+
+    // Global middleware
+    app.use((req, res, next) => {
+        res.setHeader("Content-Type", "application/json");
+        next();
     });
+
+    // Health check route 
+    app.get("/api/health", handlers.health);
+
+    // Get uploaded resumes route
+    app.get("/api/uploaded-resumes", handlers.getResumes);
+    
+    // Get optimized resumes route
+    app.get("/api/optimized-resumes", handlers.getOptimizedResumes);
 
     // Get single optimized resume route
     app.get("/api/optimized-resume/:id", async (req, res) => {
@@ -803,8 +811,8 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    //New routes for optimization sessions
-    app.get("/api/optimization-sessions", async (req, res) => {
+    // New routes for optimization sessions
+    app.get("/api/optimization-sessions", async (req: Request, res: Response) => {
         try {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({ error: "Unauthorized" });
@@ -821,7 +829,7 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
-    app.get("/api/optimization-session/:sessionId", async (req, res) => {
+    app.get("/api/optimization-session/:sessionId", async (req: Request, res: Response) => {
         try {
             if (!req.isAuthenticated()) {
                 return res.status(401).json({ error: "Unauthorized" });
@@ -846,9 +854,108 @@ export function registerRoutes(app: Express): Server {
         }
     });
 
+    // Update optimized resume route
+    app.post("/api/optimized-resume/:id/edit", async (req: Request, res: Response) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
 
-    // Update the optimize resume route
-    app.get("/api/resume/:id/optimize", async (req: Request, res) => {
+            const resumeId = parseInt(req.params.id);
+            const { content } = req.body;
+
+            const resume = await storage.getOptimizedResume(resumeId);
+            if (!resume) {
+                return res.status(404).json({ error: "Resume not found" });
+            }
+
+            if (resume.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Update version history
+            const currentVersion = resume.version || "1.0";
+            const [major, minor] = currentVersion.split('.').map(Number);
+            const newVersion = `${major}.${minor + 1}`;
+
+            const timestamp = new Date().toISOString();
+            const versionHistory = [...(resume.versionHistory || []) as ResumeVersion[], {
+                version: newVersion,
+                content: content,
+                timestamp: timestamp,
+                changes: ["Manual edit by user"]
+            }];
+
+            // Update the resume
+            const updatedResume = await storage.updateOptimizedResume(resumeId, {
+                content,
+                version: newVersion,
+                versionHistory: versionHistory as ResumeVersion[],
+                metrics: resume.metrics
+            } as Partial<OptimizedResume>);
+
+            return res.status(200).json(updatedResume);
+        } catch (error: any) {
+            console.error("[Edit Optimized] Error:", error);
+            return res.status(500).json({
+                error: "Failed to update optimized resume",
+                details: error.message
+            });
+        }
+    });
+
+    // Update cover letter route
+    app.post("/api/cover-letter/:id/edit", async (req: Request, res: Response) => {
+        try {
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: "Unauthorized" });
+            }
+
+            const coverId = parseInt(req.params.id);
+            const { content } = req.body;
+
+            const coverLetter = await storage.getCoverLetter(coverId);
+            if (!coverLetter) {
+                return res.status(404).json({ error: "Cover letter not found" });
+            }
+
+            if (coverLetter.userId !== req.user!.id) {
+                return res.status(403).json({ error: "Unauthorized access" });
+            }
+
+            // Update version
+            const currentVersion = coverLetter.version || "1.0";
+            const [major, minor] = currentVersion.split('.').map(Number);
+            const newVersion = `${major}.${minor + 1}`;
+
+            const timestamp = new Date().toISOString();
+            const versionHistory = [...(coverLetter.versionHistory || []) as CoverLetterVersion[], {
+                version: newVersion,
+                content: content,
+                timestamp: timestamp
+            }];
+
+            // Update the cover letter
+            const updatedCoverLetter = await storage.updateCoverLetter(coverId, {
+                content,
+                version: newVersion,
+                versionHistory,
+                updatedAt: new Date(),
+                createdAt: coverLetter.createdAt
+            });
+
+            return res.status(200).json(updatedCoverLetter);
+        } catch (error: any) {
+            console.error("[Edit Cover Letter] Error:", error);
+            return res.status(500).json({
+                error: "Failed to update cover letter",
+                details: error.message
+            });
+        }
+    });
+
+    // Optimize resume route
+    app.get("/api/resume/:id/optimize", async (req: Request, res: Response) => {
         // Increase timeout to 5 minutes for long-running optimizations
         req.setTimeout(300000);
         res.setTimeout(300000);
@@ -860,7 +967,7 @@ export function registerRoutes(app: Express): Server {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('X-Accel-Buffering', 'no');
 
-        const sendEvent = (data: any) => {
+        const sendEvent = (data: unknown) => {
             res.write(`data: ${JSON.stringify(data)}\n\n`);
         };
 
