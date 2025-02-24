@@ -22,21 +22,25 @@ export interface IStorage {
   // Optimized Resume operations
   getOptimizedResume(id: number): Promise<OptimizedResume | undefined>;
   createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume>;
+  updateOptimizedResume(id: number, data: Partial<OptimizedResume>): Promise<OptimizedResume>;
   getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
   deleteOptimizedResume(id: number): Promise<void>;
   getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]>;
   // Cover letter operations
   getCoverLetter(id: number): Promise<CoverLetter | undefined>;
   createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter>;
+  updateCoverLetter(id: number, data: Partial<CoverLetter>): Promise<CoverLetter>;
   getCoverLettersByUser(userId: number): Promise<CoverLetter[]>;
   deleteCoverLetter(id: number): Promise<void>;
   getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]>;
+  // Other operations
   sessionStore: session.Store;
-  // Optimization Session operations
   getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined>;
   createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession>;
   updateOptimizationSession(sessionId: string, data: Partial<InsertOptimizationSession>): Promise<OptimizationSession>;
   getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]>;
+  getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined>;
+  createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -53,11 +57,7 @@ export class DatabaseStorage implements IStorage {
       errorLog: (err: Error) => {
         console.error('Session store error:', err);
       },
-      disableTouch: true, // Disable touch to prevent connection issues
-      connectionConfig: {
-        statement_timeout: 10000, // 10 second timeout for session operations
-        idle_timeout: 30000, // 30 second idle timeout
-      }
+      disableTouch: true // Disable touch to prevent connection issues
     });
 
     // Add error handler for session store
@@ -347,6 +347,31 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Optimized Resume methods with update functionality
+  async updateOptimizedResume(id: number, data: Partial<OptimizedResume>): Promise<OptimizedResume> {
+    try {
+      const [resume] = await db
+        .update(optimizedResumes)
+        .set({
+          ...data,
+          updatedAt: await getCurrentESTTimestamp()
+        })
+        .where(eq(optimizedResumes.id, id))
+        .returning();
+
+      return {
+        ...resume,
+        metadata: resume.metadata as OptimizedResume['metadata'],
+        jobDetails: resume.jobDetails as OptimizedResume['jobDetails'],
+        metrics: resume.metrics as OptimizedResume['metrics'],
+        resumeMatchScores: resume.resumeMatchScores as OptimizedResume['resumeMatchScores']
+      };
+    } catch (error) {
+      console.error('Error updating optimized resume:', error);
+      throw new Error('Failed to update optimized resume');
+    }
+  }
+
   // Cover Letter methods
   async getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined> {
     try {
@@ -354,7 +379,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(resumeMatchScores)
         .where(eq(resumeMatchScores.optimizedResumeId, optimizedResumeId));
-      
+
       return result;
     } catch (error) {
       console.error('Error getting resume match score:', error);
@@ -442,6 +467,28 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting cover letters by optimized resume ID:', error);
       throw new Error('Failed to get cover letters by optimized resume ID');
+    }
+  }
+
+  // Cover Letter methods with update functionality
+  async updateCoverLetter(id: number, data: Partial<CoverLetter>): Promise<CoverLetter> {
+    try {
+      const [coverLetter] = await db
+        .update(coverLetters)
+        .set({
+          ...data,
+          updatedAt: await getCurrentESTTimestamp()
+        })
+        .where(eq(coverLetters.id, id))
+        .returning();
+
+      return {
+        ...coverLetter,
+        metadata: coverLetter.metadata as CoverLetter['metadata']
+      };
+    } catch (error) {
+      console.error('Error updating cover letter:', error);
+      throw new Error('Failed to update cover letter');
     }
   }
 

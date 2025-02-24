@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { OptimizedResume, CoverLetter as CoverLetterType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, RefreshCw } from "lucide-react";
+import { Loader2, Download, RefreshCw, Edit, Save, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -14,54 +14,160 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Placeholder RichTextEditor component
+// Import all necessary Tiptap extensions
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Heading from '@tiptap/extension-heading';
+import Document from '@tiptap/extension-document';
+import Paragraph from '@tiptap/extension-paragraph';
+import Text from '@tiptap/extension-text';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import Strike from '@tiptap/extension-strike';
+import BulletList from '@tiptap/extension-bullet-list';
+import OrderedList from '@tiptap/extension-ordered-list';
+import ListItem from '@tiptap/extension-list-item';
+import HardBreak from '@tiptap/extension-hard-break';
 
-const RichTextEditor = ({ content, readOnly, onChange, menuItems }: { content: string; readOnly: boolean; onChange: (content: string) => void; menuItems?: string[] }) => {
+interface CoverLetterProps {
+  resume: OptimizedResume;
+  onGenerated?: (coverLetter: CoverLetterType) => void;
+  generatedCoverLetter?: CoverLetterType;
+  readOnly?: boolean;
+}
+
+interface EditorProps {
+  content: string;
+  readOnly: boolean;
+  onChange: (content: string) => void;
+}
+
+const MenuBar = ({ editor }: { editor: any }) => {
+  if (!editor) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2 p-2 border-b">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        className={editor.isActive('bold') ? 'bg-muted' : ''}
+      >
+        Bold
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        className={editor.isActive('italic') ? 'bg-muted' : ''}
+      >
+        Italic
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        className={editor.isActive('strike') ? 'bg-muted' : ''}
+      >
+        Strike
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        className={editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}
+      >
+        H1
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
+      >
+        H2
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        className={editor.isActive('bulletList') ? 'bg-muted' : ''}
+      >
+        Bullet List
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        className={editor.isActive('orderedList') ? 'bg-muted' : ''}
+      >
+        Ordered List
+      </Button>
+    </div>
+  );
+};
+
+const RichTextEditor = ({ content, readOnly, onChange }: EditorProps) => {
   const editor = useEditor({
-    extensions: [StarterKit, ...(menuItems ? menuItems.map(item => ({ name: item })) : [])],
+    extensions: [
+      StarterKit,
+      Document,
+      Paragraph,
+      Text,
+      Heading,
+      Bold,
+      Italic,
+      Strike,
+      BulletList,
+      OrderedList,
+      ListItem,
+      HardBreak,
+    ],
     content: content,
     editable: !readOnly,
     onUpdate: ({ editor }) => {
-      onChange(editor.getText());
+      onChange(editor.getHTML());
     },
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getText()) {
+    if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
     }
   }, [content, editor]);
 
   return (
     <div className={`prose prose-sm max-w-none ${readOnly ? 'pointer-events-none' : ''}`}>
+      {!readOnly && <MenuBar editor={editor} />}
       <EditorContent editor={editor} className="min-h-[200px] p-4 bg-background border rounded-md" />
     </div>
   );
 };
 
-
 const defaultFormat = `
-[Full Name]
-[Address]
-[City, State ZIP]
-[Email]
-[Phone]
+[Contact Information]
+{fullName}
+{email}
+{phone}
+{address}
 
-[Date]
+{date}
 
 Dear Hiring Manager,
 
-[Body Paragraph 1]
+[Opening Paragraph]
+I am writing to express my strong interest in the {position} position at {company}. With my background in {field} and proven track record of {achievement}, I am confident in my ability to contribute significantly to your team.
 
-[Body Paragraph 2]
+[Body Paragraph]
+Throughout my career, I have consistently demonstrated {keySkill} and {expertise}. At my previous role with {previousCompany}, I {accomplishment}. This experience, combined with my {relevantSkill}, makes me particularly well-suited for this opportunity.
 
-[Body Paragraph 3]
+[Closing Paragraph]
+I am excited about the prospect of joining {company} and contributing to {companyGoal}. I would welcome the opportunity to discuss how my skills and experience align with your needs in more detail.
 
 Best regards,
-[Full Name]
-`;
+{fullName}`;
 
 export default function CoverLetterComponent({ resume, onGenerated, generatedCoverLetter, readOnly = false }: CoverLetterProps) {
   const { toast } = useToast();
@@ -70,8 +176,8 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "docx">("pdf");
   const [selectedVersion, setSelectedVersion] = useState<string>("");
   const [versions, setVersions] = useState<string[]>([]);
-  const [currentCoverLetter, setCurrentCoverLetter] = useState<string>(defaultFormat); // Initialize with default format
-  const [editorContent, setEditorContent] = useState(defaultFormat); // Initialize editor content with default format
+  const [currentCoverLetter, setCurrentCoverLetter] = useState<string>(defaultFormat);
+  const [isEditing, setIsEditing] = useState(false);
   const [isEdited, setIsEdited] = useState(false);
 
   useEffect(() => {
@@ -87,7 +193,6 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
         if (!selectedVersion) {
           setSelectedVersion(version);
           setCurrentCoverLetter(generatedCoverLetter.content);
-          setEditorContent(generatedCoverLetter.content); // Initialize editor content
         }
         return newVersions;
       });
@@ -99,9 +204,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     if (selectedVersion && generatedCoverLetter) {
       if (selectedVersion === generatedCoverLetter.metadata.version.toString()) {
         setCurrentCoverLetter(generatedCoverLetter.content);
-        setEditorContent(generatedCoverLetter.content); // Update editor content
       } else {
-        // Fetch the specific version content
         fetchVersionContent(selectedVersion);
       }
     }
@@ -124,7 +227,6 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       const data = await response.json();
       if (data.content) {
         setCurrentCoverLetter(data.content);
-        setEditorContent(data.content); // Update editor content
       } else {
         throw new Error('Invalid response format');
       }
@@ -152,11 +254,12 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
         },
         contactInfo: resume.contactInfo,
         format: {
-          showAddress: false,
-          showFullLocation: false,
-          signatureStyle: "simple",
+          showAddress: true,
+          showFullLocation: true,
+          signatureStyle: "professional",
           includeDate: true,
-          includeSkills: false
+          includeSkills: true,
+          template: "default"
         }
       });
 
@@ -185,8 +288,9 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
           }));
         setSelectedVersion(newVersion);
         setCurrentCoverLetter(data.content);
-        setEditorContent(data.content); // Update editor content
       }
+      setIsEditing(false);
+      setIsEdited(false);
       toast({
         title: "Success",
         description: "Cover letter generated successfully",
@@ -214,6 +318,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
       if (!response.ok) throw new Error('Failed to save changes');
       setIsEdited(true);
+      setIsEditing(false);
       toast({
         title: "Success",
         description: "Changes saved successfully",
@@ -264,14 +369,6 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
 
   const handleContentChange = (newContent: string) => {
     setCurrentCoverLetter(newContent);
-    handleSave(newContent); // Save changes immediately
-  };
-
-  const formatDownloadFilename = (filename: string, jobTitle: string, version: string): string => {
-    const baseName = filename.substring(0, filename.lastIndexOf('.')) || filename;
-    const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-    const formattedDate = new Date().toISOString().split('T')[0];
-    return `${baseName}_${formattedJobTitle}_v${version}_${formattedDate}.${selectedFormat}`;
   };
 
   return (
@@ -312,15 +409,53 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
               </div>
               <div className="flex items-center gap-2">
                 {!readOnly && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => generateMutation.mutate()}
-                    disabled={generateMutation.isPending}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
-                    {generateMutation.isPending ? 'Regenerating...' : 'Regenerate'}
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateMutation.mutate()}
+                      disabled={generateMutation.isPending}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
+                      {generateMutation.isPending ? 'Regenerating...' : 'Regenerate'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (isEditing) {
+                          handleSave(currentCoverLetter);
+                        } else {
+                          setIsEditing(true);
+                        }
+                      }}
+                    >
+                      {isEditing ? (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save
+                        </>
+                      ) : (
+                        <>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </>
+                      )}
+                    </Button>
+                    {isEditing && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setCurrentCoverLetter(generatedCoverLetter?.content || defaultFormat);
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel
+                      </Button>
+                    )}
+                  </>
                 )}
                 <div className="flex items-center gap-2">
                   {versions.length > 1 && (
@@ -378,32 +513,12 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
                     {generatedCoverLetter?.confidence ?? 85}%
                   </span>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setReadOnly(!readOnly)}
-                >
-                  {readOnly ? 'Edit' : 'Save'}
-                </Button>
               </div>
               <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
                 <RichTextEditor 
-                  content={editorContent} 
-                  readOnly={readOnly} 
+                  content={currentCoverLetter}
+                  readOnly={!isEditing}
                   onChange={handleContentChange}
-                  menuItems={[
-                    'bold',
-                    'italic',
-                    'underline',
-                    'strike',
-                    'heading',
-                    'bulletList',
-                    'orderedList',
-                    'blockquote',
-                    'alignLeft',
-                    'alignCenter',
-                    'alignRight'
-                  ]}
                 />
               </div>
             </div>
