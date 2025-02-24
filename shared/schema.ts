@@ -263,6 +263,15 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       experience: number;
     };
   };
+  resumeMatchScores: {
+    keywords: number;
+    skills: number;
+    experience: number;
+    education: number;
+    personalization: number;
+    aiReadiness: number;
+    overall: number;
+  },
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 
@@ -304,13 +313,19 @@ export const resumeMatchScores = pgTable("resume_match_scores", {
     overall: 0,
     keywords: 0,
     skills: 0,
-    experience: 0
+    experience: 0,
+    education: 0,
+    personalization: 0,
+    aiReadiness: 0
   }),
   optimizedScores: jsonb("optimized_scores").notNull().default({
     overall: 0,
     keywords: 0,
     skills: 0,
-    experience: 0
+    experience: 0,
+    education: 0,
+    personalization: 0,
+    aiReadiness: 0
   }),
   analysis: jsonb("analysis").notNull().default({
     strengths: [],

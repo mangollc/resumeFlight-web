@@ -92,6 +92,12 @@ const getScoreMethodologyTooltip = (scoreType: string) => {
       return "Skills score evaluates the alignment between your technical/professional capabilities and the job's required qualifications.";
     case "experience":
       return "Experience score assesses how well your work history and achievements match the job's required level and type of experience.";
+    case "education":
+      return "Education score assesses the relevance of your education to the job requirements.";
+    case "personalization":
+      return "Personalization score measures how well your resume is tailored to the specific job description.";
+    case "aiReadiness":
+      return "AI Readiness score evaluates how well your resume is optimized for Applicant Tracking Systems (ATS) and AI-powered recruitment tools.";
     default:
       return "";
   }
@@ -143,7 +149,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4">
-          {["keywords", "skills", "experience"].map((metric) => (
+          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
             <div key={metric} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-muted-foreground capitalize">
                 <span>{metric}</span>
@@ -402,7 +408,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-4">
-                      {["keywords", "skills", "experience"].map((metric) => (
+                      {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
                         <div key={metric} className="space-y-1.5">
                           <div className="flex items-center justify-between text-xs text-muted-foreground">
                             <TooltipProvider>
