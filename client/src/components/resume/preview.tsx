@@ -392,20 +392,42 @@ export default function Preview({ resume }: PreviewProps) {
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className="mt-6 space-y-6">
+                <div className="mt-6">
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Before Optimization</h4>
-                        <div className="space-y-3">
-                          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                            <MetricRow key={`before-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
-                          ))}
+                    {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
+                      <div key={metric} className="bg-muted/10 p-4 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium capitalize">{metric}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">{matchScores.originalScores[metric] || 0}%</span>
+                            <span className="text-muted-foreground">→</span>
+                            <span className={cn(
+                              "font-medium",
+                              (matchScores.optimizedScores[metric] || 0) >= 80 ? "text-green-600" :
+                              (matchScores.optimizedScores[metric] || 0) >= 60 ? "text-yellow-600" :
+                              "text-red-600"
+                            )}>{matchScores.optimizedScores[metric] || 0}%</span>
+                          </div>
+                        </div>
+                        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="absolute h-full bg-primary/30 rounded-full transition-all" 
+                            style={{ width: `${matchScores.originalScores[metric] || 0}%` }}
+                          />
+                          <div 
+                            className={cn(
+                              "absolute h-full rounded-full transition-all",
+                              (matchScores.optimizedScores[metric] || 0) >= 80 ? "bg-green-500" :
+                              (matchScores.optimizedScores[metric] || 0) >= 60 ? "bg-yellow-500" :
+                              "bg-red-500"
+                            )}
+                            style={{ width: `${matchScores.optimizedScores[metric] || 0}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="space-y-4">
-                        <h4 className="font-medium">After Optimization</h4>
-                        <div className="space-y-3">
+                    ))}
+                  </div>
+                </div>e-y-3">
                           {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
                             <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
                           ))}
