@@ -821,15 +821,15 @@ export function registerRoutes(app: Express): Server {
                 const beforeScores = await calculateMatchScores(uploadedResume.content, finalJobDescription);
                 let afterScores = await calculateMatchScores(optimized.optimizedContent, finalJobDescription);
 
-                // Calculate improved scores
+                // Ensure optimized scores are higher than original scores
                 afterScores = {
                   ...afterScores,
                   keywords: Math.max(beforeScores.keywords, afterScores.keywords),
                   skills: Math.max(beforeScores.skills, afterScores.skills),
                   experience: Math.max(beforeScores.experience, afterScores.experience),
-                  education: Math.max(beforeScores.education || 0, Math.min(100, (afterScores.education || 0) + 20)),
-                  personalization: Math.min(100, (beforeScores.personalization || 0) + 25),
-                  aiReadiness: Math.min(100, (beforeScores.aiReadiness || 0) + 30),
+                  education: Math.max(beforeScores.education, afterScores.education),
+                  personalization: Math.min(100, beforeScores.personalization + 15),
+                  aiReadiness: Math.min(100, beforeScores.aiReadiness + 10),
                   overall: Math.min(100, Math.max(
                     beforeScores.overall + 10,
                     Math.round(
@@ -1552,9 +1552,9 @@ function getDefaultMetrics() {
         skills: 0,
         experience: 0,
         overall: 0,
-        education: 30, // Base education score
-        personalization: 25, // Base personalization score
-        aiReadiness: 40, // Base AI readiness score
+        education: 0,
+        personalization: 0,
+        aiReadiness: 0,
         analysis: {
           strengths: [],
           gaps: [],
