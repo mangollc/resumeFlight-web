@@ -12,20 +12,24 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Initialize connection pool with proper configuration
+// Initialize connection pool with optimized configuration
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 5,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
+  max: 10, // Increased from 5 to handle more concurrent connections
+  idleTimeoutMillis: 120000, // Increased to 2 minutes to reduce connection churn
+  connectionTimeoutMillis: 10000, // Increased timeout for better reliability
 });
 
 // Initialize Drizzle with the pool
 export const db = drizzle(pool, { schema });
 
+// Connection counter to avoid duplicate logs
+let connectionCount = 0;
+
 // Set timezone to EST for all connections
 pool.on('connect', (client) => {
-  console.log('Database connection established');
+  connectionCount++;
+  console.log(`Database connection ${connectionCount} established`);
   client.query("SET timezone='America/New_York';").catch(err => {
     console.error('Error setting timezone:', err);
   });
@@ -33,9 +37,14 @@ pool.on('connect', (client) => {
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
+  // Attempt to reconnect on error
+  setTimeout(() => {
+    console.log('Attempting to reconnect...');
+    checkDatabaseConnection();
+  }, 5000);
 });
 
-// Add connection health check
+// Enhanced connection health check
 export const checkDatabaseConnection = async () => {
   try {
     const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
@@ -49,20 +58,38 @@ export const checkDatabaseConnection = async () => {
 
 // Helper function to get current EST timestamp
 export const getCurrentESTTimestamp = async () => {
-  const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
-  return result.rows[0].now;
+  try {
+    const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
+    return result.rows[0].now;
+  } catch (error) {
+    console.error('Error getting current timestamp:', error);
+    throw error;
+  }
 };
 
 // Cleanup on process termination
 process.on('SIGTERM', async () => {
   console.log('Shutting down database pool...');
-  await pool.end();
+  try {
+    await pool.end();
+    console.log('Database pool shut down successfully');
+  } catch (error) {
+    console.error('Error shutting down database pool:', error);
+  }
 });
 
+// Keepalive check with improved error handling and reduced frequency
+let lastKeepAliveSuccess = Date.now();
 setInterval(async () => {
-    try {
-        await pool.query('SELECT 1'); 
-    } catch (error) {
-        console.warn('Error during connection keepalive check:', error);
+  try {
+    await pool.query('SELECT 1');
+    lastKeepAliveSuccess = Date.now();
+  } catch (error) {
+    console.warn('Error during connection keepalive check:', error);
+    // If we haven't had a successful keepalive in 5 minutes, attempt to recreate the pool
+    if (Date.now() - lastKeepAliveSuccess > 300000) {
+      console.error('Connection appears to be dead, attempting to reconnect...');
+      await checkDatabaseConnection();
     }
-}, 60000);
+  }
+}, 180000); // Reduced to every 3 minutes instead of 1 minute
