@@ -432,7 +432,7 @@ export default function Preview({ resume }: PreviewProps) {
                             <MetricRow key={`after-${metric}`} label={metric} before={matchScores.originalScores[metric] || 0} after={matchScores.optimizedScores[metric] || 0} />
                           ))}
                         </div>
-                      </div>
+                      </CollapsibleContent>
                     </div>
 
                     {matchScores?.analysis && (
