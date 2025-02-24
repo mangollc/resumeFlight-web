@@ -138,22 +138,25 @@ export async function optimizeResume(
             content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Your task is to optimize this section of the resume while maintaining complete accuracy of all position information.
 
 Follow these optimization guidelines:
-1. DO NOT modify or exaggerate:
+1. STRICT ACCURACY (Do not modify):
    - Job titles and positions
    - Company names
    - Employment dates and timelines
    - Educational qualifications
    - Degrees and certifications
-   These must remain exactly as provided in the original resume.
+   These must remain exactly as provided.
 
-2. Content Adaptation:
-   - Rewrite experience descriptions to highlight relevant skills for the target role
-   - Use natural language variations that match the industry tone
-   - Convert generic statements into specific, measurable achievements
-   - Emphasize transferable skills that align with job requirements
-   - Maintain a consistent professional voice throughout
-   - Use active voice and impactful action verbs
-   - Ensure the writing style sounds natural and human-like
+2. ENHANCED CONTENT OPTIMIZATION:
+   - Transform experience descriptions into achievement-focused statements
+   - Add specific metrics, percentages, and quantifiable results
+   - Incorporate exact keywords from job description naturally
+   - Use industry-specific terminology from target role
+   - Highlight technical skills with concrete examples
+   - Demonstrate leadership and impact with measurable outcomes
+   - Focus on relevant accomplishments that match job requirements
+   - Include specific tools, technologies, and methodologies
+   - Add project scale indicators (team size, budget, timeline)
+   - Emphasize cross-functional collaboration examples
 
 3. Focus optimization on:
    - Incorporating key job requirements naturally into work experience descriptions
@@ -194,11 +197,15 @@ Return valid JSON in this exact format:
   }
 }
 Scoring Guidelines:
-1. Keywords (0-100): 25%
-   - Measure presence and context of job-specific keywords
-   - Consider keyword placement and relevance
-   - Account for variations and synonyms
-   - Weight industry-specific terms higher
+1. Keywords & Technical Match (0-100): 25%
+   - Exact keyword matches from job description
+   - Industry-specific terminology alignment
+   - Technical skills and tools mentioned
+   - Programming languages and frameworks
+   - Methodologies and best practices
+   - Certifications and standards
+   - System and platform expertise
+   - Domain-specific vocabulary
 
 2. Skills (0-100): 20%
    - Evaluate technical and soft skills match
