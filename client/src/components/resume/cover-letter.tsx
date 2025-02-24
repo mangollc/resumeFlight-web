@@ -21,6 +21,32 @@ interface CoverLetterProps {
   readOnly?: boolean;
 }
 
+// Placeholder RichTextEditor component
+const RichTextEditor = ({ content, readOnly, onChange }: { content: string; readOnly: boolean; onChange: (content: string) => void }) => {
+  const [editorContent, setEditorContent] = useState(content);
+
+  useEffect(() => {
+    setEditorContent(content);
+  }, [content]);
+
+  const handleEditorChange = (newContent: string) => {
+    setEditorContent(newContent);
+    onChange(newContent);
+  };
+
+  // Replace this with actual rich text editor implementation (e.g., TipTap)
+  return (
+    <div>
+      {readOnly ? (
+        <pre className="whitespace-pre-wrap">{editorContent}</pre>
+      ) : (
+        <textarea value={editorContent} onChange={(e) => handleEditorChange(e.target.value)} />
+      )}
+    </div>
+  );
+};
+
+
 export default function CoverLetterComponent({ resume, onGenerated, generatedCoverLetter, readOnly = false }: CoverLetterProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -29,6 +55,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
   const [selectedVersion, setSelectedVersion] = useState<string>("");
   const [versions, setVersions] = useState<string[]>([]);
   const [currentCoverLetter, setCurrentCoverLetter] = useState<string>("");
+  const [editorContent, setEditorContent] = useState(""); // Added state for rich text editor content
 
   useEffect(() => {
     if (generatedCoverLetter?.metadata?.version) {
@@ -43,6 +70,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
         if (!selectedVersion) {
           setSelectedVersion(version);
           setCurrentCoverLetter(generatedCoverLetter.content);
+          setEditorContent(generatedCoverLetter.content); // Initialize editor content
         }
         return newVersions;
       });
@@ -54,6 +82,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     if (selectedVersion && generatedCoverLetter) {
       if (selectedVersion === generatedCoverLetter.metadata.version.toString()) {
         setCurrentCoverLetter(generatedCoverLetter.content);
+        setEditorContent(generatedCoverLetter.content); // Update editor content
       } else {
         // Fetch the specific version content
         fetchVersionContent(selectedVersion);
@@ -78,6 +107,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
       const data = await response.json();
       if (data.content) {
         setCurrentCoverLetter(data.content);
+        setEditorContent(data.content); // Update editor content
       } else {
         throw new Error('Invalid response format');
       }
@@ -138,6 +168,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
           }));
         setSelectedVersion(newVersion);
         setCurrentCoverLetter(data.content);
+        setEditorContent(data.content); // Update editor content
       }
       toast({
         title: "Success",
@@ -202,6 +233,10 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handleContentChange = (newContent: string) => {
+    setCurrentCoverLetter(newContent);
   };
 
   const formatDownloadFilename = (filename: string, jobTitle: string, version: string): string => {
@@ -315,9 +350,7 @@ export default function CoverLetterComponent({ resume, onGenerated, generatedCov
                 </span>
               </div>
               <div className="max-h-[300px] sm:max-h-[500px] overflow-y-auto rounded-md bg-muted p-3 sm:p-4">
-                <pre className="whitespace-pre-wrap font-sans text-sm">
-                  {currentCoverLetter || generatedCoverLetter?.content || ''}
-                </pre>
+                <RichTextEditor content={editorContent} readOnly={readOnly} onChange={handleContentChange} />
               </div>
             </div>
           </CardContent>

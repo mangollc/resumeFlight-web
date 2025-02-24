@@ -96,6 +96,18 @@ const getInitials = (text: string): string => {
   return nameMatch ? `${nameMatch[1][0]}${nameMatch[2][0]}`.toUpperCase() : "XX";
 };
 
+const RichTextEditor = ({ content, readOnly, onChange }: { content: string; readOnly: boolean; onChange: (content: string) => void }) => {
+  // Placeholder for a real rich text editor
+  return (
+    <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
+      <pre className="whitespace-pre-wrap font-sans text-sm">
+        {content}
+      </pre>
+    </div>
+  );
+};
+
+
 export default function Preview({ resume }: PreviewProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -262,11 +274,7 @@ export default function Preview({ resume }: PreviewProps) {
           </div>
 
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            <div className="max-h-[500px] overflow-y-auto rounded-md bg-muted p-4">
-              <pre className="whitespace-pre-wrap font-sans text-sm">
-                {optimizedContent}
-              </pre>
-            </div>
+            <RichTextEditor content={optimizedContent} readOnly={false} onChange={() => {}} />
           </div>
 
           {isOptimized && matchScores && (
