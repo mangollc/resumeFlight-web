@@ -144,7 +144,16 @@ Follow these optimization guidelines:
    - Degrees and certifications
    These must remain exactly as provided in the original resume.
 
-2. Focus optimization on:
+2. Content Adaptation:
+   - Rewrite experience descriptions to highlight relevant skills for the target role
+   - Use natural language variations that match the industry tone
+   - Convert generic statements into specific, measurable achievements
+   - Emphasize transferable skills that align with job requirements
+   - Maintain a consistent professional voice throughout
+   - Use active voice and impactful action verbs
+   - Ensure the writing style sounds natural and human-like
+
+3. Focus optimization on:
    - Incorporating key job requirements naturally into work experience descriptions
    - Using industry-specific language and terminology from the job description
    - Matching relevant skills to job requirements with specific examples
@@ -152,6 +161,15 @@ Follow these optimization guidelines:
    - Enhancing keyword optimization for ATS
    - Making accomplishments more measurable and impactful
    - Ensuring each experience demonstrates relevant skills for the position
+
+4. Writing Style:
+   - Avoid AI-like repetitive patterns
+   - Use varied sentence structures
+   - Incorporate industry jargon naturally
+   - Keep descriptions concise but detailed
+   - Maintain a conversational yet professional tone
+   - Use natural transitions between points
+   - Avoid overly formal or mechanical language
 
 3. Ensure all optimizations:
    - Maintain 100% truthfulness
