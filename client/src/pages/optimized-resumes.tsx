@@ -8,15 +8,15 @@ import {
   MoreVertical,
   ChevronDown,
   ChevronRight,
-  TrophyIcon,
-  CheckCircleIcon,
-  ArrowUpCircleIcon,
-  ArrowUpIcon,
+  Trophy,
+  CheckCircle,
+  ArrowUpCircle,
+  ArrowUp,
   Info,
   AlertTriangle,
-  MinusCircleIcon,
-  LightBulbIcon,
-  SparklesIcon,
+  MinusCircle,
+  Lightbulb,
+  Sparkles,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -284,13 +284,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     {resume.metrics.after.strengths?.length > 0 && (
                       <div className="bg-emerald-50 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <TrophyIcon className="h-4 w-4 text-emerald-600" />
+                          <Trophy className="h-4 w-4 text-emerald-600" />
                           <h4 className="font-medium text-sm">Strengths</h4>
                         </div>
                         <ul className="space-y-2">
                           {resume.metrics.after.strengths?.map((strength, idx) => (
                             <li key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
-                              <CheckCircleIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{strength}</span>
                             </li>
                           ))}
@@ -299,13 +299,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     )}
                     <div className="bg-amber-50 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-3">
-                        <ArrowUpCircleIcon className="h-4 w-4 text-amber-600" />
+                        <ArrowUpCircle className="h-4 w-4 text-amber-600" />
                         <h4 className="font-medium text-sm">Improvements</h4>
                       </div>
                       <ul className="space-y-2">
                         {resume.metrics?.improvements?.map((improvement, idx) => (
                           <li key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
-                            <ArrowUpIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <ArrowUp className="h-4 w-4 mt-0.5 flex-shrink-0" />
                             <span>{improvement}</span>
                           </li>
                         ))}
@@ -326,7 +326,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         <ul className="space-y-2">
                           {resume.metrics.after.gaps?.map((gap, idx) => (
                             <li key={idx} className="text-sm text-red-600 flex gap-2 items-start">
-                              <MinusCircleIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <MinusCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{gap}</span>
                             </li>
                           ))}
@@ -336,13 +336,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     {resume.metrics.after.suggestions?.length > 0 && (
                       <div className="bg-blue-50 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <LightBulbIcon className="h-4 w-4 text-blue-600" />
+                          <Lightbulb className="h-4 w-4 text-blue-600" />
                           <h4 className="font-medium text-sm">Suggestions</h4>
                         </div>
                         <ul className="space-y-2">
                           {resume.metrics.after.suggestions?.map((suggestion, idx) => (
                             <li key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
-                              <SparklesIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{suggestion}</span>
                             </li>
                           ))}
