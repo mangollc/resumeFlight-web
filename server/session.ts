@@ -15,6 +15,8 @@ export const sessionStore = new PostgresSessionStore({
   tableName: 'session',
   createTableIfMissing: true,
   pruneSessionInterval: SAFE_ONE_DAY,
+  ttl: SESSION_TIMEOUT,
+  disableTouch: false,
   errorLog: (err: Error) => {
     console.error('[Session Store Error]:', err);
   }

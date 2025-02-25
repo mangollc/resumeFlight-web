@@ -12,8 +12,8 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Set safe timeout values
-const MAX_TIMEOUT = 2147483647;
+// Safe timeout values (30 seconds)
+const SAFE_TIMEOUT = 30000;
 const server = app.listen(5000, '0.0.0.0', () => {
     log('Server successfully started on port 5000');
 });
