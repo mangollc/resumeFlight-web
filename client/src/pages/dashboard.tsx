@@ -6,8 +6,9 @@ import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
+import CoverLetter from "@/components/resume/cover-letter";
 import ComparisonView from "@/components/resume/comparison-view";
-import { type UploadedResume, type OptimizedResume } from "@shared/schema";
+import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { ReviewSection } from "@/components/resume/review-section"; // Added import
 
 const handleDownload = async (id: string) => {
@@ -87,6 +101,16 @@ const steps: Step[] = [
     id: 3,
     title: "Optimize",
     description: "Get your resume optimized by AI"
+  },
+  {
+    id: 4,
+    title: "Cover Letter",
+    description: "Generate a matching cover letter"
+  },
+  {
+    id: 5,
+    title: "Summary",
+    description: "Review all optimized documents"
   }
 ];
 
@@ -124,6 +148,24 @@ const optimizationSteps = [
   }
 ];
 
+const coverLetterSteps = [
+  {
+    id: "analyze_resume",
+    label: "Analyzing resume and job details",
+    status: "pending"
+  },
+  {
+    id: "draft",
+    label: "Drafting personalized content",
+    status: "pending"
+  },
+  {
+    id: "format",
+    label: "Formatting and finalizing",
+    status: "pending"
+  }
+];
+
 type ProgressStep = {
   id: string;
   label: string;
@@ -146,26 +188,40 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Use the ID directly from the URL path for optimized resumes
   const optimizedId = params.id;
   const isReviewMode = !!optimizedId;
+
+  // Add loading state for review mode
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
-  const [currentStep, setCurrentStep] = useState(isReviewMode ? 3 : 1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>(isReviewMode ? [1, 2, 3] : []);
+
+  // Initialize all state variables
+  const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>(isReviewMode ? [1, 2, 3, 4, 5] : []);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
+  const [coverLetter, setCoverLetter] = useState<CoverLetterType | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
   const [optimizationVersion, setOptimizationVersion] = useState('1.0');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isComparingResumes, setIsComparingResumes] = useState(false);
+  const [coverLetterVersion, setCoverLetterVersion] = useState('1.0');
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+  const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
+  const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
   const [currentOptimizationSteps, setCurrentOptimizationSteps] = useState<ProgressStep[]>(
     optimizationSteps.map(step => ({ ...step, status: "pending" as const }))
   );
+  const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressStep[]>(
+    coverLetterSteps.map(step => ({ ...step, status: "pending" as const }))
+  );
 
 
+  // Fetch optimized resume data when in review mode
   useEffect(() => {
     if (isReviewMode) {
       const fetchOptimizedResume = async () => {
@@ -177,14 +233,22 @@ export default function Dashboard() {
           }
           const data = await response.json();
 
+          // Set uploaded resume from the optimized resume data
           if (data.uploadedResume) {
             setUploadedResume(data.uploadedResume);
           }
 
           setOptimizedResume(data);
           setJobDetails(data.jobDetails);
-          setCompletedSteps([1, 2, 3]);
-          setCurrentStep(3);
+
+          if (data.coverLetter) {
+            setCoverLetter(data.coverLetter);
+            setCoverLetters([data.coverLetter]);
+            setSelectedCoverLetterVersion(data.coverLetter.metadata.version.toString());
+          }
+
+          setCompletedSteps([1, 2, 3, 4, 5]);
+          setCurrentStep(5);
           setShowWelcome(false);
         } catch (error) {
           console.error('Error fetching optimized resume:', error);
@@ -202,6 +266,7 @@ export default function Dashboard() {
     }
   }, [isReviewMode, optimizedId, toast]);
 
+  // Welcome animation effect - Only show if not in review mode
   useEffect(() => {
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
@@ -232,7 +297,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: "Resume uploaded successfully",
-        duration: 2000, 
+        duration: 2000, // Set to 2 seconds
       });
     } catch (error) {
       console.error('Error handling resume upload:', error);
@@ -244,6 +309,7 @@ export default function Dashboard() {
     }
   };
 
+  // Update version increment logic
   const incrementVersion = (currentVersion: string): string => {
     const [major, minor] = currentVersion.split('.').map(Number);
     return `${major}.${minor + 1}`;
@@ -258,8 +324,100 @@ export default function Dashboard() {
     setOptimizationVersion(prev => incrementVersion(prev));
   };
 
+  const handleCoverLetterGenerated = (letter: CoverLetterType) => {
+    setCoverLetter(letter);
+    // Ensure no duplicate versions in the array
+    const existingVersions = new Set(coverLetters.map(l => l.metadata.version));
+    if (!existingVersions.has(letter.metadata.version)) {
+      setCoverLetters(prev => [...prev, letter]);
+    }
+    if (!completedSteps.includes(4)) {
+      setCompletedSteps(prev => [...prev, 4]);
+    }
+    setSelectedCoverLetterVersion(letter.metadata.version.toString());
+    setCoverLetterVersion(letter.metadata.version);
+  };
+
   const handleRegenerateCoverLetter = async () => {
-      //Removed because cover letter is removed
+    if (!optimizedResume?.id) return;
+
+    try {
+      setIsGeneratingCoverLetter(true);
+      // Calculate next version by incrementing the highest existing version
+      const highestVersion = Math.max(...coverLetters.map(l => 
+        parseFloat(l.metadata.version)
+      ), 0);
+      const nextVersion = `${Math.floor(highestVersion)}.${(highestVersion % 1 * 10 + 1).toFixed(0)}`;
+      setCoverLetterVersion(nextVersion);
+
+      // Reset cover letter steps
+      setCurrentCoverLetterSteps(coverLetterSteps.map(step => ({ ...step, status: "pending" })));
+
+      // Simulate progress through cover letter steps
+      const updateStep = (stepId: string, status: "loading" | "completed") => {
+        setCurrentCoverLetterSteps(prev =>
+          prev.map(step =>
+            step.id === stepId
+              ? { ...step, status }
+              : step
+          )
+        );
+      };
+
+      // Start analysis
+      updateStep("analyze_resume", "loading");
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      updateStep("analyze_resume", "completed");
+
+      // Draft content
+      updateStep("draft", "loading");
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      updateStep("draft", "completed");
+
+      // Format and finalize
+      updateStep("format", "loading");
+
+      const response = await apiRequest(
+        "POST",
+        `/api/optimized-resume/${optimizedResume.id}/cover-letter`,
+        {
+          version: parseFloat(nextVersion),
+          contactInfo: optimizedResume.contactInfo
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate cover letter');
+      }
+
+      const data = await response.json();
+      handleCoverLetterGenerated(data);
+
+      updateStep("format", "completed");
+
+      toast({
+        title: "Success",
+        description: `Cover letter regenerated (v${nextVersion})`,
+        duration: 2000,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to regenerate cover letter",
+        variant: "destructive",
+      });
+
+      // Mark remaining steps as error
+      setCurrentCoverLetterSteps(prev =>
+        prev.map(step =>
+          step.status === "pending" || step.status === "loading"
+            ? { ...step, status: "error" }
+            : step
+        )
+      );
+    } finally {
+      setIsGeneratingCoverLetter(false);
+    }
   };
 
   const handleDownload = async (resumeId: string) => {
@@ -306,6 +464,9 @@ export default function Dashboard() {
       if (jobDetails) {
         formData.append('jobDetails', JSON.stringify(jobDetails));
       }
+      if (coverLetter) {
+        formData.append('coverLetterId', coverLetter.id.toString());
+      }
 
       const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`, {
         method: 'POST',
@@ -341,7 +502,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: "Package downloaded successfully",
-        duration: 2000, 
+        duration: 2000, // Set to 2 seconds
       });
     } catch (error) {
       console.error('Download error:', error);
@@ -360,8 +521,10 @@ export default function Dashboard() {
     setCompletedSteps([]);
     setUploadedResume(null);
     setOptimizedResume(null);
+    setCoverLetter(null);
     setJobDetails(null);
     setUploadMode('choose');
+    setCoverLetters([]);
   };
 
   async function handleReoptimize() {
@@ -378,8 +541,10 @@ export default function Dashboard() {
       setIsOptimizing(true);
       const nextVersion = incrementVersion(optimizationVersion);
 
+      // Reset optimization steps
       setCurrentOptimizationSteps(optimizationSteps.map(step => ({ ...step, status: "pending" })));
 
+      // Simulate progress through optimization steps
       const updateStep = (stepId: string, status: "loading" | "completed" | "error") => {
         setCurrentOptimizationSteps(prev =>
           prev.map(step =>
@@ -390,8 +555,10 @@ export default function Dashboard() {
         );
       };
 
+      // Start analysis
       updateStep("analyze", "loading");
 
+      // Create a properly formatted optimization request with scoring
       const optimizationData = {
         jobDetails: jobDetails,
         version: nextVersion,
@@ -405,6 +572,7 @@ export default function Dashboard() {
         }, index * 1000);
       });
 
+      // Make the optimization request
       const response = await apiRequest(
         "POST",
         `/api/uploaded-resumes/${uploadedResume.id}/optimize`,
@@ -415,6 +583,7 @@ export default function Dashboard() {
         throw new Error('Failed to reoptimize resume');
       }
 
+      // Mark steps as completed after successful response
       ["analyze", "keywords", "matching", "optimize"].forEach(stepId => {
         updateStep(stepId, "completed");
       });
@@ -423,6 +592,7 @@ export default function Dashboard() {
       setOptimizedResume(optimizedData);
       setOptimizationVersion(nextVersion);
 
+      // Invalidate queries to ensure latest data
       await queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
 
       toast({
@@ -438,6 +608,7 @@ export default function Dashboard() {
         variant: "destructive",
       });
 
+      // Mark remaining steps as error
       setCurrentOptimizationSteps(prev =>
         prev.map(step =>
           step.status === "pending" || step.status === "loading"
@@ -451,9 +622,11 @@ export default function Dashboard() {
   }
 
   const canGoBack = currentStep > 1;
-  const canGoNext = currentStep < 3 && (
+  const canGoNext = currentStep < 5 && (
     (currentStep === 1 && !!uploadedResume) ||
-    (currentStep === 2 && !!jobDetails)
+    (currentStep === 2 && !!jobDetails) ||
+    (currentStep === 3 && !!optimizedResume) ||
+    (currentStep === 4)
   );
 
   const handleBack = () => {
@@ -465,9 +638,13 @@ export default function Dashboard() {
   const handleNext = () => {
     if (canGoNext) {
       const nextStep = currentStep + 1;
-      if (!completedSteps.includes(currentStep)) {
+
+      if (currentStep === 4 && !coverLetter) {
+        setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
+      } else if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
       }
+
       setCurrentStep(nextStep);
     }
   };
@@ -501,6 +678,7 @@ export default function Dashboard() {
     return (
       <ReviewSection
         optimizedResume={optimizedResume}
+        coverLetter={coverLetter}
         onDownload={handleDownload}
       />
     );
@@ -521,11 +699,13 @@ export default function Dashboard() {
       return optimizedResume ? (
         <ReviewSection
           optimizedResume={optimizedResume}
+          coverLetter={coverLetter}
           onDownload={handleDownload}
         />
       ) : null;
     }
 
+    // Don't render steps if we're in review mode and don't have all required data
     if (isReviewMode && (!optimizedResume || !uploadedResume)) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -544,7 +724,7 @@ export default function Dashboard() {
 
     switch (currentStep) {
       case 1:
-        if (isReviewMode) return null; 
+        if (isReviewMode) return null; // Skip rendering step 1 in review mode
         return (
           <div className="fade-in">
             <Card {...commonCardProps}>
@@ -609,6 +789,7 @@ export default function Dashboard() {
                   {uploadMode === 'upload' && (
                     <UploadForm onSuccess={handleResumeUploaded} />
                   )}
+                  {/* Job Details Display Section */}
                   {(optimizedResume?.jobDetails || jobDetails) && (
                     <div className="mt-6 p-4 rounded-lg border bg-card">
                       <h3 className="text-lg font-semibold mb-4">Job Details</h3>
@@ -733,7 +914,7 @@ export default function Dashboard() {
           </div>
         );
       case 2:
-        if (isReviewMode) return null; 
+        if (isReviewMode) return null; // Skip rendering step 2 in review mode
         return uploadedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
@@ -749,7 +930,7 @@ export default function Dashboard() {
           </div>
         ) : null;
       case 3:
-        if (isReviewMode) return null; 
+        if (isReviewMode) return null; // Skip rendering step 3 in review mode
         return optimizedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
@@ -767,17 +948,95 @@ export default function Dashboard() {
             </Card>
           </div>
         ) : null;
+
+      case 4:
+        if (isReviewMode) return null; // Skip rendering step 4 in review mode
+        return optimizedResume ? (
+          <div className="fade-in">
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
+                  {!coverLetter && (
+                    <Button
+                      variant="outline"
+                      onClick={handleNext}
+                      className="text-muted-foreground"
+                    >
+                      Skip Cover Letter
+                    </Button>
+                  )}
+                </div>
+                {!coverLetter ? (
+                  <CoverLetter
+                    resume={optimizedResume}
+                    onGenerated={handleCoverLetterGenerated}
+                  />
+                ) : (
+                  <div className="mt-6 space-y-8">
+                    <CoverLetter
+                      resume={optimizedResume}
+                      onGenerated={handleCoverLetterGenerated}
+                      generatedCoverLetter={coverLetter}
+                    />
+                  </div>
+                )}
+                {renderNavigation()}
+              </CardContent>
+            </Card>
+
+            <LoadingDialog
+              open={isGeneratingCoverLetter}
+              title="Generating Cover Letter"
+              description="Please wait while we generate your cover letter using AI..."
+              steps={currentCoverLetterSteps}
+              onOpenChange={setIsGeneratingCoverLetter}
+            />
+          </div>
+        ) : null;
+
+      case 5:
+        return optimizedResume && uploadedResume ? (
+          <div className="fade-in space-y-8">
+            {/* Show optimized resume */}
+            <Card {...commonCardProps}>
+              <CardContent className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-foreground/90">Optimized Resume</h3>
+                </div>
+                <Preview resume={optimizedResume} />
+              </CardContent>
+            </Card>
+
+            {/* Show cover letter if generated */}
+            {coverLetter && (
+              <Card {...commonCardProps}>
+                <CardContent className="p-8">
+                  <CoverLetter
+                    resume={optimizedResume}
+                    onGenerated={handleCoverLetterGenerated}
+                    generatedCoverLetter={coverLetter}
+                    readOnly={true}
+                  />
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : null;
+
       default:
         return null;
     }
   };
 
   useEffect(() => {
+    // Set random proverb and show welcome animation
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
       setProverb(jobProverbs[randomIndex]);
       setShowWelcome(true);
 
+      // Only hide welcome animation after timeout
       const timer = setTimeout(() => {
         setShowWelcome(false);
       }, 3000);
@@ -793,6 +1052,7 @@ export default function Dashboard() {
     setIsOptimizing(false);
   };
 
+  // Show loading state while fetching review data
   if (isLoadingReview) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -862,12 +1122,19 @@ export default function Dashboard() {
           }
         }}
       />
+      <LoadingDialog
+        open={isGeneratingCoverLetter}
+        title="Generating Cover Letter"
+        description="Please wait while we generate your cover letter using AI..."
+        steps={currentCoverLetterSteps}
+        onOpenChange={setIsGeneratingCoverLetter}
+      />
     </div>
   );
 }
 
 function formatDownloadFilename(filename: string, jobTitle: string, version: number): string {
-  const baseFilename = filename.replace(/\.[^/.]+$/, ''); 
-  const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(); 
+  const baseFilename = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+  const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(); // Sanitize job title for filename
   return `${baseFilename}_${formattedJobTitle}_v${version.toFixed(1)}`;
 }

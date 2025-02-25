@@ -7,7 +7,6 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UploadedResumesPage from "@/pages/uploaded-resumes";
 import OptimizedResumesPage from "@/pages/optimized-resumes";
-import CoverLettersPage from "@/pages/cover-letters";
 import SubscriptionPage from "@/pages/subscription";
 import SettingsPage from "@/pages/settings";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -58,7 +57,6 @@ function Router() {
       <ProtectedRoute path="/resume/:id/optimize/review" component={() => <ProtectedLayout component={Dashboard} />} />
       <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayout component={UploadedResumesPage} />} />
       <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayout component={OptimizedResumesPage} />} />
-      <ProtectedRoute path="/cover-letters" component={() => <ProtectedLayout component={CoverLettersPage} />} />
       <ProtectedRoute path="/subscription" component={() => <ProtectedLayout component={SubscriptionPage} />} />
       <ProtectedRoute path="/settings" component={() => <ProtectedLayout component={SettingsPage} />} />
       <Route path="/auth" component={AuthPage} />

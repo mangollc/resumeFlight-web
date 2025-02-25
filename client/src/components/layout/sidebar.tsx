@@ -47,12 +47,6 @@ const navItems: NavItem[] = [
     color: "text-green-500",
   },
   {
-    title: "Cover Letters",
-    href: "/cover-letters",
-    icon: Plane,
-    color: "text-orange-500",
-  },
-  {
     title: "Subscription",
     href: "/subscription",
     icon: CreditCard,
