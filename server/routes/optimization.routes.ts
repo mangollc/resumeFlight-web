@@ -20,8 +20,43 @@ router.get('/optimized-resumes', async (req, res) => {
         }
 
         const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
-        return res.json(resumes);
+
+        // Transform resumes to include required properties
+        const transformedResumes = resumes.map(resume => ({
+            ...resume,
+            matchScore: {
+                originalScores: resume.metrics?.before || {
+                    keywords: 0,
+                    skills: 0,
+                    experience: 0,
+                    education: 0,
+                    personalization: 0,
+                    aiReadiness: 0,
+                    overall: 0,
+                    confidence: 0
+                },
+                optimizedScores: resume.metrics?.after || {
+                    keywords: 0,
+                    skills: 0,
+                    experience: 0,
+                    education: 0,
+                    personalization: 0,
+                    aiReadiness: 0,
+                    overall: 0,
+                    confidence: 0
+                },
+                analysis: resume.analysis || {
+                    matches: [],
+                    improvements: [],
+                    gaps: [],
+                    suggestions: []
+                }
+            }
+        }));
+
+        return res.json(transformedResumes);
     } catch (error: any) {
+        console.error("Error fetching optimized resumes:", error);
         return res.status(500).json({
             error: "Failed to fetch optimized resumes",
             details: error.message,
@@ -47,8 +82,42 @@ router.get('/optimized-resume/:id', async (req, res) => {
             return res.status(403).json({ error: "Unauthorized access" });
         }
 
-        return res.json(resume);
+        // Transform single resume to include required properties
+        const transformedResume = {
+            ...resume,
+            matchScore: {
+                originalScores: resume.metrics?.before || {
+                    keywords: 0,
+                    skills: 0,
+                    experience: 0,
+                    education: 0,
+                    personalization: 0,
+                    aiReadiness: 0,
+                    overall: 0,
+                    confidence: 0
+                },
+                optimizedScores: resume.metrics?.after || {
+                    keywords: 0,
+                    skills: 0,
+                    experience: 0,
+                    education: 0,
+                    personalization: 0,
+                    aiReadiness: 0,
+                    overall: 0,
+                    confidence: 0
+                },
+                analysis: resume.analysis || {
+                    matches: [],
+                    improvements: [],
+                    gaps: [],
+                    suggestions: []
+                }
+            }
+        };
+
+        return res.json(transformedResume);
     } catch (error: any) {
+        console.error("Error fetching optimized resume:", error);
         return res.status(500).json({
             error: "Failed to fetch optimized resume",
             details: error.message,

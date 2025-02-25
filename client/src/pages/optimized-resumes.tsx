@@ -51,9 +51,34 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 interface ResumeWithScore extends OptimizedResume {
-  matchScore?: ResumeMatchScore;
-  versionMetrics?: any[];
-  analysis?: any; // Add analysis property
+  matchScore: {
+    originalScores: {
+      keywords: number;
+      skills: number;
+      experience: number;
+      education: number;
+      personalization: number;
+      aiReadiness: number;
+      overall: number;
+      confidence: number;
+    };
+    optimizedScores: {
+      keywords: number;
+      skills: number;
+      experience: number;
+      education: number;
+      personalization: number;
+      aiReadiness: number;
+      overall: number;
+      confidence: number;
+    };
+    analysis?: {
+      matches: string[];
+      improvements: string[];
+      gaps: string[];
+      suggestions: string[];
+    };
+  };
 }
 
 const getMetricsColor = (value: number, type: "bg" | "text" = "bg") => {
@@ -127,7 +152,7 @@ const ScoreTooltip = ({
 
 function ResumeRow({ resume }: { resume: ResumeWithScore }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false); // Added state for analysis
+  const [isAnalyzing, setIsAnalyzing] = useState(false); 
   const { toast } = useToast();
 
   const getScoresDisplay = (scores: any) => {
@@ -234,14 +259,17 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
       const updatedResume = {
         ...resume,
-        analysis: data.analysis,
+        matchScore: {
+          ...resume.matchScore,
+          analysis: data.analysis,
+        },
       };
       queryClient.setQueryData(["/api/optimized-resumes"], (oldData: any) => {
         return oldData.map((r: any) =>
           r.id === updatedResume.id ? updatedResume : r
         );
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] }); //added to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] }); 
     } catch (error) {
       console.error('Analysis error:', error);
       toast({
@@ -261,7 +289,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <TableCell className="w-4">
-          {/* Button removed */}
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
           ) : (
@@ -541,15 +568,16 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
                 </div>
               </div>
             </div>
-            </TableCell>
-          </TableRow>
-        )}
-      </>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
   );
 }
 
 export default function OptimizedResumesPage() {
-  const { data: resumes, isLoading } = useQuery<ResumeWithScore[]>({
+  const { toast } = useToast();
+  const { data: resumes, isLoading, error } = useQuery<ResumeWithScore[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
@@ -557,6 +585,14 @@ export default function OptimizedResumesPage() {
           new Date(b.metadata.optimizedAt).getTime() -
           new Date(a.metadata.optimizedAt).getTime()
         );
+      });
+    },
+    onError: (err: Error) => {
+      console.error("Error loading resumes:", err);
+      toast({
+        title: "Error",
+        description: "Failed to load optimized resumes. Please try again.",
+        variant: "destructive",
       });
     },
   });
