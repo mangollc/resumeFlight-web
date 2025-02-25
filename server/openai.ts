@@ -37,10 +37,31 @@ function splitIntoChunks(text: string, maxChunkSize: number = 16000): string[] {
   return chunks;
 }
 
-// OpenAI error handler
+// OpenAI error handler with retries and better error classification
 const handleOpenAIError = (error: any, context: string) => {
-  console.error(`[${context}] Error:`, error);
-  throw new Error(`Failed in ${context}: ${error.message}`);
+  const errorDetails = {
+    message: error.message,
+    status: error.status,
+    code: error.code,
+    type: error.type,
+    param: error.param
+  };
+
+  console.error(`[${context}] Error:`, errorDetails);
+
+  if (error.code === 'rate_limit_exceeded') {
+    throw new Error('Rate limit exceeded. Please try again in a few moments.');
+  }
+
+  if (error.code === 'context_length_exceeded') {
+    throw new Error('Input text is too long. Please reduce the content length.');
+  }
+
+  if (error.code === 'invalid_api_key') {
+    throw new Error('OpenAI API key is invalid or expired.');
+  }
+
+  throw new Error(`Failed in ${context}: ${error.message || 'Unknown error occurred'}`);
 };
 
 // Analysis functions

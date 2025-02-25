@@ -64,20 +64,32 @@ app.get("/health", async (_req, res) => {
 registerRoutes(app);
 
 // Enhanced error handling middleware
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
+    const errorId = Math.random().toString(36).substring(7);
 
-    console.error(`[Error] ${status} - ${message}`, err.stack);
+    console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
+        error: err,
+        stack: err.stack,
+        body: req.body,
+        query: req.query,
+        user: req.user?.id
+    });
 
     const responseMessage = process.env.NODE_ENV === "production"
-        ? "An unexpected error occurred"
+        ? `An unexpected error occurred (ID: ${errorId})`
         : message;
 
     res.status(status).json({
         error: true,
         message: responseMessage,
-        ...(process.env.NODE_ENV !== "production" && { stack: err.stack })
+        errorId,
+        code: err.code,
+        ...(process.env.NODE_ENV !== "production" && { 
+            stack: err.stack,
+            details: err.details || err.response?.data
+        })
     });
 });
 
