@@ -7,7 +7,6 @@ import {
   FileText,
   Trash2,
   MoreVertical,
-  ExternalLink,
   ChevronDown,
   ChevronRight,
   ArrowRight,
@@ -385,8 +384,8 @@ export default function OptimizedResumesPage() {
         {resumes && resumes.length > 0 ? (
           <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
             <Table>
-              <TableHeader className="bg-gradient-to-r from-primary/10 to-primary/5">
-                <TableRow className="hover:bg-transparent">
+              <TableHeader>
+                <TableRow>
                   <TableHead className="w-4"></TableHead>
                   <TableHead>
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
