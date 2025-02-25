@@ -12,45 +12,25 @@ import { parseResume } from '../utils/parser';
 
 const router = Router();
 
-// Error handling middleware
-const handleApiError = (err: any, res: Response) => {
-  console.error('Resume API Error:', err);
-  res.status(err.status || 500).json({
-    error: true,
-    message: err.message || 'Internal server error',
-    details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-};
-
-// Multer configuration for resume uploads
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
-    fileFilter: (_req, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-        const supportedTypes = [
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ];
-        if (supportedTypes.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error("Unsupported file type. Please upload PDF or DOCX files only."));
-        }
-    },
-});
-
 // Get all uploaded resumes for user
-router.get('/resumes', async (req, res) => {
+router.get('/uploaded-resumes', async (req, res) => {
     try {
+        console.log('GET /uploaded-resumes - Auth status:', req.isAuthenticated());
+        console.log('User:', req.user);
+
         if (!req.isAuthenticated() || !req.user) {
             return res.status(401).json({ 
                 error: "Unauthorized",
                 message: "Please log in to view resumes"
             });
         }
+
         const resumes = await storage.getUploadedResumesByUser(req.user.id);
+        console.log('Found resumes:', resumes);
+
         return res.json(resumes);
     } catch (error: any) {
+        console.error('Error fetching resumes:', error);
         return res.status(500).json({
             error: "Failed to fetch resumes",
             details: error.message,

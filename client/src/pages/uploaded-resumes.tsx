@@ -38,6 +38,7 @@ export default function UploadedResumesPage() {
   const { data: resumes = [], isLoading, isError, error } = useQuery({
     queryKey: ["/api/uploaded-resumes"],
     queryFn: async () => {
+      console.log('Fetching uploaded resumes...');
       const response = await fetch("/api/uploaded-resumes", {
         headers: {
           'Accept': 'application/json',
@@ -45,20 +46,22 @@ export default function UploadedResumesPage() {
         },
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch resumes');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to fetch resumes');
       }
-      
+
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         throw new Error('Invalid response format');
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('Received resumes:', data);
+      return data;
     },
-    retry: 2,
-    retryDelay: 1000
+    retry: 1
   });
 
   const deleteMutation = useMutation({
