@@ -8,15 +8,6 @@ import {
   MoreVertical,
   ChevronDown,
   ChevronRight,
-  Trophy,
-  CheckCircle,
-  ArrowUpCircle,
-  ArrowUp,
-  Info,
-  AlertTriangle,
-  MinusCircle,
-  Lightbulb,
-  Sparkles,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -282,51 +273,42 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   <h3 className="text-lg font-medium mb-4">Analysis</h3>
                   <div className="space-y-6">
                     {resume.metrics.after.strengths?.length > 0 && (
-                      <div className="bg-emerald-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Trophy className="h-4 w-4 text-emerald-600" />
-                          <h4 className="font-medium text-sm">Strengths</h4>
-                        </div>
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Strengths</h4>
                         <ul className="space-y-2">
                           {resume.metrics.after.strengths?.map((strength, idx) => (
-                            <li key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
-                              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <li
+                              key={idx}
+                              className="text-sm text-emerald-600 flex gap-2"
+                            >
+                              <span>•</span>
                               <span>{strength}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    <div className="bg-amber-50 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <ArrowUpCircle className="h-4 w-4 text-amber-600" />
-                        <h4 className="font-medium text-sm">Improvements</h4>
-                      </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Improvements</h4>
                       <ul className="space-y-2">
                         {resume.metrics?.improvements?.map((improvement, idx) => (
-                          <li key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
-                            <ArrowUp className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <li key={idx} className="text-sm text-amber-600 flex gap-2">
+                            <span>•</span>
                             <span>{improvement}</span>
                           </li>
                         ))}
                         {(!resume.metrics?.improvements || resume.metrics.improvements.length === 0) && (
-                          <li className="text-sm text-muted-foreground flex gap-2 items-center">
-                            <Info className="h-4 w-4" />
-                            <span>No improvements identified yet</span>
-                          </li>
+                          <li className="text-sm text-muted-foreground">No improvements identified yet</li>
                         )}
                       </ul>
                     </div>
                     {resume.metrics.after.gaps?.length > 0 && (
-                      <div className="bg-red-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <h4 className="font-medium text-sm">Gaps</h4>
-                        </div>
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Gaps</h4>
                         <ul className="space-y-2">
                           {resume.metrics.after.gaps?.map((gap, idx) => (
-                            <li key={idx} className="text-sm text-red-600 flex gap-2 items-start">
-                              <MinusCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <li key={idx} className="text-sm text-red-600 flex gap-2">
+                              <span>•</span>
                               <span>{gap}</span>
                             </li>
                           ))}
@@ -334,21 +316,60 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       </div>
                     )}
                     {resume.metrics.after.suggestions?.length > 0 && (
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Lightbulb className="h-4 w-4 text-blue-600" />
-                          <h4 className="font-medium text-sm">Suggestions</h4>
-                        </div>
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                         <ul className="space-y-2">
                           {resume.metrics.after.suggestions?.map((suggestion, idx) => (
-                            <li key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
-                              <Sparkles className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <li key={idx} className="text-sm text-blue-600 flex gap-2">
+                              <span>•</span>
                               <span>{suggestion}</span>
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Strengths</h4>
+                      <ul className="space-y-2">
+                        {resume.metrics.after.analysis?.strengths?.map((strength, idx) => (
+                          <li key={idx} className="text-sm text-emerald-600 flex gap-2">
+                            <span>•</span>
+                            <span>{strength}</span>
+                          </li>
+                        ))}
+                        {(!resume.metrics.after.analysis?.strengths || resume.metrics.after.analysis.strengths.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No strengths identified yet</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Gaps</h4>
+                      <ul className="space-y-2">
+                        {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
+                          <li key={idx} className="text-sm text-red-600 flex gap-2">
+                            <span>•</span>
+                            <span>{gap}</span>
+                          </li>
+                        ))}
+                        {(!resume.metrics.after.analysis?.gaps || resume.metrics.after.analysis.gaps.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No gaps identified yet</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
+                      <ul className="space-y-2">
+                        {resume.metrics.after.analysis?.suggestions?.map((suggestion, idx) => (
+                          <li key={idx} className="text-sm text-blue-600 flex gap-2">
+                            <span>•</span>
+                            <span>{suggestion}</span>
+                          </li>
+                        ))}
+                        {(!resume.metrics.after.analysis?.suggestions || resume.metrics.after.analysis.suggestions.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No suggestions available yet</li>
+                        )}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
