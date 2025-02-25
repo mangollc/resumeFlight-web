@@ -78,9 +78,6 @@ app.get("/health", async (_req, res) => {
 
 log("Initializing server...");
 
-// Create HTTP server
-const server = registerRoutes(app);
-
 // Set appropriate timeout values (all within 32-bit integer limit)
 const MAX_32_BIT_INT = 2147483647;
 const TIMEOUT_5_MINUTES = Math.min(5 * 60 * 1000, MAX_32_BIT_INT); // 300,000 ms
@@ -94,6 +91,9 @@ server.keepAliveTimeout = Math.min(TIMEOUT_1_MINUTE + 1000, MAX_32_BIT_INT);
 
 // Headers timeout (slightly above keep-alive timeout)
 server.headersTimeout = Math.min(TIMEOUT_1_MINUTE + 2000, MAX_32_BIT_INT);
+
+// Register routes
+registerRoutes(app);
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
