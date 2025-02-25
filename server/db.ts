@@ -4,7 +4,6 @@ const { Pool } = pg;
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
 import * as schema from '@shared/schema';
-
 // Configure WebSocket for Neon database
 neonConfig.webSocketConstructor = ws;
 
@@ -53,16 +52,22 @@ pool.on('error', (err) => {
   console.error('Unexpected pool error:', err);
 });
 
-export const checkDatabaseConnection = async () => {
-  try {
-    const result = await pool.query('SELECT NOW() as now');
-    console.log('Database connection verified:', result.rows[0].now); //Added logging for better debugging
-    return true;
-  } catch (error) {
-    console.error('Database connection check failed:', error);
+export async function checkDatabaseConnection() {
+    let retries = 3;
+    while (retries > 0) {
+        try {
+            await db.select().from(schema.users).limit(1); // Assuming 'users' table exists in schema
+            return true;
+        } catch (error) {
+            console.error(`Database connection check failed (${retries} retries left):`, error);
+            retries--;
+            if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    }
     return false;
-  }
-};
+}
 
 // Get current timestamp in EST
 export const getCurrentESTTimestamp = async () => {

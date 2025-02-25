@@ -126,18 +126,23 @@ const port = process.env.PORT || 5000;
 const startServer = async (port: number) => {
   try {
     await new Promise((resolve, reject) => {
-      server.listen(port, '0.0.0.0')
-        .once('listening', resolve)
-        .once('error', reject);
+      const srv = server.listen(port, '0.0.0.0', () => {
+        log(`Server successfully started on port ${port}`);
+        resolve(srv);
+      });
+      srv.once('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          log(`Port ${port} is in use, trying ${port + 1}`);
+          srv.close();
+          startServer(port + 1).then(resolve).catch(reject);
+        } else {
+          reject(err);
+        }
+      });
     });
-    log(`Server successfully started on port ${port}`);
   } catch (err: any) {
-    if (err.code === 'EADDRINUSE') {
-      log(`Port ${port} is in use, trying ${port + 1}`);
-      await startServer(port + 1);
-    } else {
-      throw err;
-    }
+    log('Server error:', err);
+    throw err;
   }
 };
 
