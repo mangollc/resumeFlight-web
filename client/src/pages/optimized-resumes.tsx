@@ -323,13 +323,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.suggestions?.map((suggestion, idx) => (
+                        {resume.analysis?.suggestions?.map((suggestion, idx) => (
                           <li key={idx} className="text-sm text-blue-600 flex gap-2">
                             <span>•</span>
                             <span>{suggestion}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.suggestions || resume.metrics.after.suggestions.length === 0) && (
+                        {(!resume.analysis?.suggestions || resume.analysis.suggestions.length === 0) && (
                           <li className="text-sm text-muted-foreground">No suggestions available yet</li>
                         )}
                       </ul>
