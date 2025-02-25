@@ -6,25 +6,33 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
 
+// Safe timeout calculation
+function safeTimeout(ms: number): number {
+    const MAX_32_BIT = 2147483647;
+    return Math.min(ms, MAX_32_BIT);
+}
+
+// Timeout configurations
+const timeouts = {
+    request: safeTimeout(5 * 60 * 1000),      // 5 minutes
+    keepAlive: safeTimeout(65 * 1000),        // 65 seconds
+    headers: safeTimeout(66 * 1000),          // 66 seconds
+    shutdown: safeTimeout(30 * 1000)          // 30 seconds
+};
+
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Safe timeout configuration
-const MAX_32_BIT_INT = 2147483647;
-const DEFAULT_TIMEOUT = Math.min(5 * 60 * 1000, MAX_32_BIT_INT); // 5 minutes or max safe value
-const KEEP_ALIVE_TIMEOUT = Math.min(65 * 1000, MAX_32_BIT_INT); // 65 seconds
-const HEADERS_TIMEOUT = Math.min(66 * 1000, MAX_32_BIT_INT); // 66 seconds
-
 // Create server with safe timeout values
 const server = app.listen(5000, '0.0.0.0', () => {
-  console.log('Server successfully started on port 5000');
+    console.log('Server successfully started on port 5000');
 });
 
-// Set safe timeout values
-server.timeout = DEFAULT_TIMEOUT;
-server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT;
-server.headersTimeout = HEADERS_TIMEOUT;
+// Apply timeout configurations
+server.timeout = timeouts.request;
+server.keepAliveTimeout = timeouts.keepAlive;
+server.headersTimeout = timeouts.headers;
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -116,7 +124,7 @@ if (process.env.NODE_ENV === "development") {
     serveStatic(app);
 }
 
-// Enhanced graceful shutdown with safe timeout
+// Enhanced graceful shutdown
 const gracefulShutdown = (signal: string) => {
     log(`Received ${signal} signal. Shutting down gracefully...`);
     server.close(() => {
@@ -124,11 +132,11 @@ const gracefulShutdown = (signal: string) => {
         process.exit(0);
     });
 
-    // Force shutdown after 30 seconds
+    // Force shutdown after timeout
     setTimeout(() => {
         log('Could not close connections in time, forcefully shutting down');
         process.exit(1);
-    }, Math.min(30 * 1000, MAX_32_BIT_INT));
+    }, timeouts.shutdown);
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
