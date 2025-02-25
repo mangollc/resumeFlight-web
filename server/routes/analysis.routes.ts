@@ -1,12 +1,11 @@
 /**
- * Resume analysis routes
- * Handles resume optimization and job matching
+ * Resume analysis and optimization routes
  */
 
 import { Router } from 'express';
 import { storage } from '../storage';
 import { optimizeResume } from '../openai';
-import { analyzeJobDescription } from '../utils/job-analysis';
+import { JobDetails } from './types';
 
 const router = Router();
 
@@ -16,14 +15,37 @@ router.get('/optimized', async (req, res) => {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Not authenticated" });
         }
-        const optimizedResumes = await storage.getOptimizedResumesByUser(req.user!.id);
-        res.json(optimizedResumes);
+        const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
+        return res.json(resumes);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
-// Optimize resume for job
+// Get single optimized resume
+router.get('/optimized/:id', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
+        const resumeId = parseInt(req.params.id);
+        const resume = await storage.getOptimizedResume(resumeId);
+
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        return res.json(resume);
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Optimize resume
 router.post('/optimize/:resumeId', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
@@ -37,7 +59,7 @@ router.post('/optimize/:resumeId', async (req, res) => {
             return res.status(404).json({ error: "Resume not found" });
         }
         if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Unauthorized" });
+            return res.status(403).json({ error: "Not authorized" });
         }
 
         const { jobDescription } = req.body;
@@ -45,8 +67,7 @@ router.post('/optimize/:resumeId', async (req, res) => {
             return res.status(400).json({ error: "Job description required" });
         }
 
-        const jobDetails = await analyzeJobDescription(jobDescription);
-        const { optimizedContent } = await optimizeResume(resume.content, jobDescription);
+        const { optimizedContent, changes } = await optimizeResume(resume.content, jobDescription);
 
         const optimizedResume = await storage.createOptimizedResume({
             userId: req.user!.id,
@@ -54,16 +75,15 @@ router.post('/optimize/:resumeId', async (req, res) => {
             content: optimizedContent,
             originalContent: resume.content,
             jobDescription,
-            jobDetails,
             metadata: {
                 filename: resume.metadata.filename,
                 optimizedAt: new Date().toISOString()
             }
         });
 
-        res.json(optimizedResume);
+        return res.json(optimizedResume);
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 
@@ -81,13 +101,13 @@ router.delete('/optimized/:id', async (req, res) => {
             return res.status(404).json({ error: "Resume not found" });
         }
         if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Unauthorized" });
+            return res.status(403).json({ error: "Not authorized" });
         }
 
         await storage.deleteOptimizedResume(resumeId);
-        res.json({ message: "Optimized resume deleted" });
+        return res.json({ message: "Resume deleted successfully" });
     } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 });
 

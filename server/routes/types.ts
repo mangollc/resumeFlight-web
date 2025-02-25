@@ -3,11 +3,11 @@
  */
 
 import { Request } from "express";
-import { Express } from "multer";
+import { Multer } from "multer";
 
 // Request type with file upload support
 export interface MulterRequest extends Request {
-    file?: Express.Multer.File;
+    file?: Multer.File;
 }
 
 // Job analysis metrics
@@ -19,12 +19,6 @@ export interface JobMetrics {
     personalization: number;
     aiReadiness: number;
     overall: number;
-    analysis: {
-        strengths: string[];
-        gaps: string[];
-        suggestions: string[];
-    };
-    confidence: number;
 }
 
 // Job posting details
@@ -33,28 +27,15 @@ export interface JobDetails {
     company: string;
     location: string;
     description: string;
-    salary?: string;
-    positionLevel?: string;
-    keyRequirements?: string[];
-    skillsAndTools?: string[];
+    requirements?: string[];
+    skills?: string[];
     metrics?: JobMetrics;
 }
 
-// Resume version tracking
-export interface ResumeVersion {
-    version: string;
-    content: string;
-    timestamp: string;
-    changes?: string[];
-    metrics?: {
-        before: JobMetrics;
-        after: JobMetrics;
-    };
-}
-
 // File metadata
-export interface FileType {
-    size: number;
-    name: string;  
-    type: string;
+export interface FileMetadata {
+    filename: string;
+    fileType: string;
+    uploadedAt?: string;
+    optimizedAt?: string;
 }
