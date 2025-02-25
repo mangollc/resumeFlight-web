@@ -3,8 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
-  FileText,
-  Trash2,
   MoreVertical,
   ChevronDown,
   ChevronRight,
@@ -14,6 +12,18 @@ import {
   AlertTriangle,
   CircleAlert,
   Lightbulb,
+  GraduationCap,
+  Briefcase,
+  Award,
+  Brain,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  FileText,
+  Code,
+  ChartBarIcon,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
