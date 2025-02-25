@@ -299,8 +299,7 @@ Scoring Guidelines:
 
         
       } catch (error) {
-        console.error('[Optimize] Failed to parse OpenAI response:', error);
-        console.error('[Optimize] Raw response content:', content);
+        console.error('[Optimize] Failed to parse response');
         throw new Error('Failed to parse optimization response');
       }
     }
@@ -338,8 +337,7 @@ export async function generateCoverLetter(
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
-    console.log("[Cover Letter] Generating with optimized chunk size");
-    console.log("[Cover Letter] Version:", coverLetterVersion);
+    // Removed debug logs
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
