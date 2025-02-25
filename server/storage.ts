@@ -184,7 +184,6 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
       if (!result) return undefined;
 
-      // Get the analysis data from metrics.after
       const metrics = result.metrics as OptimizedResume['metrics'];
       const analysis = {
         matches: metrics.after.strengths || [],

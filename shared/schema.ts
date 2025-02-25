@@ -222,32 +222,11 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     optimizedAt: string;
     version: string;
   };
-  contactInfo: {
-    fullName: string;
-    email: string;
-    phone: string;
-    address?: string;
-  };
   jobDetails: {
     title: string;
     company: string;
     location: string;
-    salary?: string;
     description?: string;
-    positionLevel?: string;
-    keyRequirements?: string[];
-    skillsAndTools?: string[];
-    roleDetails?: {
-      responsibilities: string[];
-      duties: string[];
-      qualifications: string[];
-    };
-    metrics?: {
-      keywords: number;
-      skills: number;
-      experience: number;
-      overall: number;
-    };
   };
   metrics: {
     before: {
@@ -269,6 +248,10 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       personalization: number;
       aiReadiness: number;
       confidence: number;
+      strengths: string[];
+      improvements: string[];
+      gaps: string[];
+      suggestions: string[];
     };
   };
   analysis: {
@@ -276,6 +259,12 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     improvements: string[];
     gaps: string[];
     suggestions: string[];
+  };
+  contactInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address?: string;
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
