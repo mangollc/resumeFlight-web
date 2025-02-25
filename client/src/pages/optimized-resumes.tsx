@@ -55,21 +55,16 @@ const getScoreTextColor = (score: number) => {
   return "text-red-500";
 };
 
-function MetricRow({ label, before, after }: { label: string; before: number; after: number }) {
+function MetricRow({ label, score }: { label: string; score: number }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium capitalize">{label}</span>
-        <div className="flex items-center gap-2">
-          <span className={`text-sm ${getScoreTextColor(before)}`}>{before.toFixed(1)}%</span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          <span className={`text-sm font-medium ${getScoreTextColor(after)}`}>{after.toFixed(1)}%</span>
-        </div>
+        <span className={`text-sm font-medium ${getScoreTextColor(score)}`}>
+          {score.toFixed(1)}%
+        </span>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <Progress value={before} className={`h-2 ${getScoreColor(before)}`} />
-        <Progress value={after} className={`h-2 ${getScoreColor(after)}`} />
-      </div>
+      <Progress value={score} className={`h-2 ${getScoreColor(score)}`} />
     </div>
   );
 }
@@ -185,7 +180,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <Download className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
-
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf")}>
@@ -196,25 +190,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <Download className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
-
-              {resume.jobUrl && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <a
-                      href={resume.jobUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      View Job Posting
-                    </a>
-                  </DropdownMenuItem>
-                </>
-              )}
-
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -265,74 +240,85 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                   <div className="space-y-4">
                     <MetricRow 
                       label="Overall Score"
-                      before={resume.metrics.before.overall}
-                      after={resume.metrics.after.overall}
+                      score={resume.metrics.after.overall}
                     />
                     <MetricRow 
                       label="Skills"
-                      before={resume.metrics.before.skills}
-                      after={resume.metrics.after.skills}
+                      score={resume.metrics.after.skills}
                     />
                     <MetricRow 
                       label="Keywords"
-                      before={resume.metrics.before.keywords}
-                      after={resume.metrics.after.keywords}
+                      score={resume.metrics.after.keywords}
                     />
                     <MetricRow 
                       label="Education"
-                      before={resume.metrics.before.education}
-                      after={resume.metrics.after.education}
+                      score={resume.metrics.after.education}
                     />
                     <MetricRow 
                       label="Experience"
-                      before={resume.metrics.before.experience}
-                      after={resume.metrics.after.experience}
+                      score={resume.metrics.after.experience}
                     />
                     <MetricRow 
                       label="AI Readiness"
-                      before={resume.metrics.before.aiReadiness}
-                      after={resume.metrics.after.aiReadiness}
+                      score={resume.metrics.after.aiReadiness}
                     />
                     <MetricRow 
                       label="Personalization"
-                      before={resume.metrics.before.personalization}
-                      after={resume.metrics.after.personalization}
+                      score={resume.metrics.after.personalization}
                     />
                     <MetricRow 
                       label="Confidence"
-                      before={resume.metrics.before.confidence}
-                      after={resume.metrics.after.confidence}
+                      score={resume.metrics.after.confidence}
                     />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Job Details</h3>
-                  <div className="space-y-4">
+                  <h3 className="text-lg font-medium mb-4">Analysis</h3>
+                  <div className="space-y-6">
                     <div>
-                      <h4 className="font-medium text-sm">Job Description</h4>
-                      <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                        {resume.jobDescription}
-                      </p>
+                      <h4 className="font-medium text-sm mb-2">Strengths</h4>
+                      <ul className="space-y-2">
+                        {resume.analysis?.matches?.map((match, idx) => (
+                          <li key={idx} className="text-sm text-emerald-600 flex gap-2">
+                            <span>•</span>
+                            <span>{match}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    {resume.jobDetails && (
-                      <div>
-                        <h4 className="font-medium text-sm">Additional Details</h4>
-                        <dl className="mt-2 space-y-2 text-sm">
-                          <div>
-                            <dt className="inline text-muted-foreground">Company: </dt>
-                            <dd className="inline">{resume.jobDetails.company}</dd>
-                          </div>
-                          <div>
-                            <dt className="inline text-muted-foreground">Location: </dt>
-                            <dd className="inline">{resume.jobDetails.location}</dd>
-                          </div>
-                          <div>
-                            <dt className="inline text-muted-foreground">Type: </dt>
-                            <dd className="inline">{resume.jobDetails.type}</dd>
-                          </div>
-                        </dl>
-                      </div>
-                    )}
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Improvements</h4>
+                      <ul className="space-y-2">
+                        {resume.analysis?.improvements?.map((improvement, idx) => (
+                          <li key={idx} className="text-sm text-amber-600 flex gap-2">
+                            <span>•</span>
+                            <span>{improvement}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Gaps</h4>
+                      <ul className="space-y-2">
+                        {resume.analysis?.gaps?.map((gap, idx) => (
+                          <li key={idx} className="text-sm text-red-600 flex gap-2">
+                            <span>•</span>
+                            <span>{gap}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
+                      <ul className="space-y-2">
+                        {resume.analysis?.suggestions?.map((suggestion, idx) => (
+                          <li key={idx} className="text-sm text-blue-600 flex gap-2">
+                            <span>•</span>
+                            <span>{suggestion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -354,14 +340,6 @@ export default function OptimizedResumesPage() {
           new Date(b.metadata.optimizedAt).getTime() -
           new Date(a.metadata.optimizedAt).getTime()
         );
-      });
-    },
-    onError: (err: Error) => {
-      console.error("Error loading resumes:", err);
-      toast({
-        title: "Error",
-        description: "Failed to load optimized resumes. Please try again.",
-        variant: "destructive",
       });
     },
   });
