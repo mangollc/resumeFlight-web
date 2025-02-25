@@ -21,10 +21,10 @@ const TIMEOUT_5_MIN = 300000;
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: Math.min(TIMEOUT_5_MIN, MAX_32_BIT_INT),
-  connectionTimeoutMillis: Math.min(TIMEOUT_30_SEC, MAX_32_BIT_INT),
-  statement_timeout: Math.min(TIMEOUT_30_SEC, MAX_32_BIT_INT),
-  query_timeout: Math.min(TIMEOUT_30_SEC, MAX_32_BIT_INT),
+  idleTimeoutMillis: 300000,
+  connectionTimeoutMillis: 30000,
+  statement_timeout: 30000,
+  query_timeout: 30000,
   allowExitOnIdle: true
 });
 
