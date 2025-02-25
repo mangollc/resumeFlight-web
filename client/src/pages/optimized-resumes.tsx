@@ -237,43 +237,42 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Resume Metrics</h3>
                   <div className="space-y-4">
-                    {optimized_resumes.metrics?.after && (
+                    {resume.metrics?.after && (
                       <>
                         <MetricRow 
                           label="Overall Score"
-                          score={optimized_resumes.metrics.after.overall || 0}
+                          score={resume.metrics.after.overall || 0}
                         />
                         <MetricRow 
                           label="Skills Match"
-                          score={optimizedResumes.metrics.after.skills || 0}
+                          score={resume.metrics.after.skills || 0}
                         />
                         <MetricRow 
                           label="Keyword Match"
-                          score={optimized_resumes.metrics.after.keywords || 0}
+                          score={resume.metrics.after.keywords || 0}
                         />
                         <MetricRow 
                           label="Education Match"
-                          score={optimized_resumes.metrics.after.education || 0}
+                          score={resume.metrics.after.education || 0}
                         />
                         <MetricRow 
                           label="Experience Match"
-                          score={optimized_resumes.metrics.after.experience || 0}
+                          score={resume.metrics.after.experience || 0}
                         />
                         <MetricRow 
                           label="AI Readiness"
-                          score={optimized_resumes.metrics.after.aiReadiness || 0}
+                          score={resume.metrics.after.aiReadiness || 0}
                         />
                         <MetricRow 
                           label="Personalization"
-                          score={optimized_resumes.metrics.after.personalization || 0}
+                          score={resume.metrics.after.personalization || 0}
                         />
                         <MetricRow 
                           label="Confidence Score"
-                          score={optimized_resumes.metrics.after.confidence || 0}
+                          score={resume.metrics.after.confidence || 0}
                         />
                       </>
                     )}
-                    />
                   </div>
                 </div>
                 <div>
