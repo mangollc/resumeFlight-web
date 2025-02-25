@@ -288,19 +288,25 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <CheckCircle className="h-4 w-4 text-emerald-500" />
                           <span className="font-medium text-sm">Strengths</span>
                           <span className="text-xs text-muted-foreground">
-                            ({resume.metrics.after.strengths?.length || 0})
+                            ({resume.metrics.after.analysis?.strengths?.length || 0})
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'strengths' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'strengths' && (
                         <div className="px-4 pb-3 space-y-2">
-                          {resume.metrics.after.strengths?.map((strength, idx) => (
+                          {resume.metrics.after.analysis?.strengths?.map((strength, idx) => (
                             <div key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
                               <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{strength}</span>
                             </div>
                           ))}
+                          {(!resume.metrics.after.analysis?.strengths || resume.metrics.after.analysis.strengths.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No strengths identified yet</span>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
