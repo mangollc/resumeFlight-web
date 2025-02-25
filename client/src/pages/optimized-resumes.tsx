@@ -148,10 +148,16 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
           )}
         </TableCell>
         <TableCell>
-          <div className="flex flex-col gap-1">
+          <div className="text-sm">#{resume.id}</div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-col gap-0.5">
             <div className="text-sm">{new Date(resume.metadata.optimizedAt).toLocaleDateString()}</div>
-            <div className="text-xs text-muted-foreground">{resume.metadata.version}</div>
+            <div className="text-xs text-muted-foreground">{new Date(resume.metadata.optimizedAt).toLocaleTimeString()}</div>
           </div>
+        </TableCell>
+        <TableCell>
+          <div className="text-sm font-medium">{resume.metadata.version}</div>
         </TableCell>
         <TableCell>
           <div className="flex flex-col gap-1">
@@ -239,37 +245,48 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
           <TableCell colSpan={8} className="bg-muted/30 border-t border-muted">
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Resume Metrics</h3>
-                  <div className="space-y-4">
-                    <MetricRow
-                      label="Overall Score"
-                      score={resume.metrics.after.overall}
-                    />
-                    <MetricRow
-                      label="Skills"
-                      score={resume.metrics.after.skills}
-                    />
-                    <MetricRow
-                      label="Keywords"
-                      score={resume.metrics.after.keywords}
-                    />
-                    <MetricRow
-                      label="Education"
-                      score={resume.metrics.after.education}
-                    />
-                    <MetricRow
-                      label="Experience"
-                      score={resume.metrics.after.experience}
-                    />
-                    <MetricRow
-                      label="AI Readiness"
-                      score={resume.metrics.after.aiReadiness}
-                    />
-                    <MetricRow
-                      label="Personalization"
-                      score={resume.metrics.after.personalization}
-                    />
+                <div className="bg-card rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <ChartBarIcon className="h-5 w-5 text-primary" />
+                    Resume Metrics
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      <div className="bg-primary/5 rounded-lg p-4">
+                        <MetricRow
+                          label="Overall Score"
+                          score={resume.metrics.after.overall}
+                          className="text-primary font-semibold"
+                        />
+                      </div>
+                      <MetricRow
+                        label="Skills"
+                        score={resume.metrics.after.skills}
+                      />
+                      <MetricRow
+                        label="Keywords"
+                        score={resume.metrics.after.keywords}
+                      />
+                      <MetricRow
+                        label="Education"
+                        score={resume.metrics.after.education}
+                      />
+                    </div>
+                    <div className="space-y-6">
+                      <MetricRow
+                        label="Experience"
+                        score={resume.metrics.after.experience}
+                      />
+                      <MetricRow
+                        label="AI Readiness"
+                        score={resume.metrics.after.aiReadiness}
+                      />
+                      <MetricRow
+                        label="Personalization"
+                        score={resume.metrics.after.personalization}
+                      />
+                    </div>
+                  </div>
                     <MetricRow
                       label="Confidence"
                       score={resume.metrics.after.confidence}
@@ -461,9 +478,19 @@ export default function OptimizedResumesPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-4"></TableHead>
+                  <TableHead className="w-20">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      ID
+                    </span>
+                  </TableHead>
                   <TableHead>
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Date
+                      Date/Time
+                    </span>
+                  </TableHead>
+                  <TableHead>
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Version
                     </span>
                   </TableHead>
                   <TableHead>
