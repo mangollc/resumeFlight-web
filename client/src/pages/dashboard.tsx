@@ -1,3 +1,6 @@
+
+import { OptimizedResume, CoverLetter } from '@shared/schema';
+
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
@@ -172,8 +175,6 @@ type ProgressStep = {
   status: "pending" | "loading" | "completed" | "error";
   score?: number;
 };
-
-import { OptimizedResume, CoverLetter } from '@shared/schema';
 
 const INITIAL_STEPS: ProgressStep[] = [
   { id: "analyze", label: "Analyzing Resume", status: "pending" },
