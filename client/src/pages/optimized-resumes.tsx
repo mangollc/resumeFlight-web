@@ -291,8 +291,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       />
                     </div>
                   </div>
-                    />
-                  </div>
                 </div>
                 <div>
                   <h3 className="text-lg font-medium mb-4">Analysis</h3>
