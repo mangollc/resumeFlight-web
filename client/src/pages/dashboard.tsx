@@ -3,7 +3,7 @@ import { CoverLetter } from '@shared/schema';
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
-import { OptimizedResume, CoverLetter } from '@shared/schema';
+import { OptimizedResume, CoverLetter as CoverLetterType } from '@shared/schema';
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
