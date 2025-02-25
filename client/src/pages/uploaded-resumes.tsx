@@ -35,16 +35,23 @@ import {
 export default function UploadedResumesPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { data: resumes, isLoading, isError, error } = useQuery<UploadedResume[]>({
+  const { data: resumes = [], isLoading, isError, error } = useQuery({
     queryKey: ["/api/uploaded-resumes"],
-    retry: 2,
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load resumes",
-        variant: "destructive"
-      });
-    }
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/uploaded-resumes");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      } catch (err) {
+        console.error('Resume fetch error:', err);
+        throw new Error(err instanceof Error ? err.message : 'Failed to fetch resumes');
+      }
+    },
+    retry: 1,
+    retryDelay: 1000
   });
 
   const deleteMutation = useMutation({

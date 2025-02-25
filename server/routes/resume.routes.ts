@@ -12,6 +12,16 @@ import { parseResume } from '../utils/parser';
 
 const router = Router();
 
+// Error handling middleware
+const handleApiError = (err: any, res: Response) => {
+  console.error('Resume API Error:', err);
+  res.status(err.status || 500).json({
+    error: true,
+    message: err.message || 'Internal server error',
+    details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+  });
+};
+
 // Multer configuration for resume uploads
 const upload = multer({
     storage: multer.memoryStorage(),

@@ -65,9 +65,12 @@ registerRoutes(app);
 
 // Enhanced error handling middleware
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    const errorId = Math.random().toString(36).substring(7);
+    // Ensure we're sending JSON for API routes
+    if (req.path.startsWith('/api')) {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      const errorId = Math.random().toString(36).substring(7);
+      res.setHeader('Content-Type', 'application/json');
 
     console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
         error: err,
