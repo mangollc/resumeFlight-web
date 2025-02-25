@@ -67,50 +67,34 @@ registerRoutes(app);
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     // Ensure we're sending JSON for API routes
     if (req.path.startsWith('/api')) {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-      const errorId = Math.random().toString(36).substring(7);
-      res.setHeader('Content-Type', 'application/json');
+        const status = err.status || err.statusCode || 500;
+        const message = err.message || "Internal Server Error";
+        const errorId = Math.random().toString(36).substring(7);
+        res.setHeader('Content-Type', 'application/json');
 
-      console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
-        error: err,
-        stack: err.stack,
-        body: req.body,
-        query: req.query,
-        user: req.user?.id
-      });
-
-      const responseMessage = process.env.NODE_ENV === "production"
-          ? `An unexpected error occurred (ID: ${errorId})`
-          : message;
-
-      res.status(status).json({
-          error: true,
-          message: responseMessage,
-          errorId,
-          code: err.code,
-          ...(process.env.NODE_ENV !== "production" && { 
-              stack: err.stack,
-              details: err.details || err.response?.data
-          })
-      });
-    }
-});
-
-    const responseMessage = process.env.NODE_ENV === "production"
-        ? `An unexpected error occurred (ID: ${errorId})`
-        : message;
-
-    res.status(status).json({
-        error: true,
-        message: responseMessage,
-        errorId,
-        code: err.code,
-        ...(process.env.NODE_ENV !== "production" && { 
+        console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
+            error: err,
             stack: err.stack,
-            details: err.details || err.response?.data
-        })
-    });
+            body: req.body,
+            query: req.query,
+            user: req.user?.id
+        });
+
+        const responseMessage = process.env.NODE_ENV === "production"
+            ? `An unexpected error occurred (ID: ${errorId})`
+            : message;
+
+        res.status(status).json({
+            error: true,
+            message: responseMessage,
+            errorId,
+            code: err.code,
+            ...(process.env.NODE_ENV !== "production" && { 
+                stack: err.stack,
+                details: err.details || err.response?.data
+            })
+        });
+    }
 });
 
 // Setup environment-specific middleware
