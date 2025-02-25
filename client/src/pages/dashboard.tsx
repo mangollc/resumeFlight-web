@@ -143,7 +143,6 @@ const coverLetterSteps = [
   }
 ];
 
-import { useAuth } from '@/hooks/use-auth';
 type ProgressStep = {
   id: string;
   label: string;
@@ -199,6 +198,7 @@ const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressS
   );
 
 const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
+  const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
 
 
   // Fetch optimized resume data when in review mode
