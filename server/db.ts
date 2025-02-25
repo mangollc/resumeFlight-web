@@ -34,10 +34,10 @@ export const pool = new Pool({
   ...DEFAULT_POOL_CONFIG,
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: Math.min(300000, MAX_TIMEOUT),
-  connectionTimeoutMillis: Math.min(30000, MAX_TIMEOUT),
-  statement_timeout: Math.min(30000, MAX_TIMEOUT),
-  query_timeout: Math.min(30000, MAX_TIMEOUT),
+  idleTimeoutMillis: Math.min(300000, MAX_SAFE_TIMEOUT),
+  connectionTimeoutMillis: Math.min(30000, MAX_SAFE_TIMEOUT),
+  statement_timeout: Math.min(30000, MAX_SAFE_TIMEOUT),
+  query_timeout: Math.min(30000, MAX_SAFE_TIMEOUT),
   allowExitOnIdle: true
 });
 
