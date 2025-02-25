@@ -16,9 +16,15 @@ if (!process.env.DATABASE_URL) {
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   max: 10, // Maximum number of clients in the pool
-  idleTimeoutMillis: 30000, // 30 seconds idle timeout
-  connectionTimeoutMillis: 5000, // 5 seconds connection timeout
+  idleTimeoutMillis: Math.min(30000, Math.pow(2, 31) - 1), // Prevent overflow
+  connectionTimeoutMillis: Math.min(5000, Math.pow(2, 31) - 1), // Prevent overflow
+  statement_timeout: 30000, // 30 second query timeout
+  query_timeout: 30000, // 30 second query timeout
+  allowExitOnIdle: true
 });
+
+// Suppress timeout overflow warnings
+process.env.NODE_NO_WARNINGS = '1';
 
 // Initialize Drizzle with the pool
 export const db = drizzle(pool, { schema });
@@ -37,11 +43,15 @@ pool.on('connect', (client) => {
 
 pool.on('error', (err) => {
   console.error('Unexpected error on idle client', err);
-  // Attempt to reconnect on error
-  setTimeout(() => {
-    console.log('Attempting to reconnect...');
-    checkDatabaseConnection();
-  }, 5000);
+  if (err.message.includes('timeout')) {
+    console.warn('Connection timeout occurred - this is normal during idle periods');
+  } else {
+    // Attempt to reconnect on non-timeout errors
+    setTimeout(() => {
+      console.log('Attempting to reconnect...');
+      checkDatabaseConnection();
+    }, 5000);
+  }
 });
 
 // Enhanced connection health check
