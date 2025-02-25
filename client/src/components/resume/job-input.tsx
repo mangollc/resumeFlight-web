@@ -259,10 +259,28 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jobUrl && !jobDescription.trim()) {
+    if (!jobUrl && !jobDescription) {
       toast({
         title: "Error",
-        description: "Please provide either a job URL or description",
+        description: "Please enter either a job URL or description",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (jobDescription && jobDescription.length < 50) {
+      toast({
+        title: "Warning",
+        description: "Job description seems too short for effective optimization",
+        variant: "warning",
+      });
+      return;
+    }
+
+    if (jobUrl && !jobUrl.startsWith('http')) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid URL starting with http:// or https://",
         variant: "destructive",
       });
       return;

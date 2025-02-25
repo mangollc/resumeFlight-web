@@ -132,10 +132,17 @@ router.post('/resume/:id/optimize', async (req, res) => {
         }
 
         const resumeId = parseInt(req.params.id);
-        const resume = await storage.getUploadedResume(resumeId);
+        if (isNaN(resumeId)) {
+            return res.status(400).json({ error: "Invalid resume ID" });
+        }
 
+        const resume = await storage.getUploadedResume(resumeId);
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
+        }
+
+        if (!resume.content || typeof resume.content !== 'string') {
+            return res.status(400).json({ error: "Invalid resume content" });
         }
 
         if (resume.userId !== req.user!.id) {

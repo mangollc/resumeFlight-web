@@ -123,7 +123,25 @@ if (process.env.NODE_ENV === "development") {
     serveStatic(app);
 }
 
-// Simple graceful shutdown
+const port = 3000;
+const startServer = async () => {
+    try {
+        await server.listen(port, '0.0.0.0');
+        console.log(`Server running on port ${port}`);
+    } catch (error: any) {
+        if (error.code === 'EADDRINUSE') {
+            console.log(`Port ${port} is in use, trying ${port + 1}`);
+            await server.listen(port + 1, '0.0.0.0');
+            console.log(`Server running on port ${port + 1}`);
+        } else {
+            console.error('Failed to start server:', error);
+            process.exit(1);
+        }
+    }
+};
+
+startServer();
+
 process.on('SIGTERM', () => {
     log('Received SIGTERM. Attempting graceful shutdown...');
     server.close((err) => {
@@ -149,8 +167,4 @@ process.on('SIGINT', () => {
         }
         process.exit(0);
     });
-});
-
-server.listen(3000, '0.0.0.0', () => {
-    log('Server successfully started on port 3000');
 });
