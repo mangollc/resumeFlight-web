@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OptimizedResume, CoverLetterType } from './types'; // Assuming these types are defined elsewhere
+import { OptimizedResume, CoverLetter as CoverLetterType } from '@shared/schema'; // Assuming these types are defined elsewhere
 
 interface CoverLetterProps {
   resume: OptimizedResume;

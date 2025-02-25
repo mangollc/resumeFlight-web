@@ -83,7 +83,6 @@ const server = registerRoutes(app);
 
 // Enhanced error handling middleware
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    // Ensure we're sending JSON for API routes
     if (req.path.startsWith('/api')) {
         const status = err.status || err.statusCode || 500;
         const message = err.message || "Internal Server Error";
@@ -99,7 +98,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
         res.status(status).json({
             error: true,
-            message: process.env.NODE_ENV === "production" 
+            message: process.env.NODE_ENV === "production"
                 ? `An unexpected error occurred (ID: ${errorId})`
                 : message,
             errorId,
@@ -123,30 +122,29 @@ if (process.env.NODE_ENV === "development") {
     serveStatic(app);
 }
 
-const port = 3000;
-const startServer = async () => {
-    const maxRetries = 3;
-    const portRange = [3000, 3001, 3002];
-    
-    for (const currentPort of portRange) {
-        try {
-            await server.listen(currentPort, '0.0.0.0');
-            console.log(`Server running on port ${currentPort}`);
-            return;
-        } catch (error: any) {
-            if (error.code === 'EADDRINUSE') {
-                console.log(`Port ${currentPort} is in use, trying next port...`);
-                continue;
-            }
-            console.error('Failed to start server:', error);
-            process.exit(1);
-        }
+const port = process.env.PORT || 5000;
+const startServer = async (port: number) => {
+  try {
+    await new Promise((resolve, reject) => {
+      server.listen(port, '0.0.0.0')
+        .once('listening', resolve)
+        .once('error', reject);
+    });
+    log(`Server successfully started on port ${port}`);
+  } catch (err: any) {
+    if (err.code === 'EADDRINUSE') {
+      log(`Port ${port} is in use, trying ${port + 1}`);
+      await startServer(port + 1);
+    } else {
+      throw err;
     }
-    console.error('No available ports found');
-    process.exit(1);
+  }
 };
 
-startServer();
+startServer(5000).catch(err => {
+  log('Failed to start server:', err);
+  process.exit(1);
+});
 
 process.on('SIGTERM', () => {
     log('Received SIGTERM. Attempting graceful shutdown...');

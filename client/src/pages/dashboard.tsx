@@ -216,9 +216,14 @@ export default function Dashboard() {
   const [currentOptimizationSteps, setCurrentOptimizationSteps] = useState<ProgressStep[]>(
     optimizationSteps.map(step => ({ ...step, status: "pending" as const }))
   );
-  const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressStep[]>(
+  import { OptimizedResume, CoverLetter } from '@shared/schema';
+
+const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressStep[]>(
     coverLetterSteps.map(step => ({ ...step, status: "pending" as const }))
   );
+
+const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
+const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
 
 
   // Fetch optimized resume data when in review mode

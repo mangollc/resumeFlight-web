@@ -222,6 +222,22 @@ router.use((err: any, req: any, res: any, next: any) => {
         });
     }
     
+    if (err.name === 'ValidationError') {
+        return res.status(400).json({
+            error: 'Validation Error',
+            message: err.message,
+            details: err.errors
+        });
+    }
+
+    if (err.name === 'ZodError') {
+        return res.status(400).json({
+            error: 'Schema Validation Error',
+            message: err.errors[0].message,
+            details: err.errors
+        });
+    }
+    
     console.error('Optimization route error:', err);
     res.status(500).json({
         error: 'Internal server error',
