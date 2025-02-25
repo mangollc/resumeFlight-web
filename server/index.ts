@@ -78,7 +78,24 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
         body: req.body,
         query: req.query,
         user: req.user?.id
-    });
+      });
+
+      const responseMessage = process.env.NODE_ENV === "production"
+          ? `An unexpected error occurred (ID: ${errorId})`
+          : message;
+
+      res.status(status).json({
+          error: true,
+          message: responseMessage,
+          errorId,
+          code: err.code,
+          ...(process.env.NODE_ENV !== "production" && { 
+              stack: err.stack,
+              details: err.details || err.response?.data
+          })
+      });
+    }
+});
 
     const responseMessage = process.env.NODE_ENV === "production"
         ? `An unexpected error occurred (ID: ${errorId})`
