@@ -1,9 +1,8 @@
-import { CoverLetter } from '@shared/schema';
+import { type UploadedResume, type OptimizedResume, type CoverLetter } from "@shared/schema";
 
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
-import { OptimizedResume, CoverLetter as CoverLetterType } from '@shared/schema';
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
@@ -11,7 +10,6 @@ import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
 import { CoverLetter as CoverLetterComponent } from "@/components/resume/CoverLetter";
 import ComparisonView from "@/components/resume/comparison-view";
-import { type UploadedResume, type OptimizedResume, type CoverLetter } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -934,8 +932,7 @@ const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
-                  initialJobDetails={jobDetails || undefined}
-                />
+                  initialJobDetails={jobDetails || undefined}/>
                 {renderNavigation()}
               </CardContent>
             </Card>
