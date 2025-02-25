@@ -169,6 +169,10 @@ const coverLetterSteps = [
   }
 ];
 
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/auth';
+import { OptimizedResume } from '@shared/schema';
+
 type ProgressStep = {
   id: string;
   label: string;
