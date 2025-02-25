@@ -227,7 +227,6 @@ const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressS
     coverLetterSteps.map(step => ({ ...step, status: "pending" as const }))
   );
 
-const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
 const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
 
 
