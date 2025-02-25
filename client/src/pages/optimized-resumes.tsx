@@ -11,7 +11,7 @@ import {
   TrophyIcon,
   CheckCircleIcon,
   ArrowUpCircleIcon,
-  ArrowTrendingUpIcon,
+  ArrowUpIcon,
   InformationCircleIcon,
   ExclamationTriangleIcon,
   MinusCircleIcon,
@@ -305,7 +305,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       <ul className="space-y-2">
                         {resume.metrics?.improvements?.map((improvement, idx) => (
                           <li key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
-                            <ArrowTrendingUpIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                            <ArrowUpIcon className="h-4 w-4 mt-0.5 flex-shrink-0" />
                             <span>{improvement}</span>
                           </li>
                         ))}
