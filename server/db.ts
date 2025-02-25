@@ -58,6 +58,17 @@ export const checkDatabaseConnection = async () => {
   }
 };
 
+// Get current timestamp in EST
+export const getCurrentESTTimestamp = async () => {
+  try {
+    const result = await pool.query("SELECT NOW() AT TIME ZONE 'America/New_York' as now");
+    return result.rows[0].now;
+  } catch (error) {
+    console.error('Error getting current timestamp:', error);
+    throw error;
+  }
+};
+
 // Cleanup function for graceful shutdown
 const cleanup = () => {
   pool.end().catch(err => {
