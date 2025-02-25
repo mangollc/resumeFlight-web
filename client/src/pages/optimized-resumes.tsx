@@ -333,13 +333,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Strengths</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.strengths?.map((strength, idx) => (
+                        {resume.metrics.after.analysis?.strengths?.map((strength, idx) => (
                           <li key={idx} className="text-sm text-emerald-600 flex gap-2">
                             <span>•</span>
                             <span>{strength}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.strengths || resume.metrics.after.strengths.length === 0) && (
+                        {(!resume.metrics.after.analysis?.strengths || resume.metrics.after.analysis.strengths.length === 0) && (
                           <li className="text-sm text-muted-foreground">No strengths identified yet</li>
                         )}
                       </ul>
@@ -347,13 +347,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Improvements</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.improvements?.map((improvement, idx) => (
+                        {resume.metrics.after.analysis?.improvements?.map((improvement, idx) => (
                           <li key={idx} className="text-sm text-amber-600 flex gap-2">
                             <span>•</span>
                             <span>{improvement}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.improvements || resume.metrics.after.improvements.length === 0) && (
+                        {(!resume.metrics.after.analysis?.improvements || resume.metrics.after.analysis.improvements.length === 0) && (
                           <li className="text-sm text-muted-foreground">No improvements identified yet</li>
                         )}
                       </ul>
@@ -361,13 +361,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Gaps</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.gaps?.map((gap, idx) => (
+                        {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
                           <li key={idx} className="text-sm text-red-600 flex gap-2">
                             <span>•</span>
                             <span>{gap}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.gaps || resume.metrics.after.gaps.length === 0) && (
+                        {(!resume.metrics.after.analysis?.gaps || resume.metrics.after.analysis.gaps.length === 0) && (
                           <li className="text-sm text-muted-foreground">No gaps identified yet</li>
                         )}
                       </ul>
@@ -375,13 +375,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.suggestions?.map((suggestion, idx) => (
+                        {resume.metrics.after.analysis?.suggestions?.map((suggestion, idx) => (
                           <li key={idx} className="text-sm text-blue-600 flex gap-2">
                             <span>•</span>
                             <span>{suggestion}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.suggestions || resume.metrics.after.suggestions.length === 0) && (
+                        {(!resume.metrics.after.analysis?.suggestions || resume.metrics.after.analysis.suggestions.length === 0) && (
                           <li className="text-sm text-muted-foreground">No suggestions available yet</li>
                         )}
                       </ul>
