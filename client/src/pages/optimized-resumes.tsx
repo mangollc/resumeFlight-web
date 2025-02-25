@@ -3,13 +3,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
-  Download,
   FileText,
   Trash2,
   MoreVertical,
   ChevronDown,
   ChevronRight,
-  ArrowRight,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -172,21 +170,21 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>Download Resume</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => downloadDocument("resume", "pdf")}>
-                <Download className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 PDF Format
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx")}>
-                <Download className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
               <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf")}>
-                <Download className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 PDF Format
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx")}>
-                <Download className="mr-2 h-4 w-4" />
+                <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
               <DropdownMenuSeparator />
