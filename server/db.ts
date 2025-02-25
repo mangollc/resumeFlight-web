@@ -1,45 +1,36 @@
-
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
+import { Pool } from 'pg'; // Changed import to pg Pool
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import ws from 'ws';
+import * as schema from '@shared/schema';
 
 // Configure WebSocket for Neon database
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  throw new Error('DATABASE_URL must be set. Did you forget to provision a database?');
 }
 
-// Constants for timeout and interval values (in milliseconds)
-const MAX_32_BIT_INT = 2147483647; // Math.pow(2, 31) - 1
-const DEFAULT_IDLE_TIMEOUT = 30000;
-const DEFAULT_CONN_TIMEOUT = 5000;
-const DEFAULT_QUERY_TIMEOUT = 30000;
-const KEEPALIVE_INTERVAL = 60000;
-const MAX_RETRY_INTERVAL = 300000;
+// Constants for timeouts (in milliseconds)
+const MAX_32_BIT_INT = 2147483647;
+const TIMEOUT_30_SEC = 30000;
+const TIMEOUT_5_MIN = 300000;
 
-// Initialize connection pool with conservative timeout values
-export const pool = new Pool({ 
+// Initialize connection pool with safe timeout values
+export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: DEFAULT_IDLE_TIMEOUT,
-  connectionTimeoutMillis: DEFAULT_CONN_TIMEOUT,
-  statement_timeout: DEFAULT_QUERY_TIMEOUT,
-  query_timeout: DEFAULT_QUERY_TIMEOUT,
+  idleTimeoutMillis: Math.min(TIMEOUT_5_MIN, MAX_32_BIT_INT),
+  connectionTimeoutMillis: Math.min(TIMEOUT_30_SEC, MAX_32_BIT_INT),
+  statement_timeout: Math.min(TIMEOUT_30_SEC, MAX_32_BIT_INT),
+  query_timeout: Math.min(TIMEOUT_30_SEC, MAX_32_BIT_INT),
   allowExitOnIdle: true
 });
-
-// Disable Node.js timeout warnings
-process.env.NODE_NO_WARNINGS = '1';
 
 // Initialize Drizzle with the pool
 export const db = drizzle(pool, { schema });
 
 let connectionCount = 0;
-
-// Validate timeout value
-const validateTimeout = (timeout: number) => Math.min(Math.max(0, timeout), MAX_32_BIT_INT);
 
 pool.on('connect', async (client) => {
   connectionCount++;
@@ -52,21 +43,13 @@ pool.on('connect', async (client) => {
 });
 
 pool.on('error', (err) => {
-  if (err.message.includes('timeout')) {
-    console.warn('Connection timeout occurred - this is normal during idle periods');
-    return;
-  }
-  console.error('Unexpected error on idle client:', err);
-  setTimeout(() => {
-    console.log('Attempting to reconnect...');
-    checkDatabaseConnection();
-  }, getSafeTimeout(5000));
+  console.error('Unexpected pool error:', err);
 });
 
 export const checkDatabaseConnection = async () => {
   try {
-    const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
-    console.log('Database connection verified:', result.rows[0].now);
+    const result = await pool.query('SELECT NOW() as now');
+    console.log('Database connection verified:', result.rows[0].now); //Added logging for better debugging
     return true;
   } catch (error) {
     console.error('Database connection check failed:', error);
@@ -74,41 +57,8 @@ export const checkDatabaseConnection = async () => {
   }
 };
 
-export const getCurrentESTTimestamp = async () => {
-  try {
-    const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
-    return result.rows[0].now;
-  } catch (error) {
-    console.error('Error getting current timestamp:', error);
-    throw error;
-  }
-};
-
-// Safe interval wrapper function
-const createSafeInterval = (fn: () => void, interval: number) => {
-  const safeInterval = Math.min(interval, MAX_32_BIT_INT);
-  const timer = setInterval(fn, safeInterval);
-  return timer;
-};
-
-// Keepalive check with safe intervals
-let lastKeepAliveSuccess = Date.now();
-const keepAliveTimer = createSafeInterval(async () => {
-  try {
-    await pool.query('SELECT 1');
-    lastKeepAliveSuccess = Date.now();
-  } catch (error) {
-    console.warn('Error during connection keepalive check:', error);
-    if (Date.now() - lastKeepAliveSuccess > MAX_RETRY_INTERVAL) {
-      console.error('Connection appears to be dead, attempting to reconnect...');
-      await checkDatabaseConnection();
-    }
-  }
-}, KEEPALIVE_INTERVAL);
-
-// Cleanup handlers
+// Cleanup function for graceful shutdown
 const cleanup = () => {
-  clearInterval(keepAliveTimer);
   pool.end().catch(err => {
     console.error('Error during pool shutdown:', err);
   });
