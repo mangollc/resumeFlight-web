@@ -1,5 +1,4 @@
-
-import { OptimizedResume, CoverLetter } from '@shared/schema';
+import { CoverLetter } from '@shared/schema';
 
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
