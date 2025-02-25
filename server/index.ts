@@ -12,10 +12,13 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Create server without explicit timeouts
+// Set safe timeout values
+const MAX_TIMEOUT = 2147483647;
 const server = app.listen(5000, '0.0.0.0', () => {
     log('Server successfully started on port 5000');
 });
+server.setTimeout(Math.min(120000, MAX_TIMEOUT));
+server.keepAliveTimeout = Math.min(60000, MAX_TIMEOUT);
 
 // Request logging middleware
 app.use((req, res, next) => {

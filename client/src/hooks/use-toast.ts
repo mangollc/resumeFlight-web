@@ -6,7 +6,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000
+const TOAST_REMOVE_DELAY = Math.min(5000, 2147483647)
 const MAX_ALLOWED_TIMEOUT = 2147483647 // Maximum 32-bit signed integer
 
 type ToasterToast = ToastProps & {
