@@ -272,11 +272,11 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Analysis</h3>
                   <div className="space-y-6">
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Strengths</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.strengths?.length > 0 ? (
-                          resume.metrics.after.strengths.map((strength, idx) => (
+                    {resume.metrics.after.strengths?.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Strengths</h4>
+                        <ul className="space-y-2">
+                          {resume.metrics.after.strengths.map((strength, idx) => (
                             <li
                               key={idx}
                               className="text-sm text-emerald-600 flex gap-2"
@@ -284,108 +284,60 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                               <span>•</span>
                               <span>{strength}</span>
                             </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-muted-foreground">
-                            No strengths identified yet
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Improvements</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.improvements?.length > 0 ? (
-                          resume.metrics.after.improvements.map((improvement, idx) => (
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {resume.metrics.after.improvements?.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Improvements</h4>
+                        <ul className="space-y-2">
+                          {resume.metrics.after.improvements.map((improvement, idx) => (
                             <li
                               key={idx}
                               className="text-sm text-amber-600 flex gap-2"
                             >
                               <span>•</span>
-                              <span>•</span>
                               <span>{improvement}</span>
                             </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-muted-foreground">
-                            No improvements identified yet
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Gaps</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.gaps?.length > 0 ? (
-                          resume.metrics.after.gaps.map((gap, idx) => (
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {resume.metrics.after.gaps?.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Gaps</h4>
+                        <ul className="space-y-2">
+                          {resume.metrics.after.gaps.map((gap, idx) => (
                             <li key={idx} className="text-sm text-red-600 flex gap-2">
                               <span>•</span>
                               <span>{gap}</span>
                             </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-muted-foreground">
-                            No gaps identified
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.suggestions?.length > 0 ? (
-                          resume.metrics.after.suggestions.map((suggestion, idx) => (
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {resume.metrics.after.suggestions?.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-sm mb-2">Suggestions</h4>
+                        <ul className="space-y-2">
+                          {resume.metrics.after.suggestions.map((suggestion, idx) => (
                             <li key={idx} className="text-sm text-blue-600 flex gap-2">
                               <span>•</span>
                               <span>{suggestion}</span>
                             </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-muted-foreground">
-                            No suggestions available
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Gaps</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.gaps?.map((gap, idx) => (
-                          <li key={idx} className="text-sm text-red-600 flex gap-2">
-                            <span>•</span>
-                            <span>{gap}</span>
-                          </li>
-                        ))}
-                        {(!resume.metrics.after.gaps ||
-                          resume.metrics.after.gaps.length === 0) && (
-                          <li className="text-sm text-muted-foreground">
-                            No gaps identified yet
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.suggestions?.map(
-                          (suggestion, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-blue-600 flex gap-2"
-                            >
-                              <span>•</span>
-                              <span>{suggestion}</span>
-                            </li>
-                          )
-                        )}
-                        {(!resume.metrics.after.suggestions ||
-                          resume.metrics.after.suggestions.length === 0) && (
-                          <li className="text-sm text-muted-foreground">
-                            No suggestions available yet
-                          </li>
-                        )}
-                      </ul>
-                    </div>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {(!resume.metrics.after.strengths?.length && 
+                      !resume.metrics.after.improvements?.length && 
+                      !resume.metrics.after.gaps?.length && 
+                      !resume.metrics.after.suggestions?.length) && (
+                      <div className="text-sm text-muted-foreground">
+                        Analysis results will appear here after optimization
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
