@@ -364,7 +364,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                               <span>{gap}</span>
                             </div>
                           ))}
-                          {(!resume.metrics.after.gaps || resume.metrics.after.gaps.length === 0) && (
+                          {(!resume.metrics.after.analysis?.gaps || resume.metrics.after.analysis.gaps.length === 0) && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No gaps identified</span>
@@ -396,7 +396,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                               <span>{suggestion}</span>
                             </div>
                           ))}
-                          {(!resume.metrics.after.suggestions || resume.metrics.after.suggestions.length === 0) && (
+                          {(!resume.metrics.after.analysis?.suggestions || resume.metrics.after.analysis.suggestions.length === 0) && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No suggestions available</span>
