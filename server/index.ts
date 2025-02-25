@@ -151,6 +151,6 @@ process.on('SIGINT', () => {
     });
 });
 
-server.listen(5000, '0.0.0.0', () => {
-    log('Server successfully started on port 5000');
+server.listen(3000, '0.0.0.0', () => {
+    log('Server successfully started on port 3000');
 });
