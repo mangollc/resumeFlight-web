@@ -72,10 +72,18 @@ log("Initializing server...");
 // Create HTTP server
 const server = registerRoutes(app);
 
-// Set appropriate timeout values for long-running operations
-server.timeout = 300000; // 5 minutes for long-running operations
-server.keepAliveTimeout = 61000; // Slightly higher than 60 seconds
-server.headersTimeout = 62000; // Slightly higher than keepAliveTimeout
+// Set appropriate timeout values (all within 32-bit integer limit)
+const TIMEOUT_5_MINUTES = 5 * 60 * 1000; // 300,000 ms
+const TIMEOUT_1_MINUTE = 60 * 1000; // 60,000 ms
+
+// General request timeout
+server.timeout = TIMEOUT_5_MINUTES;
+
+// Keep-alive timeout (slightly above 60 seconds to handle proxies)
+server.keepAliveTimeout = TIMEOUT_1_MINUTE + 1000; // 61,000 ms
+
+// Headers timeout (slightly above keep-alive timeout)
+server.headersTimeout = TIMEOUT_1_MINUTE + 2000; // 62,000 ms
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -110,7 +118,7 @@ if (process.env.NODE_ENV === "development") {
 // Get port from environment variable or use default
 const port = Number(process.env.PORT) || 5000;
 
-// Enhanced graceful shutdown
+// Enhanced graceful shutdown with reasonable timeout
 const gracefulShutdown = (signal: string) => {
     log(`Received ${signal} signal. Shutting down gracefully...`);
     server.close(() => {
