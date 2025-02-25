@@ -47,12 +47,14 @@ let connectionCount = 0;
 // Validate timeout value
 const validateTimeout = (timeout: number) => Math.min(Math.max(0, timeout), MAX_32_BIT_INT);
 
-pool.on('connect', (client) => {
+pool.on('connect', async (client) => {
   connectionCount++;
   console.log(`Database connection ${connectionCount} established`);
-  client.query("SET timezone=$1", ["America/New_York"], { timeout: validateTimeout(5000) }).catch(err => {
+  try {
+    await pool.query("SET timezone=$1", ["America/New_York"]);
+  } catch (err) {
     console.error('Error setting timezone:', err);
-  });
+  }
 });
 
 pool.on('error', (err) => {
