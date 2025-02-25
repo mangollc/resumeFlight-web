@@ -15,9 +15,9 @@ if (!process.env.DATABASE_URL) {
 // Initialize connection pool with optimized configuration
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Increased from 5 to handle more concurrent connections
-  idleTimeoutMillis: 120000, // Increased to 2 minutes to reduce connection churn
-  connectionTimeoutMillis: 10000, // Increased timeout for better reliability
+  max: 10, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // 30 seconds idle timeout
+  connectionTimeoutMillis: 5000, // 5 seconds connection timeout
 });
 
 // Initialize Drizzle with the pool
