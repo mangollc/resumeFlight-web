@@ -237,34 +237,38 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Resume Metrics</h3>
                   <div className="space-y-4">
-                    <MetricRow 
-                      label="Overall Score"
-                      score={resume.metrics.after.overall}
-                    />
-                    <MetricRow 
-                      label="Skills"
-                      score={resume.metrics.after.skills}
-                    />
-                    <MetricRow 
-                      label="Keywords"
-                      score={resume.metrics.after.keywords}
-                    />
-                    <MetricRow 
-                      label="Education"
-                      score={resume.metrics.after.education}
-                    />
-                    <MetricRow 
-                      label="Experience"
-                      score={resume.metrics.after.experience}
-                    />
-                    <MetricRow 
-                      label="AI Readiness"
-                      score={resume.metrics.after.aiReadiness}
-                    />
-                    <MetricRow 
-                      label="Personalization"
-                      score={resume.metrics.after.personalization}
-                    />
+                    {resume.metrics?.after && (
+                      <>
+                        <MetricRow 
+                          label="Overall Score"
+                          score={resume.metrics.after.overall || 0}
+                        />
+                        <MetricRow 
+                          label="Skills"
+                          score={resume.metrics.after.skills || 0}
+                        />
+                        <MetricRow 
+                          label="Keywords"
+                          score={resume.metrics.after.keywords || 0}
+                        />
+                        <MetricRow 
+                          label="Education"
+                          score={resume.metrics.after.education || 0}
+                        />
+                        <MetricRow 
+                          label="Experience"
+                          score={resume.metrics.after.experience || 0}
+                        />
+                        <MetricRow 
+                          label="AI Readiness"
+                          score={resume.metrics.after.aiReadiness || 0}
+                        />
+                        <MetricRow 
+                          label="Personalization"
+                          score={resume.metrics.after.personalization || 0}
+                        />
+                      </>
+                    )}
                     <MetricRow 
                       label="Confidence"
                       score={resume.metrics.after.confidence}
