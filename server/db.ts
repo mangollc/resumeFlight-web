@@ -88,18 +88,23 @@ process.on('SIGTERM', async () => {
   }
 });
 
-// Keepalive check with improved error handling and reduced frequency
+// Keepalive check with timeout validation
+const KEEPALIVE_INTERVAL = Math.min(60000, Math.pow(2, 31) - 1); // 1 minute or max 32-bit int
+const MAX_RETRY_INTERVAL = Math.min(300000, Math.pow(2, 31) - 1); // 5 minutes or max 32-bit int
+
 let lastKeepAliveSuccess = Date.now();
-setInterval(async () => {
+const keepAliveTimer = setInterval(async () => {
   try {
     await pool.query('SELECT 1');
     lastKeepAliveSuccess = Date.now();
   } catch (error) {
     console.warn('Error during connection keepalive check:', error);
-    // If we haven't had a successful keepalive in 5 minutes, attempt to recreate the pool
-    if (Date.now() - lastKeepAliveSuccess > 300000) {
+    if (Date.now() - lastKeepAliveSuccess > MAX_RETRY_INTERVAL) {
       console.error('Connection appears to be dead, attempting to reconnect...');
       await checkDatabaseConnection();
     }
   }
-}, 180000); // Reduced to every 3 minutes instead of 1 minute
+}, KEEPALIVE_INTERVAL);
+
+// Cleanup timer on process exit
+process.on('exit', () => clearInterval(keepAliveTimer));
