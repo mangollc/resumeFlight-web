@@ -157,7 +157,7 @@ export async function optimizeResume(
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
     let overallMatchScore = 0;
-    
+
 
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
@@ -297,7 +297,7 @@ Scoring Guidelines:
         allChanges.push(...(result.changes || []));
         overallMatchScore += result.sectionScore || 0;
 
-        
+
       } catch (error) {
         console.error('[Optimize] Failed to parse response');
         throw new Error('Failed to parse optimization response');
@@ -313,7 +313,7 @@ Scoring Guidelines:
       optimizedContent: optimizedChunks.join("\n\n").trim(),
       changes: allChanges,
       matchScore: finalScore,
-      
+
     };
   } catch (error: any) {
     console.error("[Optimize] Error:", error);
@@ -409,6 +409,10 @@ Return JSON in this format:
   } catch (err) {
     const error = err as Error;
     console.error("[Cover Letter] Error:", error);
-    throw new Error(`Failed to generate cover letter: ${error.message}`);
+    if (error.name === 'AbortError' || error.message?.includes('EventSource')) {
+      throw new Error('Connection interrupted. Please try again.');
+    } else {
+      throw new Error(`Failed to generate cover letter: ${error.message}`);
+    }
   }
 }

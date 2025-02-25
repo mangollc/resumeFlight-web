@@ -53,20 +53,23 @@ pool.on('error', (err) => {
 });
 
 export async function checkDatabaseConnection() {
-    let retries = 3;
-    while (retries > 0) {
-        try {
-            await db.select().from(schema.users).limit(1); // Assuming 'users' table exists in schema
-            return true;
-        } catch (error) {
-            console.error(`Database connection check failed (${retries} retries left):`, error);
-            retries--;
-            if (retries > 0) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-        }
+  try {
+    await db.select().from(schema.users).limit(1);
+    console.log('Database connection established');
+    return true;
+  } catch (error) {
+    console.error('Database connection error:', error);
+    // Try to reconnect
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await db.select().from(schema.users).limit(1);
+      console.log('Database reconnection successful');
+      return true;
+    } catch (retryError) {
+      console.error('Database reconnection failed:', retryError);
+      return false;
     }
-    return false;
+  }
 }
 
 // Get current timestamp in EST
