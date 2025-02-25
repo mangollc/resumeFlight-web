@@ -2,12 +2,9 @@
 process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
-import { storage } from "./storage";
-import rateLimit from "express-rate-limit";
 
 // Global error handlers
 process.on('uncaughtException', (error) => {
@@ -30,73 +27,6 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Security middleware
-const ONE_HOUR = 3600000;
-const TWELVE_HOURS = ONE_HOUR * 12;
-
-// Session configuration
-app.use(session({
-    store: storage.sessionStore,
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
-    name: 'sessionId', // Change from default 'connect.sid'
-    resave: false,
-    saveUninitialized: false,
-    rolling: true, // Reset expiration on every response
-    cookie: {
-        secure: process.env.NODE_ENV === 'production', // Only send cookies over HTTPS in production
-        httpOnly: true, // Prevent client-side access to the cookie
-        sameSite: 'strict', // CSRF protection
-        maxAge: TWELVE_HOURS, // 12 hours
-    },
-    proxy: true // Trust the reverse proxy
-}));
-
-// Rate limiting for auth routes
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.',
-    standardHeaders: true,
-    legacyHeaders: false,
-});
-
-// Apply rate limiting to auth routes
-app.use('/api/auth', authLimiter);
-
-// Security headers middleware
-app.use((req, res, next) => {
-    // HSTS (force HTTPS)
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-
-    // Prevent clickjacking
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-
-    // XSS protection
-    res.setHeader('X-XSS-Protection', '1; mode=block');
-
-    // Prevent MIME type sniffing
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-
-    // Referrer policy
-    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-
-    // Content Security Policy
-    res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-        "style-src 'self' 'unsafe-inline'; " +
-        "img-src 'self' data: blob:; " +
-        "connect-src 'self'; " +
-        "font-src 'self'; " +
-        "object-src 'none'; " +
-        "media-src 'self'; " +
-        "frame-src 'self';"
-    );
-
-    next();
-});
-
 // Request logging middleware
 app.use((req, res, next) => {
     const start = Date.now();
@@ -108,6 +38,15 @@ app.use((req, res, next) => {
             log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
         }
     });
+    next();
+});
+
+// Add CSP headers
+app.use((req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;"
+    );
     next();
 });
 
@@ -160,7 +99,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
         res.status(status).json({
             error: true,
-            message: process.env.NODE_ENV === "production"
+            message: process.env.NODE_ENV === "production" 
                 ? `An unexpected error occurred (ID: ${errorId})`
                 : message,
             errorId,

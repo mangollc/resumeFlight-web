@@ -1,10 +1,13 @@
 import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, users, uploadedResumes, optimizedResumes, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { eq } from "drizzle-orm";
-import { db, pool } from "./db";
+import { eq, and } from "drizzle-orm";
+import { db, pool, getCurrentESTTimestamp } from "./db";
 
 const PostgresSessionStore = connectPg(session);
+
+// Constants for session configuration
+const ONE_DAY = 86400; // 24 hours in seconds
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -42,6 +45,12 @@ export class DatabaseStorage implements IStorage {
       tableName: 'session',
       schemaName: 'public',
       createTableIfMissing: true,
+      pruneSessionInterval: 60000,
+      ttl: 86400,
+      errorLog: (err: Error) => {
+        console.error('Session store error:', err);
+      },
+      disableTouch: true
     });
 
     this.sessionStore.on('error', (error: Error) => {
@@ -308,8 +317,10 @@ export class DatabaseStorage implements IStorage {
     try {
       const results = await db.select()
         .from(optimizedResumes)
-        .where(eq(optimizedResumes.jobDescription, jobDescription)
-          .and(eq(optimizedResumes.uploadedResumeId, uploadedResumeId)));
+        .where(and(
+          eq(optimizedResumes.jobDescription, jobDescription),
+          eq(optimizedResumes.uploadedResumeId, uploadedResumeId)
+        ));
 
       const transformedResults = results.map(result => {
         const jobDetails = result.jobDetails as any;
@@ -485,10 +496,3 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
-
-async function getCurrentESTTimestamp() {
-  const now = new Date();
-  const estOffset = -4 * 60 * 60 * 1000; // EST offset in milliseconds
-  const estTime = new Date(now.getTime() + estOffset);
-  return estTime;
-}
