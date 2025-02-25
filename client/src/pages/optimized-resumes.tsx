@@ -351,14 +351,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <AlertTriangle className="h-4 w-4 text-red-500" />
                           <span className="font-medium text-sm">Gaps</span>
                           <span className="text-xs text-muted-foreground">
-                            ({resume.metrics.after.gaps?.length || 0})
+                            ({resume.metrics.after.analysis?.gaps?.length || 0})
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'gaps' && (
                         <div className="px-4 pb-3 space-y-2">
-                          {resume.metrics.after.gaps?.map((gap, idx) => (
+                          {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
                             <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
                               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{gap}</span>
@@ -383,14 +383,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <Lightbulb className="h-4 w-4 text-blue-500" />
                           <span className="font-medium text-sm">Suggestions</span>
                           <span className="text-xs text-muted-foreground">
-                            ({resume.metrics.after.suggestions?.length || 0})
+                            ({resume.metrics.after.analysis?.suggestions?.length || 0})
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'suggestions' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'suggestions' && (
                         <div className="px-4 pb-3 space-y-2">
-                          {resume.metrics.after.suggestions?.map((suggestion, idx) => (
+                          {resume.metrics.after.analysis?.suggestions?.map((suggestion, idx) => (
                             <div key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
                               <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{suggestion}</span>
