@@ -249,14 +249,12 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       aiReadiness: number;
       confidence: number;
       strengths: string[];
-      improvements: string[];
       gaps: string[];
       suggestions: string[];
     };
   };
   analysis: {
     matches: string[];
-    improvements: string[];
     gaps: string[];
     suggestions: string[];
   };

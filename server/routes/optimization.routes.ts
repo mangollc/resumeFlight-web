@@ -47,7 +47,6 @@ router.get('/optimized-resumes', async (req, res) => {
                 },
                 analysis: resume.analysis || {
                     matches: [],
-                    improvements: [],
                     gaps: [],
                     suggestions: []
                 }
