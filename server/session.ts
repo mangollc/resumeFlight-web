@@ -6,14 +6,15 @@ const PostgresSessionStore = connectPg(session);
 
 // Constants
 const ONE_HOUR = 3600000;
-const ONE_DAY = ONE_HOUR * 24;
+const MAX_32_BIT_INT = 2147483647;
+const SAFE_ONE_DAY = Math.min(ONE_HOUR * 24, MAX_32_BIT_INT);
 
 // Create session store with enhanced error handling
 export const sessionStore = new PostgresSessionStore({
   pool,
   tableName: 'session',
   createTableIfMissing: true,
-  pruneSessionInterval: ONE_HOUR, // Prune expired sessions every hour
+  pruneSessionInterval: SAFE_ONE_DAY, // Prune expired sessions every hour, using safe value
   errorLog: (err: Error) => {
     console.error('[Session Store Error]:', err);
   }
@@ -29,8 +30,6 @@ sessionStore.on('error', (error: Error) => {
 });
 
 // Export session middleware configuration
-const MAX_32_BIT_INT = 2147483647;
-const SAFE_ONE_DAY = Math.min(ONE_DAY, MAX_32_BIT_INT);
 
 export const sessionConfig = session({
   store: sessionStore,

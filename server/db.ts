@@ -19,20 +19,14 @@ const DEFAULT_QUERY_TIMEOUT = 30000;
 const KEEPALIVE_INTERVAL = 60000;
 const MAX_RETRY_INTERVAL = 300000;
 
-// Ensure timeouts don't exceed 32-bit integer limit
-const getSafeTimeout = (timeout: number): number => {
-  if (typeof timeout !== 'number' || isNaN(timeout)) return DEFAULT_CONN_TIMEOUT;
-  return Math.min(Math.max(0, timeout), MAX_32_BIT_INT);
-};
-
-// Initialize connection pool with safe timeout values
+// Initialize connection pool with conservative timeout values
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: getSafeTimeout(DEFAULT_IDLE_TIMEOUT),
-  connectionTimeoutMillis: getSafeTimeout(DEFAULT_CONN_TIMEOUT),
-  statement_timeout: getSafeTimeout(DEFAULT_QUERY_TIMEOUT),
-  query_timeout: getSafeTimeout(DEFAULT_QUERY_TIMEOUT),
+  idleTimeoutMillis: DEFAULT_IDLE_TIMEOUT,
+  connectionTimeoutMillis: DEFAULT_CONN_TIMEOUT,
+  statement_timeout: DEFAULT_QUERY_TIMEOUT,
+  query_timeout: DEFAULT_QUERY_TIMEOUT,
   allowExitOnIdle: true
 });
 

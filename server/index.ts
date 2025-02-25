@@ -7,8 +7,17 @@ import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Set reasonable timeout values
+const server = app.listen(5000, '0.0.0.0', () => {
+  console.log('Server successfully started on port 5000');
+});
+
+server.timeout = 30000; // 30 seconds
+server.keepAliveTimeout = 65000; // 65 seconds
+server.headersTimeout = 66000; // 66 seconds
 
 // Request logging middleware
 app.use((req, res, next) => {
