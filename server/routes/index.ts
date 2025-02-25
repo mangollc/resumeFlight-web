@@ -5,8 +5,9 @@
 import { Express } from "express";
 import { createServer, type Server } from "http";
 import { authRoutes } from "./auth.routes";
-import { resumesRoutes } from "./resumes.routes";
+import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
+import { optimizationRoutes } from "./optimization.routes";
 import { setupAuth } from "../auth";
 
 export function registerRoutes(app: Express): Server {
@@ -27,9 +28,10 @@ export function registerRoutes(app: Express): Server {
         });
     });
 
-    // Register route modules
-    app.use('/api/auth', authRoutes);
-    app.use('/api/resumes', resumesRoutes);
+    // Register route modules with proper prefixes
+    app.use('/api', authRoutes);
+    app.use('/api', resumeRoutes);  // This will handle /api/uploaded-resumes
+    app.use('/api', optimizationRoutes); // Add optimization routes
     app.use('/api/analysis', analysisRoutes);
 
     return createServer(app);

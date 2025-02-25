@@ -12,6 +12,8 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+console.log('Starting server initialization...');
+
 const server = app.listen(5000, '0.0.0.0', () => {
     log('Server successfully started on port 5000');
 });
@@ -60,6 +62,7 @@ app.get("/health", async (_req, res) => {
     }
 });
 
+console.log('Registering routes...');
 // Register routes
 registerRoutes(app);
 

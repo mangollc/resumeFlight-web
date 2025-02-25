@@ -1,6 +1,6 @@
 /**
- * Core resume management routes
- * Handles resume upload, retrieval, and deletion
+ * Resume management routes
+ * Handles basic CRUD operations for resumes
  */
 
 import { Router } from 'express';
@@ -12,7 +12,21 @@ import { parseResume } from '../utils/parser';
 
 const router = Router();
 
-// Get all uploaded resumes for user
+// Configure multer for file uploads
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype === "application/pdf" || 
+            file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+            cb(null, true);
+        } else {
+            cb(new Error("Only PDF and DOCX files are allowed"));
+        }
+    }
+});
+
+// Get user's resumes - endpoint matching client expectation
 router.get('/uploaded-resumes', async (req, res) => {
     try {
         console.log('GET /uploaded-resumes - Auth status:', req.isAuthenticated());
@@ -28,12 +42,14 @@ router.get('/uploaded-resumes', async (req, res) => {
         const resumes = await storage.getUploadedResumesByUser(req.user.id);
         console.log('Found resumes:', resumes);
 
-        return res.json(resumes);
+        // Set proper content type and return JSON response
+        res.setHeader('Content-Type', 'application/json');
+        res.json(resumes);
     } catch (error: any) {
         console.error('Error fetching resumes:', error);
-        return res.status(500).json({
+        res.status(500).json({
             error: "Failed to fetch resumes",
-            details: error.message,
+            details: error.message
         });
     }
 });
@@ -42,42 +58,42 @@ router.get('/uploaded-resumes', async (req, res) => {
 router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, res) => {
     try {
         if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Unauthorized" });
+            return res.status(401).json({ error: "Not authenticated" });
         }
-
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
         }
 
         const content = await parseResume(req.file.buffer, req.file.mimetype);
-        const validatedData = insertUploadedResumeSchema.parse({
-            content: content,
+        const resumeData = insertUploadedResumeSchema.parse({
+            content,
             metadata: {
                 filename: req.file.originalname,
                 fileType: req.file.mimetype,
-                uploadedAt: new Date().toISOString(),
-            },
+                uploadedAt: new Date().toISOString()
+            }
         });
 
         const resume = await storage.createUploadedResume({
-            ...validatedData,
-            userId: req.user!.id,
+            ...resumeData,
+            userId: req.user!.id
         });
 
-        return res.status(201).json(resume);
+        res.status(201).json(resume);
     } catch (error: any) {
-        return res.status(400).json({
+        console.error('Upload error:', error);
+        res.status(400).json({
             error: "Failed to upload resume",
-            details: error.message,
+            details: error.message
         });
     }
 });
 
-// Delete uploaded resume
+// Delete resume
 router.delete('/resume/:id', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Unauthorized" });
+            return res.status(401).json({ error: "Not authenticated" });
         }
 
         const resumeId = parseInt(req.params.id);
@@ -86,17 +102,17 @@ router.delete('/resume/:id', async (req, res) => {
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
         }
-
         if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Unauthorized access" });
+            return res.status(403).json({ error: "Not authorized" });
         }
 
         await storage.deleteUploadedResume(resumeId);
-        return res.json({ message: "Resume deleted successfully" });
+        res.json({ message: "Resume deleted" });
     } catch (error: any) {
-        return res.status(500).json({
+        console.error('Delete error:', error);
+        res.status(500).json({
             error: "Failed to delete resume",
-            details: error.message,
+            details: error.message
         });
     }
 });
