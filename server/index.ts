@@ -73,17 +73,18 @@ log("Initializing server...");
 const server = registerRoutes(app);
 
 // Set appropriate timeout values (all within 32-bit integer limit)
-const TIMEOUT_5_MINUTES = 5 * 60 * 1000; // 300,000 ms
-const TIMEOUT_1_MINUTE = 60 * 1000; // 60,000 ms
+const MAX_32_BIT_INT = 2147483647;
+const TIMEOUT_5_MINUTES = Math.min(5 * 60 * 1000, MAX_32_BIT_INT); // 300,000 ms
+const TIMEOUT_1_MINUTE = Math.min(60 * 1000, MAX_32_BIT_INT); // 60,000 ms
 
 // General request timeout
 server.timeout = TIMEOUT_5_MINUTES;
 
 // Keep-alive timeout (slightly above 60 seconds to handle proxies)
-server.keepAliveTimeout = TIMEOUT_1_MINUTE + 1000; // 61,000 ms
+server.keepAliveTimeout = Math.min(TIMEOUT_1_MINUTE + 1000, MAX_32_BIT_INT);
 
 // Headers timeout (slightly above keep-alive timeout)
-server.headersTimeout = TIMEOUT_1_MINUTE + 2000; // 62,000 ms
+server.headersTimeout = Math.min(TIMEOUT_1_MINUTE + 2000, MAX_32_BIT_INT);
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
