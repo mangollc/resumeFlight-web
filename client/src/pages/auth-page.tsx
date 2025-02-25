@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, InsertUser } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { z } from "zod";
 
 const jobProverbs = [
   "Your perfect job is waiting for you to be ready for it.",
@@ -20,6 +21,14 @@ const jobProverbs = [
   "Behind every successful career is a lot of hard work.",
   "Your potential is unlimited. Your opportunities are endless.",
 ];
+
+// Create a base login schema instead of using pick on insertUserSchema
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type LoginData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -54,11 +63,11 @@ export default function AuthPage() {
               </TabsList>
 
               <TabsContent value="login">
-                <LoginForm onSubmit={(data) => loginMutation.mutate(data)} />
+                <LoginForm onSubmit={(data: LoginData) => loginMutation.mutate(data)} />
               </TabsContent>
 
               <TabsContent value="register">
-                <RegisterForm onSubmit={(data) => registerMutation.mutate(data)} />
+                <RegisterForm onSubmit={(data: InsertUser) => registerMutation.mutate(data)} />
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -104,9 +113,13 @@ export default function AuthPage() {
   );
 }
 
-function LoginForm({ onSubmit }) {
-  const form = useForm({
-    resolver: zodResolver(insertUserSchema),
+interface LoginFormProps {
+  onSubmit: (data: LoginData) => void;
+}
+
+function LoginForm({ onSubmit }: LoginFormProps) {
+  const form = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -152,8 +165,12 @@ function LoginForm({ onSubmit }) {
   );
 }
 
-function RegisterForm({ onSubmit }) {
-  const form = useForm({
+interface RegisterFormProps {
+  onSubmit: (data: InsertUser) => void;
+}
+
+function RegisterForm({ onSubmit }: RegisterFormProps) {
+  const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
       name: "",

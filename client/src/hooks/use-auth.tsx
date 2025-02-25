@@ -1,4 +1,5 @@
 import { createContext, ReactNode, useContext } from "react";
+import * as React from "react";
 import {
   useQuery,
   useMutation,
@@ -59,20 +60,17 @@ class ErrorBoundary extends React.Component<{ children: ReactNode }, { hasError:
   }
 }
 
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
+  } = useQuery<SelectUser>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    onError: (err) => {
-      console.error("Error fetching user data:", err);
-      toast({ title: "Error", description: "Failed to fetch user data", variant: "destructive" });
-    }
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    retry: false // Don't retry on 401
   });
 
   const loginMutation = useMutation({
@@ -141,13 +139,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user: user ?? null,
         isLoading,
-        error: error || null, //Added error handling for the useQuery
+        error: error || null,
         loginMutation,
         logoutMutation,
         registerMutation,
       }}
     >
-      {children}
+      <ErrorBoundary>{children}</ErrorBoundary>
     </AuthContext.Provider>
   );
 };
