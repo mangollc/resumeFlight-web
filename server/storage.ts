@@ -1,13 +1,14 @@
 import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, users, uploadedResumes, optimizedResumes, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { eq, and } from "drizzle-orm";
-import { db, pool, getCurrentESTTimestamp } from "./db";
+import { eq } from "drizzle-orm";
+import { db, pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
 // Constants for session configuration
-const ONE_DAY = 86400; // 24 hours in seconds
+const ONE_HOUR = 3600000; // 1 hour in milliseconds
+const TWELVE_HOURS = ONE_HOUR * 12;
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -45,12 +46,17 @@ export class DatabaseStorage implements IStorage {
       tableName: 'session',
       schemaName: 'public',
       createTableIfMissing: true,
-      pruneSessionInterval: 60000,
-      ttl: 86400,
+      // Enhanced security settings
+      pruneSessionInterval: ONE_HOUR / 2, // Cleanup every 30 minutes
+      ttl: TWELVE_HOURS / 1000, // Convert to seconds
+      // Randomize session cleanup to prevent timing attacks
+      pruneSessionRandomizedInterval: true,
+      // Enable session touching to keep active sessions alive
+      disableTouch: false,
+      // Error handling
       errorLog: (err: Error) => {
         console.error('Session store error:', err);
-      },
-      disableTouch: true
+      }
     });
 
     this.sessionStore.on('error', (error: Error) => {
@@ -317,10 +323,8 @@ export class DatabaseStorage implements IStorage {
     try {
       const results = await db.select()
         .from(optimizedResumes)
-        .where(and(
-          eq(optimizedResumes.jobDescription, jobDescription),
-          eq(optimizedResumes.uploadedResumeId, uploadedResumeId)
-        ));
+        .where(eq(optimizedResumes.jobDescription, jobDescription)
+          .and(eq(optimizedResumes.uploadedResumeId, uploadedResumeId)));
 
       const transformedResults = results.map(result => {
         const jobDetails = result.jobDetails as any;
