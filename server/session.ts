@@ -1,3 +1,4 @@
+
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -5,7 +6,8 @@ import { pool } from "./db";
 const PostgresSessionStore = connectPg(session);
 
 // Constants
-const SESSION_TIMEOUT = 3600000; // 1 hour in milliseconds
+const ONE_HOUR = 3600000; // 1 hour in milliseconds
+const MAX_32_BIT_INT = 2147483647;
 const SAFE_ONE_DAY = Math.min(ONE_HOUR * 24, MAX_32_BIT_INT);
 
 // Create session store with enhanced error handling
@@ -13,7 +15,7 @@ export const sessionStore = new PostgresSessionStore({
   pool,
   tableName: 'session',
   createTableIfMissing: true,
-  pruneSessionInterval: SAFE_ONE_DAY, // Prune expired sessions every hour, using safe value
+  pruneSessionInterval: SAFE_ONE_DAY,
   errorLog: (err: Error) => {
     console.error('[Session Store Error]:', err);
   }
@@ -29,7 +31,6 @@ sessionStore.on('error', (error: Error) => {
 });
 
 // Export session middleware configuration
-
 export const sessionConfig = session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key',
