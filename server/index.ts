@@ -6,62 +6,28 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
 
-// Safe timeout calculation
-function safeTimeout(ms: number): number {
-    const MAX_32_BIT = 2147483647;
-    return Math.min(ms, MAX_32_BIT);
-}
-
-// Timeout configurations
-const timeouts = {
-    request: safeTimeout(5 * 60 * 1000),      // 5 minutes
-    keepAlive: safeTimeout(65 * 1000),        // 65 seconds
-    headers: safeTimeout(66 * 1000),          // 66 seconds
-    shutdown: safeTimeout(30 * 1000)          // 30 seconds
-};
-
 const app = express();
+
+// Basic middleware setup
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Create server with safe timeout values
+// Create server without explicit timeouts
 const server = app.listen(5000, '0.0.0.0', () => {
-    console.log('Server successfully started on port 5000');
+    log('Server successfully started on port 5000');
 });
-
-// Apply timeout configurations
-server.timeout = timeouts.request;
-server.keepAliveTimeout = timeouts.keepAlive;
-server.headersTimeout = timeouts.headers;
 
 // Request logging middleware
 app.use((req, res, next) => {
     const start = Date.now();
     const path = req.path;
-    let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-        capturedJsonResponse = bodyJson;
-        return originalResJson.apply(res, [bodyJson, ...args]);
-    };
 
     res.on("finish", () => {
         const duration = Date.now() - start;
         if (path.startsWith("/api")) {
-            let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-            if (capturedJsonResponse) {
-                logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-            }
-
-            if (logLine.length > 80) {
-                logLine = logLine.slice(0, 79) + "…";
-            }
-
-            log(logLine);
+            log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
         }
     });
-
     next();
 });
 
@@ -124,23 +90,13 @@ if (process.env.NODE_ENV === "development") {
     serveStatic(app);
 }
 
-// Enhanced graceful shutdown
-const gracefulShutdown = (signal: string) => {
-    log(`Received ${signal} signal. Shutting down gracefully...`);
-    server.close(() => {
-        log('Server closed');
-        process.exit(0);
-    });
+// Simple graceful shutdown
+process.on('SIGTERM', () => {
+    log('Received SIGTERM. Shutting down...');
+    server.close(() => process.exit(0));
+});
 
-    // Force shutdown after timeout
-    setTimeout(() => {
-        log('Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-    }, timeouts.shutdown);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Log server startup
-log(`Server starting on port 5000...`);
+process.on('SIGINT', () => {
+    log('Received SIGINT. Shutting down...');
+    server.close(() => process.exit(0));
+});
