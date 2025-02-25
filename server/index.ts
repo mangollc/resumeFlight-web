@@ -72,7 +72,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
       const errorId = Math.random().toString(36).substring(7);
       res.setHeader('Content-Type', 'application/json');
 
-    console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
+      console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
         error: err,
         stack: err.stack,
         body: req.body,
