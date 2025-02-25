@@ -339,6 +339,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{strength}</span>
                           </li>
                         ))}
+                        {(!resume.metrics.after.strengths || resume.metrics.after.strengths.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No strengths identified yet</li>
+                        )}
                       </ul>
                     </div>
                     <div>
@@ -350,6 +353,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{improvement}</span>
                           </li>
                         ))}
+                        {(!resume.metrics.after.improvements || resume.metrics.after.improvements.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No improvements identified yet</li>
+                        )}
                       </ul>
                     </div>
                     <div>
@@ -361,6 +367,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{gap}</span>
                           </li>
                         ))}
+                        {(!resume.metrics.after.gaps || resume.metrics.after.gaps.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No gaps identified yet</li>
+                        )}
                       </ul>
                     </div>
                     <div>
@@ -372,6 +381,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{suggestion}</span>
                           </li>
                         ))}
+                        {(!resume.metrics.after.suggestions || resume.metrics.after.suggestions.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No suggestions available yet</li>
+                        )}
                       </ul>
                     </div>
                   </div>
