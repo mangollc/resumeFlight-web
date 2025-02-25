@@ -10,9 +10,11 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +42,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+const getScoreColor = (score: number) => {
+  if (score >= 80) return "bg-emerald-500";
+  if (score >= 60) return "bg-yellow-500";
+  return "bg-red-500";
+};
+
+const getScoreTextColor = (score: number) => {
+  if (score >= 80) return "text-emerald-500";
+  if (score >= 60) return "text-yellow-500";
+  return "text-red-500";
+};
+
+function MetricRow({ label, before, after }: { label: string; before: number; after: number }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium capitalize">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className={`text-sm ${getScoreTextColor(before)}`}>{before.toFixed(1)}%</span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          <span className={`text-sm font-medium ${getScoreTextColor(after)}`}>{after.toFixed(1)}%</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Progress value={before} className={`h-2 ${getScoreColor(before)}`} />
+        <Progress value={after} className={`h-2 ${getScoreColor(after)}`} />
+      </div>
+    </div>
+  );
+}
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -90,7 +123,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
       toast({
         title: "Success",
-        description: `${type === "resume" ? "Resume" : "Cover Letter"} downloaded successfully as ${format.toUpperCase()}`,
+        description: `${type === "resume" ? "Resume" : "Cover Letter"} downloaded successfully`,
       });
     } catch (error) {
       console.error("Download error:", error);
@@ -118,22 +151,23 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
         <TableCell>
           <div className="flex flex-col gap-1">
             <div className="text-sm">{new Date(resume.metadata.optimizedAt).toLocaleDateString()}</div>
-            <div className="text-xs text-muted-foreground">{new Date(resume.metadata.optimizedAt).toLocaleTimeString()}</div>
+            <div className="text-xs text-muted-foreground">{resume.metadata.version}</div>
           </div>
         </TableCell>
         <TableCell>
           <div className="flex flex-col gap-1">
-            <div className="text-sm">ID: {resume.id}</div>
-            <div className="text-xs text-muted-foreground">v{resume.metadata.version}</div>
+            <div className="text-sm">{resume.jobDetails?.title || "N/A"}</div>
+            <div className="text-xs text-muted-foreground">{resume.jobDetails?.company || "N/A"}</div>
           </div>
         </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          {resume.jobDetails?.title || "N/A"}
+        <TableCell className="hidden lg:table-cell text-right">
+          <div className="flex items-center justify-end gap-2">
+            <span className={`text-sm ${getScoreTextColor(resume.metrics.after.overall)}`}>
+              {resume.metrics.after.overall.toFixed(1)}%
+            </span>
+          </div>
         </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          {resume.jobDetails?.company || "N/A"}
-        </TableCell>
-        <TableCell className="text-right">
+        <TableCell className="w-8">
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -224,20 +258,82 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       {isExpanded && (
         <TableRow>
           <TableCell colSpan={8} className="bg-muted/30 border-t border-muted">
-            <div className="p-6">
-              <h3 className="text-lg font-medium mb-4">Resume Details</h3>
-              <div className="space-y-4">
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div>
-                  <h4 className="font-medium text-sm">Original Resume</h4>
-                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {resume.originalContent}
-                  </p>
+                  <h3 className="text-lg font-medium mb-4">Resume Metrics</h3>
+                  <div className="space-y-4">
+                    <MetricRow 
+                      label="Overall Score"
+                      before={resume.metrics.before.overall}
+                      after={resume.metrics.after.overall}
+                    />
+                    <MetricRow 
+                      label="Skills"
+                      before={resume.metrics.before.skills}
+                      after={resume.metrics.after.skills}
+                    />
+                    <MetricRow 
+                      label="Keywords"
+                      before={resume.metrics.before.keywords}
+                      after={resume.metrics.after.keywords}
+                    />
+                    <MetricRow 
+                      label="Education"
+                      before={resume.metrics.before.education}
+                      after={resume.metrics.after.education}
+                    />
+                    <MetricRow 
+                      label="Experience"
+                      before={resume.metrics.before.experience}
+                      after={resume.metrics.after.experience}
+                    />
+                    <MetricRow 
+                      label="AI Readiness"
+                      before={resume.metrics.before.aiReadiness}
+                      after={resume.metrics.after.aiReadiness}
+                    />
+                    <MetricRow 
+                      label="Personalization"
+                      before={resume.metrics.before.personalization}
+                      after={resume.metrics.after.personalization}
+                    />
+                    <MetricRow 
+                      label="Confidence"
+                      before={resume.metrics.before.confidence}
+                      after={resume.metrics.after.confidence}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm">Job Description</h4>
-                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
-                    {resume.jobDescription}
-                  </p>
+                  <h3 className="text-lg font-medium mb-4">Job Details</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-sm">Job Description</h4>
+                      <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                        {resume.jobDescription}
+                      </p>
+                    </div>
+                    {resume.jobDetails && (
+                      <div>
+                        <h4 className="font-medium text-sm">Additional Details</h4>
+                        <dl className="mt-2 space-y-2 text-sm">
+                          <div>
+                            <dt className="inline text-muted-foreground">Company: </dt>
+                            <dd className="inline">{resume.jobDetails.company}</dd>
+                          </div>
+                          <div>
+                            <dt className="inline text-muted-foreground">Location: </dt>
+                            <dd className="inline">{resume.jobDetails.location}</dd>
+                          </div>
+                          <div>
+                            <dt className="inline text-muted-foreground">Type: </dt>
+                            <dd className="inline">{resume.jobDetails.type}</dd>
+                          </div>
+                        </dl>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -309,20 +405,15 @@ export default function OptimizedResumesPage() {
                   </TableHead>
                   <TableHead>
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Resume ID
+                      Job Details
                     </span>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">
+                  <TableHead className="hidden lg:table-cell text-right">
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Job Position
+                      Match Score
                     </span>
                   </TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Company Name
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-[60px]"></TableHead>
+                  <TableHead className="w-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
