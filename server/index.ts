@@ -125,13 +125,30 @@ if (process.env.NODE_ENV === "development") {
 
 // Simple graceful shutdown
 process.on('SIGTERM', () => {
-    log('Received SIGTERM. Shutting down...');
-    server.close(() => process.exit(0));
+    log('Received SIGTERM. Attempting graceful shutdown...');
+    server.close((err) => {
+        if (err) {
+            console.error('Error during shutdown:', err);
+            process.exit(1);
+        }
+        process.exit(0);
+    });
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+        console.error('Forced shutdown after timeout');
+        process.exit(1);
+    }, 10000);
 });
 
 process.on('SIGINT', () => {
-    log('Received SIGINT. Shutting down...');
-    server.close(() => process.exit(0));
+    log('Received SIGINT. Attempting graceful shutdown...');
+    server.close((err) => {
+        if (err) {
+            console.error('Error during shutdown:', err);
+            process.exit(1);
+        }
+        process.exit(0);
+    });
 });
 
 server.listen(5000, '0.0.0.0', () => {
