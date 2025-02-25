@@ -22,29 +22,19 @@ const MAX_RETRY_INTERVAL = Math.min(300000, MAX_32_BIT_INT);
 // Ensure timeouts don't exceed 32-bit integer limit
 const getSafeTimeout = (timeout: number): number => Math.min(timeout, MAX_32_BIT_INT);
 
-// Maximum value for 32-bit signed integer
-const MAX_TIMEOUT = 2147483647;
-
-// Safe timeout configuration
-const timeoutConfig = {
-  max: 10,
-  idleTimeoutMillis: Math.min(DEFAULT_IDLE_TIMEOUT, MAX_TIMEOUT),
-  connectionTimeoutMillis: Math.min(DEFAULT_CONN_TIMEOUT, MAX_TIMEOUT),
-  statement_timeout: Math.min(DEFAULT_QUERY_TIMEOUT, MAX_TIMEOUT),
-  query_timeout: Math.min(DEFAULT_QUERY_TIMEOUT, MAX_TIMEOUT),
-  allowExitOnIdle: true
-};
-
-// Initialize connection pool with validated timeout values
+// Initialize connection pool with safe timeout values
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  ...timeoutConfig
+  max: 10,
+  idleTimeoutMillis: getSafeTimeout(DEFAULT_IDLE_TIMEOUT),
+  connectionTimeoutMillis: getSafeTimeout(DEFAULT_CONN_TIMEOUT),
+  statement_timeout: getSafeTimeout(DEFAULT_QUERY_TIMEOUT),
+  query_timeout: getSafeTimeout(DEFAULT_QUERY_TIMEOUT),
+  allowExitOnIdle: true
 });
 
-// Configure statement timeout at pool level
-pool.on('connect', (client) => {
-  client.query(`SET statement_timeout TO ${timeoutConfig.statement_timeout};`).catch(console.error);
-});
+// Disable Node.js timeout warnings
+process.env.NODE_NO_WARNINGS = '1';
 
 // Initialize Drizzle with the pool
 export const db = drizzle(pool, { schema });
