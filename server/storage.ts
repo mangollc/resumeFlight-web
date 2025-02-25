@@ -1,4 +1,4 @@
-import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, CoverLetter, InsertCoverLetter, users, uploadedResumes, optimizedResumes, coverLetters, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, users, uploadedResumes, optimizedResumes, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
@@ -26,13 +26,6 @@ export interface IStorage {
   getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
   deleteOptimizedResume(id: number): Promise<void>;
   getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]>;
-  // Cover letter operations
-  getCoverLetter(id: number): Promise<CoverLetter | undefined>;
-  createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter>;
-  updateCoverLetter(id: number, data: Partial<CoverLetter>): Promise<CoverLetter>;
-  getCoverLettersByUser(userId: number): Promise<CoverLetter[]>;
-  deleteCoverLetter(id: number): Promise<void>;
-  getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]>;
   // Other operations
   sessionStore: session.Store;
   getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined>;
@@ -52,20 +45,18 @@ export class DatabaseStorage implements IStorage {
       tableName: 'session',
       schemaName: 'public',
       createTableIfMissing: true,
-      pruneSessionInterval: 60000, // 1 minute cleanup interval
-      ttl: 86400, // 24 hours
+      pruneSessionInterval: 60000,
+      ttl: 86400,
       errorLog: (err: Error) => {
         console.error('Session store error:', err);
       },
-      disableTouch: true // Disable touch to prevent connection issues
+      disableTouch: true
     });
 
-    // Add error handler for session store
     this.sessionStore.on('error', (error: Error) => {
       console.error('Session store error:', error);
     });
 
-    // Add connection event handler
     this.sessionStore.on('connect', () => {
       console.log('Session store connected successfully');
     });
@@ -369,126 +360,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error updating optimized resume:', error);
       throw new Error('Failed to update optimized resume');
-    }
-  }
-
-  // Cover Letter methods
-  async getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined> {
-    try {
-      const [result] = await db
-        .select()
-        .from(resumeMatchScores)
-        .where(eq(resumeMatchScores.optimizedResumeId, optimizedResumeId));
-
-      return result;
-    } catch (error) {
-      console.error('Error getting resume match score:', error);
-      return undefined;
-    }
-  }
-
-  async getCoverLetter(id: number): Promise<CoverLetter | undefined> {
-    try {
-      const [result] = await db.select().from(coverLetters).where(eq(coverLetters.id, id));
-      if (!result) return undefined;
-
-      return {
-        ...result,
-        metadata: result.metadata as CoverLetter['metadata']
-      };
-    } catch (error) {
-      console.error('Error getting cover letter:', error);
-      throw new Error('Failed to get cover letter');
-    }
-  }
-
-  async createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter> {
-    try {
-      const now = await getCurrentESTTimestamp();
-      const [result] = await db
-        .insert(coverLetters)
-        .values({
-          ...coverLetter,
-          userId: coverLetter.userId,
-          version: '1.0',
-          versionHistory: [{
-            content: coverLetter.content,
-            version: '1.0',
-            generatedAt: now.toISOString()
-          }],
-          confidence: 0,
-          createdAt: now
-        })
-        .returning();
-
-      return {
-        ...result,
-        metadata: result.metadata as CoverLetter['metadata']
-      };
-    } catch (error) {
-      console.error('Error creating cover letter:', error);
-      throw new Error('Failed to create cover letter');
-    }
-  }
-
-  async getCoverLettersByUser(userId: number): Promise<CoverLetter[]> {
-    try {
-      const results = await db.select().from(coverLetters).where(eq(coverLetters.userId, userId));
-      return results.map(result => ({
-        ...result,
-        metadata: result.metadata as CoverLetter['metadata']
-      }));
-    } catch (error) {
-      console.error('Error getting cover letters by user:', error);
-      throw new Error('Failed to get cover letters');
-    }
-  }
-
-  async deleteCoverLetter(id: number): Promise<void> {
-    try {
-      await db.delete(coverLetters).where(eq(coverLetters.id, id));
-    } catch (error) {
-      console.error('Error deleting cover letter:', error);
-      throw new Error('Failed to delete cover letter');
-    }
-  }
-
-  async getCoverLettersByOptimizedResumeId(optimizedResumeId: number): Promise<CoverLetter[]> {
-    try {
-      const results = await db
-        .select()
-        .from(coverLetters)
-        .where(eq(coverLetters.optimizedResumeId, optimizedResumeId));
-
-      return results.map(result => ({
-        ...result,
-        metadata: result.metadata as CoverLetter['metadata']
-      }));
-    } catch (error) {
-      console.error('Error getting cover letters by optimized resume ID:', error);
-      throw new Error('Failed to get cover letters by optimized resume ID');
-    }
-  }
-
-  // Cover Letter methods with update functionality
-  async updateCoverLetter(id: number, data: Partial<CoverLetter>): Promise<CoverLetter> {
-    try {
-      const [coverLetter] = await db
-        .update(coverLetters)
-        .set({
-          ...data,
-          updatedAt: await getCurrentESTTimestamp()
-        })
-        .where(eq(coverLetters.id, id))
-        .returning();
-
-      return {
-        ...coverLetter,
-        metadata: coverLetter.metadata as CoverLetter['metadata']
-      };
-    } catch (error) {
-      console.error('Error updating cover letter:', error);
-      throw new Error('Failed to update cover letter');
     }
   }
 
