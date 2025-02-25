@@ -167,7 +167,7 @@ const coverLetterSteps = [
   }
 ];
 
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/hooks/use-auth';
 import { OptimizedResume } from '@shared/schema';
 
 type ProgressStep = {
