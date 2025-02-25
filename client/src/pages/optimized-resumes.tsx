@@ -12,7 +12,7 @@ import {
   CheckCircleIcon,
   ArrowUpCircleIcon,
   ArrowUpIcon,
-  InformationCircleIcon,
+  Info,
   AlertTriangle,
   MinusCircleIcon,
   LightBulbIcon,
@@ -311,7 +311,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         ))}
                         {(!resume.metrics?.improvements || resume.metrics.improvements.length === 0) && (
                           <li className="text-sm text-muted-foreground flex gap-2 items-center">
-                            <InformationCircleIcon className="h-4 w-4" />
+                            <Info className="h-4 w-4" />
                             <span>No improvements identified yet</span>
                           </li>
                         )}
