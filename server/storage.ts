@@ -196,7 +196,16 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo
+        contactInfo,
+        resumeMatchScores: {
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          overall: 0
+        }
       };
     } catch (error) {
       console.error('Error getting optimized resume:', error);
@@ -286,6 +295,15 @@ export class DatabaseStorage implements IStorage {
           fullName: '',
           email: '',
           phone: '',
+        },
+        resumeMatchScores: {
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          overall: 0
         }
       }));
     } catch (error) {
@@ -325,13 +343,20 @@ export class DatabaseStorage implements IStorage {
           metadata: result.metadata as OptimizedResume['metadata'],
           jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
           metrics: result.metrics as OptimizedResume['metrics'],
-          contactInfo
+          contactInfo,
+          resumeMatchScores: {
+            keywords: 0,
+            skills: 0,
+            experience: 0,
+            education: 0,
+            personalization: 0,
+            aiReadiness: 0,
+            overall: 0
+          }
         };
       });
 
-      return transformedResults.sort((a, b) =>
-        (b.metadata.version || 0) - (a.metadata.version || 0)
-      );
+      return transformedResults;
     } catch (error) {
       console.error('Error getting optimized resumes by job description:', error);
       return [];
@@ -343,10 +368,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [resume] = await db
         .update(optimizedResumes)
-        .set({
-          ...data,
-          updatedAt: await getCurrentESTTimestamp()
-        })
+        .set(data)
         .where(eq(optimizedResumes.id, id))
         .returning();
 
@@ -355,7 +377,16 @@ export class DatabaseStorage implements IStorage {
         metadata: resume.metadata as OptimizedResume['metadata'],
         jobDetails: resume.jobDetails as OptimizedResume['jobDetails'],
         metrics: resume.metrics as OptimizedResume['metrics'],
-        resumeMatchScores: resume.resumeMatchScores as OptimizedResume['resumeMatchScores']
+        contactInfo: resume.contactInfo as OptimizedResume['contactInfo'],
+        resumeMatchScores: {
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          overall: 0
+        }
       };
     } catch (error) {
       console.error('Error updating optimized resume:', error);
