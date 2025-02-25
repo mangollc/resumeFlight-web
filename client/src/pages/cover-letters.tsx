@@ -58,7 +58,9 @@ export default function CoverLettersPage() {
       const response = await fetch('/api/cover-letters');
       if (!response.ok) throw new Error('Failed to fetch cover letters');
       return response.json();
-    }
+    },
+    staleTime: 30000, // 30 seconds
+    cacheTime: 60000 // 1 minute
   });
 
   // Form setup for generating new cover letter

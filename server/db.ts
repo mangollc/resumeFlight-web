@@ -17,16 +17,15 @@ const MAX_32_BIT = Math.pow(2, 31) - 1;
 const TIMEOUT_30_SEC = 30000;
 const TIMEOUT_5_MIN = 300000;
 
-// Initialize connection pool with safe timeout values and no caching
+// Initialize connection pool with safe timeout values
 const DEFAULT_POOL_CONFIG = {
   max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  statement_timeout: 20000,
-  query_timeout: 20000,
+  idleTimeoutMillis: 15000,
+  connectionTimeoutMillis: 5000,
+  statement_timeout: 10000,
+  query_timeout: 10000,
   allowExitOnIdle: true,
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 5000
+  keepAlive: false
 };
 
 export const pool = new Pool({

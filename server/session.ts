@@ -4,10 +4,9 @@ import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
-// Constants
-const MAX_32_BIT = Math.pow(2, 31) - 1;
-const SAFE_ONE_DAY = Math.min(86400000, MAX_32_BIT);
-const SESSION_TIMEOUT = Math.min(3600000, MAX_32_BIT); // 1 hour in milliseconds
+// Constants - use reasonable timeout values
+const SESSION_TIMEOUT = 3600000; // 1 hour
+const SAFE_ONE_DAY = 86400000; // 24 hours
 
 // Create session store with enhanced error handling
 export const sessionStore = new PostgresSessionStore({
