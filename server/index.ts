@@ -17,8 +17,8 @@ const SAFE_TIMEOUT = 30000;
 const server = app.listen(5000, '0.0.0.0', () => {
     log('Server successfully started on port 5000');
 });
-server.setTimeout(Math.min(120000, MAX_TIMEOUT));
-server.keepAliveTimeout = Math.min(60000, MAX_TIMEOUT);
+server.setTimeout(Math.min(120000, SAFE_TIMEOUT));
+server.keepAliveTimeout = Math.min(60000, SAFE_TIMEOUT);
 
 // Request logging middleware
 app.use((req, res, next) => {
