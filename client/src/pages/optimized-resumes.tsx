@@ -284,6 +284,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{match}</span>
                           </li>
                         ))}
+                        {(!resume.analysis?.matches || resume.analysis.matches.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No strengths identified yet</li>
+                        )}
                       </ul>
                     </div>
                     <div>
@@ -295,6 +298,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{improvement}</span>
                           </li>
                         ))}
+                        {(!resume.analysis?.improvements || resume.analysis.improvements.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No improvements identified yet</li>
+                        )}
                       </ul>
                     </div>
                     <div>
@@ -306,6 +312,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{gap}</span>
                           </li>
                         ))}
+                        {(!resume.analysis?.gaps || resume.analysis.gaps.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No gaps identified yet</li>
+                        )}
                       </ul>
                     </div>
                     <div>
@@ -317,6 +326,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                             <span>{suggestion}</span>
                           </li>
                         ))}
+                        {(!resume.analysis?.suggestions || resume.analysis.suggestions.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No suggestions available yet</li>
+                        )}
                       </ul>
                     </div>
                   </div>

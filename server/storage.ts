@@ -184,27 +184,17 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
       if (!result) return undefined;
 
-      const jobDetails = result.jobDetails as any;
-      const contactInfo = jobDetails?.contactInfo || {
-        fullName: '',
-        email: '',
-        phone: '',
-      };
-
       return {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo,
-        resumeMatchScores: {
-          keywords: 0,
-          skills: 0,
-          experience: 0,
-          education: 0,
-          personalization: 0,
-          aiReadiness: 0,
-          overall: 0
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
+        analysis: {
+          matches: [],
+          improvements: [],
+          gaps: [],
+          suggestions: []
         }
       };
     } catch (error) {
@@ -291,19 +281,12 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: (result.jobDetails as any)?.contactInfo || {
-          fullName: '',
-          email: '',
-          phone: '',
-        },
-        resumeMatchScores: {
-          keywords: 0,
-          skills: 0,
-          experience: 0,
-          education: 0,
-          personalization: 0,
-          aiReadiness: 0,
-          overall: 0
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
+        analysis: {
+          matches: [],
+          improvements: [],
+          gaps: [],
+          suggestions: []
         }
       }));
     } catch (error) {

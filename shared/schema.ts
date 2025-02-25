@@ -220,7 +220,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
   metadata: {
     filename: string;
     optimizedAt: string;
-    version: string; // This should be a string formatted as "X.Y" where X is integer and Y is 0-9
+    version: string;
   };
   contactInfo: {
     fullName: string;
@@ -255,23 +255,28 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       keywords: number;
       skills: number;
       experience: number;
+      education: number;
+      personalization: number;
+      aiReadiness: number;
+      confidence: number;
     };
     after: {
       overall: number;
       keywords: number;
       skills: number;
       experience: number;
+      education: number;
+      personalization: number;
+      aiReadiness: number;
+      confidence: number;
     };
   };
-  resumeMatchScores: {
-    keywords: number;
-    skills: number;
-    experience: number;
-    education: number;
-    personalization: number;
-    aiReadiness: number;
-    overall: number;
-  },
+  analysis: {
+    matches: string[];
+    improvements: string[];
+    gaps: string[];
+    suggestions: string[];
+  };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;
 
