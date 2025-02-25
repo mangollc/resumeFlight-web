@@ -336,73 +336,68 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         </div>
                       )}
                     </div>
-                    {resume.metrics.after.gaps?.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Gaps</h4>
-                        <ul className="space-y-2">
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span className="font-medium text-sm">Gaps</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics.after.gaps?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'gaps' && (
+                        <div className="px-4 pb-3 space-y-2">
                           {resume.metrics.after.gaps?.map((gap, idx) => (
-                            <li key={idx} className="text-sm text-red-600 flex gap-2">
-                              <span>•</span>
+                            <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
+                              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{gap}</span>
-                            </li>
+                            </div>
                           ))}
-                        </ul>
-                      </div>
-                    )}
-                    {resume.metrics.after.suggestions?.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Suggestions</h4>
-                        <ul className="space-y-2">
+                          {(!resume.metrics.after.gaps || resume.metrics.after.gaps.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No gaps identified</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'suggestions' ? '' : 'suggestions')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Lightbulb className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium text-sm">Suggestions</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics.after.suggestions?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'suggestions' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'suggestions' && (
+                        <div className="px-4 pb-3 space-y-2">
                           {resume.metrics.after.suggestions?.map((suggestion, idx) => (
-                            <li key={idx} className="text-sm text-blue-600 flex gap-2">
-                              <span>•</span>
+                            <div key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
+                              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{suggestion}</span>
-                            </li>
+                            </div>
                           ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Strengths</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.analysis?.strengths?.map((strength, idx) => (
-                          <li key={idx} className="text-sm text-emerald-600 flex gap-2">
-                            <span>•</span>
-                            <span>{strength}</span>
-                          </li>
-                        ))}
-                        {(!resume.metrics.after.analysis?.strengths || resume.metrics.after.analysis.strengths.length === 0) && (
-                          <li className="text-sm text-muted-foreground">No strengths identified yet</li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Gaps</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
-                          <li key={idx} className="text-sm text-red-600 flex gap-2">
-                            <span>•</span>
-                            <span>{gap}</span>
-                          </li>
-                        ))}
-                        {(!resume.metrics.after.analysis?.gaps || resume.metrics.after.analysis.gaps.length === 0) && (
-                          <li className="text-sm text-muted-foreground">No gaps identified yet</li>
-                        )}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Suggestions</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics.after.analysis?.suggestions?.map((suggestion, idx) => (
-                          <li key={idx} className="text-sm text-blue-600 flex gap-2">
-                            <span>•</span>
-                            <span>{suggestion}</span>
-                          </li>
-                        ))}
-                        {(!resume.metrics.after.analysis?.suggestions || resume.metrics.after.analysis.suggestions.length === 0) && (
-                          <li className="text-sm text-muted-foreground">No suggestions available yet</li>
-                        )}
-                      </ul>
+                          {(!resume.metrics.after.suggestions || resume.metrics.after.suggestions.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No suggestions available</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
