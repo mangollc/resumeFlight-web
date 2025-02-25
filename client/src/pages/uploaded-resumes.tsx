@@ -38,6 +38,13 @@ export default function UploadedResumesPage() {
   const { data: resumes, isLoading, isError, error } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
     retry: 2,
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to load resumes",
+        variant: "destructive"
+      });
+    }
   });
 
   const deleteMutation = useMutation({

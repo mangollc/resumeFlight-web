@@ -1,90 +1,59 @@
-import { Card, CardContent } from "@/components/ui/card";
-import Preview from "@/components/resume/preview";
-import CoverLetter from "@/components/resume/cover-letter";
-import { OptimizedResume, CoverLetter as CoverLetterType } from "@shared/schema";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import React from 'react';
+import { OptimizedResume, CoverLetter } from '@shared/schema';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CoverLetter as CoverLetterComponent } from './CoverLetter';
+import Preview from './preview';
 
 interface ReviewSectionProps {
   optimizedResume: OptimizedResume;
-  coverLetter?: CoverLetterType;
-  versions: string[];
+  coverLetter?: CoverLetter;
+  onDownload: (id: number) => Promise<void>;
 }
 
-function ScoreCard({ label, before, after, tooltip }: { 
-  label: string;
-  before: number;
-  after: number;
-  tooltip: string;
-}) {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-  
+export function ReviewSection({ optimizedResume, coverLetter, onDownload }: ReviewSectionProps) {
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border">
-      <div className="flex justify-between items-center mb-2">
-        <h4 className="font-medium text-gray-700">{label}</h4>
-        <div className="text-sm text-gray-500 cursor-help" title={tooltip}>ⓘ</div>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className={`text-lg ${getScoreColor(before)}`}>{before}%</span>
-        <span className="text-gray-400">→</span>
-        <span className={`text-lg ${getScoreColor(after)}`}>{after}%</span>
-      </div>
-    </div>
-  );
-}
-
-export function ReviewSection({ optimizedResume, coverLetter, versions }: ReviewSectionProps) {
-  return (
-    <div className="space-y-8">
-      {/* Step 3: Optimized Resume with Versions */}
-      <div>
-        <h3 className="text-xl font-semibold mb-4">Step 3: Optimized Resume</h3>
-        <Card>
-          <CardContent className="p-6">
-            <Select defaultValue={versions[0]}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select version" />
-              </SelectTrigger>
-              <SelectContent>
-                {versions.map((version) => (
-                  <SelectItem key={version} value={version}>
-                    Version {version}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="mt-4">
-              <Preview resume={optimizedResume} />
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Review Optimized Documents</h2>
+        <Button onClick={() => onDownload(optimizedResume.id)} variant="outline">
+          <Download className="mr-2 h-4 w-4" />
+          Download Package
+        </Button>
       </div>
 
-      {/* Step 4: Cover Letter with Versions */}
-      {coverLetter && (
-        <div>
-          <h3 className="text-xl font-semibold mb-4">Step 4: Cover Letter</h3>
+      <Tabs defaultValue="resume" className="w-full">
+        <TabsList>
+          <TabsTrigger value="resume">Resume</TabsTrigger>
+          <TabsTrigger value="cover-letter" disabled={!coverLetter}>
+            Cover Letter
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resume">
           <Card>
             <CardContent className="p-6">
-              <CoverLetter
-                resume={optimizedResume}
-                generatedCoverLetter={coverLetter}
-                readOnly={true}
-              />
+              <Preview resume={optimizedResume} />
             </CardContent>
           </Card>
-        </div>
-      )}
+        </TabsContent>
+
+        <TabsContent value="cover-letter">
+          {coverLetter && (
+            <Card>
+              <CardContent className="p-6">
+                <CoverLetterComponent
+                  resume={optimizedResume}
+                  generatedCoverLetter={coverLetter}
+                  readOnly
+                />
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

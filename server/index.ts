@@ -7,41 +7,38 @@ import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Basic middleware setup
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Safe timeout values (2 minutes)
+const SAFE_TIMEOUT = Math.min(120000, Math.pow(2, 31) - 1);
+const server = app.listen(5000, '0.0.0.0', () => {
+    log('Server successfully started on port 5000');
+});
+
+// Set safe timeout values for server
+server.timeout = SAFE_TIMEOUT;
+server.keepAliveTimeout = Math.min(SAFE_TIMEOUT / 2, 60000);
+server.setTimeout(Math.min(120000, SAFE_TIMEOUT));
+server.keepAliveTimeout = Math.min(60000, SAFE_TIMEOUT);
 
 // Request logging middleware
 app.use((req, res, next) => {
     const start = Date.now();
     const path = req.path;
-    let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-    const originalResJson = res.json;
-    res.json = function (bodyJson, ...args) {
-        capturedJsonResponse = bodyJson;
-        return originalResJson.apply(res, [bodyJson, ...args]);
-    };
 
     res.on("finish", () => {
         const duration = Date.now() - start;
         if (path.startsWith("/api")) {
-            let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-            if (capturedJsonResponse) {
-                logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-            }
-
-            if (logLine.length > 80) {
-                logLine = logLine.slice(0, 79) + "…";
-            }
-
-            log(logLine);
+            log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
         }
     });
-
     next();
 });
 
-// Add health check endpoint
+// Health check endpoint
 app.get("/health", async (_req, res) => {
     try {
         const dbConnected = await checkDatabaseConnection();
@@ -67,15 +64,8 @@ app.get("/health", async (_req, res) => {
     }
 });
 
-log("Initializing server...");
-
-// Create HTTP server
-const server = registerRoutes(app);
-
-// Set appropriate timeout values for long-running operations
-server.timeout = 300000; // 5 minutes for long-running operations
-server.keepAliveTimeout = 61000; // Slightly higher than 60 seconds
-server.headersTimeout = 62000; // Slightly higher than keepAliveTimeout
+// Register routes
+registerRoutes(app);
 
 // Enhanced error handling middleware
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -107,35 +97,13 @@ if (process.env.NODE_ENV === "development") {
     serveStatic(app);
 }
 
-// Get port from environment variable or use default
-const port = Number(process.env.PORT) || 5000;
+// Simple graceful shutdown
+process.on('SIGTERM', () => {
+    log('Received SIGTERM. Shutting down...');
+    server.close(() => process.exit(0));
+});
 
-// Enhanced graceful shutdown
-const gracefulShutdown = (signal: string) => {
-    log(`Received ${signal} signal. Shutting down gracefully...`);
-    server.close(() => {
-        log('Server closed');
-        process.exit(0);
-    });
-
-    // Force shutdown after 30 seconds
-    setTimeout(() => {
-        log('Could not close connections in time, forcefully shutting down');
-        process.exit(1);
-    }, 30000);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Start server with enhanced error logging
-log(`Attempting to start server on port ${port}...`);
-server.listen(port, "0.0.0.0", () => {
-    log(`Server successfully started on port ${port}`);
-}).on('error', (err: NodeJS.ErrnoException) => {
-    console.error('Failed to start server:', err);
-    if (err.code === 'EADDRINUSE') {
-        log(`Critical error: Port ${port} is already in use. Please ensure no other instance is running.`);
-    }
-    process.exit(1);
+process.on('SIGINT', () => {
+    log('Received SIGINT. Shutting down...');
+    server.close(() => process.exit(0));
 });

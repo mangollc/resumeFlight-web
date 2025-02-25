@@ -5,15 +5,18 @@ import { pool } from "./db";
 const PostgresSessionStore = connectPg(session);
 
 // Constants
-const ONE_HOUR = 3600000;
-const ONE_DAY = ONE_HOUR * 24;
+const MAX_32_BIT = Math.pow(2, 31) - 1;
+const SAFE_ONE_DAY = Math.min(86400000, MAX_32_BIT);
+const SESSION_TIMEOUT = Math.min(3600000, MAX_32_BIT); // 1 hour in milliseconds
 
 // Create session store with enhanced error handling
 export const sessionStore = new PostgresSessionStore({
   pool,
   tableName: 'session',
   createTableIfMissing: true,
-  pruneSessionInterval: ONE_HOUR, // Prune expired sessions every hour
+  pruneSessionInterval: SAFE_ONE_DAY,
+  ttl: SESSION_TIMEOUT,
+  disableTouch: false,
   errorLog: (err: Error) => {
     console.error('[Session Store Error]:', err);
   }
@@ -37,9 +40,10 @@ export const sessionConfig = session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: ONE_DAY
+    maxAge: SAFE_ONE_DAY
   },
-  name: 'sid' // Change session cookie name from default 'connect.sid'
+  name: 'sid',
+  rolling: true
 });
 
 // Cleanup function

@@ -1,54 +1,68 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
+import pg from 'pg';
+const { Pool } = pg;
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import ws from 'ws';
+import * as schema from '@shared/schema';
 
 // Configure WebSocket for Neon database
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  throw new Error('DATABASE_URL must be set. Did you forget to provision a database?');
 }
 
-// Initialize connection pool with optimized configuration
-export const pool = new Pool({ 
+// Constants for timeouts (in milliseconds)
+const MAX_32_BIT = Math.pow(2, 31) - 1;
+const TIMEOUT_30_SEC = 30000;
+const TIMEOUT_5_MIN = 300000;
+
+// Initialize connection pool with safe timeout values and no caching
+const DEFAULT_POOL_CONFIG = {
+  max: 10,
+  idleTimeoutMillis: Math.min(300000, MAX_32_BIT),
+  connectionTimeoutMillis: Math.min(30000, MAX_32_BIT),
+  statement_timeout: Math.min(30000, MAX_32_BIT),
+  query_timeout: Math.min(30000, MAX_32_BIT),
+  allowExitOnIdle: true,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
+};
+
+export const pool = new Pool({
+  ...DEFAULT_POOL_CONFIG,
   connectionString: process.env.DATABASE_URL,
-  max: 10, // Increased from 5 to handle more concurrent connections
-  idleTimeoutMillis: 120000, // Increased to 2 minutes to reduce connection churn
-  connectionTimeoutMillis: 10000, // Increased timeout for better reliability
+  max: 10,
+  idleTimeoutMillis: Math.min(300000, MAX_32_BIT),
+  connectionTimeoutMillis: Math.min(30000, MAX_32_BIT),
+  statement_timeout: Math.min(30000, MAX_32_BIT),
+  query_timeout: Math.min(30000, MAX_32_BIT),
+  allowExitOnIdle: true
 });
 
 // Initialize Drizzle with the pool
 export const db = drizzle(pool, { schema });
 
-// Connection counter to avoid duplicate logs
 let connectionCount = 0;
 
-// Set timezone to EST for all connections
-pool.on('connect', (client) => {
+pool.on('connect', async (client) => {
   connectionCount++;
   console.log(`Database connection ${connectionCount} established`);
-  client.query("SET timezone='America/New_York';").catch(err => {
+  try {
+    await pool.query("SET timezone = 'America/New_York'");
+  } catch (err) {
     console.error('Error setting timezone:', err);
-  });
+  }
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  // Attempt to reconnect on error
-  setTimeout(() => {
-    console.log('Attempting to reconnect...');
-    checkDatabaseConnection();
-  }, 5000);
+  console.error('Unexpected pool error:', err);
 });
 
-// Enhanced connection health check
 export const checkDatabaseConnection = async () => {
   try {
-    const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
-    console.log('Database connection verified:', result.rows[0].now);
+    const result = await pool.query('SELECT NOW() as now');
+    console.log('Database connection verified:', result.rows[0].now); //Added logging for better debugging
     return true;
   } catch (error) {
     console.error('Database connection check failed:', error);
@@ -56,10 +70,10 @@ export const checkDatabaseConnection = async () => {
   }
 };
 
-// Helper function to get current EST timestamp
+// Get current timestamp in EST
 export const getCurrentESTTimestamp = async () => {
   try {
-    const result = await pool.query('SELECT NOW() AT TIME ZONE \'America/New_York\' as now');
+    const result = await pool.query("SELECT NOW() AT TIME ZONE 'America/New_York' as now");
     return result.rows[0].now;
   } catch (error) {
     console.error('Error getting current timestamp:', error);
@@ -67,29 +81,13 @@ export const getCurrentESTTimestamp = async () => {
   }
 };
 
-// Cleanup on process termination
-process.on('SIGTERM', async () => {
-  console.log('Shutting down database pool...');
-  try {
-    await pool.end();
-    console.log('Database pool shut down successfully');
-  } catch (error) {
-    console.error('Error shutting down database pool:', error);
-  }
-});
+// Cleanup function for graceful shutdown
+const cleanup = () => {
+  pool.end().catch(err => {
+    console.error('Error during pool shutdown:', err);
+  });
+};
 
-// Keepalive check with improved error handling and reduced frequency
-let lastKeepAliveSuccess = Date.now();
-setInterval(async () => {
-  try {
-    await pool.query('SELECT 1');
-    lastKeepAliveSuccess = Date.now();
-  } catch (error) {
-    console.warn('Error during connection keepalive check:', error);
-    // If we haven't had a successful keepalive in 5 minutes, attempt to recreate the pool
-    if (Date.now() - lastKeepAliveSuccess > 300000) {
-      console.error('Connection appears to be dead, attempting to reconnect...');
-      await checkDatabaseConnection();
-    }
-  }
-}, 180000); // Reduced to every 3 minutes instead of 1 minute
+process.on('exit', cleanup);
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
