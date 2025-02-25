@@ -173,6 +173,8 @@ type ProgressStep = {
   score?: number;
 };
 
+import { OptimizedResume, CoverLetter } from '@shared/schema';
+
 const INITIAL_STEPS: ProgressStep[] = [
   { id: "analyze", label: "Analyzing Resume", status: "pending" },
   { id: "keywords", label: "Matching Keywords", status: "pending" },
