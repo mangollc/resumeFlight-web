@@ -237,42 +237,38 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 <div>
                   <h3 className="text-lg font-medium mb-4">Resume Metrics</h3>
                   <div className="space-y-4">
-                    {resume.metrics?.after && (
-                      <>
-                        <MetricRow 
-                          label="Overall Score"
-                          score={resume.metrics.after.overall || 0}
-                        />
-                        <MetricRow 
-                          label="Skills Match"
-                          score={resume.metrics.after.skills || 0}
-                        />
-                        <MetricRow 
-                          label="Keyword Match"
-                          score={resume.metrics.after.keywords || 0}
-                        />
-                        <MetricRow 
-                          label="Education Match"
-                          score={resume.metrics.after.education || 0}
-                        />
-                        <MetricRow 
-                          label="Experience Match"
-                          score={resume.metrics.after.experience || 0}
-                        />
-                        <MetricRow 
-                          label="AI Readiness"
-                          score={resume.metrics.after.aiReadiness || 0}
-                        />
-                        <MetricRow 
-                          label="Personalization"
-                          score={resume.metrics.after.personalization || 0}
-                        />
-                        <MetricRow 
-                          label="Confidence Score"
-                          score={resume.metrics.after.confidence || 0}
-                        />
-                      </>
-                    )}
+                    <MetricRow 
+                      label="Overall Score"
+                      score={resume.metrics.after.overall}
+                    />
+                    <MetricRow 
+                      label="Skills"
+                      score={resume.metrics.after.skills}
+                    />
+                    <MetricRow 
+                      label="Keywords"
+                      score={resume.metrics.after.keywords}
+                    />
+                    <MetricRow 
+                      label="Education"
+                      score={resume.metrics.after.education}
+                    />
+                    <MetricRow 
+                      label="Experience"
+                      score={resume.metrics.after.experience}
+                    />
+                    <MetricRow 
+                      label="AI Readiness"
+                      score={resume.metrics.after.aiReadiness}
+                    />
+                    <MetricRow 
+                      label="Personalization"
+                      score={resume.metrics.after.personalization}
+                    />
+                    <MetricRow 
+                      label="Confidence"
+                      score={resume.metrics.after.confidence}
+                    />
                   </div>
                 </div>
                 <div>
@@ -281,27 +277,41 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Strengths</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.analysis?.strengths?.map((strength, idx) => (
+                        {resume.metrics.after.strengths?.map((strength, idx) => (
                           <li key={idx} className="text-sm text-emerald-600 flex gap-2">
                             <span>•</span>
                             <span>{strength}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.analysis?.strengths || resume.metrics.after.analysis.strengths.length === 0) && (
+                        {(!resume.metrics.after.strengths || resume.metrics.after.strengths.length === 0) && (
                           <li className="text-sm text-muted-foreground">No strengths identified yet</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Improvements</h4>
+                      <ul className="space-y-2">
+                        {resume.metrics.after.improvements?.map((improvement, idx) => (
+                          <li key={idx} className="text-sm text-amber-600 flex gap-2">
+                            <span>•</span>
+                            <span>{improvement}</span>
+                          </li>
+                        ))}
+                        {(!resume.metrics.after.improvements || resume.metrics.after.improvements.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No improvements identified yet</li>
                         )}
                       </ul>
                     </div>
                     <div>
                       <h4 className="font-medium text-sm mb-2">Gaps</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
+                        {resume.metrics.after.gaps?.map((gap, idx) => (
                           <li key={idx} className="text-sm text-red-600 flex gap-2">
                             <span>•</span>
                             <span>{gap}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.analysis?.gaps || resume.metrics.after.analysis.gaps.length === 0) && (
+                        {(!resume.metrics.after.gaps || resume.metrics.after.gaps.length === 0) && (
                           <li className="text-sm text-muted-foreground">No gaps identified yet</li>
                         )}
                       </ul>
@@ -309,13 +319,13 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <div>
                       <h4 className="font-medium text-sm mb-2">Suggestions</h4>
                       <ul className="space-y-2">
-                        {resume.metrics.after.analysis?.suggestions?.map((suggestion, idx) => (
+                        {resume.metrics.after.suggestions?.map((suggestion, idx) => (
                           <li key={idx} className="text-sm text-blue-600 flex gap-2">
                             <span>•</span>
                             <span>{suggestion}</span>
                           </li>
                         ))}
-                        {(!resume.metrics.after.analysis?.suggestions || resume.metrics.after.analysis.suggestions.length === 0) && (
+                        {(!resume.metrics.after.suggestions || resume.metrics.after.suggestions.length === 0) && (
                           <li className="text-sm text-muted-foreground">No suggestions available yet</li>
                         )}
                       </ul>
@@ -332,8 +342,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 }
 
 export default function OptimizedResumesPage() {
-  const { toast } = useToast();
-  const { data: resumes, isLoading, error } = useQuery<OptimizedResume[]>({
+  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
