@@ -279,22 +279,21 @@ export class DatabaseStorage implements IStorage {
   async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
     try {
       const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
+
       return results.map(result => {
         const metrics = result.metrics as OptimizedResume['metrics'];
-        const analysis = {
-          matches: metrics.after.strengths || [],
-          improvements: metrics.after.improvements || [],
-          gaps: metrics.after.gaps || [],
-          suggestions: metrics.after.suggestions || []
-        };
-
         return {
           ...result,
           metadata: result.metadata as OptimizedResume['metadata'],
           jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-          metrics: metrics,
+          metrics,
           contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-          analysis
+          analysis: {
+            matches: metrics.after.strengths || [],
+            improvements: metrics.after.improvements || [],
+            gaps: metrics.after.gaps || [],
+            suggestions: metrics.after.suggestions || []
+          }
         };
       });
     } catch (error) {
