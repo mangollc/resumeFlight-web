@@ -43,7 +43,6 @@ process.env.NODE_NO_WARNINGS = '1';
 export const db = drizzle(pool, { schema });
 
 let connectionCount = 0;
-const MAX_32_BIT_INT = 2147483647;
 
 // Validate timeout value
 const validateTimeout = (timeout: number) => Math.min(Math.max(0, timeout), MAX_32_BIT_INT);
