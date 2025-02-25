@@ -10,14 +10,21 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Set reasonable timeout values
+// Safe timeout configuration
+const MAX_32_BIT_INT = 2147483647;
+const DEFAULT_TIMEOUT = Math.min(5 * 60 * 1000, MAX_32_BIT_INT); // 5 minutes or max safe value
+const KEEP_ALIVE_TIMEOUT = Math.min(65 * 1000, MAX_32_BIT_INT); // 65 seconds
+const HEADERS_TIMEOUT = Math.min(66 * 1000, MAX_32_BIT_INT); // 66 seconds
+
+// Create server with safe timeout values
 const server = app.listen(5000, '0.0.0.0', () => {
   console.log('Server successfully started on port 5000');
 });
 
-server.timeout = 30000; // 30 seconds
-server.keepAliveTimeout = 65000; // 65 seconds
-server.headersTimeout = 66000; // 66 seconds
+// Set safe timeout values
+server.timeout = DEFAULT_TIMEOUT;
+server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT;
+server.headersTimeout = HEADERS_TIMEOUT;
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -50,7 +57,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Add health check endpoint
+// Health check endpoint
 app.get("/health", async (_req, res) => {
     try {
         const dbConnected = await checkDatabaseConnection();
@@ -75,22 +82,6 @@ app.get("/health", async (_req, res) => {
         });
     }
 });
-
-log("Initializing server...");
-
-// Set appropriate timeout values (all within 32-bit integer limit)
-const MAX_32_BIT_INT = 2147483647;
-const TIMEOUT_5_MINUTES = Math.min(5 * 60 * 1000, MAX_32_BIT_INT); // 300,000 ms
-const TIMEOUT_1_MINUTE = Math.min(60 * 1000, MAX_32_BIT_INT); // 60,000 ms
-
-// General request timeout
-server.timeout = TIMEOUT_5_MINUTES;
-
-// Keep-alive timeout (slightly above 60 seconds to handle proxies)
-server.keepAliveTimeout = Math.min(TIMEOUT_1_MINUTE + 1000, MAX_32_BIT_INT);
-
-// Headers timeout (slightly above keep-alive timeout)
-server.headersTimeout = Math.min(TIMEOUT_1_MINUTE + 2000, MAX_32_BIT_INT);
 
 // Register routes
 registerRoutes(app);
@@ -125,10 +116,7 @@ if (process.env.NODE_ENV === "development") {
     serveStatic(app);
 }
 
-// Get port from environment variable or use default
-const port = Number(process.env.PORT) || 5000;
-
-// Enhanced graceful shutdown with reasonable timeout
+// Enhanced graceful shutdown with safe timeout
 const gracefulShutdown = (signal: string) => {
     log(`Received ${signal} signal. Shutting down gracefully...`);
     server.close(() => {
@@ -140,20 +128,11 @@ const gracefulShutdown = (signal: string) => {
     setTimeout(() => {
         log('Could not close connections in time, forcefully shutting down');
         process.exit(1);
-    }, 30000);
+    }, Math.min(30 * 1000, MAX_32_BIT_INT));
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Start server with enhanced error logging
-log(`Attempting to start server on port ${port}...`);
-server.listen(port, "0.0.0.0", () => {
-    log(`Server successfully started on port ${port}`);
-}).on('error', (err: NodeJS.ErrnoException) => {
-    console.error('Failed to start server:', err);
-    if (err.code === 'EADDRINUSE') {
-        log(`Critical error: Port ${port} is already in use. Please ensure no other instance is running.`);
-    }
-    process.exit(1);
-});
+// Log server startup
+log(`Server starting on port 5000...`);
