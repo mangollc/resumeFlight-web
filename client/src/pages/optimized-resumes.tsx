@@ -13,7 +13,7 @@ import {
   ArrowUpCircleIcon,
   ArrowUpIcon,
   InformationCircleIcon,
-  ExclamationTriangleIcon,
+  AlertTriangle,
   MinusCircleIcon,
   LightBulbIcon,
   SparklesIcon,
@@ -320,7 +320,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     {resume.metrics.after.gaps?.length > 0 && (
                       <div className="bg-red-50 rounded-lg p-4">
                         <div className="flex items-center gap-2 mb-3">
-                          <ExclamationTriangleIcon className="h-4 w-4 text-red-600" />
+                          <AlertTriangle className="h-4 w-4 text-red-600" />
                           <h4 className="font-medium text-sm">Gaps</h4>
                         </div>
                         <ul className="space-y-2">
