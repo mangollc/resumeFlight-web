@@ -241,37 +241,38 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       <>
                         <MetricRow 
                           label="Overall Score"
-                          score={resume.metrics.after.overall || 0}
+                          score={resume.metrics.after.strengths?.overall || 0}
                         />
                         <MetricRow 
-                          label="Skills"
-                          score={resume.metrics.after.skills || 0}
+                          label="Skills Match"
+                          score={resume.metrics.after.strengths?.skills || 0}
                         />
                         <MetricRow 
-                          label="Keywords"
-                          score={resume.metrics.after.keywords || 0}
+                          label="Keyword Match"
+                          score={resume.metrics.after.strengths?.keywords || 0}
                         />
                         <MetricRow 
-                          label="Education"
-                          score={resume.metrics.after.education || 0}
+                          label="Education Match"
+                          score={resume.metrics.after.strengths?.education || 0}
                         />
                         <MetricRow 
-                          label="Experience"
-                          score={resume.metrics.after.experience || 0}
+                          label="Experience Match"
+                          score={resume.metrics.after.strengths?.experience || 0}
                         />
                         <MetricRow 
                           label="AI Readiness"
-                          score={resume.metrics.after.aiReadiness || 0}
+                          score={resume.metrics.after.strengths?.aiReadiness || 0}
                         />
                         <MetricRow 
                           label="Personalization"
-                          score={resume.metrics.after.personalization || 0}
+                          score={resume.metrics.after.strengths?.personalization || 0}
+                        />
+                        <MetricRow 
+                          label="Confidence Score"
+                          score={resume.metrics.after.strengths?.confidence || 0}
                         />
                       </>
                     )}
-                    <MetricRow 
-                      label="Confidence"
-                      score={resume.metrics.after.confidence}
                     />
                   </div>
                 </div>
