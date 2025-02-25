@@ -18,13 +18,16 @@ const TIMEOUT_30_SEC = 30000;
 const TIMEOUT_5_MIN = 300000;
 
 // Initialize connection pool with safe timeout values
+// Maximum safe timeout value (about 24.8 days)
+const MAX_TIMEOUT = 2147483647;
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: 300000,
-  connectionTimeoutMillis: 30000,
-  statement_timeout: 30000,
-  query_timeout: 30000,
+  idleTimeoutMillis: Math.min(300000, MAX_TIMEOUT),
+  connectionTimeoutMillis: Math.min(30000, MAX_TIMEOUT),
+  statement_timeout: Math.min(30000, MAX_TIMEOUT),
+  query_timeout: Math.min(30000, MAX_TIMEOUT),
   allowExitOnIdle: true
 });
 

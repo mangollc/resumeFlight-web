@@ -1,4 +1,3 @@
-
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -6,9 +5,9 @@ import { pool } from "./db";
 const PostgresSessionStore = connectPg(session);
 
 // Constants
-const ONE_HOUR = 3600000; // 1 hour in milliseconds
 const MAX_32_BIT_INT = 2147483647;
-const SAFE_ONE_DAY = Math.min(ONE_HOUR * 24, MAX_32_BIT_INT);
+const SESSION_TIMEOUT = Math.min(3600000, MAX_32_BIT_INT); // 1 hour in milliseconds
+const SAFE_ONE_DAY = Math.min(24 * 3600000, MAX_32_BIT_INT);
 
 // Create session store with enhanced error handling
 export const sessionStore = new PostgresSessionStore({
