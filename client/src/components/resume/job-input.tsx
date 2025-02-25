@@ -187,8 +187,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           };
 
           evtSource.onerror = (error) => {
+            console.error('EventSource error:', error);
             evtSource.close();
-            reject(new Error("EventSource failed"));
+            if (error instanceof Error) {
+              reject(error);
+            } else {
+              reject(new Error("Failed to establish SSE connection with server"));
+            }
           };
         });
       } catch (error) {
