@@ -1,0 +1,66 @@
+[Match Analysis] Starting original analysis...
+[Match Analysis] Calculated original scores: {
+  keywords: 65,
+  skills: 70,
+  experience: 60,
+  education: 75,
+  personalization: 50,
+  aiReadiness: 80,
+  analysis: {
+    strengths: [
+      'Strong educational background with relevant degrees in Public Administration and Information Systems',
+      'Experience in project management and data analysis',
+      'Technical skills in data analytics and coding languages'
+    ],
+    gaps: [
+      'Lack of direct experience in product management or product marketing',
+      'Limited mention of healthcare technology interoperability',
+      'No specific experience with healthcare marketing technologies'
+    ],
+    suggestions: [
+      'Highlight any experience with product development or enhancements, even if not directly titled as product management',
+      'Emphasize any relevant experience with healthcare technologies or marketing',
+      'Consider tailoring the resume to include more specific examples of leadership in technical teams or projects'
+    ]
+  },
+  overall: 67,
+  confidence: 67
+}
+[Match Analysis] Starting optimized analysis...
+[Match Analysis] Calculated optimized scores: {
+  keywords: 100,
+  skills: 100,
+  experience: 90,
+  education: 90,
+  personalization: 95,
+  aiReadiness: 100,
+  analysis: {
+    strengths: [
+      'Strong alignment with project management and data analysis skills',
+      'Relevant experience in strategic planning and stakeholder management',
+      'Educational background in public administration and data science'
+    ],
+    gaps: [
+      'Limited direct experience in product management',
+      'No explicit mention of healthcare technology interoperability'
+    ],
+    suggestions: [
+      'Highlight any experience related to product management or product development',
+      'Emphasize any work involving healthcare technology or marketing technologies',
+      'Consider adding more specific examples of leadership in technical projects'
+    ]
+  },
+  overall: 96,
+  confidence: 96
+}
+[Optimize] Creating optimized resume record
+[Optimize] Successfully completed optimization
+10:20:19 PM [express] GET /api/resume/3/optimize 200 in 70698ms
+[Analyze] Starting analysis...
+[Analyze] Calculating match scores...
+[Analyze] Error: TypeError: storage.getResumeMatchScores is not a function
+    at <anonymous> (/home/runner/workspace/server/routes.ts:1468:71)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+10:21:08 PM [express] POST /api/optimized-resume/21/analyze 500 in 323ms :: {"error":"Failed to analy…
+Unexpected error on idle client error: terminating connection due to administrator command
+    at cn.parseErrorMessage (file:///home/run

@@ -6,7 +6,7 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = Math.min(5000, 2147483647)
+const TOAST_REMOVE_DELAY = 5000
 const MAX_ALLOWED_TIMEOUT = 2147483647 // Maximum 32-bit signed integer
 
 type ToasterToast = ToastProps & {
@@ -57,11 +57,10 @@ interface State {
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 function validateTimeout(delay: number): number {
-  const MAX_32_BIT_INT = Math.pow(2, 31) - 1;
-  if (!delay || delay <= 0) {
+  if (!delay || delay <= 0 || delay > MAX_ALLOWED_TIMEOUT) {
     return TOAST_REMOVE_DELAY;
   }
-  return Math.min(delay, MAX_32_BIT_INT, MAX_ALLOWED_TIMEOUT);
+  return Math.min(delay, MAX_ALLOWED_TIMEOUT);
 }
 
 const addToRemoveQueue = (toastId: string) => {

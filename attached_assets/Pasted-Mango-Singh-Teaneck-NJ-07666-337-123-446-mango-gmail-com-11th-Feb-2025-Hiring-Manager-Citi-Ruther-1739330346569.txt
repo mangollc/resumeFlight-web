@@ -1,0 +1,26 @@
+Mango Singh
+Teaneck, NJ 07666
+337.123.446
+mango@gmail.com
+
+11th Feb 2025
+
+Hiring Manager
+Citi
+Rutherford, NJ
+
+Dear Hiring Manager,
+
+I am writing to express my enthusiasm for the IT Product Owner position at Citi, as advertised. With over six years of experience in technical product management, particularly in global enterprise environments, I am excited about the opportunity to leverage my skills in agile methodologies, stakeholder management, and data-driven strategic decision-making to contribute to Citi's mission of delivering world-class technology solutions.
+
+In my current role at the Department of Veteran Affairs, I have successfully managed a cross-functional team to develop AI-powered data science products, aligning with Citi's focus on reducing technology complexity and optimizing management systems. My role involved initiating development processes, prioritizing tasks, conducting user acceptance testing, and managing product lifecycles—responsibilities directly parallel to the needs outlined in your job description. My experience in translating complex business needs into actionable technical strategies has enabled me to create impactful decision-support tools, akin to the innovative technologies at Citi.
+
+I have also demonstrated extensive skills in managing and leading global technical teams, as evidenced by my tenure at Mango Consulting LLC, where I led initiatives using advanced AI technologies, similar to Citi’s approach to driving product innovation and market competitiveness. My work involved scenario development and leveraging data analytics for strategic insights, which aligns perfectly with Citi's requirement for analytical and influencing skills.
+
+My dual master's degrees in Data Science and Public Administration, combined with my technical proficiency in tools such as Python, R, SQL, Power BI, and Tableau, equip me with the expertise required to manage complex technical projects at Citi effectively. Moreover, my certifications and continuous professional development in scaled agile methodologies demonstrate my commitment to maintaining high standards and adapting quickly to evolving environments.
+
+I am eager to bring my proven leadership and analytical skills to Citi, to innovate and streamline your technology solutions, and to contribute to creating secure, efficient, and enhanced customer experiences. Thank you for considering my application. I look forward to the possibility of discussing how I can contribute to your team.
+
+Sincerely,
+
+Manish Singh

@@ -6,7 +6,7 @@ import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
-import { CoverLetter } from "@/components/resume/CoverLetter";
+import CoverLetter from "@/components/resume/cover-letter";
 import ComparisonView from "@/components/resume/comparison-view";
 import { type UploadedResume, type OptimizedResume, type CoverLetter as CoverLetterType } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
@@ -344,7 +344,7 @@ export default function Dashboard() {
     try {
       setIsGeneratingCoverLetter(true);
       // Calculate next version by incrementing the highest existing version
-      const highestVersion = Math.max(...coverLetters.map(l =>
+      const highestVersion = Math.max(...coverLetters.map(l => 
         parseFloat(l.metadata.version)
       ), 0);
       const nextVersion = `${Math.floor(highestVersion)}.${(highestVersion % 1 * 10 + 1).toFixed(0)}`;
