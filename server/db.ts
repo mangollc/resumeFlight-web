@@ -20,24 +20,19 @@ const TIMEOUT_5_MIN = 300000;
 // Initialize connection pool with safe timeout values and no caching
 const DEFAULT_POOL_CONFIG = {
   max: 10,
-  idleTimeoutMillis: Math.min(300000, MAX_32_BIT),
-  connectionTimeoutMillis: Math.min(30000, MAX_32_BIT),
-  statement_timeout: Math.min(30000, MAX_32_BIT),
-  query_timeout: Math.min(30000, MAX_32_BIT),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  statement_timeout: 20000,
+  query_timeout: 20000,
   allowExitOnIdle: true,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000
+  keepAliveInitialDelayMillis: 5000
 };
 
 export const pool = new Pool({
   ...DEFAULT_POOL_CONFIG,
   connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: Math.min(300000, MAX_32_BIT),
-  connectionTimeoutMillis: Math.min(30000, MAX_32_BIT),
-  statement_timeout: Math.min(30000, MAX_32_BIT),
-  query_timeout: Math.min(30000, MAX_32_BIT),
-  allowExitOnIdle: true
+  max: 10
 });
 
 // Initialize Drizzle with the pool
