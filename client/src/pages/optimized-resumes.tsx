@@ -297,38 +297,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         </ul>
                       </div>
                     )}
-                    {resume.metrics.after.gaps?.length > 0 && (
-                      <div className="bg-red-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="h-4 w-4 text-red-600" />
-                          <h4 className="font-medium text-sm">Gaps</h4>
-                        </div>
-                        <ul className="space-y-2">
-                          {resume.metrics.after.gaps?.map((gap, idx) => (
-                            <li key={idx} className="text-sm text-red-600 flex gap-2 items-start">
-                              <MinusCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{gap}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {resume.metrics.after.warnings?.length > 0 && (
-                      <div className="bg-amber-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <AlertTriangle className="h-4 w-4 text-amber-600" />
-                          <h4 className="font-medium text-sm">Warnings</h4>
-                        </div>
-                        <ul className="space-y-2">
-                          {resume.metrics.after.warnings?.map((warning, idx) => (
-                            <li key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
-                              <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{warning}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                     <div className="bg-amber-50 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-3">
                         <ArrowUpCircle className="h-4 w-4 text-amber-600" />
