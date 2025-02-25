@@ -30,21 +30,6 @@ import {
   FileText,
   Code,
   ArrowUpCircle,
-  AlertTriangle,
-  CircleAlert,
-  Lightbulb,
-  GraduationCap,
-  Briefcase,
-  Award,
-  Brain,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  FileText,
-  Code,
-  ChartBarIcon,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -278,7 +263,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-card rounded-lg border p-6">
                   <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <ChartBarIcon className="h-5 w-5 text-primary" />
+                    <ChartBar className="h-5 w-5 text-primary" />
                     Resume Metrics
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
