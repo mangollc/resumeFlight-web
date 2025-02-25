@@ -29,6 +29,9 @@ sessionStore.on('error', (error: Error) => {
 });
 
 // Export session middleware configuration
+const MAX_32_BIT_INT = 2147483647;
+const SAFE_ONE_DAY = Math.min(ONE_DAY, MAX_32_BIT_INT);
+
 export const sessionConfig = session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -37,9 +40,10 @@ export const sessionConfig = session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: ONE_DAY
+    maxAge: SAFE_ONE_DAY
   },
-  name: 'sid' // Change session cookie name from default 'connect.sid'
+  name: 'sid',
+  rolling: true
 });
 
 // Cleanup function

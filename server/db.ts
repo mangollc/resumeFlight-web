@@ -12,15 +12,18 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Constants for timeout and interval values (in milliseconds)
-const MAX_32_BIT_INT = Math.pow(2, 31) - 1;
+const MAX_32_BIT_INT = 2147483647; // Math.pow(2, 31) - 1
 const DEFAULT_IDLE_TIMEOUT = 30000;
 const DEFAULT_CONN_TIMEOUT = 5000;
 const DEFAULT_QUERY_TIMEOUT = 30000;
-const KEEPALIVE_INTERVAL = Math.min(60000, MAX_32_BIT_INT);
-const MAX_RETRY_INTERVAL = Math.min(300000, MAX_32_BIT_INT);
+const KEEPALIVE_INTERVAL = 60000;
+const MAX_RETRY_INTERVAL = 300000;
 
 // Ensure timeouts don't exceed 32-bit integer limit
-const getSafeTimeout = (timeout: number): number => Math.min(timeout, MAX_32_BIT_INT);
+const getSafeTimeout = (timeout: number): number => {
+  if (typeof timeout !== 'number' || isNaN(timeout)) return DEFAULT_CONN_TIMEOUT;
+  return Math.min(Math.max(0, timeout), MAX_32_BIT_INT);
+};
 
 // Initialize connection pool with safe timeout values
 export const pool = new Pool({ 
