@@ -8,6 +8,12 @@ import {
   MoreVertical,
   ChevronDown,
   ChevronRight,
+  CheckCircle,
+  ArrowUpCircle,
+  Info,
+  AlertTriangle,
+  CircleAlert,
+  Lightbulb,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
