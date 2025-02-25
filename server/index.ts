@@ -160,7 +160,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
         res.status(status).json({
             error: true,
-            message: process.env.NODE_ENV === "production" 
+            message: process.env.NODE_ENV === "production"
                 ? `An unexpected error occurred (ID: ${errorId})`
                 : message,
             errorId,

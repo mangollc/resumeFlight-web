@@ -6,10 +6,6 @@ import { db, pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
-// Constants for session configuration
-const ONE_HOUR = 3600000; // 1 hour in milliseconds
-const TWELVE_HOURS = ONE_HOUR * 12;
-
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -46,17 +42,6 @@ export class DatabaseStorage implements IStorage {
       tableName: 'session',
       schemaName: 'public',
       createTableIfMissing: true,
-      // Enhanced security settings
-      pruneSessionInterval: ONE_HOUR / 2, // Cleanup every 30 minutes
-      ttl: TWELVE_HOURS / 1000, // Convert to seconds
-      // Randomize session cleanup to prevent timing attacks
-      pruneSessionRandomizedInterval: true,
-      // Enable session touching to keep active sessions alive
-      disableTouch: false,
-      // Error handling
-      errorLog: (err: Error) => {
-        console.error('Session store error:', err);
-      }
     });
 
     this.sessionStore.on('error', (error: Error) => {
@@ -500,3 +485,10 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+async function getCurrentESTTimestamp() {
+  const now = new Date();
+  const estOffset = -4 * 60 * 60 * 1000; // EST offset in milliseconds
+  const estTime = new Date(now.getTime() + estOffset);
+  return estTime;
+}
