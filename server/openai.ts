@@ -157,12 +157,7 @@ export async function optimizeResume(
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
     let overallMatchScore = 0;
-    let improvements = {
-      keywords: "",
-      structure: "",
-      clarity: "",
-      ats: "",
-    };
+    
 
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
@@ -302,13 +297,7 @@ Scoring Guidelines:
         allChanges.push(...(result.changes || []));
         overallMatchScore += result.sectionScore || 0;
 
-        // Merge improvements
-        Object.keys(improvements).forEach((key) => {
-          const newValue = result.improvements?.[key as keyof typeof improvements] || "";
-          improvements[key as keyof typeof improvements] = improvements[key as keyof typeof improvements]
-            ? `${improvements[key as keyof typeof improvements]}\n${newValue}`
-            : newValue;
-        });
+        
       } catch (error) {
         console.error('[Optimize] Failed to parse OpenAI response:', error);
         console.error('[Optimize] Raw response content:', content);
@@ -325,7 +314,7 @@ Scoring Guidelines:
       optimizedContent: optimizedChunks.join("\n\n").trim(),
       changes: allChanges,
       matchScore: finalScore,
-      improvements,
+      
     };
   } catch (error: any) {
     console.error("[Optimize] Error:", error);
