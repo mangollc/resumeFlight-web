@@ -288,22 +288,20 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         </ul>
                       </div>
                     )}
-                    {resume.metrics.after.improvements?.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Improvements</h4>
-                        <ul className="space-y-2">
-                          {resume.metrics.after.improvements?.map((improvement, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-amber-600 flex gap-2"
-                            >
-                              <span>•</span>
-                              <span>{improvement}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Improvements</h4>
+                      <ul className="space-y-2">
+                        {resume.metrics?.improvements?.map((improvement, idx) => (
+                          <li key={idx} className="text-sm text-amber-600 flex gap-2">
+                            <span>•</span>
+                            <span>{improvement}</span>
+                          </li>
+                        ))}
+                        {(!resume.metrics?.improvements || resume.metrics.improvements.length === 0) && (
+                          <li className="text-sm text-muted-foreground">No improvements identified yet</li>
+                        )}
+                      </ul>
+                    </div>
                     {resume.metrics.after.gaps?.length > 0 && (
                       <div>
                         <h4 className="font-medium text-sm mb-2">Gaps</h4>
