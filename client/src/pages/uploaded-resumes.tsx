@@ -38,19 +38,26 @@ export default function UploadedResumesPage() {
   const { data: resumes = [], isLoading, isError, error } = useQuery({
     queryKey: ["/api/uploaded-resumes"],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/uploaded-resumes");
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      } catch (err) {
-        console.error('Resume fetch error:', err);
-        throw new Error(err instanceof Error ? err.message : 'Failed to fetch resumes');
+      const response = await fetch("/api/uploaded-resumes", {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch resumes');
       }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Invalid response format');
+      }
+
+      return response.json();
     },
-    retry: 1,
+    retry: 2,
     retryDelay: 1000
   });
 
