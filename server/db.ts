@@ -51,7 +51,7 @@ pool.on('connect', async (client) => {
   connectionCount++;
   console.log(`Database connection ${connectionCount} established`);
   try {
-    await pool.query("SET timezone=$1", ["America/New_York"]);
+    await pool.query("SET timezone = 'America/New_York'");
   } catch (err) {
     console.error('Error setting timezone:', err);
   }
