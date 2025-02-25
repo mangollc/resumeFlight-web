@@ -285,11 +285,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         label="Personalization"
                         score={resume.metrics.after.personalization}
                       />
+                      <MetricRow
+                        label="Confidence"
+                        score={resume.metrics.after.confidence}
+                      />
                     </div>
                   </div>
-                    <MetricRow
-                      label="Confidence"
-                      score={resume.metrics.after.confidence}
                     />
                   </div>
                 </div>
