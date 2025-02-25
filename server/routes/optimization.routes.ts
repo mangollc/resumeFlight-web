@@ -85,8 +85,8 @@ router.get('/optimized-resume/:id', async (req, res) => {
         // Transform single resume to include required properties
         const transformedResume = {
             ...resume,
-            matchScore: {
-                originalScores: resume.metrics?.before || {
+            metrics: {
+                before: resume.metrics?.before || {
                     keywords: 0,
                     skills: 0,
                     experience: 0,
@@ -96,21 +96,21 @@ router.get('/optimized-resume/:id', async (req, res) => {
                     overall: 0,
                     confidence: 0
                 },
-                optimizedScores: resume.metrics?.after || {
-                    keywords: 0,
-                    skills: 0,
-                    experience: 0,
-                    education: 0,
-                    personalization: 0,
-                    aiReadiness: 0,
-                    overall: 0,
-                    confidence: 0
-                },
-                analysis: resume.analysis || {
-                    matches: [],
-                    improvements: [],
-                    gaps: [],
-                    suggestions: []
+                after: {
+                    ...(resume.metrics?.after || {
+                        keywords: 0,
+                        skills: 0,
+                        experience: 0,
+                        education: 0,
+                        personalization: 0,
+                        aiReadiness: 0,
+                        overall: 0,
+                        confidence: 0
+                    }),
+                    strengths: resume.analysis?.matches || [],
+                    improvements: resume.analysis?.improvements || [],
+                    gaps: resume.analysis?.gaps || [],
+                    suggestions: resume.analysis?.suggestions || []
                 }
             }
         };
