@@ -16,17 +16,20 @@ const MAX_32_BIT_INT = Math.pow(2, 31) - 1;
 const DEFAULT_IDLE_TIMEOUT = 30000;
 const DEFAULT_CONN_TIMEOUT = 5000;
 const DEFAULT_QUERY_TIMEOUT = 30000;
-const KEEPALIVE_INTERVAL = 60000;
-const MAX_RETRY_INTERVAL = 300000;
+const KEEPALIVE_INTERVAL = Math.min(60000, MAX_32_BIT_INT);
+const MAX_RETRY_INTERVAL = Math.min(300000, MAX_32_BIT_INT);
+
+// Ensure timeouts don't exceed 32-bit integer limit
+const getSafeTimeout = (timeout: number): number => Math.min(timeout, MAX_32_BIT_INT);
 
 // Initialize connection pool with safe timeout values
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: Math.min(DEFAULT_IDLE_TIMEOUT, MAX_32_BIT_INT),
-  connectionTimeoutMillis: Math.min(DEFAULT_CONN_TIMEOUT, MAX_32_BIT_INT),
-  statement_timeout: DEFAULT_QUERY_TIMEOUT,
-  query_timeout: DEFAULT_QUERY_TIMEOUT,
+  idleTimeoutMillis: getSafeTimeout(DEFAULT_IDLE_TIMEOUT),
+  connectionTimeoutMillis: getSafeTimeout(DEFAULT_CONN_TIMEOUT),
+  statement_timeout: getSafeTimeout(DEFAULT_QUERY_TIMEOUT),
+  query_timeout: getSafeTimeout(DEFAULT_QUERY_TIMEOUT),
   allowExitOnIdle: true
 });
 
@@ -55,7 +58,7 @@ pool.on('error', (err) => {
   setTimeout(() => {
     console.log('Attempting to reconnect...');
     checkDatabaseConnection();
-  }, Math.min(5000, MAX_32_BIT_INT));
+  }, getSafeTimeout(5000));
 });
 
 export const checkDatabaseConnection = async () => {
