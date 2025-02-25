@@ -55,4 +55,4 @@ author = 39576030
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "timeout 5m npm run dev"
+args = "npm run dev"
