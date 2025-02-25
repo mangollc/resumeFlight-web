@@ -98,6 +98,8 @@ Ensure each score is calculated based on:
           },
         ],
         response_format: { type: "json_object" },
+        timeout: 30000, // 30 second timeout
+        max_retries: 3,
       });
 
       const content = response.choices[0].message.content;
@@ -263,6 +265,8 @@ Scoring Guidelines:
           },
         ],
         response_format: { type: "json_object" },
+        timeout: 30000, // 30 second timeout
+        max_retries: 3,
         temperature: 0.3,
       });
 
@@ -375,6 +379,8 @@ Return JSON in this format:
         },
       ],
       response_format: { type: "json_object" },
+      timeout: 30000, // 30 second timeout
+      max_retries: 3,
       temperature: 0.3,
     });
 

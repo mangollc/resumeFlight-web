@@ -4,16 +4,16 @@ import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
-// Constants - use reasonable timeout values
+// Set reasonable timeout values
 const SESSION_TIMEOUT = 3600000; // 1 hour
-const SAFE_ONE_DAY = 86400000; // 24 hours
+const STORE_CLEANUP_PERIOD = 900000; // 15 minutes
 
 // Create session store with enhanced error handling
 export const sessionStore = new PostgresSessionStore({
   pool,
   tableName: 'session',
   createTableIfMissing: true,
-  pruneSessionInterval: SAFE_ONE_DAY,
+  pruneSessionInterval: STORE_CLEANUP_PERIOD,
   ttl: SESSION_TIMEOUT,
   disableTouch: false,
   errorLog: (err: Error) => {
@@ -39,7 +39,7 @@ export const sessionConfig = session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: SAFE_ONE_DAY
+    maxAge: STORE_CLEANUP_PERIOD
   },
   name: 'sid',
   rolling: true
