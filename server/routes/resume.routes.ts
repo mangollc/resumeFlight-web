@@ -32,10 +32,13 @@ const upload = multer({
 // Get all uploaded resumes for user
 router.get('/resumes', async (req, res) => {
     try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Unauthorized" });
+        if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ 
+                error: "Unauthorized",
+                message: "Please log in to view resumes"
+            });
         }
-        const resumes = await storage.getUploadedResumesByUser(req.user!.id);
+        const resumes = await storage.getUploadedResumesByUser(req.user.id);
         return res.json(resumes);
     } catch (error: any) {
         return res.status(500).json({
