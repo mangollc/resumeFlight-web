@@ -13,30 +13,30 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Constants for timeouts (in milliseconds)
-const MAX_32_BIT_INT = 2147483647;
+const MAX_32_BIT = Math.pow(2, 31) - 1;
 const TIMEOUT_30_SEC = 30000;
 const TIMEOUT_5_MIN = 300000;
 
 // Initialize connection pool with safe timeout values and no caching
-const MAX_SAFE_TIMEOUT = 30000; // 30 seconds
 const DEFAULT_POOL_CONFIG = {
   max: 10,
-  idleTimeoutMillis: MAX_SAFE_TIMEOUT,
-  connectionTimeoutMillis: MAX_SAFE_TIMEOUT,
-  statement_timeout: MAX_SAFE_TIMEOUT,
-  query_timeout: MAX_SAFE_TIMEOUT,
+  idleTimeoutMillis: Math.min(300000, MAX_32_BIT),
+  connectionTimeoutMillis: Math.min(30000, MAX_32_BIT),
+  statement_timeout: Math.min(30000, MAX_32_BIT),
+  query_timeout: Math.min(30000, MAX_32_BIT),
   allowExitOnIdle: true,
-  keepAlive: false
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
 };
 
 export const pool = new Pool({
   ...DEFAULT_POOL_CONFIG,
   connectionString: process.env.DATABASE_URL,
   max: 10,
-  idleTimeoutMillis: Math.min(300000, MAX_SAFE_TIMEOUT),
-  connectionTimeoutMillis: Math.min(30000, MAX_SAFE_TIMEOUT),
-  statement_timeout: Math.min(30000, MAX_SAFE_TIMEOUT),
-  query_timeout: Math.min(30000, MAX_SAFE_TIMEOUT),
+  idleTimeoutMillis: Math.min(300000, MAX_32_BIT),
+  connectionTimeoutMillis: Math.min(30000, MAX_32_BIT),
+  statement_timeout: Math.min(30000, MAX_32_BIT),
+  query_timeout: Math.min(30000, MAX_32_BIT),
   allowExitOnIdle: true
 });
 
