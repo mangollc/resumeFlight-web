@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { OptimizedResume, ResumeMatchScore } from "@shared/schema";
+import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Download,
@@ -10,25 +10,9 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronRight,
-  HelpCircle,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +25,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Table,
   TableBody,
   TableCell,
@@ -48,148 +40,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
-interface ResumeWithScore extends OptimizedResume {
-  matchScore: {
-    originalScores: {
-      keywords: number;
-      skills: number;
-      experience: number;
-      education: number;
-      personalization: number;
-      aiReadiness: number;
-      overall: number;
-      confidence: number;
-    };
-    optimizedScores: {
-      keywords: number;
-      skills: number;
-      experience: number;
-      education: number;
-      personalization: number;
-      aiReadiness: number;
-      overall: number;
-      confidence: number;
-    };
-    analysis?: {
-      matches: string[];
-      improvements: string[];
-      gaps: string[];
-      suggestions: string[];
-    };
-  };
-}
-
-const getMetricsColor = (value: number, type: "bg" | "text" = "bg") => {
-  if (type === "bg") {
-    if (value >= 80) return "bg-emerald-600 dark:bg-emerald-500";
-    if (value >= 60) return "bg-yellow-500";
-    return "bg-red-500";
-  } else {
-    if (value >= 80) return "text-emerald-600 dark:text-emerald-500";
-    if (value >= 60) return "text-yellow-500";
-    return "text-red-500";
-  }
-};
-
-const formatScore = (value: number): string => {
-  return value?.toFixed(1) || "0";
-};
-
-const formatDate = (dateString: string) => {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-  }).format(new Date(dateString));
-};
-
-const getScoreMethodologyTooltip = (scoreType: string) => {
-  switch (scoreType) {
-    case "overall":
-      return "Overall score is calculated as a weighted average of keywords (30%), skills (40%), and experience (30%) matches with the job requirements.";
-    case "keywords":
-      return "Keyword score measures how well your resume's terminology matches the job posting's key terms and industry language.";
-    case "skills":
-      return "Skills score evaluates the alignment between your technical/professional capabilities and the job's required qualifications.";
-    case "experience":
-      return "Experience score assesses how well your work history and achievements match the job's required level and type of experience.";
-    case "education":
-      return "Education score assesses the relevance of your education to the job requirements.";
-    case "personalization":
-      return "Personalization score measures how well your resume is tailored to the specific job description.";
-    case "aiReadiness":
-      return "AI Readiness score evaluates how well your resume is optimized for Applicant Tracking Systems (ATS) and AI-powered recruitment tools.";
-    default:
-      return "";
-  }
-};
-
-const ScoreTooltip = ({
-  type,
-  children,
-}: {
-  type: string;
-  children: React.ReactNode;
-}) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className="flex items-center gap-1 cursor-help">
-          {children}
-          <HelpCircle className="h-4 w-4 text-muted-foreground" />
-        </div>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p className="max-w-xs text-sm">{getScoreMethodologyTooltip(type)}</p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-);
-
-function ResumeRow({ resume }: { resume: ResumeWithScore }) {
+function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false); 
   const { toast } = useToast();
-
-  const getScoresDisplay = (scores: any) => {
-    if (!scores) return null;
-
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <ScoreTooltip type="overall">
-            <span className="text-sm text-muted-foreground">Match Score:</span>
-          </ScoreTooltip>
-          <div className="flex items-center gap-2">
-            <span className={getMetricsColor(scores.overall, "text")}>
-              {formatScore(scores.overall)}%
-            </span>
-            <span className="text-muted-foreground text-sm">
-              (Confidence: {formatScore(scores.confidence)}%)
-            </span>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-            <div key={metric} className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-muted-foreground capitalize">
-                <span>{metric}</span>
-                <span>{formatScore(scores[metric])}%</span>
-              </div>
-              <Progress
-                value={scores[metric] || 0}
-                className={`h-1 ${getMetricsColor(scores[metric] || 0)}`}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -199,7 +53,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
       toast({
         title: "Success",
-        description: "Resume and its cover letter deleted successfully",
+        description: "Resume deleted successfully",
       });
     },
     onError: (error: Error) => {
@@ -248,40 +102,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
     }
   };
 
-  const analyzeResume = async () => {
-    try {
-      setIsAnalyzing(true);
-      const response = await fetch(`/api/optimized-resume/${(resume as OptimizedResume).id}/analyze`, {
-        method: 'POST',
-      });
-      if (!response.ok) throw new Error('Failed to analyze resume');
-      const data = await response.json();
-
-      const updatedResume = {
-        ...resume,
-        matchScore: {
-          ...resume.matchScore,
-          analysis: data.analysis,
-        },
-      };
-      queryClient.setQueryData(["/api/optimized-resumes"], (oldData: any) => {
-        return oldData.map((r: any) =>
-          r.id === updatedResume.id ? updatedResume : r
-        );
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] }); 
-    } catch (error) {
-      console.error('Analysis error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to analyze resume",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   return (
     <>
       <TableRow
@@ -312,18 +132,6 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
         </TableCell>
         <TableCell className="hidden lg:table-cell">
           {resume.jobDetails?.company || "N/A"}
-        </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          <div className="flex items-center gap-2">
-            <span className={getMetricsColor(resume.metrics.after.overall || 0, "text")}>
-              {formatScore(resume.metrics.after.overall || 0)}%
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="hidden lg:table-cell">
-          <span className="text-muted-foreground">
-            {formatScore(resume.metrics.after.overall || 0)}%
-          </span>
         </TableCell>
         <TableCell className="text-right">
           <DropdownMenu>
@@ -416,155 +224,20 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
       {isExpanded && (
         <TableRow>
           <TableCell colSpan={8} className="bg-muted/30 border-t border-muted">
-            <div className="p-6 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Original Scores</h4>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <ScoreTooltip type="overall">
-                        <span className="text-sm text-muted-foreground">Match Score:</span>
-                      </ScoreTooltip>
-                      <div className="flex items-center gap-2">
-                        <span className={getMetricsColor(resume.matchScore?.originalScores.overall || 0, "text")}>
-                          {formatScore(resume.matchScore?.originalScores.overall || 0)}%
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          (Confidence: {formatScore(resume.matchScore?.originalScores.confidence || 0)}%)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                        <div key={metric} className="space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger className="flex items-center gap-1">
-                                  <span className="capitalize">{metric}</span>
-                                  <HelpCircle className="h-3 w-3" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs text-sm">{getScoreMethodologyTooltip(metric)}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <span>
-                              {formatScore(resume.matchScore?.originalScores[metric] || 0)}%
-                            </span>
-                          </div>
-                          <Progress
-                            value={resume.matchScore?.originalScores[metric] || 0}
-                            className={`h-1 ${getMetricsColor(resume.matchScore?.originalScores[metric] || 0)}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            <div className="p-6">
+              <h3 className="text-lg font-medium mb-4">Resume Details</h3>
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-medium text-sm">Original Resume</h4>
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {resume.originalContent}
+                  </p>
                 </div>
-                <div className="space-y-4">
-                    <h4 className="font-medium">Optimized Scores</h4>
-                    <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <ScoreTooltip type="overall">
-                        <span className="text-sm text-muted-foreground">Match Score:</span>
-                      </ScoreTooltip>
-                      <div className="flex items-center gap-2">
-                        <span className={getMetricsColor(resume.matchScore?.optimizedScores.overall || 0, "text")}>
-                          {formatScore(resume.matchScore?.optimizedScores.overall || 0)}%
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          (Confidence: {formatScore(resume.matchScore?.optimizedScores.confidence || 0)}%)
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {["keywords", "skills", "experience", "education", "personalization", "aiReadiness"].map((metric) => (
-                        <div key={metric} className="space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger className="flex items-center gap-1">
-                                  <span className="capitalize">{metric}</span>
-                                  <HelpCircle className="h-3 w-3" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs text-sm">{getScoreMethodologyTooltip(metric)}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">
-                                {formatScore(resume.matchScore?.originalScores[metric] || 0)}%
-                              </span>
-                              <span>→</span>
-                              <span className="font-medium text-emerald-600">
-                                {formatScore(resume.matchScore?.optimizedScores[metric] || 0)}%
-                              </span>
-                            </div>
-                          </div>
-                          <Progress
-                            value={resume.matchScore?.optimizedScores[metric] || 0}
-                            className={`h-1 ${getMetricsColor(resume.matchScore?.optimizedScores[metric] || 0)}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-6 mt-8">
-                <h3 className="text-lg font-medium">Analysis</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {resume.matchScore?.analysis && (
-                    <>
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Matches</h4>
-                        <ul className="space-y-2">
-                          {resume.matchScore?.analysis?.matches?.map((match, idx) => (
-                            <li key={idx} className="text-sm text-blue-600 dark:text-blue-400 flex gap-2">
-                              <span>•</span>
-                              <span>{match}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Improvements</h4>
-                        <ul className="space-y-2">
-                          {resume.matchScore?.analysis?.improvements?.map((improvement, idx) => (
-                            <li key={idx} className="text-sm text-amber-600 dark:text-amber-400 flex gap-2">
-                              <span>•</span>
-                              <span>{improvement}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Gaps</h4>
-                        <ul className="space-y-2">
-                          {resume.matchScore?.analysis?.gaps?.map((gap, idx) => (
-                            <li key={idx} className="text-sm text-red-600 dark:text-red-400 flex gap-2">
-                              <span>•</span>
-                              <span>{gap}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Suggestions</h4>
-                        <ul className="space-y-2">
-                          {resume.matchScore?.analysis?.suggestions?.map((suggestion, idx) => (
-                            <li key={idx} className="text-sm text-blue-600 dark:text-blue-400 flex gap-2">
-                              <span>•</span>
-                              <span>{suggestion}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </>
-                  )}
+                <div>
+                  <h4 className="font-medium text-sm">Job Description</h4>
+                  <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">
+                    {resume.jobDescription}
+                  </p>
                 </div>
               </div>
             </div>
@@ -577,7 +250,7 @@ function ResumeRow({ resume }: { resume: ResumeWithScore }) {
 
 export default function OptimizedResumesPage() {
   const { toast } = useToast();
-  const { data: resumes, isLoading, error } = useQuery<ResumeWithScore[]>({
+  const { data: resumes, isLoading, error } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
@@ -647,16 +320,6 @@ export default function OptimizedResumesPage() {
                   <TableHead className="hidden lg:table-cell">
                     <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
                       Company Name
-                    </span>
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell w-28">
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Match Score
-                    </span>
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell w-28">
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Confidence Score
                     </span>
                   </TableHead>
                   <TableHead className="w-[60px]"></TableHead>
