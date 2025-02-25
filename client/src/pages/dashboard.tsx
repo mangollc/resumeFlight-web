@@ -1,8 +1,7 @@
-import { type UploadedResume, type OptimizedResume, type CoverLetter } from "@shared/schema";
-
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
+import { type UploadedResume, type OptimizedResume, type CoverLetter } from "@shared/schema";
 import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
@@ -40,30 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { ReviewSection } from "@/components/resume/review-section"; // Added import
 
-const handleDownload = async (id: string) => {
-  try {
-    const response = await fetch(`/api/uploaded-resume/${id}/download`);
-    if (!response.ok) {
-      throw new Error('Failed to download resume');
-    }
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = uploadedResume?.metadata.filename || 'resume.pdf';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  } catch (error) {
-    console.error('Download error:', error);
-    toast({
-      title: "Error",
-      description: "Failed to download resume",
-      variant: "destructive"
-    });
-  }
-};
+
 
 const jobProverbs = [
   "Your next career move starts with a great resume",
@@ -168,8 +144,6 @@ const coverLetterSteps = [
 ];
 
 import { useAuth } from '@/hooks/use-auth';
-import { OptimizedResume } from '@shared/schema';
-
 type ProgressStep = {
   id: string;
   label: string;
