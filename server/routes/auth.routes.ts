@@ -1,11 +1,10 @@
 /**
- * Authentication routes including login, logout, and session management
+ * Authentication routes for user management
  */
 
 import { Router } from 'express';
 import { storage } from '../storage';
 import passport from 'passport';
-import { setupAuth } from '../auth';
 import { z } from 'zod';
 
 const router = Router();
@@ -20,12 +19,12 @@ const registerSchema = loginSchema.extend({
     name: z.string().min(1)
 });
 
-// Routes
+// Register new user
 router.post('/register', async (req, res) => {
     try {
         const data = registerSchema.parse(req.body);
         const existingUser = await storage.getUserByEmail(data.email);
-        
+
         if (existingUser) {
             return res.status(400).json({ error: "Email already registered" });
         }
@@ -44,16 +43,19 @@ router.post('/register', async (req, res) => {
     }
 });
 
+// Login user
 router.post('/login', passport.authenticate('local'), (req, res) => {
     res.json(req.user);
 });
 
+// Logout user
 router.post('/logout', (req, res) => {
     req.logout(() => {
         res.json({ message: "Logged out successfully" });
     });
 });
 
+// Get current user
 router.get('/me', (req, res) => {
     if (!req.isAuthenticated()) {
         return res.status(401).json({ error: "Not authenticated" });

@@ -1,5 +1,6 @@
 /**
- * Routes for handling resume uploads, retrieval, and management
+ * Core resume management routes
+ * Handles resume upload, retrieval, and deletion
  */
 
 import { Router } from 'express';
@@ -11,12 +12,15 @@ import { parseResume } from '../utils/parser';
 
 const router = Router();
 
-// Multer configuration
+// Multer configuration for resume uploads
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
     fileFilter: (_req, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-        const supportedTypes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+        const supportedTypes = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ];
         if (supportedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
@@ -26,13 +30,13 @@ const upload = multer({
 });
 
 // Get all uploaded resumes for user
-router.get('/uploaded-resumes', async (req, res) => {
+router.get('/resumes', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Unauthorized" });
         }
         const resumes = await storage.getUploadedResumesByUser(req.user!.id);
-        return res.status(200).json(resumes);
+        return res.json(resumes);
     } catch (error: any) {
         return res.status(500).json({
             error: "Failed to fetch resumes",
@@ -77,7 +81,7 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
 });
 
 // Delete uploaded resume
-router.delete('/uploaded-resume/:id', async (req, res) => {
+router.delete('/resume/:id', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Unauthorized" });
@@ -85,7 +89,7 @@ router.delete('/uploaded-resume/:id', async (req, res) => {
 
         const resumeId = parseInt(req.params.id);
         const resume = await storage.getUploadedResume(resumeId);
-        
+
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
         }
@@ -95,7 +99,7 @@ router.delete('/uploaded-resume/:id', async (req, res) => {
         }
 
         await storage.deleteUploadedResume(resumeId);
-        return res.status(200).json({ message: "Resume deleted successfully" });
+        return res.json({ message: "Resume deleted successfully" });
     } catch (error: any) {
         return res.status(500).json({
             error: "Failed to delete resume",

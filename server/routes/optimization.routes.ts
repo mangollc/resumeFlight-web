@@ -1,18 +1,18 @@
 /**
- * @file optimization.routes.ts
- * Routes for handling resume optimization, analysis, and related operations
+ * Resume optimization routes
+ * Handles resume analysis, optimization, and version management
  */
 
 import { Router } from 'express';
 import { storage } from '../storage';
 import { optimizeResume } from '../openai';
-import { JobDetails, JobMetrics, ProgressStep } from './types';
+import { JobDetails, JobMetrics } from './types';
 import { extractJobDetails, analyzeJobDescription } from '../utils/job-analysis';
 import { calculateMatchScores } from '../utils/scoring';
 
 const router = Router();
 
-// Get all optimized resumes
+// Get optimized resumes
 router.get('/optimized-resumes', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
@@ -20,15 +20,7 @@ router.get('/optimized-resumes', async (req, res) => {
         }
 
         const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
-        const resumesWithScores = await Promise.all(resumes.map(async (resume) => {
-            const matchScore = await storage.getResumeMatchScore(resume.id);
-            return {
-                ...resume,
-                matchScore
-            };
-        }));
-
-        return res.status(200).json(resumesWithScores);
+        return res.json(resumes);
     } catch (error: any) {
         return res.status(500).json({
             error: "Failed to fetch optimized resumes",
@@ -46,7 +38,7 @@ router.get('/optimized-resume/:id', async (req, res) => {
 
         const resumeId = parseInt(req.params.id);
         const resume = await storage.getOptimizedResume(resumeId);
-        
+
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
         }
@@ -55,7 +47,7 @@ router.get('/optimized-resume/:id', async (req, res) => {
             return res.status(403).json({ error: "Unauthorized access" });
         }
 
-        return res.status(200).json(resume);
+        return res.json(resume);
     } catch (error: any) {
         return res.status(500).json({
             error: "Failed to fetch optimized resume",
@@ -65,20 +57,20 @@ router.get('/optimized-resume/:id', async (req, res) => {
 });
 
 // Optimize resume
-router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
+router.post('/resume/:id/optimize', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Unauthorized" });
         }
 
         const resumeId = parseInt(req.params.id);
-        const uploadedResume = await storage.getUploadedResume(resumeId);
+        const resume = await storage.getUploadedResume(resumeId);
 
-        if (!uploadedResume) {
+        if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
         }
 
-        if (uploadedResume.userId !== req.user!.id) {
+        if (resume.userId !== req.user!.id) {
             return res.status(403).json({ error: "Unauthorized access" });
         }
 
@@ -88,35 +80,25 @@ router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
             : await analyzeJobDescription(jobDescription);
 
         const { optimizedContent, changes } = await optimizeResume(
-            uploadedResume.content,
-            jobDescription,
-            parseFloat(req.body.version || '1.0')
+            resume.content,
+            jobDescription
         );
 
-        const originalScores = await calculateMatchScores(uploadedResume.content, jobDescription);
+        const originalScores = await calculateMatchScores(resume.content, jobDescription);
         const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription, true);
 
         const optimizedResume = await storage.createOptimizedResume({
             userId: req.user!.id,
-            uploadedResumeId: uploadedResume.id,
+            uploadedResumeId: resume.id,
             content: optimizedContent,
-            originalContent: uploadedResume.content,
+            originalContent: resume.content,
             jobDescription,
-            jobUrl: jobUrl || null,
+            jobUrl,
             jobDetails,
             metadata: {
-                filename: uploadedResume.metadata.filename,
-                optimizedAt: new Date().toISOString(),
-                version: req.body.version || '1.0'
+                filename: resume.metadata.filename,
+                optimizedAt: new Date().toISOString()
             }
-        });
-
-        await storage.createResumeMatchScore({
-            userId: req.user!.id,
-            optimizedResumeId: optimizedResume.id,
-            originalScores,
-            optimizedScores,
-            analysis: changes
         });
 
         return res.json(optimizedResume);
@@ -137,7 +119,7 @@ router.delete('/optimized-resume/:id', async (req, res) => {
 
         const resumeId = parseInt(req.params.id);
         const resume = await storage.getOptimizedResume(resumeId);
-        
+
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
         }
@@ -147,7 +129,7 @@ router.delete('/optimized-resume/:id', async (req, res) => {
         }
 
         await storage.deleteOptimizedResume(resumeId);
-        return res.status(200).json({ message: "Resume deleted successfully" });
+        return res.json({ message: "Resume deleted successfully" });
     } catch (error: any) {
         return res.status(500).json({
             error: "Failed to delete resume",

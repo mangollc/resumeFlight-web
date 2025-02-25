@@ -1,15 +1,16 @@
 /**
- * @file types.ts
- * Shared types and interfaces for the routes
+ * Essential types for resume optimization platform
  */
 
 import { Request } from "express";
 import { Express } from "multer";
 
+// Request type with file upload support
 export interface MulterRequest extends Request {
     file?: Express.Multer.File;
 }
 
+// Job analysis metrics
 export interface JobMetrics {
     keywords: number;
     skills: number;
@@ -26,24 +27,20 @@ export interface JobMetrics {
     confidence: number;
 }
 
+// Job posting details
 export interface JobDetails {
     title: string;
     company: string;
-    salary?: string;
     location: string;
     description: string;
+    salary?: string;
     positionLevel?: string;
-    candidateProfile?: string;
-    keyPoints?: string[];
     keyRequirements?: string[];
     skillsAndTools?: string[];
     metrics?: JobMetrics;
-    improvements?: string[];
-    changes?: string[];
-    matchScore?: number;
-    _internalDetails?: Record<string, any>;
 }
 
+// Resume version tracking
 export interface ResumeVersion {
     version: string;
     content: string;
@@ -53,17 +50,11 @@ export interface ResumeVersion {
         before: JobMetrics;
         after: JobMetrics;
     };
-    confidence?: number;
 }
 
+// File metadata
 export interface FileType {
     size: number;
     name: string;  
     type: string;
 }
-
-export type ProgressStep = {
-    id: string;
-    label: string;
-    status: "pending" | "loading" | "completed" | "error";
-};
