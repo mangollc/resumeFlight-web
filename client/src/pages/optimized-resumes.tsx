@@ -68,6 +68,7 @@ function MetricRow({ label, score }: { label: string; score: number }) {
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
 
   const deleteMutation = useMutation({
@@ -271,36 +272,63 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium mb-4">Analysis</h3>
-                  <div className="space-y-6">
-                    {resume.metrics.after.strengths?.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-sm mb-2">Strengths</h4>
-                        <ul className="space-y-2">
+                  <div className="space-y-3">
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'strengths' ? '' : 'strengths')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                          <span className="font-medium text-sm">Strengths</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics.after.strengths?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'strengths' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'strengths' && (
+                        <div className="px-4 pb-3 space-y-2">
                           {resume.metrics.after.strengths?.map((strength, idx) => (
-                            <li
-                              key={idx}
-                              className="text-sm text-emerald-600 flex gap-2"
-                            >
-                              <span>•</span>
+                            <div key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
+                              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{strength}</span>
-                            </li>
+                            </div>
                           ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="font-medium text-sm mb-2">Improvements</h4>
-                      <ul className="space-y-2">
-                        {resume.metrics?.improvements?.map((improvement, idx) => (
-                          <li key={idx} className="text-sm text-amber-600 flex gap-2">
-                            <span>•</span>
-                            <span>{improvement}</span>
-                          </li>
-                        ))}
-                        {(!resume.metrics?.improvements || resume.metrics.improvements.length === 0) && (
-                          <li className="text-sm text-muted-foreground">No improvements identified yet</li>
-                        )}
-                      </ul>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'improvements' ? '' : 'improvements')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ArrowUpCircle className="h-4 w-4 text-amber-500" />
+                          <span className="font-medium text-sm">Improvements</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics?.improvements?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'improvements' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'improvements' && (
+                        <div className="px-4 pb-3 space-y-2">
+                          {resume.metrics?.improvements?.map((improvement, idx) => (
+                            <div key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
+                              <ArrowUpCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span>{improvement}</span>
+                            </div>
+                          ))}
+                          {(!resume.metrics?.improvements || resume.metrics.improvements.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No improvements identified yet</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     {resume.metrics.after.gaps?.length > 0 && (
                       <div>
