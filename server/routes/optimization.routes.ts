@@ -213,4 +213,20 @@ router.delete('/optimized-resume/:id', async (req, res) => {
     }
 });
 
+// Error handling middleware specific to optimization routes
+router.use((err: any, req: any, res: any, next: any) => {
+    if (err.type === 'entity.too.large') {
+        return res.status(413).json({
+            error: 'Request entity too large',
+            message: 'The uploaded file exceeds the maximum allowed size'
+        });
+    }
+    
+    console.error('Optimization route error:', err);
+    res.status(500).json({
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+    });
+});
+
 export const optimizationRoutes = router;

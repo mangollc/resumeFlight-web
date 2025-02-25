@@ -125,19 +125,25 @@ if (process.env.NODE_ENV === "development") {
 
 const port = 3000;
 const startServer = async () => {
-    try {
-        await server.listen(port, '0.0.0.0');
-        console.log(`Server running on port ${port}`);
-    } catch (error: any) {
-        if (error.code === 'EADDRINUSE') {
-            console.log(`Port ${port} is in use, trying ${port + 1}`);
-            await server.listen(port + 1, '0.0.0.0');
-            console.log(`Server running on port ${port + 1}`);
-        } else {
+    const maxRetries = 3;
+    const portRange = [3000, 3001, 3002];
+    
+    for (const currentPort of portRange) {
+        try {
+            await server.listen(currentPort, '0.0.0.0');
+            console.log(`Server running on port ${currentPort}`);
+            return;
+        } catch (error: any) {
+            if (error.code === 'EADDRINUSE') {
+                console.log(`Port ${currentPort} is in use, trying next port...`);
+                continue;
+            }
             console.error('Failed to start server:', error);
             process.exit(1);
         }
     }
+    console.error('No available ports found');
+    process.exit(1);
 };
 
 startServer();
