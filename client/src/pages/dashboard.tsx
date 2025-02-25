@@ -188,7 +188,7 @@ const INITIAL_STEPS: ProgressStep[] = [
 export default function Dashboard() {
   const { user } = useAuth();
   const params = useParams<{ id?: string }>();
-  const [location] = useLocation();
+  const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -198,6 +198,7 @@ export default function Dashboard() {
 
   // Add loading state for review mode
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
+const [error, setError] = useState<Error | null>(null);
 
   // Initialize all state variables
   const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
