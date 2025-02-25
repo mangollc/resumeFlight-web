@@ -1,5 +1,4 @@
 /**
- * @file auth.routes.ts
  * Authentication routes including login, logout, and session management
  */
 

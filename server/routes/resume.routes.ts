@@ -1,5 +1,4 @@
 /**
- * @file resume.routes.ts
  * Routes for handling resume uploads, retrieval, and management
  */
 
