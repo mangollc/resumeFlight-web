@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
+import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import UploadedResumesPage from "@/pages/uploaded-resumes";
@@ -51,15 +52,16 @@ function Router() {
   return (
     <Switch>
       <Route path="/">
-        <Redirect to="/dashboard" />
+        <Redirect to="/home" /> {/* Added Redirect to /home */}
       </Route>
+      <Route path="/home" component={HomePage} /> {/* Added route for HomePage */}
+      <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/dashboard" component={() => <ProtectedLayout component={Dashboard} />} />
       <ProtectedRoute path="/resume/:id/optimize/review" component={() => <ProtectedLayout component={Dashboard} />} />
       <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayout component={UploadedResumesPage} />} />
       <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayout component={OptimizedResumesPage} />} />
       <ProtectedRoute path="/subscription" component={() => <ProtectedLayout component={SubscriptionPage} />} />
       <ProtectedRoute path="/settings" component={() => <ProtectedLayout component={SettingsPage} />} />
-      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
