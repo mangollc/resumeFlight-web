@@ -208,6 +208,40 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
+      // Ensure proper structure for metrics
+      const metrics = {
+        before: {
+          overall: 0,
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          confidence: 0,
+          ...resume.metrics?.before
+        },
+        after: {
+          overall: 0,
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          confidence: 0,
+          ...resume.metrics?.after
+        }
+      };
+
+      // Ensure proper structure for analysis
+      const analysis = {
+        strengths: resume.analysis?.strengths || [],
+        improvements: resume.analysis?.improvements || [],
+        gaps: resume.analysis?.gaps || [],
+        suggestions: resume.analysis?.suggestions || []
+      };
+
       const [result] = await db
         .insert(optimizedResumes)
         .values({
@@ -219,37 +253,13 @@ export class DatabaseStorage implements IStorage {
           jobDescription: resume.jobDescription,
           jobUrl: resume.jobUrl || null,
           jobDetails: resume.jobDetails || {},
-          metadata: resume.metadata || {},
-          metrics: {
-            before: {
-              overall: 0,
-              keywords: 0,
-              skills: 0,
-              experience: 0,
-              education: 0,
-              personalization: 0,
-              aiReadiness: 0,
-              confidence: 0,
-              ...(resume.metrics?.before || {})
-            },
-            after: {
-              overall: 0,
-              keywords: 0,
-              skills: 0,
-              experience: 0,
-              education: 0,
-              personalization: 0,
-              aiReadiness: 0,
-              confidence: 0,
-              ...(resume.metrics?.after || {})
-            }
+          metadata: {
+            filename: resume.metadata?.filename || '',
+            optimizedAt: new Date().toISOString(),
+            version: '1.0'
           },
-          analysis: {
-            strengths: resume.analysis?.strengths || [],
-            improvements: resume.analysis?.improvements || [],
-            gaps: resume.analysis?.gaps || [],
-            suggestions: resume.analysis?.suggestions || []
-          },
+          metrics,
+          analysis,
           version: '1.0',
           createdAt: await getCurrentESTTimestamp(),
           contactInfo: {
