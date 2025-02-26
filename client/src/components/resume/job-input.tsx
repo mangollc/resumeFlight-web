@@ -42,6 +42,9 @@ const UNSUPPORTED_JOB_SITES = [
   { domain: "ziprecruiter.com", name: "ZipRecruiter" }
 ];
 
+const TIMEOUT_MS = 180000; // 3 minutes timeout
+const MAX_RETRIES = 2;
+
 export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState("");
@@ -143,11 +146,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      const TIMEOUT_MS = 30000;
-
       if (!resumeId) {
         throw new Error("Resume ID is required");
       }
+
+      let retryCount = 0;
 
       return new Promise((resolve, reject) => {
         try {
@@ -159,70 +162,89 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           if (data.jobUrl) params.append('jobUrl', data.jobUrl);
           if (data.jobDescription) params.append('jobDescription', data.jobDescription);
 
-          // Create the correct URL with the base URL from Vite
           const baseUrl = window.location.origin;
           const url = `${baseUrl}/api/uploaded-resumes/${resumeId}/optimize?${params.toString()}`;
           console.log('Creating EventSource with URL:', url);
 
-          const evtSource = new EventSource(url);
-          eventSourceRef.current = evtSource;
+          const setupEventSource = () => {
+            const evtSource = new EventSource(url);
+            eventSourceRef.current = evtSource;
 
-          const timeout = setTimeout(() => {
-            evtSource.close();
-            reject(new Error('Request timed out'));
-          }, TIMEOUT_MS);
-
-          evtSource.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              console.log('Received event:', data);
-
-              if (data.status === "error") {
-                throw new Error(data.message || "Optimization failed");
+            const timeout = setTimeout(() => {
+              console.log('Request timed out');
+              evtSource.close();
+              if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                console.log(`Retrying (${retryCount}/${MAX_RETRIES})...`);
+                setupEventSource();
+              } else {
+                reject(new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds`));
               }
+            }, TIMEOUT_MS);
 
-              switch (data.status) {
-                case "started":
-                  updateStepStatus("extract", "loading");
-                  break;
-                case "extracting_details":
-                  updateStepStatus("extract", "loading");
-                  break;
-                case "analyzing_description":
-                  updateStepStatus("extract", "completed");
-                  updateStepStatus("analyze", "loading");
-                  break;
-                case "optimizing_resume":
-                  updateStepStatus("analyze", "completed");
-                  updateStepStatus("optimize", "loading");
-                  break;
-                case "completed":
-                  updateStepStatus("optimize", "completed");
+            evtSource.onmessage = (event) => {
+              try {
+                const data = JSON.parse(event.data);
+                console.log('Received event:', data);
+
+                if (data.status === "error") {
                   clearTimeout(timeout);
                   evtSource.close();
-                  resolve(data.optimizedResume);
-                  break;
-                default:
-                  console.log('Unknown status:', data.status);
+                  throw new Error(data.message || "Optimization failed");
+                }
+
+                switch (data.status) {
+                  case "started":
+                    updateStepStatus("extract", "loading");
+                    break;
+                  case "extracting_details":
+                    updateStepStatus("extract", "loading");
+                    break;
+                  case "analyzing_description":
+                    updateStepStatus("extract", "completed");
+                    updateStepStatus("analyze", "loading");
+                    break;
+                  case "optimizing_resume":
+                    updateStepStatus("analyze", "completed");
+                    updateStepStatus("optimize", "loading");
+                    break;
+                  case "completed":
+                    updateStepStatus("optimize", "completed");
+                    clearTimeout(timeout);
+                    evtSource.close();
+                    resolve(data.optimizedResume);
+                    break;
+                  default:
+                    console.log('Unknown status:', data.status);
+                }
+              } catch (error) {
+                console.error('Event parsing error:', error);
+                clearTimeout(timeout);
+                evtSource.close();
+                reject(error);
               }
-            } catch (error) {
-              console.error('Event parsing error:', error);
+            };
+
+            evtSource.onerror = (error) => {
+              console.error('EventSource error:', error);
               clearTimeout(timeout);
               evtSource.close();
-              reject(error);
-            }
+
+              if (retryCount < MAX_RETRIES) {
+                retryCount++;
+                console.log(`Retrying (${retryCount}/${MAX_RETRIES})...`);
+                setupEventSource();
+              } else {
+                reject(new Error("Connection failed after multiple retries. Please try again."));
+              }
+            };
+
+            evtSource.onopen = () => {
+              console.log('EventSource connection opened');
+            };
           };
 
-          evtSource.onerror = (error) => {
-            console.error('EventSource error:', error);
-            clearTimeout(timeout);
-            evtSource.close();
-            reject(new Error("Connection failed. Please try again."));
-          };
-
-          evtSource.onopen = () => {
-            console.log('EventSource connection opened');
-          };
+          setupEventSource();
 
         } catch (error) {
           console.error('Mutation setup error:', error);
@@ -236,19 +258,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           throw new Error('Invalid response format: missing data');
         }
 
-        if (!data.jobDetails) {
-          throw new Error('Invalid response format: missing job details');
-        }
-
         const details: JobDetails = {
-          title: data.jobDetails.title || "",
-          company: data.jobDetails.company || "",
-          location: data.jobDetails.location || "",
-          salary: data.jobDetails.salary,
-          description: data.jobDetails.description,
-          positionLevel: data.jobDetails.positionLevel,
-          keyRequirements: Array.isArray(data.jobDetails.keyRequirements) ? data.jobDetails.keyRequirements : [],
-          skillsAndTools: Array.isArray(data.jobDetails.skillsAndTools) ? data.jobDetails.skillsAndTools : []
+          title: data.jobDetails?.title || "",
+          company: data.jobDetails?.company || "",
+          location: data.jobDetails?.location || "",
+          salary: data.jobDetails?.salary,
+          description: data.jobDetails?.description,
+          positionLevel: data.jobDetails?.positionLevel,
+          keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
+          skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : []
         };
 
         setExtractedDetails(details);
@@ -272,8 +290,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       toast({
         title: "Error",
-        description: error.message || "Failed to process job details",
+        description: error.message || "Failed to process job details. Please try again.",
         variant: "destructive",
+        duration: 6000,
       });
 
       setIsProcessing(false);
@@ -283,6 +302,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           status: step.status === "pending" || step.status === "loading" ? "error" : step.status
         }))
       );
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
     },
   });
 

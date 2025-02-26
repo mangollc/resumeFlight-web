@@ -147,21 +147,29 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             return res.status(403).json({ error: "Unauthorized access" });
         }
 
-        // Enable SSE
+        // Enable SSE with proper headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
 
         const sendEvent = (data: any) => {
-            res.write(`data: ${JSON.stringify(data)}\n\n`);
+            try {
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+            } catch (error) {
+                console.error('Error sending SSE event:', error);
+            }
         };
 
         const jobDescription = req.query.jobDescription as string;
         const jobUrl = req.query.jobUrl as string;
 
         if (!jobDescription && !jobUrl) {
-            sendEvent({ status: "error", message: "Job description or URL is required" });
+            sendEvent({ 
+                status: "error", 
+                message: "Job description or URL is required",
+                code: "MISSING_JOB_INFO"
+            });
             return res.end();
         }
 
@@ -172,16 +180,21 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             // Extract job details
             sendEvent({ status: "extracting_details" });
             let jobDetails;
-            if (jobUrl) {
-                jobDetails = await extractJobDetails(jobUrl);
-            } else if (jobDescription) {
-                jobDetails = await analyzeJobDescription(jobDescription);
-            } else {
-                throw new Error("Either job description or URL is required");
+            try {
+                if (jobUrl) {
+                    jobDetails = await extractJobDetails(jobUrl);
+                } else if (jobDescription) {
+                    jobDetails = await analyzeJobDescription(jobDescription);
+                } else {
+                    throw new Error("Either job description or URL is required");
+                }
+            } catch (error: any) {
+                console.error('Job details extraction error:', error);
+                throw new Error(`Failed to extract job details: ${error.message}`);
             }
 
             // Use jobDetails.description or provided jobDescription
-            const descriptionToUse = jobDetails.description || jobDescription;
+            const descriptionToUse = jobDetails?.description || jobDescription;
             if (!descriptionToUse) {
                 throw new Error("Failed to obtain job description");
             }
@@ -230,7 +243,9 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             console.error("Optimization process error:", error);
             sendEvent({ 
                 status: "error",
-                message: error.message || "Failed to optimize resume" 
+                message: error.message || "Failed to optimize resume",
+                code: error.code || "OPTIMIZATION_ERROR",
+                details: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
             return res.end();
         }
@@ -238,7 +253,8 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
         console.error("Route handler error:", error);
         return res.status(500).json({
             error: "Failed to optimize resume",
-            details: error.message
+            message: error.message,
+            code: error.code || "SERVER_ERROR"
         });
     }
 });
