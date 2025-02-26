@@ -19,16 +19,18 @@ export function ResumeMetricsComparison({ metrics }: MetricsProps) {
   return (
     <div className="space-y-4">
       {/* Overall Score Card */}
-      <Card className="p-6">
-        <div className="flex justify-between items-center mb-2">
-          <h3 className="text-xl font-semibold">Overall Score</h3>
-          <Badge className="text-lg">{Math.round(metrics.overall)}%</Badge>
+      <div className="rounded-lg border bg-card p-6 text-center">
+        <h3 className="text-xl font-semibold mb-4">Overall Score</h3>
+        <div className="flex flex-col items-center gap-2">
+          <div className="text-5xl font-bold text-primary">
+            {Math.round(metrics.overall)}%
+          </div>
+          <Progress value={Math.round(metrics.overall)} className="w-full h-2" />
         </div>
-        <Progress value={Math.round(metrics.overall)} className="h-2" />
-      </Card>
+      </div>
 
       {/* Other Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {[
           { key: 'keywords', label: 'Keywords' },
           { key: 'skills', label: 'Skills' },
@@ -39,7 +41,7 @@ export function ResumeMetricsComparison({ metrics }: MetricsProps) {
           { key: 'confidence', label: 'Confidence' }
         ].map(({ key, label }) => (
           <Card key={key} className="p-4">
-            <div className="flex flex-col">
+            <div className="flex flex-col gap-1">
               <span className="text-sm text-muted-foreground">{label}</span>
               <span className="text-2xl font-semibold">
                 {Math.round(metrics[key as keyof typeof metrics])}%
