@@ -944,13 +944,21 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
-                <div id="optimized-preview">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-foreground/90">Preview</h3>
+                <div id="optimized-preview" className="space-y-8">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-semibold text-foreground/90">Resume Analysis</h3>
                   </div>
-                  <Preview
-                    resume={optimizedResume}
+                  <ResumeMetricsComparison
+                    metrics={optimizedResume.metrics}
+                    analysis={optimizedResume.analysis}
                   />
+                  <div className="pt-4">
+                    <h3 className="text-xl font-semibold text-foreground/90 mb-6">Optimized Resume</h3>
+                    <Preview
+                      resume={optimizedResume}
+                      showMetrics={false}
+                    />
+                  </div>
                 </div>
                 {renderNavigation()}
               </CardContent>
