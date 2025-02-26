@@ -208,57 +208,47 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
-      // Get existing versions if this is a regeneration
-      const existingVersions = await db
-        .select()
-        .from(optimizedResumes)
-        .where(eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId));
-
-      // Calculate next version number
-      let nextVersion = '1.0';
-      if (existingVersions.length > 0) {
-        const versions = existingVersions.map(r => r.version);
-        const maxVersion = versions.reduce((max, current) => {
-          const [currentMajor, currentMinor] = current.split('.').map(Number);
-          const [maxMajor, maxMinor] = max.split('.').map(Number);
-          if (currentMajor > maxMajor || (currentMajor === maxMajor && currentMinor > maxMinor)) {
-            return current;
-          }
-          return max;
-        }, '1.0');
-
-        const [major, minor] = maxVersion.split('.').map(Number);
-        nextVersion = minor === 9 ? `${major + 1}.0` : `${major}.${minor + 1}`;
-      }
-
-      const timestamp = (await getCurrentESTTimestamp()).toISOString();
       const [result] = await db
         .insert(optimizedResumes)
         .values({
-          ...resume,
-          version: nextVersion,
-          versionHistory: [{
-            version: nextVersion,
-            content: resume.content,
-            timestamp: timestamp,
-            changes: []
-          }],
-          versionMetrics: [{
-            version: nextVersion,
-            metrics: {
-              before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
-              after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
+          userId: resume.userId,
+          sessionId: resume.sessionId,
+          uploadedResumeId: resume.uploadedResumeId,
+          content: resume.content,
+          originalContent: resume.originalContent,
+          jobDescription: resume.jobDescription,
+          jobUrl: resume.jobUrl,
+          jobDetails: resume.jobDetails,
+          metadata: resume.metadata,
+          metrics: {
+            before: resume.metrics.before || {
+              overall: 0,
+              keywords: 0,
+              skills: 0,
+              experience: 0,
+              education: 0,
+              personalization: 0,
+              aiReadiness: 0,
+              confidence: 0
             },
-            timestamp: timestamp
-          }],
-          highlights: [],
-          confidence: 0,
-          contactInfo: {
-            fullName: '',
-            email: '',
-            phone: '',
-            address: ''
+            after: resume.metrics.after || {
+              overall: 0,
+              keywords: 0,
+              skills: 0,
+              experience: 0,
+              education: 0,
+              personalization: 0,
+              aiReadiness: 0,
+              confidence: 0
+            }
           },
+          analysis: {
+            strengths: resume.analysis?.strengths || [],
+            improvements: resume.analysis?.improvements || [],
+            gaps: resume.analysis?.gaps || [],
+            suggestions: resume.analysis?.suggestions || []
+          },
+          version: '1.0',
           createdAt: await getCurrentESTTimestamp(),
         })
         .returning();
@@ -268,7 +258,7 @@ export class DatabaseStorage implements IStorage {
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        contactInfo: result.contactInfo as OptimizedResume['contactInfo']
+        analysis: result.analysis as OptimizedResume['analysis']
       };
     } catch (error) {
       console.error('Error creating optimized resume:', error);
