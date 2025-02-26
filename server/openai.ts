@@ -14,6 +14,53 @@ export const openai = new OpenAI({
 });
 
 /**
+ * Analyzes a job description to extract key requirements and skills
+ */
+export async function analyzeJobPosting(description: string): Promise<{
+  requirements: string[];
+  skills: string[];
+  level: string;
+  analysis: string;
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Analyze the job posting and extract:
+1. Key requirements
+2. Required skills and technologies
+3. Experience level
+4. Brief analysis of the role
+
+Return JSON in this format:
+{
+  "requirements": ["req1", "req2"],
+  "skills": ["skill1", "skill2"],
+  "level": "entry|mid|senior|manager",
+  "analysis": "brief analysis"
+}`
+        },
+        {
+          role: "user",
+          content: description
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+      max_tokens: 1000
+    });
+
+    const result = JSON.parse(response.choices[0].message.content);
+    return result;
+  } catch (error: any) {
+    console.error("Error analyzing job posting:", error);
+    throw error;
+  }
+}
+
+/**
  * Utility function to split text into chunks with optimized size for GPT-4o
  */
 function splitIntoChunks(text: string | undefined, maxChunkSize: number = 16000): string[] {
@@ -201,7 +248,7 @@ Follow these optimization guidelines:
    - Add project scale indicators (team size, budget, timeline)
    - Emphasize cross-functional collaboration examples
 
-Return valid JSON in this exact format:
+Return valid JSON in this format:
 {
   "optimizedContent": "the enhanced resume section text",
   "changes": ["list of specific improvements made"],
