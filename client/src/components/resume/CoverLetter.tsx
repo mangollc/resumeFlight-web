@@ -8,19 +8,6 @@ interface CoverLetterProps {
   readOnly?: boolean;
 }
 
-interface CoverLetterComponentProps {
-  coverLetter: CoverLetterType;
-}
-
-export function CoverLetterComponent({ coverLetter }: CoverLetterComponentProps) {
-  return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Generated Cover Letter</h3>
-      <div className="whitespace-pre-wrap font-serif">{coverLetter.content}</div>
-    </div>
-  );
-}
-
 export function CoverLetter({ resume, generatedCoverLetter, version, readOnly }: CoverLetterProps) {
   const [content, setContent] = useState(generatedCoverLetter?.content || '');
   const [error, setError] = useState<string | null>(null);
