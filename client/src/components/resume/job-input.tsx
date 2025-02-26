@@ -51,7 +51,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
-  const [uploadedResume, setUploadedResume] = useState({id: resumeId}); // Added state for resume ID
+  const [uploadedResume, setUploadedResume] = useState({id: resumeId});
 
   useEffect(() => {
     return () => {
@@ -155,15 +155,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             eventSourceRef.current.close();
           }
 
-          if (data.jobUrl && !isValidLinkedInUrl(data.jobUrl)) {
-            throw new Error('Please provide a valid LinkedIn job posting URL');
-          }
-
           const params = new URLSearchParams();
           if (data.jobUrl) params.append('jobUrl', data.jobUrl);
           if (data.jobDescription) params.append('jobDescription', data.jobDescription);
 
-          const evtSource = new EventSource(`/api/resume/${resumeId}/optimize?${params}`);
+          // Create the correct URL with the base URL from Vite
+          const baseUrl = window.location.origin;
+          const evtSource = new EventSource(
+            `${baseUrl}/api/uploaded-resumes/${resumeId}/optimize?${params.toString()}`
+          );
           eventSourceRef.current = evtSource;
 
           const timeout = setTimeout(() => {
@@ -219,7 +219,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             reject(new Error("Connection failed. Please try again."));
           };
 
-          // Add connection opened handler
           evtSource.onopen = () => {
             console.log('EventSource connection opened');
           };
@@ -232,6 +231,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     },
     onSuccess: (data) => {
       try {
+        if (!data) {
+          throw new Error('Invalid response format: missing data');
+        }
+
         if (!data.jobDetails) {
           throw new Error('Invalid response format: missing job details');
         }

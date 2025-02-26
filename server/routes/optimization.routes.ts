@@ -123,7 +123,7 @@ router.get('/optimized-resume/:id', async (req, res) => {
 });
 
 // Optimize resume
-router.post('/resume/:id/optimize', async (req, res) => {
+router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Unauthorized" });
@@ -148,11 +148,10 @@ router.post('/resume/:id/optimize', async (req, res) => {
         }
 
         // Enable SSE
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders(); // Flush the headers to establish SSE with client
 
         const sendEvent = (data: any) => {
             res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -187,9 +186,9 @@ router.post('/resume/:id/optimize', async (req, res) => {
 
             const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription, true);
 
-            const sessionId = req.session.id;
             const optimizedResume = await storage.createOptimizedResume({
-                sessionId,
+                userId: req.user!.id,
+                sessionId: req.session.id,
                 uploadedResumeId: resume.id,
                 content: optimizedContent,
                 originalContent: resume.content,
@@ -224,11 +223,10 @@ router.post('/resume/:id/optimize', async (req, res) => {
         }
     } catch (error: any) {
         console.error("Route handler error:", error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
+        return res.status(500).json({
             error: "Failed to optimize resume",
             details: error.message
-        }));
+        });
     }
 });
 
