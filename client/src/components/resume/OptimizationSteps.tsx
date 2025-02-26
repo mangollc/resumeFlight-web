@@ -92,7 +92,12 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                         confidence: 0
                       }
                     }}
-                    analysis={undefined}
+                    analysis={{
+                      strengths: optimizedResume.analysis?.strengths || [],
+                      improvements: optimizedResume.analysis?.improvements || [],
+                      gaps: optimizedResume.analysis?.gaps || [],
+                      suggestions: optimizedResume.analysis?.suggestions || []
+                    }}
                   />
                 </Card>
 

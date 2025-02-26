@@ -11,7 +11,6 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
-import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 
@@ -24,16 +23,10 @@ interface JobDetails {
   positionLevel?: string;
   keyRequirements?: string[];
   skillsAndTools?: string[];
-  workplaceType?: string; // Added to handle workplace type in location display
+  workplaceType?: string;
 }
 
-interface JobInputProps {
-  resumeId: number;
-  onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
-  initialJobDetails?: JobDetails;
-}
-
-const INITIAL_STEPS: ProgressStep[] = [
+const INITIAL_STEPS = [
   { id: "extract", label: "Extracting job details", status: "pending" },
   { id: "analyze", label: "Analyzing requirements", status: "pending" },
   { id: "optimize", label: "Optimizing resume", status: "pending" },
@@ -41,11 +34,17 @@ const INITIAL_STEPS: ProgressStep[] = [
 
 const UNSUPPORTED_JOB_SITES = [
   { domain: "indeed.com", name: "Indeed" },
-  { domain: "ziprecruiter.com", name: "ZipRecruiter" }
+  { domain: "ziprecruiter.com", name: "ZipRecruiter" },
 ];
 
 const TIMEOUT_MS = 180000; // 3 minutes timeout
 const MAX_RETRIES = 2;
+
+interface JobInputProps {
+  resumeId: number;
+  onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
+  initialJobDetails?: JobDetails;
+}
 
 export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
   const { toast } = useToast();
@@ -56,8 +55,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
-  const [uploadedResume, setUploadedResume] = useState({id: resumeId});
-  const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null); // Added state for optimized resume
+  const [uploadedResume, setUploadedResume] = useState({ id: resumeId });
 
 
   useEffect(() => {
@@ -69,10 +67,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   }, []);
 
   const updateStepStatus = (stepId: string, status: ProgressStep["status"]) => {
-    setProgressSteps(prev =>
-      prev.map(step =>
-        step.id === stepId ? { ...step, status } : step
-      )
+    setProgressSteps((prev) =>
+      prev.map((step) => (step.id === stepId ? { ...step, status } : step))
     );
   };
 
@@ -91,7 +87,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     setJobDescription("");
     setExtractedDetails(null);
     setActiveTab("url");
-    setOptimizedResume(null); //reset optimizedResume state
     handleCancel();
   };
 
@@ -102,31 +97,31 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       database: ["sql", "mongodb", "postgresql", "mysql"],
       cloud: ["aws", "azure", "gcp", "docker"],
       tools: ["git", "github", "jira", "webpack"],
-      soft: ["communication", "leadership", "teamwork"]
+      soft: ["communication", "leadership", "teamwork"],
     };
 
     const lowerSkill = skill.toLowerCase();
 
-    if (skillTypes.technical.some(s => lowerSkill.includes(s))) return "default";
-    if (skillTypes.framework.some(s => lowerSkill.includes(s))) return "secondary";
-    if (skillTypes.database.some(s => lowerSkill.includes(s))) return "destructive";
-    if (skillTypes.cloud.some(s => lowerSkill.includes(s))) return "outline";
-    if (skillTypes.tools.some(s => lowerSkill.includes(s))) return "ghost";
-    if (skillTypes.soft.some(s => lowerSkill.includes(s))) return "default";
+    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) return "default";
+    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) return "secondary";
+    if (skillTypes.database.some((s) => lowerSkill.includes(s))) return "destructive";
+    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) return "outline";
+    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) return "ghost";
+    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) return "default";
     return "default";
   };
 
   const isValidLinkedInUrl = (url: string): boolean => {
     try {
       const urlObj = new URL(url);
-      return urlObj.hostname.includes('linkedin.com') && urlObj.pathname.includes('/jobs/view/');
+      return urlObj.hostname.includes("linkedin.com") && urlObj.pathname.includes("/jobs/view/");
     } catch {
       return false;
     }
   };
 
   const checkUnsupportedJobSite = (url: string): string | null => {
-    const unsupportedSite = UNSUPPORTED_JOB_SITES.find(site =>
+    const unsupportedSite = UNSUPPORTED_JOB_SITES.find((site) =>
       url.toLowerCase().includes(site.domain)
     );
     return unsupportedSite?.name || null;
@@ -164,19 +159,19 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           }
 
           const params = new URLSearchParams();
-          if (data.jobUrl) params.append('jobUrl', data.jobUrl);
-          if (data.jobDescription) params.append('jobDescription', data.jobDescription);
+          if (data.jobUrl) params.append("jobUrl", data.jobUrl);
+          if (data.jobDescription) params.append("jobDescription", data.jobDescription);
 
           const baseUrl = window.location.origin;
           const url = `${baseUrl}/api/uploaded-resumes/${resumeId}/optimize?${params.toString()}`;
-          console.log('Creating EventSource with URL:', url);
+          console.log("Creating EventSource with URL:", url);
 
           const setupEventSource = () => {
             const evtSource = new EventSource(url);
             eventSourceRef.current = evtSource;
 
             const timeout = setTimeout(() => {
-              console.log('Request timed out');
+              console.log("Request timed out");
               evtSource.close();
               if (retryCount < MAX_RETRIES) {
                 retryCount++;
@@ -190,7 +185,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             evtSource.onmessage = (event) => {
               try {
                 const data = JSON.parse(event.data);
-                console.log('Received event:', data);
+                console.log("Received event:", data);
 
                 if (data.status === "error") {
                   clearTimeout(timeout);
@@ -220,10 +215,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                     resolve(data.optimizedResume);
                     break;
                   default:
-                    console.log('Unknown status:', data.status);
+                    console.log("Unknown status:", data.status);
                 }
               } catch (error) {
-                console.error('Event parsing error:', error);
+                console.error("Event parsing error:", error);
                 clearTimeout(timeout);
                 evtSource.close();
                 reject(error);
@@ -231,7 +226,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             };
 
             evtSource.onerror = (error) => {
-              console.error('EventSource error:', error);
+              console.error("EventSource error:", error);
               clearTimeout(timeout);
               evtSource.close();
 
@@ -245,14 +240,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             };
 
             evtSource.onopen = () => {
-              console.log('EventSource connection opened');
+              console.log("EventSource connection opened");
             };
           };
 
           setupEventSource();
-
         } catch (error) {
-          console.error('Mutation setup error:', error);
+          console.error("Mutation setup error:", error);
           reject(error);
         }
       });
@@ -260,7 +254,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     onSuccess: (data) => {
       try {
         if (!data) {
-          throw new Error('Invalid response format: missing data');
+          throw new Error("Invalid response format: missing data");
         }
 
         const details: JobDetails = {
@@ -272,12 +266,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           positionLevel: data.jobDetails?.positionLevel,
           keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
           skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : [],
-          workplaceType: data.jobDetails?.workplaceType //Added to handle workplace type
+          workplaceType: data.jobDetails?.workplaceType,
         };
 
         setExtractedDetails(details);
-        queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
-        setOptimizedResume(data); //Added to update optimizedResume state.
+        queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
         onOptimized(data, details);
 
         toast({
@@ -288,12 +281,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         setIsProcessing(false);
       } catch (error) {
-        console.error('Error processing optimization result:', error);
+        console.error("Error processing optimization result:", error);
         throw error;
       }
     },
     onError: (error: Error) => {
-      console.error('Mutation error:', error);
+      console.error("Mutation error:", error);
 
       toast({
         title: "Error",
@@ -303,10 +296,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       });
 
       setIsProcessing(false);
-      setProgressSteps(prev =>
-        prev.map(step => ({
+      setProgressSteps((prev) =>
+        prev.map((step) => ({
           ...step,
-          status: step.status === "pending" || step.status === "loading" ? "error" : step.status
+          status: step.status === "pending" || step.status === "loading" ? "error" : step.status,
         }))
       );
 
@@ -337,7 +330,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         return;
       }
 
-      if (jobUrl && !jobUrl.startsWith('http')) {
+      if (jobUrl && !jobUrl.startsWith("http")) {
         toast({
           title: "Error",
           description: "Please enter a valid URL starting with http:// or https://",
@@ -349,9 +342,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       setIsProcessing(true);
       setProgressSteps(INITIAL_STEPS);
 
-      fetchJobMutation.mutate(
-        activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
-      );
+      fetchJobMutation.mutate(activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() });
     } catch (error) {
       console.error("Error during form submission:", error);
       toast({
@@ -492,7 +483,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             )}
           </div>
 
-          {/* Required Skills & Tools */}
           {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
               <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
@@ -508,43 +498,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         </div>
       )}
 
-      {optimizedResume && !isProcessing && (
-        <div className="space-y-6">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <h3 className="text-xl font-semibold mb-4">Resume Optimization Results</h3>
-            <ResumeMetricsComparison
-              metrics={{
-                before: optimizedResume.metrics.before || {
-                  overall: 0,
-                  keywords: 0,
-                  skills: 0,
-                  experience: 0,
-                  education: 0,
-                  personalization: 0,
-                  aiReadiness: 0,
-                  confidence: 0
-                },
-                after: optimizedResume.metrics.after || {
-                  overall: 0,
-                  keywords: 0,
-                  skills: 0,
-                  experience: 0,
-                  education: 0,
-                  personalization: 0,
-                  aiReadiness: 0,
-                  confidence: 0
-                }
-              }}
-              analysis={{
-                strengths: optimizedResume.analysis?.strengths || [],
-                improvements: optimizedResume.analysis?.improvements || [],
-                gaps: optimizedResume.analysis?.gaps || [],
-                suggestions: optimizedResume.analysis?.suggestions || []
-              }}
-            />
-          </div>
-        </div>
-      )}
 
       <LoadingDialog
         open={isProcessing}
