@@ -145,6 +145,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
       const TIMEOUT_MS = 30000;
       
+      if (!resumeId) {
+        throw new Error("Resume ID is required");
+      }
+      
       return new Promise((resolve, reject) => {
         try {
           if (eventSourceRef.current) {
