@@ -143,28 +143,64 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
+      const TIMEOUT_MS = 30000;
+      
       return new Promise((resolve, reject) => {
         try {
           if (eventSourceRef.current) {
             eventSourceRef.current.close();
           }
 
-          const evtSource = new EventSource(`/api/resume/${uploadedResume.id}/optimize?` + 
-            new URLSearchParams(data as Record<string, string>));
+          if (data.jobUrl && !isValidLinkedInUrl(data.jobUrl)) {
+            throw new Error('Please provide a valid LinkedIn job posting URL');
+          }
 
+          const params = new URLSearchParams();
+          if (data.jobUrl) params.append('jobUrl', data.jobUrl);
+          if (data.jobDescription) params.append('jobDescription', data.jobDescription);
+
+          const evtSource = new EventSource(`/api/resume/${resumeId}/optimize?${params}`);
           eventSourceRef.current = evtSource;
 
+          const timeout = setTimeout(() => {
+            evtSource.close();
+            reject(new Error('Request timed out'));
+          }, TIMEOUT_MS);
+
           evtSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'complete') {
-              evtSource.close();
-              resolve(data);
-            } else if (data.type === 'progress') {
-              const step = INITIAL_STEPS.find(s => s.id === data.step);
-              if(step) {
-                updateStepStatus(data.step, data.status);
+            try {
+              const data = JSON.parse(event.data);
+              console.log('Received event:', data);
+
+              if (data.status === "started") {
+                updateStepStatus("extract", "loading");
+              } else if (data.status === "extracting_details") {
+                updateStepStatus("extract", "loading");
+              } else if (data.status === "analyzing_description") {
+                updateStepStatus("extract", "completed");
+                updateStepStatus("analyze", "loading");
+              } else if (data.status === "optimizing_resume") {
+                updateStepStatus("analyze", "completed");
+                updateStepStatus("optimize", "loading");
+              } else if (data.status === "completed") {
+                updateStepStatus("optimize", "completed");
+                clearTimeout(timeout);
+                evtSource.close();
+                resolve(data.optimizedResume);
+              } else if (data.status === "error") {
+                throw new Error(data.message || "Optimization failed");
               }
+            } catch (error) {
+              clearTimeout(timeout);
+              evtSource.close();
+              reject(error);
             }
+          };
+
+          evtSource.onerror = (error) => {
+            clearTimeout(timeout);
+            evtSource.close();
+            reject(new Error("Connection failed"));
           };
 
           evtSource.onerror = (error) => {

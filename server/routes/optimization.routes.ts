@@ -136,6 +136,17 @@ router.post('/resume/:id/optimize', async (req, res) => {
             return res.status(400).json({ error: "Invalid resume ID" });
         }
 
+        // Enable SSE
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        });
+
+        const sendEvent = (data: any) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
         const resume = await storage.getUploadedResume(resumeId);
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
