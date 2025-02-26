@@ -37,6 +37,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ResumeMetricsComparison } from "@/components/resume/ResumeMetricsComparison"; // Added import
 
 const jobProverbs = [
   "Your next career move starts with a great resume",
