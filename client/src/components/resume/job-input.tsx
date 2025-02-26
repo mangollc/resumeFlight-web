@@ -51,6 +51,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [isProcessing, setIsProcessing] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
+  const [uploadedResume, setUploadedResume] = useState({id: resumeId}); // Added state for resume ID
 
   useEffect(() => {
     return () => {
@@ -142,48 +143,27 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      const TIMEOUT_MS = 30000; // 30 second timeout
-      try {
-        if (eventSourceRef.current) {
-          eventSourceRef.current.close();
-        }
+      return new Promise((resolve, reject) => {
+        try {
+          if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+          }
 
-        // Validate LinkedIn URL if provided
-        if (data.jobUrl && !isValidLinkedInUrl(data.jobUrl)) {
-          throw new Error('Please provide a valid LinkedIn job posting URL');
-        }
+          const evtSource = new EventSource(`/api/resume/${uploadedResume.id}/optimize?` + 
+            new URLSearchParams(data as Record<string, string>));
 
-        console.log('Making optimization request...');
+          eventSourceRef.current = evtSource;
 
-        const evtSource = new EventSource(`/api/resume/${resumeId}/optimize?${new URLSearchParams(data)}`);
-        eventSourceRef.current = evtSource;
-
-        return new Promise((resolve, reject) => {
           evtSource.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              console.log('Received event:', data);
-
-              if (data.status === "started") {
-                updateStepStatus("extract", "loading");
-              } else if (data.status === "extracting_details") {
-                updateStepStatus("extract", "loading");
-              } else if (data.status === "analyzing_description") {
-                updateStepStatus("extract", "completed");
-                updateStepStatus("analyze", "loading");
-              } else if (data.status === "optimizing_resume") {
-                updateStepStatus("analyze", "completed");
-                updateStepStatus("optimize", "loading");
-              } else if (data.status === "completed") {
-                updateStepStatus("optimize", "completed");
-                evtSource.close();
-                resolve(data.optimizedResume);
-              } else if (data.status === "error") {
-                throw new Error("Optimization failed");
-              }
-            } catch (error) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'complete') {
               evtSource.close();
-              reject(error);
+              resolve(data);
+            } else if (data.type === 'progress') {
+              const step = INITIAL_STEPS.find(s => s.id === data.step);
+              if(step) {
+                updateStepStatus(data.step, data.status);
+              }
             }
           };
 
@@ -191,22 +171,22 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             console.error('EventSource error:', error);
             evtSource.close();
             setIsProcessing(false);
-            reject(new Error("Connection interrupted. Please try again."));
-            
-            toast({
-              title: "Connection Error",
-              description: "Failed to connect to optimization service. Please try again.",
-              variant: "destructive",
-            });
+            reject(new Error("Connection failed. Please try again."));
           };
-        });
-      } catch (error) {
-        console.error('Optimization error:', error);
-        if (error instanceof Error) {
-          throw error;
+
+          // Add timeout
+          setTimeout(() => {
+            if (evtSource.readyState !== EventSource.CLOSED) {
+              evtSource.close();
+              reject(new Error("Request timed out. Please try again."));
+            }
+          }, 30000);
+        } catch (error) {
+          console.error('Mutation error:', error);
+          setIsProcessing(false);
+          reject(error);
         }
-        throw new Error("An unexpected error occurred");
-      }
+      });
     },
     onSuccess: (data) => {
       try {
@@ -235,7 +215,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         });
 
         setIsProcessing(false);
-        onOptimized(data, details);
+        onOptimized(data.optimizedResume, details);
       } catch (error) {
         console.error('Error processing optimization result:', error);
         throw error;
