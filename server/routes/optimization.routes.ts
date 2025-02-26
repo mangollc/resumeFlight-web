@@ -12,6 +12,43 @@ import { calculateMatchScores } from '../utils/scoring';
 
 const router = Router();
 
+// Helper function to standardize job details processing
+async function processJobDetails(jobDescription?: string, jobUrl?: string): Promise<JobDetails> {
+  try {
+    let details: JobDetails;
+
+    if (jobUrl) {
+      details = await extractJobDetails(jobUrl);
+      if (!details.description) {
+        throw new Error("Failed to extract job description from URL");
+      }
+    } else if (jobDescription) {
+      details = await analyzeJobDescription(jobDescription);
+      if (!details.description) {
+        throw new Error("Job description is required");
+      }
+    } else {
+      throw new Error("Either job description or URL is required");
+    }
+
+    // Ensure consistent structure
+    return {
+      title: details.title || '',
+      company: details.company || '',
+      location: details.location || '',
+      description: details.description,
+      requirements: details.requirements || [],
+      skillsAndTools: details.skillsAndTools || [],
+      experience: details.experience || '',
+      type: details.type || '',
+      url: jobUrl || ''
+    };
+  } catch (error: any) {
+    console.error('Error processing job details:', error);
+    throw new Error(`Failed to process job details: ${error.message}`);
+  }
+}
+
 // Get optimized resumes
 router.get('/optimized-resumes', async (req, res) => {
     try {
@@ -84,73 +121,60 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
         try {
             sendEvent({ status: "started" });
 
-            // Extract job details
+            // Extract job details using unified processing
             sendEvent({ status: "extracting_details" });
-            let jobDetails: JobDetails;
-            try {
-                if (jobUrl) {
-                    jobDetails = await extractJobDetails(jobUrl);
-                } else if (jobDescription) {
-                    jobDetails = await analyzeJobDescription(jobDescription);
-                } else {
-                    throw new Error("Either job description or URL is required");
+            const jobDetails = await processJobDetails(jobDescription, jobUrl);
+
+            // Calculate initial scores
+            sendEvent({ status: "analyzing_description" });
+            const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
+
+            // Optimize resume
+            sendEvent({ status: "optimizing_resume" });
+            const optimizationResult = await optimizeResume(
+                resume.content,
+                jobDetails.description
+            );
+
+            // Calculate optimized scores
+            const optimizedScores = await calculateMatchScores(
+                optimizationResult.optimizedContent,
+                jobDetails.description,
+                true
+            );
+
+            const optimizedResume = await storage.createOptimizedResume({
+                userId: req.user!.id,
+                sessionId: req.session.id,
+                uploadedResumeId: resume.id,
+                content: optimizationResult.optimizedContent,
+                originalContent: resume.content,
+                jobDescription: jobDetails.description,
+                jobUrl: jobUrl || null,
+                jobDetails,
+                metadata: {
+                    filename: resume.metadata.filename,
+                    optimizedAt: new Date().toISOString(),
+                    version: '1.0'
+                },
+                metrics: {
+                    before: originalScores,
+                    after: optimizedScores
+                },
+                analysis: {
+                    strengths: optimizationResult.analysis.strengths,
+                    improvements: optimizationResult.analysis.improvements,
+                    gaps: optimizationResult.analysis.gaps,
+                    suggestions: optimizationResult.analysis.suggestions
                 }
+            });
 
-                if (!jobDetails || !jobDetails.description) {
-                    throw new Error("Failed to obtain job description from the provided source");
-                }
-
-                // Calculate initial scores
-                sendEvent({ status: "analyzing_description" });
-                const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
-
-                // Optimize resume
-                sendEvent({ status: "optimizing_resume" });
-                const optimizationResult = await optimizeResume(
-                    resume.content,
-                    jobDetails.description
-                );
-
-                // Calculate optimized scores
-                const optimizedScores = await calculateMatchScores(optimizationResult.optimizedContent, jobDetails.description, true);
-
-                const optimizedResume = await storage.createOptimizedResume({
-                    userId: req.user!.id,
-                    sessionId: req.session.id,
-                    uploadedResumeId: resume.id,
-                    content: optimizationResult.optimizedContent,
-                    originalContent: resume.content,
-                    jobDescription: jobDetails.description,
-                    jobUrl: jobUrl || null,
-                    jobDetails,
-                    metadata: {
-                        filename: resume.metadata.filename,
-                        optimizedAt: new Date().toISOString(),
-                        version: '1.0'
-                    },
-                    metrics: {
-                        before: originalScores,
-                        after: optimizedScores
-                    },
-                    analysis: {
-                        strengths: optimizationResult.analysis.strengths,
-                        improvements: optimizationResult.analysis.improvements,
-                        gaps: optimizationResult.analysis.gaps,
-                        suggestions: optimizationResult.analysis.suggestions
-                    }
-                });
-
-                // Send completion status with results
-                sendEvent({ 
-                    status: "completed",
-                    optimizedResume,
-                    changes: optimizationResult.changes
-                });
-
-            } catch (error: any) {
-                console.error('Job details extraction error:', error);
-                throw error;
-            }
+            // Send completion status with results
+            sendEvent({ 
+                status: "completed",
+                optimizedResume,
+                changes: optimizationResult.changes
+            });
 
             return res.end();
         } catch (error: any) {
