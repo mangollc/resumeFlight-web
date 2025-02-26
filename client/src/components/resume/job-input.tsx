@@ -4,16 +4,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { OptimizedResume } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 
 interface JobDetails {
   title: string;
@@ -488,13 +487,17 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             )}
           </div>
 
-          {extractedDetails && (
+          {/* Required Skills & Tools */}
+          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-              <h3 className="text-xl font-semibold mb-4">Resume Match Analysis</h3>
-              <ResumeMetricsComparison
-                before={extractedDetails.skillsAndTools}
-                after={extractedDetails.skillsAndTools}
-              />
+              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+              <div className="flex flex-wrap gap-2">
+                {extractedDetails.skillsAndTools.map((skill, index) => (
+                  <Badge key={index} variant={getSkillBadgeVariant(skill)}>
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
         </div>
