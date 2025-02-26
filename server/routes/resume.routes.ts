@@ -64,14 +64,15 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
             return res.status(400).json({ error: "No file uploaded" });
         }
 
-        const content = await parseResume(req.file.buffer, req.file.mimetype);
+        const { content, contactInfo } = await parseResume(req.file.buffer, req.file.mimetype);
         const resumeData = insertUploadedResumeSchema.parse({
             content,
             metadata: {
                 filename: req.file.originalname,
                 fileType: req.file.mimetype,
                 uploadedAt: new Date().toISOString()
-            }
+            },
+            contactInfo
         });
 
         const resume = await storage.createUploadedResume({
