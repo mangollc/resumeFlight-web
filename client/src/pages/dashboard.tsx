@@ -37,9 +37,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ReviewSection } from "@/components/resume/review-section"; // Added import
-
-
 
 const jobProverbs = [
   "Your next career move starts with a great resume",
@@ -171,7 +168,7 @@ export default function Dashboard() {
 
   // Add loading state for review mode
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
-const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   // Initialize all state variables
   const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
@@ -193,11 +190,11 @@ const [error, setError] = useState<Error | null>(null);
     optimizationSteps.map(step => ({ ...step, status: "pending" as const }))
   );
 
-const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressStep[]>(
+  const [currentCoverLetterSteps, setCurrentCoverLetterSteps] = useState<ProgressStep[]>(
     coverLetterSteps.map(step => ({ ...step, status: "pending" as const }))
   );
 
-const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
+  const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
 
 
@@ -656,11 +653,48 @@ const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
     if (!optimizedResume) return null;
 
     return (
-      <ReviewSection
-        optimizedResume={optimizedResume}
-        coverLetter={coverLetter}
-        onDownload={handleDownload}
-      />
+      <div className="space-y-6">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">Optimized Resume</h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleDownload(optimizedResume.id)}
+              disabled={isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download
+            </Button>
+          </div>
+          <Preview resume={optimizedResume} showMetrics={true} />
+        </div>
+        {coverLetter && (
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">Cover Letter</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownload(optimizedResume.id)}
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Download Package
+              </Button>
+            </div>
+            <CoverLetterComponent coverLetter={coverLetter} />
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -677,11 +711,7 @@ const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
         );
       }
       return optimizedResume ? (
-        <ReviewSection
-          optimizedResume={optimizedResume}
-          coverLetter={coverLetter}
-          onDownload={handleDownload}
-        />
+        renderOptimizedContent()
       ) : null;
     }
 
@@ -884,8 +914,7 @@ const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
                           </div>
                         )}
                       </div>
-                    </div>
-                  )}
+                    </div                  )}
 
                 </div>
                 {renderNavigation()}
@@ -902,7 +931,8 @@ const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
-                  initialJobDetails={jobDetails || undefined}/>
+                  initialJobDetails={jobDetails}
+                />
                 {renderNavigation()}
               </CardContent>
             </Card>
