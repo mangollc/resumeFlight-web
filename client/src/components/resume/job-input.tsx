@@ -23,6 +23,7 @@ interface JobDetails {
   positionLevel?: string;
   keyRequirements?: string[];
   skillsAndTools?: string[];
+  workplaceType?: string; // Added to handle workplace type in location display
 }
 
 interface JobInputProps {
@@ -266,7 +267,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           description: data.jobDetails?.description,
           positionLevel: data.jobDetails?.positionLevel,
           keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
-          skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : []
+          skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : [],
+          workplaceType: data.jobDetails?.workplaceType //Added to handle workplace type
         };
 
         setExtractedDetails(details);
@@ -442,27 +444,55 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       {extractedDetails && !isProcessing && (
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
           <div className="grid gap-4">
-            {Object.entries(extractedDetails)
-              .filter(([key]) => !Array.isArray(extractedDetails[key as keyof JobDetails]) && key !== 'description' && key !== 'roleDetails')
-              .map(([key, value]) => value && (
-                <div key={key}>
-                  <p className="font-medium mb-1">{key.charAt(0).toUpperCase() + key.slice(1)}</p>
-                  <p className="text-sm text-muted-foreground">{value}</p>
-                </div>
-              ))}
+            {/* Title */}
+            {extractedDetails.title && (
+              <div>
+                <p className="font-medium mb-1">Title</p>
+                <p className="text-sm text-muted-foreground">{extractedDetails.title}</p>
+              </div>
+            )}
+
+            {/* Position Level */}
+            {extractedDetails.positionLevel && (
+              <div>
+                <p className="font-medium mb-1">Position Level</p>
+                <p className="text-sm text-muted-foreground">{extractedDetails.positionLevel}</p>
+              </div>
+            )}
+
+            {/* Company */}
+            {extractedDetails.company && (
+              <div>
+                <p className="font-medium mb-1">Company</p>
+                <p className="text-sm text-muted-foreground">{extractedDetails.company}</p>
+              </div>
+            )}
+
+            {/* Location */}
+            {extractedDetails.location && (
+              <div>
+                <p className="font-medium mb-1">Location</p>
+                <p className="text-sm text-muted-foreground">
+                  {extractedDetails.location}
+                  {extractedDetails.workplaceType && (
+                    <Badge variant="outline" className="ml-2">
+                      {extractedDetails.workplaceType}
+                    </Badge>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Salary if available */}
+            {extractedDetails.salary && (
+              <div>
+                <p className="font-medium mb-1">Salary</p>
+                <p className="text-sm text-muted-foreground">{extractedDetails.salary}</p>
+              </div>
+            )}
           </div>
 
-          {extractedDetails.keyRequirements && extractedDetails.keyRequirements.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Key Requirements</h4>
-              <ul className="list-disc list-inside space-y-2">
-                {extractedDetails.keyRequirements.map((requirement, index) => (
-                  <li key={index} className="text-muted-foreground">{requirement}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
+          {/* Required Skills & Tools */}
           {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
             <div>
               <h4 className="font-semibold mb-2">Required Skills & Tools</h4>

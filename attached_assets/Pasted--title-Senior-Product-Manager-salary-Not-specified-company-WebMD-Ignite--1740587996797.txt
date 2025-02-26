@@ -1,0 +1,95 @@
+{
+  "title": "Senior Product Manager",
+  "salary": "Not specified",
+  "company": "WebMD Ignite",
+  "location": "Remote or Hybrid (Not specified)",
+  "description": "WebMD Ignite, a division of WebMD and Internet Brands, partners with healthcare organizations to guide individuals to better health at all stages of their journey—from discovery to recovery. Our portfolio includes industry-leading brands such as WebMD, Medscape, Krames, PulsePoint, Vitals, The Wellness Network, Mercury Healthcare, and Healthwise. We provide comprehensive solutions that engage users with timely, relevant messaging, optimizing experiences and outcomes while driving loyalty and lifetime value for clients. Learn more at WebMDIgnite.com.",
+  "positionLevel": "Senior",
+  "skillsAndTools": [
+    "Product Development",
+    "Agile Methodologies",
+    "Market Research",
+    "FHIR (Fast Healthcare Interoperability Resources)",
+    "Healthcare Technology",
+    "Marketing Technology",
+    "Interoperability Standards",
+    "Product Roadmapping",
+    "Go-to-Market Strategy",
+    "Stakeholder Management"
+  ],
+  "keyRequirements": [
+    "Lead planning, development, launch, and marketing of new products and enhancements",
+    "Focus on expanding product interoperability with healthcare and marketing technologies",
+    "Serve as a technical leader within cross-functional teams",
+    "Collaborate with stakeholders to define revenue forecasts and customer satisfaction metrics",
+    "Manage product lifecycle from ideation to post-launch analysis"
+  ],
+  "_internalDetails": {
+    "benefits": [
+      "Medical Insurance",
+      "Vision Insurance",
+      "Dental Insurance",
+      "401(k) Retirement Plan"
+    ],
+    "department": "Product Management",
+    "industries": [
+      "Healthcare Technology",
+      "Digital Marketing",
+      "Software Development"
+    ],
+    "softSkills": [
+      "Leadership",
+      "Communication",
+      "Problem-Solving",
+      "Time Management",
+      "Collaboration"
+    ],
+    "roleDetails": {
+      "duties": [
+        "Lead discovery process and market research to identify customer requirements",
+        "Define product vision and strategy aligned with business goals",
+        "Collaborate with cross-functional teams to develop revenue forecasts and ROI analysis",
+        "Manage end-to-end product lifecycle, including new products and enhancements",
+        "Create and maintain detailed product roadmaps",
+        "Ensure alignment between stakeholders on product requirements and specifications",
+        "Define integration points with third-party systems and APIs",
+        "Partner with marketing to craft go-to-market strategies and positioning",
+        "Serve as a subject matter expert on product features, usage, and benefits"
+      ],
+      "qualifications": [
+        "Bachelor’s Degree in Business, Marketing, or related field (or equivalent experience)",
+        "5+ years of experience in product management, product development, or Agile environments",
+        "Proven expertise in healthcare technology, FHIR standards, and marketing software",
+        "Strong analytical skills to assess product performance and market trends"
+      ],
+      "responsibilities": [
+        "Conduct market research and analyze customer needs",
+        "Develop and communicate product vision to internal and external stakeholders",
+        "Collaborate with engineering teams during sprints, development, and testing phases",
+        "Translate customer feedback into actionable product improvements",
+        "Train and mentor team members on best practices and processes"
+      ]
+    },
+    "requirements": [
+      "Proficiency in healthcare domain knowledge, regulations, and associated technologies",
+      "Experience with FHIR standards and healthcare interoperability frameworks",
+      "Ability to analyze product performance data and recommend improvements",
+      "Strong prioritization and time management skills to meet deadlines",
+      "Excellent written and verbal communication skills for stakeholder engagement",
+      "Adherence to design principles and organizational policies",
+      "Creative problem-solving to translate ideas into innovative solutions"
+    ],
+    "workplaceType": "Remote or Hybrid",
+    "fullDescription": "The Senior Product Manager will lead the planning, development, launch, and marketing of new products and significant enhancements. This role focuses on expanding product interoperability with healthcare and marketing technologies, serving as a technical leader within the team. The ideal candidate will have extensive experience in product management, Agile methodologies, and healthcare technology.",
+    "technicalSkills": [
+      "Agile Project Management",
+      "Product Lifecycle Management",
+      "Healthcare Interoperability (FHIR)",
+      "Market Analysis",
+      "Go-to-Market Strategy Development",
+      "Third-Party API Integration"
+    ],
+    "reportingStructure": "Reports to Director of Product Management (assumed)",
+    "travelRequirements": "Minimal (if any)"
+  }
+}
