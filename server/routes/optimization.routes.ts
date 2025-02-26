@@ -55,7 +55,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             return res.status(403).json({ error: "Unauthorized access" });
         }
 
-        // Enable SSE with proper headers
+        // Enable SSE
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -82,7 +82,6 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
         }
 
         try {
-            // Send initial status
             sendEvent({ status: "started" });
 
             // Extract job details
@@ -101,24 +100,25 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                     throw new Error("Failed to obtain job description from the provided source");
                 }
 
-                // Analyze description
+                // Calculate initial scores
                 sendEvent({ status: "analyzing_description" });
                 const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
 
                 // Optimize resume
                 sendEvent({ status: "optimizing_resume" });
-                const { optimizedContent, changes, analysis } = await optimizeResume(
+                const optimizationResult = await optimizeResume(
                     resume.content,
                     jobDetails.description
                 );
 
-                const optimizedScores = await calculateMatchScores(optimizedContent, jobDetails.description, true);
+                // Calculate optimized scores
+                const optimizedScores = await calculateMatchScores(optimizationResult.optimizedContent, jobDetails.description, true);
 
                 const optimizedResume = await storage.createOptimizedResume({
                     userId: req.user!.id,
                     sessionId: req.session.id,
                     uploadedResumeId: resume.id,
-                    content: optimizedContent,
+                    content: optimizationResult.optimizedContent,
                     originalContent: resume.content,
                     jobDescription: jobDetails.description,
                     jobUrl: jobUrl || null,
@@ -133,10 +133,10 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                         after: optimizedScores
                     },
                     analysis: {
-                        strengths: analysis.strengths || [],
-                        improvements: analysis.improvements || [],
-                        gaps: analysis.gaps || [],
-                        suggestions: analysis.suggestions || []
+                        strengths: optimizationResult.analysis.strengths,
+                        improvements: optimizationResult.analysis.improvements,
+                        gaps: optimizationResult.analysis.gaps,
+                        suggestions: optimizationResult.analysis.suggestions
                     }
                 });
 
@@ -144,7 +144,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 sendEvent({ 
                     status: "completed",
                     optimizedResume,
-                    changes 
+                    changes: optimizationResult.changes
                 });
 
             } catch (error: any) {

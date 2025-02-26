@@ -31,41 +31,30 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   originalContent: text("original_content").notNull(),
   jobDescription: text("job_description").notNull(),
   jobUrl: text("job_url"),
-  jobDetails: jsonb("job_details").notNull(),
-  metadata: jsonb("metadata").notNull(),
+  jobDetails: jsonb("job_details").notNull().default({}),
+  metadata: jsonb("metadata").notNull().default({}),
   version: text("version").notNull().default('1.0'),
-  versionHistory: jsonb("version_history").notNull().default([{
-    version: '1.0',
-    content: '',
-    timestamp: '',
-    changes: [],
-    confidence: 0,
-    metrics: {
-      before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
-      after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
-    }
-  }]),
   metrics: jsonb("metrics").notNull().default({
-    before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
-    after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
-  }),
-  versionMetrics: jsonb("version_metrics").notNull().default([{
-    version: '1.0',
-    metrics: {
-      before: { overall: 0, keywords: 0, skills: 0, experience: 0 },
-      after: { overall: 0, keywords: 0, skills: 0, experience: 0 }
+    before: {
+      overall: 0,
+      keywords: 0,
+      skills: 0,
+      experience: 0,
+      education: 0,
+      personalization: 0,
+      aiReadiness: 0,
+      confidence: 0
     },
-    confidence: 0,
-    timestamp: ''
-  }]),
-  highlights: jsonb("highlights").notNull().default([]),
-  confidence: integer("confidence").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  contactInfo: jsonb("contact_info").notNull().default({
-    fullName: '',
-    email: '',
-    phone: '',
-    address: ''
+    after: {
+      overall: 0,
+      keywords: 0,
+      skills: 0,
+      experience: 0,
+      education: 0,
+      personalization: 0,
+      aiReadiness: 0,
+      confidence: 0
+    }
   }),
   analysis: jsonb("analysis").notNull().default({
     strengths: [],
@@ -73,6 +62,13 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     gaps: [],
     suggestions: []
   }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  contactInfo: jsonb("contact_info").notNull().default({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: ''
+  })
 });
 
 export const resumeVersionScores = pgTable("resume_version_scores", {

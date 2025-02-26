@@ -217,11 +217,11 @@ export class DatabaseStorage implements IStorage {
           content: resume.content,
           originalContent: resume.originalContent,
           jobDescription: resume.jobDescription,
-          jobUrl: resume.jobUrl,
-          jobDetails: resume.jobDetails,
-          metadata: resume.metadata,
+          jobUrl: resume.jobUrl || null,
+          jobDetails: resume.jobDetails || {},
+          metadata: resume.metadata || {},
           metrics: {
-            before: resume.metrics.before || {
+            before: {
               overall: 0,
               keywords: 0,
               skills: 0,
@@ -229,9 +229,10 @@ export class DatabaseStorage implements IStorage {
               education: 0,
               personalization: 0,
               aiReadiness: 0,
-              confidence: 0
+              confidence: 0,
+              ...(resume.metrics?.before || {})
             },
-            after: resume.metrics.after || {
+            after: {
               overall: 0,
               keywords: 0,
               skills: 0,
@@ -239,7 +240,8 @@ export class DatabaseStorage implements IStorage {
               education: 0,
               personalization: 0,
               aiReadiness: 0,
-              confidence: 0
+              confidence: 0,
+              ...(resume.metrics?.after || {})
             }
           },
           analysis: {
@@ -250,15 +252,26 @@ export class DatabaseStorage implements IStorage {
           },
           version: '1.0',
           createdAt: await getCurrentESTTimestamp(),
+          contactInfo: {
+            fullName: '',
+            email: '',
+            phone: '',
+            address: ''
+          }
         })
         .returning();
+
+      if (!result) {
+        throw new Error('Failed to create optimized resume: No result returned');
+      }
 
       return {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        analysis: result.analysis as OptimizedResume['analysis']
+        analysis: result.analysis as OptimizedResume['analysis'],
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo']
       };
     } catch (error) {
       console.error('Error creating optimized resume:', error);
