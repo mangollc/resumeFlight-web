@@ -63,65 +63,87 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
               </Alert>
             )}
 
-            {/* Show metrics after optimization */}
-            {step.id === "optimize" && step.status === "completed" && optimizedResume && (
-              <Card className="p-6 mt-4">
-                <h4 className="text-lg font-semibold mb-4">Optimization Results</h4>
-                <ResumeMetricsComparison
-                  metrics={optimizedResume.metrics}
-                  analysis={undefined}  
-                />
-              </Card>
-            )}
+            {/* Show all metrics and analysis in review step */}
+            {step.id === "review" && step.status === "completed" && optimizedResume && (
+              <div className="space-y-6 mt-4">
+                {/* Metrics Section */}
+                <Card className="p-6">
+                  <h4 className="text-lg font-semibold mb-4">Resume Optimization Results</h4>
+                  <ResumeMetricsComparison
+                    metrics={{
+                      before: optimizedResume.metrics.before || {
+                        overall: 0,
+                        keywords: 0,
+                        skills: 0,
+                        experience: 0,
+                        education: 0,
+                        personalization: 0,
+                        aiReadiness: 0,
+                        confidence: 0
+                      },
+                      after: optimizedResume.metrics.after || {
+                        overall: 0,
+                        keywords: 0,
+                        skills: 0,
+                        experience: 0,
+                        education: 0,
+                        personalization: 0,
+                        aiReadiness: 0,
+                        confidence: 0
+                      }
+                    }}
+                    analysis={undefined}
+                  />
+                </Card>
 
-            {/* Show analysis in step 3 */}
-            {step.id === "review" && step.status === "completed" && optimizedResume?.analysis && (
-              <Card className="p-6 mt-4">
-                <h4 className="text-lg font-semibold mb-4">Resume Analysis</h4>
-                <div className="space-y-6">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {/* Strengths */}
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm">Strengths</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis.strengths.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
-                    </div>
+                {/* Analysis Section */}
+                <Card className="p-6">
+                  <h4 className="text-lg font-semibold mb-4">Resume Analysis</h4>
+                  <div className="space-y-6">
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {/* Strengths */}
+                      <div className="space-y-2">
+                        <h5 className="font-semibold text-sm">Strengths</h5>
+                        <ul className="list-disc list-inside space-y-1">
+                          {optimizedResume.analysis?.strengths?.map((item: string, idx: number) => (
+                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                    {/* Improvements */}
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm">Improvements</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis.improvements.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
-                    </div>
+                      {/* Improvements */}
+                      <div className="space-y-2">
+                        <h5 className="font-semibold text-sm">Improvements</h5>
+                        <ul className="list-disc list-inside space-y-1">
+                          {optimizedResume.analysis?.improvements?.map((item: string, idx: number) => (
+                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                    {/* Gaps */}
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm">Gaps</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis.gaps.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
-                    </div>
+                      {/* Gaps */}
+                      <div className="space-y-2">
+                        <h5 className="font-semibold text-sm">Gaps</h5>
+                        <ul className="list-disc list-inside space-y-1">
+                          {optimizedResume.analysis?.gaps?.map((item: string, idx: number) => (
+                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
 
-                    {/* Suggestions */}
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm">Suggestions</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis.suggestions.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
+                      {/* Suggestions */}
+                      <div className="space-y-2">
+                        <h5 className="font-semibold text-sm">Suggestions</h5>
+                        <ul className="list-disc list-inside space-y-1">
+                          {optimizedResume.analysis?.suggestions?.map((item: string, idx: number) => (
+                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              </div>
             )}
           </div>
         ))}
