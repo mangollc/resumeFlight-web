@@ -985,10 +985,10 @@ export default function Dashboard() {
                   )}
                 </div>
                 {!coverLetter ? (
-                  <CoverLetter
-                    resume={optimizedResume}
-                    onGenerated={handleCoverLetterGenerated}
-                  />
+                    <CoverLetterComponent
+                      resume={optimizedResume}
+                      onGenerated={handleCoverLetterGenerated}
+                    />
                 ) : (
                   <div className="mt-6 space-y-8">
                     <CoverLetterComponent
