@@ -6,17 +6,20 @@ export async function calculateMatchScores(
   jobDescription: string,
   optimized: boolean = false
 ): Promise<any> {
-  // Stub implementation with realistic-looking scores
+  // Add randomization to base score to simulate realistic variations
   const baseScore = optimized ? 75 : 50;
-  
+
+  // Helper function to round scores
+  const roundScore = (score: number) => Math.round(score);
+
   return {
-    keywords: baseScore + Math.random() * 10,
-    skills: baseScore + Math.random() * 10,
-    experience: baseScore + Math.random() * 10,
-    education: baseScore + Math.random() * 10,
-    personalization: baseScore + Math.random() * 10,
-    aiReadiness: baseScore + Math.random() * 10,
-    overall: baseScore + Math.random() * 10,
-    confidence: 85 + Math.random() * 10
+    keywords: roundScore(baseScore + Math.random() * 10),
+    skills: roundScore(baseScore + Math.random() * 10),
+    experience: roundScore(baseScore + Math.random() * 10),
+    education: roundScore(baseScore + Math.random() * 10),
+    personalization: roundScore(baseScore + Math.random() * 10),
+    aiReadiness: roundScore(baseScore + Math.random() * 10),
+    overall: roundScore(baseScore + Math.random() * 10),
+    confidence: roundScore(85 + Math.random() * 10)
   };
 }

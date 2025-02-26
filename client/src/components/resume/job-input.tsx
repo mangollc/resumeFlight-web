@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 
 interface JobDetails {
   title: string;
@@ -442,9 +443,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       </form>
 
       {extractedDetails && !isProcessing && (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-          <div className="grid gap-4">
-            {/* Title */}
+        <div className="space-y-6">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
             {extractedDetails.title && (
               <div>
                 <p className="font-medium mb-1">Title</p>
@@ -452,7 +452,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             )}
 
-            {/* Position Level */}
             {extractedDetails.positionLevel && (
               <div>
                 <p className="font-medium mb-1">Position Level</p>
@@ -460,7 +459,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             )}
 
-            {/* Company */}
             {extractedDetails.company && (
               <div>
                 <p className="font-medium mb-1">Company</p>
@@ -468,7 +466,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             )}
 
-            {/* Location */}
             {extractedDetails.location && (
               <div>
                 <p className="font-medium mb-1">Location</p>
@@ -483,7 +480,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             )}
 
-            {/* Salary if available */}
             {extractedDetails.salary && (
               <div>
                 <p className="font-medium mb-1">Salary</p>
@@ -492,17 +488,13 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             )}
           </div>
 
-          {/* Required Skills & Tools */}
-          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
-            <div>
-              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-              <div className="flex flex-wrap gap-2">
-                {extractedDetails.skillsAndTools.map((skill, index) => (
-                  <Badge key={index} variant={getSkillBadgeVariant(skill)}>
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
+          {extractedDetails && (
+            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+              <h3 className="text-xl font-semibold mb-4">Resume Match Analysis</h3>
+              <ResumeMetricsComparison
+                before={extractedDetails.skillsAndTools}
+                after={extractedDetails.skillsAndTools}
+              />
             </div>
           )}
         </div>
