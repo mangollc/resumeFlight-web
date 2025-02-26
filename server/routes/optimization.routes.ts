@@ -151,13 +151,15 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders(); // Flush the headers to establish SSE with client
+        res.flushHeaders();
 
         const sendEvent = (data: any) => {
             res.write(`data: ${JSON.stringify(data)}\n\n`);
         };
 
-        const { jobDescription, jobUrl } = req.query;
+        const jobDescription = req.query.jobDescription as string;
+        const jobUrl = req.query.jobUrl as string;
+
         if (!jobDescription && !jobUrl) {
             sendEvent({ status: "error", message: "Job description or URL is required" });
             return res.end();
@@ -169,22 +171,33 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
             // Extract job details
             sendEvent({ status: "extracting_details" });
-            const jobDetails = jobUrl 
-                ? await extractJobDetails(jobUrl as string)
-                : await analyzeJobDescription(jobDescription as string);
+            let jobDetails;
+            if (jobUrl) {
+                jobDetails = await extractJobDetails(jobUrl);
+            } else if (jobDescription) {
+                jobDetails = await analyzeJobDescription(jobDescription);
+            } else {
+                throw new Error("Either job description or URL is required");
+            }
+
+            // Use jobDetails.description or provided jobDescription
+            const descriptionToUse = jobDetails.description || jobDescription;
+            if (!descriptionToUse) {
+                throw new Error("Failed to obtain job description");
+            }
 
             // Analyze description
             sendEvent({ status: "analyzing_description" });
-            const originalScores = await calculateMatchScores(resume.content, jobDescription as string);
+            const originalScores = await calculateMatchScores(resume.content, descriptionToUse);
 
             // Optimize resume
             sendEvent({ status: "optimizing_resume" });
-            const { optimizedContent, changes } = await optimizeResume(
+            const { optimizedContent, changes, matchScore } = await optimizeResume(
                 resume.content,
-                jobDescription as string
+                descriptionToUse
             );
 
-            const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription as string, true);
+            const optimizedScores = await calculateMatchScores(optimizedContent, descriptionToUse, true);
 
             const optimizedResume = await storage.createOptimizedResume({
                 userId: req.user!.id,
@@ -192,8 +205,8 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 uploadedResumeId: resume.id,
                 content: optimizedContent,
                 originalContent: resume.content,
-                jobDescription: jobDescription as string,
-                jobUrl: jobUrl ? (jobUrl as string) : null,
+                jobDescription: descriptionToUse,
+                jobUrl: jobUrl || null,
                 jobDetails,
                 metadata: {
                     filename: resume.metadata.filename,

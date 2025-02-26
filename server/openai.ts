@@ -9,8 +9,14 @@ if (!process.env.OPENAI_API_KEY) {
 
 export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// Utility function to split text into chunks with optimized size for GPT-4o
-function splitIntoChunks(text: string, maxChunkSize: number = 16000): string[] {
+/**
+ * Utility function to split text into chunks with optimized size for GPT-4o
+ */
+function splitIntoChunks(text: string | undefined, maxChunkSize: number = 16000): string[] {
+  if (!text) {
+    throw new Error("Text content is required for splitting into chunks");
+  }
+
   const chunks: string[] = [];
   const paragraphs = text.split("\n\n");
   let currentChunk = "";
@@ -144,7 +150,11 @@ export async function optimizeResume(
   resumeText: string,
   jobDescription: string,
   version?: number,
-) {
+): Promise<{ optimizedContent: string; changes: string[]; matchScore?: number }> {
+  if (!resumeText || !jobDescription) {
+    throw new Error("Both resume text and job description are required for optimization");
+  }
+
   try {
     const optimizationVersion = version || 1.0;
     const resumeChunks = splitIntoChunks(resumeText);
@@ -281,6 +291,7 @@ Scoring Guidelines:
           },
         ],
         response_format: { type: "json_object" },
+        max_tokens: 4000,
         timeout: 30000, // 30 second timeout
         max_retries: 3,
         temperature: 0.3,
@@ -296,8 +307,6 @@ Scoring Guidelines:
         optimizedChunks.push(result.optimizedContent || "");
         allChanges.push(...(result.changes || []));
         overallMatchScore += result.sectionScore || 0;
-
-
       } catch (error) {
         console.error('[Optimize] Failed to parse response');
         throw new Error('Failed to parse optimization response');
@@ -313,7 +322,6 @@ Scoring Guidelines:
       optimizedContent: optimizedChunks.join("\n\n").trim(),
       changes: allChanges,
       matchScore: finalScore,
-
     };
   } catch (error: any) {
     console.error("[Optimize] Error:", error);
