@@ -7,7 +7,11 @@ if (!process.env.OPENAI_API_KEY) {
   );
 }
 
-export const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+export const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY,
+  maxRetries: 3,
+  timeout: 30000 // 30 seconds
+});
 
 /**
  * Utility function to split text into chunks with optimized size for GPT-4o
@@ -125,8 +129,6 @@ Ensure each score is calculated based on:
           },
         ],
         response_format: { type: "json_object" },
-        timeout: 30000, // 30 second timeout
-        max_retries: 3,
       });
 
       const content = response.choices[0].message.content;
@@ -199,85 +201,12 @@ Follow these optimization guidelines:
    - Add project scale indicators (team size, budget, timeline)
    - Emphasize cross-functional collaboration examples
 
-3. Focus optimization on:
-   - Incorporating key job requirements naturally into work experience descriptions
-   - Using industry-specific language and terminology from the job description
-   - Matching relevant skills to job requirements with specific examples
-   - Improving bullet point structure and quantifiable achievements
-   - Enhancing keyword optimization for ATS
-   - Making accomplishments more measurable and impactful
-   - Ensuring each experience demonstrates relevant skills for the position
-
-4. Writing Style:
-   - Avoid AI-like repetitive patterns
-   - Use varied sentence structures
-   - Incorporate industry jargon naturally
-   - Keep descriptions concise but detailed
-   - Maintain a conversational yet professional tone
-   - Use natural transitions between points
-   - Avoid overly formal or mechanical language
-
-3. Ensure all optimizations:
-   - Maintain 100% truthfulness
-   - Keep original chronology intact
-   - Preserve all position details exactly as stated
-   - Focus on clarity and presentation
-   - Include relevant keywords from job requirements in context
-   - Use industry-standard terminology from the job description
-
 Return valid JSON in this exact format:
 {
   "optimizedContent": "the enhanced resume section text",
   "changes": ["list of specific improvements made"],
-  "sectionScore": 85,
-  "improvements": {
-    "keywords": "keyword optimizations for this section",
-    "structure": "structural changes",
-    "clarity": "clarity improvements",
-    "ats": "ATS-specific enhancements"
-  }
-}
-Scoring Guidelines:
-1. Keywords & Technical Match (0-100): 25%
-   - Exact keyword matches from job description
-   - Industry-specific terminology alignment
-   - Technical skills and tools mentioned
-   - Programming languages and frameworks
-   - Methodologies and best practices
-   - Certifications and standards
-   - System and platform expertise
-   - Domain-specific vocabulary
-
-2. Skills (0-100): 20%
-   - Evaluate technical and soft skills match
-   - Consider skill level and recency
-   - Look for practical applications
-   - Check for required vs nice-to-have skills
-
-3. Experience (0-100): 20%
-   - Assess relevance of past roles
-   - Consider years of experience
-   - Evaluate accomplishments
-   - Check for industry alignment
-
-4. Education (0-100): 15%
-   - Evaluate educational background relevance
-   - Consider degree level and field alignment
-   - Assess additional certifications
-   - Check for continuing education
-
-5. Personalization (0-100): 10%
-   - Measure tailoring to specific role
-   - Assess company culture alignment
-   - Evaluate industry-specific customization
-   - Check for targeted achievements
-
-6. AI Readiness (0-100): 10%
-   - Evaluate ATS optimization
-   - Check format compatibility
-   - Assess machine readability
-   - Review semantic structure
-`,
+  "sectionScore": 85
+}`,
           },
           {
             role: "user",
@@ -291,10 +220,8 @@ Scoring Guidelines:
           },
         ],
         response_format: { type: "json_object" },
-        max_tokens: 4000,
-        timeout: 30000, // 30 second timeout
-        max_retries: 3,
         temperature: 0.3,
+        max_tokens: 4000
       });
 
       const content = response.choices[0].message.content;
@@ -345,8 +272,6 @@ export async function generateCoverLetter(
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
 
-    // Removed debug logs
-
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -395,9 +320,8 @@ Return JSON in this format:
         },
       ],
       response_format: { type: "json_object" },
-      timeout: 30000, // 30 second timeout
-      max_retries: 3,
       temperature: 0.3,
+      max_tokens: 4000
     });
 
     const content = response.choices[0].message.content;
