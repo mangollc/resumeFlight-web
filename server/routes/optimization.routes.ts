@@ -6,8 +6,8 @@
 import { Router } from 'express';
 import { storage } from '../storage';
 import { optimizeResume } from '../openai';
-import { JobDetails, JobMetrics } from './types';
 import { extractJobDetails, analyzeJobDescription } from '../utils/job-analysis';
+import { JobDetails, JobMetrics } from './types';
 import { calculateMatchScores } from '../utils/scoring';
 
 const router = Router();
@@ -20,43 +20,12 @@ router.get('/optimized-resumes', async (req, res) => {
         }
 
         const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
-        const transformedResumes = resumes.map(resume => ({
-            ...resume,
-            matchScore: {
-                originalScores: resume.metrics?.before || {
-                    keywords: 0,
-                    skills: 0,
-                    experience: 0,
-                    education: 0,
-                    personalization: 0,
-                    aiReadiness: 0,
-                    overall: 0,
-                    confidence: 0
-                },
-                optimizedScores: resume.metrics?.after || {
-                    keywords: 0,
-                    skills: 0,
-                    experience: 0,
-                    education: 0,
-                    personalization: 0,
-                    aiReadiness: 0,
-                    overall: 0,
-                    confidence: 0
-                },
-                analysis: resume.analysis || {
-                    matches: [],
-                    gaps: [],
-                    suggestions: []
-                }
-            }
-        }));
-
-        return res.json(transformedResumes);
+        return res.json(resumes);
     } catch (error: any) {
         console.error("Error fetching optimized resumes:", error);
         return res.status(500).json({
             error: "Failed to fetch optimized resumes",
-            details: error.message,
+            details: error.message
         });
     }
 });
@@ -193,24 +162,22 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 throw new Error(`Failed to extract job details: ${error.message}`);
             }
 
-            // Use jobDetails.description or provided jobDescription
-            const descriptionToUse = jobDetails?.description || jobDescription;
-            if (!descriptionToUse) {
-                throw new Error("Failed to obtain job description");
+            if (!jobDetails || !jobDetails.description) {
+                throw new Error("Failed to obtain job description from the provided source");
             }
 
             // Analyze description
             sendEvent({ status: "analyzing_description" });
-            const originalScores = await calculateMatchScores(resume.content, descriptionToUse);
+            const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
 
             // Optimize resume
             sendEvent({ status: "optimizing_resume" });
             const { optimizedContent, changes, matchScore } = await optimizeResume(
                 resume.content,
-                descriptionToUse
+                jobDetails.description
             );
 
-            const optimizedScores = await calculateMatchScores(optimizedContent, descriptionToUse, true);
+            const optimizedScores = await calculateMatchScores(optimizedContent, jobDetails.description, true);
 
             const optimizedResume = await storage.createOptimizedResume({
                 userId: req.user!.id,
@@ -218,7 +185,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 uploadedResumeId: resume.id,
                 content: optimizedContent,
                 originalContent: resume.content,
-                jobDescription: descriptionToUse,
+                jobDescription: jobDetails.description,
                 jobUrl: jobUrl || null,
                 jobDetails,
                 metadata: {
