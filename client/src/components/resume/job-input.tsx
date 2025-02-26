@@ -142,6 +142,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
+      const TIMEOUT_MS = 30000; // 30 second timeout
       try {
         if (eventSourceRef.current) {
           eventSourceRef.current.close();
@@ -189,11 +190,14 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           evtSource.onerror = (error) => {
             console.error('EventSource error:', error);
             evtSource.close();
-            if (error instanceof Error) {
-              reject(error);
-            } else {
-              reject(new Error("Failed to establish SSE connection with server"));
-            }
+            setIsProcessing(false);
+            reject(new Error("Connection interrupted. Please try again."));
+            
+            toast({
+              title: "Connection Error",
+              description: "Failed to connect to optimization service. Please try again.",
+              variant: "destructive",
+            });
           };
         });
       } catch (error) {
