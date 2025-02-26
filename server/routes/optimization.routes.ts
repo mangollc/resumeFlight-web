@@ -123,7 +123,7 @@ router.get('/optimized-resume/:id', async (req, res) => {
 });
 
 // Optimize resume
-router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
+router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Unauthorized" });
@@ -157,7 +157,7 @@ router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
             res.write(`data: ${JSON.stringify(data)}\n\n`);
         };
 
-        const { jobDescription, jobUrl } = req.body;
+        const { jobDescription, jobUrl } = req.query;
         if (!jobDescription && !jobUrl) {
             sendEvent({ status: "error", message: "Job description or URL is required" });
             return res.end();
@@ -170,21 +170,21 @@ router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
             // Extract job details
             sendEvent({ status: "extracting_details" });
             const jobDetails = jobUrl 
-                ? await extractJobDetails(jobUrl)
-                : await analyzeJobDescription(jobDescription);
+                ? await extractJobDetails(jobUrl as string)
+                : await analyzeJobDescription(jobDescription as string);
 
             // Analyze description
             sendEvent({ status: "analyzing_description" });
-            const originalScores = await calculateMatchScores(resume.content, jobDescription);
+            const originalScores = await calculateMatchScores(resume.content, jobDescription as string);
 
             // Optimize resume
             sendEvent({ status: "optimizing_resume" });
             const { optimizedContent, changes } = await optimizeResume(
                 resume.content,
-                jobDescription
+                jobDescription as string
             );
 
-            const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription, true);
+            const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription as string, true);
 
             const optimizedResume = await storage.createOptimizedResume({
                 userId: req.user!.id,
@@ -192,8 +192,8 @@ router.post('/uploaded-resumes/:id/optimize', async (req, res) => {
                 uploadedResumeId: resume.id,
                 content: optimizedContent,
                 originalContent: resume.content,
-                jobDescription,
-                jobUrl: jobUrl || null,
+                jobDescription: jobDescription as string,
+                jobUrl: jobUrl ? (jobUrl as string) : null,
                 jobDetails,
                 metadata: {
                     filename: resume.metadata.filename,

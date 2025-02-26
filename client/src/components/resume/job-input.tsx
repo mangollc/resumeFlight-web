@@ -161,9 +161,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
           // Create the correct URL with the base URL from Vite
           const baseUrl = window.location.origin;
-          const evtSource = new EventSource(
-            `${baseUrl}/api/uploaded-resumes/${resumeId}/optimize?${params.toString()}`
-          );
+          const url = `${baseUrl}/api/uploaded-resumes/${resumeId}/optimize?${params.toString()}`;
+          console.log('Creating EventSource with URL:', url);
+
+          const evtSource = new EventSource(url);
           eventSourceRef.current = evtSource;
 
           const timeout = setTimeout(() => {
