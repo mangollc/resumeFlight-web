@@ -63,8 +63,8 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
               </Alert>
             )}
 
-            {/* Show all metrics and analysis in review step */}
-            {step.id === "review" && step.status === "completed" && optimizedResume && (
+            {/* Show metrics and analysis in optimize step */}
+            {step.id === "optimize" && step.status === "completed" && optimizedResume && (
               <div className="space-y-6 mt-4">
                 {/* Metrics Section */}
                 <Card className="p-6">
