@@ -7,7 +7,7 @@ import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
-import { CoverLetterComponent } from "@/components/resume/CoverLetter";
+import { CoverLetter, CoverLetterComponent } from "@/components/resume/CoverLetter";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ResumeMetricsComparison } from "@/components/resume/ResumeMetricsComparison";
-import { CoverLetterComponent } from "@/components/resume/CoverLetter";
 
 
 const jobProverbs = [
@@ -934,8 +933,7 @@ export default function Dashboard() {
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
                   initialJobDetails={jobDetails}
-                />
-                {renderNavigation()}
+                />                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
