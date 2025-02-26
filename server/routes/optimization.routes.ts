@@ -84,10 +84,6 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             return res.status(404).json({ error: "Resume not found" });
         }
 
-        if (!resume.content || typeof resume.content !== 'string') {
-            return res.status(400).json({ error: "Invalid resume content" });
-        }
-
         if (resume.userId !== req.user!.id) {
             return res.status(403).json({ error: "Unauthorized access" });
         }
@@ -129,12 +125,27 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             sendEvent({ status: "analyzing_description" });
             const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
 
-            // Optimize resume
+            // Optimize resume with timeout handling
             sendEvent({ status: "optimizing_resume" });
-            const optimizationResult = await optimizeResume(
-                resume.content,
-                jobDetails.description
-            );
+            let optimizationResult;
+            try {
+                optimizationResult = await Promise.race([
+                    optimizeResume(resume.content, jobDetails.description),
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Optimization timed out')), 110000)
+                    )
+                ]) as Awaited<ReturnType<typeof optimizeResume>>;
+            } catch (error: any) {
+                if (error.message.includes('timed out')) {
+                    sendEvent({ 
+                        status: "error",
+                        message: "Resume optimization is taking longer than expected. Please try again.",
+                        code: "TIMEOUT_ERROR"
+                    });
+                    return res.end();
+                }
+                throw error;
+            }
 
             // Calculate optimized scores
             const optimizedScores = await calculateMatchScores(

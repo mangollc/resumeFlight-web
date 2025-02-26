@@ -9,8 +9,8 @@ if (!process.env.OPENAI_API_KEY) {
 
 export const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY,
-  maxRetries: 3,
-  timeout: 30000 // 30 seconds
+  maxRetries: 5,
+  timeout: 120000 // 2 minutes
 });
 
 export async function analyzeJobPosting(description: string): Promise<{
@@ -49,7 +49,7 @@ Return JSON in this format:
       max_tokens: 1000
     });
 
-    const result = JSON.parse(response.choices[0].message.content);
+    const result = JSON.parse(response.choices[0].message.content || "{}");
     return result;
   } catch (error: any) {
     console.error("Error analyzing job posting:", error);
@@ -60,7 +60,7 @@ Return JSON in this format:
 /**
  * Utility function to split text into chunks with optimized size for GPT-4o
  */
-function splitIntoChunks(text: string | undefined, maxChunkSize: number = 16000): string[] {
+function splitIntoChunks(text: string | undefined, maxChunkSize: number = 8000): string[] {
   if (!text) {
     throw new Error("Text content is required for splitting into chunks");
   }
@@ -212,8 +212,9 @@ export async function optimizeResume(
 
   try {
     const optimizationVersion = version || 1.0;
-    const resumeChunks = splitIntoChunks(resumeText);
-    const jobDescriptionChunks = splitIntoChunks(jobDescription);
+    // Reduce chunk size to prevent timeouts
+    const resumeChunks = splitIntoChunks(resumeText, 6000);
+    const jobDescriptionChunks = splitIntoChunks(jobDescription, 6000);
 
     console.log(`[Optimize] Starting resume optimization...`);
     console.log(`[Optimize] Version: ${optimizationVersion}`);
@@ -222,15 +223,21 @@ export async function optimizeResume(
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
 
-    // First optimize the resume content
+    // First optimize the resume content with retries
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Optimize this section of the resume while maintaining complete accuracy.
+      let attempts = 0;
+      let success = false;
+      let response;
+
+      while (attempts < 3 && !success) {
+        try {
+          response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Optimize this section of the resume while maintaining complete accuracy.
 
 Return a JSON object with:
 {
@@ -243,30 +250,46 @@ Return a JSON object with:
     "suggestions": ["specific suggestions"]
   }
 }`
-          },
-          {
-            role: "user",
-            content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3,
-        max_tokens: 4000
-      });
+              },
+              {
+                role: "user",
+                content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3,
+            max_tokens: 4000
+          });
+          success = true;
+        } catch (error: any) {
+          attempts++;
+          if (attempts === 3) throw error;
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
+        }
+      }
+
+      if (!response || !response.choices[0].message.content) {
+        throw new Error("No response received from OpenAI");
+      }
 
       const result = JSON.parse(response.choices[0].message.content);
-
       optimizedChunks.push(result.optimizedContent || "");
       if (result.changes) allChanges.push(...result.changes);
     }
 
-    // Now perform overall analysis
-    const analysisResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
+    // Now perform overall analysis with retries
+    let attempts = 0;
+    let success = false;
+    let analysisResponse;
+
+    while (attempts < 3 && !success) {
+      try {
+        analysisResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
 Return a JSON object with:
 {
   "analysis": {
@@ -276,16 +299,27 @@ Return a JSON object with:
     "suggestions": ["actionable suggestions"]
   }
 }`
-        },
-        {
-          role: "user",
-          content: `Optimized Resume:\n${optimizedChunks.join("\n\n")}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-      max_tokens: 2000
-    });
+            },
+            {
+              role: "user",
+              content: `Optimized Resume:\n${optimizedChunks.join("\n\n")}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+          max_tokens: 2000
+        });
+        success = true;
+      } catch (error: any) {
+        attempts++;
+        if (attempts === 3) throw error;
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
+      }
+    }
+
+    if (!analysisResponse || !analysisResponse.choices[0].message.content) {
+      throw new Error("No analysis response received from OpenAI");
+    }
 
     const analysisResult = JSON.parse(analysisResponse.choices[0].message.content);
 
