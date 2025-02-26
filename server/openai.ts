@@ -9,8 +9,6 @@ if (!process.env.OPENAI_API_KEY) {
 
 export const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY,
-  maxRetries: 5,
-  timeout: 120000 // 2 minutes
 });
 
 export async function analyzeJobPosting(description: string): Promise<{
@@ -62,7 +60,7 @@ Return JSON in this format:
  */
 function splitIntoChunks(text: string | undefined, maxChunkSize: number = 8000): string[] {
   if (!text) {
-    throw new Error("Text content is required for splitting into chunks");
+    return []; // Return empty array instead of throwing error
   }
 
   const chunks: string[] = [];

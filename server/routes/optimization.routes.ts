@@ -154,17 +154,22 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 true
             );
 
-            const optimizedResume = await storage.createOptimizedResume({
+            // Ensure content exists before processing
+if (!optimizationResult?.optimizedContent) {
+    throw new Error('Optimization failed: No content received');
+}
+
+const optimizedResume = await storage.createOptimizedResume({
                 userId: req.user!.id,
                 sessionId: req.session.id,
                 uploadedResumeId: resume.id,
                 content: optimizationResult.optimizedContent,
-                originalContent: resume.content,
-                jobDescription: jobDetails.description,
+                originalContent: resume.content || '',
+                jobDescription: jobDetails?.description || '',
                 jobUrl: jobUrl || null,
-                jobDetails,
+                jobDetails: jobDetails || {},
                 metadata: {
-                    filename: resume.metadata.filename,
+                    filename: resume.metadata?.filename || 'resume.txt',
                     optimizedAt: new Date().toISOString(),
                     version: '1.0'
                 },
