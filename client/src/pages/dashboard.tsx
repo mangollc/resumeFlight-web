@@ -37,8 +37,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ResumeMetricsComparison } from "@/components/resume/ResumeMetricsComparison"; // Added import
-import { CoverLetter } from "@/components/resume/CoverLetter"; //Added import
+import { ResumeMetricsComparison } from "@/components/resume/ResumeMetricsComparison";
+import { CoverLetterComponent } from "@/components/resume/CoverLetter";
 
 
 const jobProverbs = [
