@@ -20,8 +20,6 @@ router.get('/optimized-resumes', async (req, res) => {
         }
 
         const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
-
-        // Transform resumes to include required properties
         const transformedResumes = resumes.map(resume => ({
             ...resume,
             matchScore: {
@@ -136,17 +134,6 @@ router.post('/resume/:id/optimize', async (req, res) => {
             return res.status(400).json({ error: "Invalid resume ID" });
         }
 
-        // Enable SSE
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive'
-        });
-
-        const sendEvent = (data: any) => {
-            res.write(`data: ${JSON.stringify(data)}\n\n`);
-        };
-
         const resume = await storage.getUploadedResume(resumeId);
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
@@ -160,39 +147,88 @@ router.post('/resume/:id/optimize', async (req, res) => {
             return res.status(403).json({ error: "Unauthorized access" });
         }
 
-        const { jobDescription, jobUrl } = req.body;
-        const jobDetails = jobUrl 
-            ? await extractJobDetails(jobUrl)
-            : await analyzeJobDescription(jobDescription);
-
-        const { optimizedContent, changes } = await optimizeResume(
-            resume.content,
-            jobDescription
-        );
-
-        const originalScores = await calculateMatchScores(resume.content, jobDescription);
-        const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription, true);
-
-        const optimizedResume = await storage.createOptimizedResume({
-            userId: req.user!.id,
-            uploadedResumeId: resume.id,
-            content: optimizedContent,
-            originalContent: resume.content,
-            jobDescription,
-            jobUrl,
-            jobDetails,
-            metadata: {
-                filename: resume.metadata.filename,
-                optimizedAt: new Date().toISOString()
-            }
+        // Enable SSE
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
         });
 
-        return res.json(optimizedResume);
+        const sendEvent = (data: any) => {
+            res.write(`data: ${JSON.stringify(data)}\n\n`);
+        };
+
+        const { jobDescription, jobUrl } = req.body;
+        if (!jobDescription && !jobUrl) {
+            sendEvent({ status: "error", message: "Job description or URL is required" });
+            return res.end();
+        }
+
+        try {
+            // Send initial status
+            sendEvent({ status: "started" });
+
+            // Extract job details
+            sendEvent({ status: "extracting_details" });
+            const jobDetails = jobUrl 
+                ? await extractJobDetails(jobUrl)
+                : await analyzeJobDescription(jobDescription);
+
+            // Analyze description
+            sendEvent({ status: "analyzing_description" });
+            const originalScores = await calculateMatchScores(resume.content, jobDescription);
+
+            // Optimize resume
+            sendEvent({ status: "optimizing_resume" });
+            const { optimizedContent, changes } = await optimizeResume(
+                resume.content,
+                jobDescription
+            );
+
+            const optimizedScores = await calculateMatchScores(optimizedContent, jobDescription, true);
+
+            const sessionId = req.session.id;
+            const optimizedResume = await storage.createOptimizedResume({
+                sessionId,
+                uploadedResumeId: resume.id,
+                content: optimizedContent,
+                originalContent: resume.content,
+                jobDescription,
+                jobUrl: jobUrl || null,
+                jobDetails,
+                metadata: {
+                    filename: resume.metadata.filename,
+                    optimizedAt: new Date().toISOString()
+                },
+                metrics: {
+                    before: originalScores,
+                    after: optimizedScores,
+                }
+            });
+
+            // Send completion status with results
+            sendEvent({ 
+                status: "completed",
+                optimizedResume,
+                changes 
+            });
+
+            return res.end();
+        } catch (error: any) {
+            console.error("Optimization process error:", error);
+            sendEvent({ 
+                status: "error",
+                message: error.message || "Failed to optimize resume" 
+            });
+            return res.end();
+        }
     } catch (error: any) {
-        return res.status(500).json({
+        console.error("Route handler error:", error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
             error: "Failed to optimize resume",
             details: error.message
-        });
+        }));
     }
 });
 
@@ -226,13 +262,15 @@ router.delete('/optimized-resume/:id', async (req, res) => {
 
 // Error handling middleware specific to optimization routes
 router.use((err: any, req: any, res: any, next: any) => {
+    console.error('Optimization route error:', err);
+
     if (err.type === 'entity.too.large') {
         return res.status(413).json({
             error: 'Request entity too large',
             message: 'The uploaded file exceeds the maximum allowed size'
         });
     }
-    
+
     if (err.name === 'ValidationError') {
         return res.status(400).json({
             error: 'Validation Error',
@@ -248,8 +286,7 @@ router.use((err: any, req: any, res: any, next: any) => {
             details: err.errors
         });
     }
-    
-    console.error('Optimization route error:', err);
+
     res.status(500).json({
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
