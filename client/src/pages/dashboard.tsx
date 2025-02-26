@@ -38,6 +38,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ResumeMetricsComparison } from "@/components/resume/ResumeMetricsComparison"; // Added import
+import { CoverLetter } from "@/components/resume/CoverLetter"; //Added import
+
 
 const jobProverbs = [
   "Your next career move starts with a great resume",
@@ -992,10 +994,8 @@ export default function Dashboard() {
                   />
                 ) : (
                   <div className="mt-6 space-y-8">
-                    <CoverLetter
-                      resume={optimizedResume}
-                      onGenerated={handleCoverLetterGenerated}
-                      generatedCoverLetter={coverLetter}
+                    <CoverLetterComponent
+                      coverLetter={coverLetter}
                     />
                   </div>
                 )}
@@ -1030,10 +1030,8 @@ export default function Dashboard() {
             {coverLetter && (
               <Card {...commonCardProps}>
                 <CardContent className="p-8">
-                  <CoverLetter
-                    resume={optimizedResume}
-                    onGenerated={handleCoverLetterGenerated}
-                    generatedCoverLetter={coverLetter}
+                  <CoverLetterComponent
+                    coverLetter={coverLetter}
                     readOnly={true}
                   />
                 </CardContent>
