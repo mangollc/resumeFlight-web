@@ -431,6 +431,51 @@ export default function Dashboard() {
     }
   };
 
+  const handleDownloadCoverLetter = async (version: string) => {
+    if (!optimizedResume?.id) return;
+    
+    try {
+      setIsDownloading(true);
+      const selectedLetter = coverLetters.find(letter => 
+        letter.metadata.version.toString() === version
+      );
+      
+      if (!selectedLetter) {
+        throw new Error('Cover letter not found');
+      }
+      
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/cover-letter/${selectedLetter.id}/download`);
+      if (!response.ok) {
+        throw new Error('Failed to download cover letter');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cover_letter_v${version}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Cover letter downloaded successfully",
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download cover letter",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleDownloadPackage = async () => {
     if (!optimizedResume?.id) return;
 
@@ -1011,31 +1056,185 @@ export default function Dashboard() {
         ) : null;
 
       case 5:
-        return optimizedResume && uploadedResume ? (
+        return (
           <div className="fade-in space-y-8">
-            {/* Show optimized resume */}
             <Card {...commonCardProps}>
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-semibold text-foreground/90">Optimized Resume</h3>
+                  <h3 className="text-xl font-semibold text-foreground/90">Download Options</h3>
                 </div>
-                <Preview resume={optimizedResume} />
+
+                <div className="grid md:grid-cols-2 gap-8">
+                  {/* Resume Download Section */}
+                  <div className="space-y-4 border rounded-lg p-6">
+                    <h4 className="text-lg font-medium">Optimized Resume</h4>
+                    
+                    {optimizedResume ? (
+                      <>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Select Resume Version</label>
+                            <Select 
+                              value={optimizedResumeVersion} 
+                              onValueChange={setOptimizedResumeVersion}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select version" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {optimizedResumes.map((resume) => (
+                                  <SelectItem 
+                                    key={resume.id} 
+                                    value={resume.metadata.version.toString()}
+                                  >
+                                    Version {resume.metadata.version}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Format</label>
+                            <Select defaultValue="pdf">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pdf">PDF</SelectItem>
+                                <SelectItem value="docx">DOCX</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => handleDownload(optimizedResume.id)}
+                            className="w-full"
+                            disabled={isDownloading}
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Download Resume
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        No optimized resume available
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Cover Letter Download Section */}
+                  <div className="space-y-4 border rounded-lg p-6">
+                    <h4 className="text-lg font-medium">Cover Letter</h4>
+                    
+                    {coverLetters.length > 0 ? (
+                      <>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Select Cover Letter Version</label>
+                            <Select 
+                              value={selectedCoverLetterVersion} 
+                              onValueChange={setSelectedCoverLetterVersion}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select version" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {coverLetters.map((letter) => (
+                                  <SelectItem 
+                                    key={letter.id || letter.metadata.version} 
+                                    value={letter.metadata.version.toString()}
+                                  >
+                                    Version {letter.metadata.version}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Format</label>
+                            <Select defaultValue="pdf">
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="pdf">PDF</SelectItem>
+                                <SelectItem value="docx">DOCX</SelectItem>
+                                <SelectItem value="txt">TXT</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <Button 
+                            onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
+                            className="w-full"
+                            disabled={isDownloading}
+                          >
+                            {isDownloading ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="mr-2 h-4 w-4" />
+                            )}
+                            Download Cover Letter
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground">
+                        No cover letter available
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Download Package Option */}
+                <div className="mt-8 border rounded-lg p-6">
+                  <h4 className="text-lg font-medium mb-4">Download Complete Package</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Download both the optimized resume and cover letter as a single package
+                  </p>
+                  
+                  <Button 
+                    onClick={handleDownloadPackage}
+                    className="w-full"
+                    disabled={isDownloading || !optimizedResume || !coverLetter}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Download Complete Package
+                  </Button>
+                </div>
+                
+                {/* Navigation */}
+                <div className="mt-8 flex justify-between">
+                  <Button 
+                    variant="outline" 
+                    onClick={handlePrevious}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => window.location.href = '/optimized-resumes'}
+                    variant="secondary"
+                  >
+                    Save & View All Resumes
+                  </Button>
+                </div>
               </CardContent>
             </Card>
-
-            {/* Show cover letter if generated */}
-            {coverLetter && (
-              <Card {...commonCardProps}>
-                <CardContent className="p-8">
-                  <CoverLetterComponent
-                    coverLetter={coverLetter}
-                    readOnly={true}
-                  />
-                </CardContent>
-              </Card>
-            )}
           </div>
-        ) : null;
+        );
 
       default:
         return null;

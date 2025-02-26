@@ -9,6 +9,10 @@ import multer from 'multer';
 import { insertUploadedResumeSchema } from '@shared/schema';
 import { MulterRequest } from './types';
 import { parseResume } from '../utils/parser';
+import { eq, and, desc } from "drizzle-orm";
+import { db } from "../db";
+import express from "express";
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const router = Router();
 

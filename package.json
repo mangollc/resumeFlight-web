@@ -75,6 +75,7 @@
     "openai": "^4.85.4",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
+    "pdf-lib": "^1.17.1",
     "pdf2json": "^3.1.5",
     "pdfkit": "^0.16.0",
     "pg": "^8.13.3",
