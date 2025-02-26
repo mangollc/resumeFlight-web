@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { type ProgressStep } from "@/components/ui/progress-steps";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 
 interface JobDetails {
   title: string;
@@ -56,6 +57,8 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
   const [uploadedResume, setUploadedResume] = useState({id: resumeId});
+  const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null); // Added state for optimized resume
+
 
   useEffect(() => {
     return () => {
@@ -88,6 +91,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     setJobDescription("");
     setExtractedDetails(null);
     setActiveTab("url");
+    setOptimizedResume(null); //reset optimizedResume state
     handleCancel();
   };
 
@@ -273,6 +277,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
         setExtractedDetails(details);
         queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
+        setOptimizedResume(data); //Added to update optimizedResume state.
         onOptimized(data, details);
 
         toast({
@@ -500,6 +505,26 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {optimizedResume && !isProcessing && (
+        <div className="space-y-6">
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <h3 className="text-xl font-semibold mb-4">Resume Optimization Results</h3>
+            <ResumeMetricsComparison
+              metrics={{
+                before: optimizedResume.metrics.before,
+                after: optimizedResume.metrics.after
+              }}
+              analysis={{
+                strengths: optimizedResume.analysis.strengths,
+                improvements: optimizedResume.analysis.improvements,
+                gaps: optimizedResume.analysis.gaps,
+                suggestions: optimizedResume.analysis.suggestions
+              }}
+            />
+          </div>
         </div>
       )}
 
