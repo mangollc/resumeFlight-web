@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OptimizedResume, CoverLetter as CoverLetterType } from '@shared/schema'; // Assuming these types are defined elsewhere
+import { OptimizedResume, CoverLetter as CoverLetterType } from '@shared/schema';
 
 interface CoverLetterProps {
   resume: OptimizedResume;
@@ -8,7 +8,7 @@ interface CoverLetterProps {
   readOnly?: boolean;
 }
 
-export function CoverLetter({ resume, generatedCoverLetter, version, readOnly }: CoverLetterProps) {
+export function CoverLetterComponent({ resume, generatedCoverLetter, version, readOnly }: CoverLetterProps) {
   const [content, setContent] = useState(generatedCoverLetter?.content || '');
   const [error, setError] = useState<string | null>(null);
 
@@ -35,32 +35,15 @@ export function CoverLetter({ resume, generatedCoverLetter, version, readOnly }:
     fetchVersionContent();
   }, [generatedCoverLetter?.id, version]);
 
-  const formattedContent = content.split('\n').map((line, i) => {
-    if (line.trim() === '') return <br key={i} />;
-    return (
-      <p 
-        key={i} 
-        className={`mb-4 ${
-          i === 0 ? 'text-2xl font-bold text-center' : // Header
-          i < 3 ? 'text-center' : // Contact info
-          line.toUpperCase() === line ? 'font-bold mt-6' : // Section headers
-          'text-base leading-relaxed'
-        }`}
-      >
-        {line}
-      </p>
-    );
-  });
-
   return (
-    <div className="max-w-4xl mx-auto p-8 space-y-4 bg-white dark:bg-gray-900 rounded-lg shadow">
+    <div className="cover-letter-content">
       {error ? (
-        <div className="text-red-500 p-4 text-center">{error}</div>
+        <div className="error-message">{error}</div>
       ) : (
-        <div className="prose max-w-none dark:prose-invert">
-          {formattedContent}
-        </div>
+        <div className="content">{content}</div>
       )}
     </div>
   );
 }
+
+export type { CoverLetterProps };
