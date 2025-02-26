@@ -13,9 +13,6 @@ export const openai = new OpenAI({
   timeout: 30000 // 30 seconds
 });
 
-/**
- * Analyzes a job description to extract key requirements and skills
- */
 export async function analyzeJobPosting(description: string): Promise<{
   requirements: string[];
   skills: string[];
@@ -199,7 +196,16 @@ export async function optimizeResume(
   resumeText: string,
   jobDescription: string,
   version?: number,
-): Promise<{ optimizedContent: string; changes: string[]; matchScore?: number }> {
+): Promise<{ 
+  optimizedContent: string; 
+  changes: string[]; 
+  analysis: {
+    strengths: string[];
+    improvements: string[];
+    gaps: string[];
+    suggestions: string[];
+  }
+}> {
   if (!resumeText || !jobDescription) {
     throw new Error("Both resume text and job description are required for optimization");
   }
@@ -215,9 +221,8 @@ export async function optimizeResume(
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
-    let overallMatchScore = 0;
 
-
+    // First optimize the resume content
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
       const response = await openai.chat.completions.create({
@@ -225,77 +230,74 @@ export async function optimizeResume(
         messages: [
           {
             role: "system",
-            content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Your task is to optimize this section of the resume while maintaining complete accuracy of all position information.
+            content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Optimize this section of the resume while maintaining complete accuracy.
 
-Follow these optimization guidelines:
-1. STRICT ACCURACY (Do not modify):
-   - Job titles and positions
-   - Company names
-   - Employment dates and timelines
-   - Educational qualifications
-   - Degrees and certifications
-   These must remain exactly as provided.
-
-2. ENHANCED CONTENT OPTIMIZATION:
-   - Transform experience descriptions into achievement-focused statements
-   - Add specific metrics, percentages, and quantifiable results
-   - Incorporate exact keywords from job description naturally
-   - Use industry-specific terminology from target role
-   - Highlight technical skills with concrete examples
-   - Demonstrate leadership and impact with measurable outcomes
-   - Focus on relevant accomplishments that match job requirements
-   - Include specific tools, technologies, and methodologies
-   - Add project scale indicators (team size, budget, timeline)
-   - Emphasize cross-functional collaboration examples
-
-Return valid JSON in this format:
+Return a JSON object with:
 {
-  "optimizedContent": "the enhanced resume section text",
-  "changes": ["list of specific improvements made"],
-  "sectionScore": 85
-}`,
+  "optimizedContent": "the enhanced resume section",
+  "changes": ["list specific improvements made"],
+  "sectionAnalysis": {
+    "strengths": ["identified strengths"],
+    "improvements": ["areas improved"],
+    "gaps": ["identified gaps"],
+    "suggestions": ["specific suggestions"]
+  }
+}`
           },
           {
             role: "user",
-            content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join(
-              "\n\n",
-            )}${
-              optimizationVersion > 1
-                ? `\n\nThis is reoptimization attempt. Current version: ${optimizationVersion}. Please make additional improvements while maintaining previous optimizations and original position information.`
-                : ""
-            }`,
-          },
+            content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
+          }
         ],
         response_format: { type: "json_object" },
         temperature: 0.3,
         max_tokens: 4000
       });
 
-      const content = response.choices[0].message.content;
-      if (!content) {
-        throw new Error("No response from OpenAI for section " + (i + 1));
-      }
+      const result = JSON.parse(response.choices[0].message.content);
 
-      try {
-        const result = JSON.parse(content);
-        optimizedChunks.push(result.optimizedContent || "");
-        allChanges.push(...(result.changes || []));
-        overallMatchScore += result.sectionScore || 0;
-      } catch (error) {
-        console.error('[Optimize] Failed to parse response');
-        throw new Error('Failed to parse optimization response');
-      }
+      optimizedChunks.push(result.optimizedContent || "");
+      if (result.changes) allChanges.push(...result.changes);
     }
 
-    const finalScore = Math.min(
-      100,
-      Math.max(0, Math.round(overallMatchScore / resumeChunks.length)),
-    );
+    // Now perform overall analysis
+    const analysisResponse = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
+Return a JSON object with:
+{
+  "analysis": {
+    "strengths": ["key strengths identified"],
+    "improvements": ["areas that were improved"],
+    "gaps": ["remaining gaps to address"],
+    "suggestions": ["actionable suggestions"]
+  }
+}`
+        },
+        {
+          role: "user",
+          content: `Optimized Resume:\n${optimizedChunks.join("\n\n")}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+      max_tokens: 2000
+    });
+
+    const analysisResult = JSON.parse(analysisResponse.choices[0].message.content);
 
     return {
       optimizedContent: optimizedChunks.join("\n\n").trim(),
       changes: allChanges,
-      matchScore: finalScore,
+      analysis: {
+        strengths: analysisResult.analysis.strengths || [],
+        improvements: analysisResult.analysis.improvements || [],
+        gaps: analysisResult.analysis.gaps || [],
+        suggestions: analysisResult.analysis.suggestions || []
+      }
     };
   } catch (error: any) {
     console.error("[Optimize] Error:", error);
