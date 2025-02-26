@@ -92,23 +92,24 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const getSkillBadgeVariant = (skill: string) => {
     const skillTypes = {
-      technical: ["javascript", "python", "java", "typescript", "html", "css"],
-      framework: ["react", "node", "vue", "angular", "express"],
-      database: ["sql", "mongodb", "postgresql", "mysql"],
-      cloud: ["aws", "azure", "gcp", "docker"],
-      tools: ["git", "github", "jira", "webpack"],
-      soft: ["communication", "leadership", "teamwork"],
+      technical: ["javascript", "python", "java", "typescript", "html", "css", "c++", "c#", "ruby", "php", "swift", "kotlin", "scala", "rust", "go"],
+      framework: ["react", "node", "vue", "angular", "express", "django", "flask", "spring", "rails", "laravel", "next", "nuxt", "svelte"],
+      database: ["sql", "mongodb", "postgresql", "mysql", "oracle", "redis", "graphql", "dynamodb", "cassandra", "neo4j", "firestore", "elasticsearch"],
+      cloud: ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins", "circleci", "netlify", "vercel", "heroku"],
+      tools: ["git", "github", "gitlab", "jira", "confluence", "webpack", "babel", "npm", "yarn", "figma", "sketch", "adobe", "postman", "slack", "notion", "excel", "tableau", "powerbi", "looker"],
+      soft: ["communication", "leadership", "teamwork", "collaboration", "problem-solving", "critical", "analytical", "creativity", "adaptability"]
     };
 
     const lowerSkill = skill.toLowerCase();
 
-    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) return "default";
-    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) return "secondary";
-    if (skillTypes.database.some((s) => lowerSkill.includes(s))) return "destructive";
-    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) return "outline";
-    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) return "ghost";
-    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) return "default";
-    return "default";
+    // Color code for technical skills vs tools
+    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) return "destructive"; // Red for technical languages
+    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) return "secondary";   // Blue for frameworks
+    if (skillTypes.database.some((s) => lowerSkill.includes(s))) return "default";      // Black for databases
+    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) return "outline";         // Outline for cloud/infra
+    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) return "accent";          // Special color for tools
+    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) return "ghost";            // Light for soft skills
+    return "default";  // Default fallback
   };
 
   const isValidLinkedInUrl = (url: string): boolean => {

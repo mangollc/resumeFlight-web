@@ -63,7 +63,7 @@ Return a JSON object with the following structure exactly:
   "description": "full job description",
   "positionLevel": "entry/mid/senior/manager",
   "keyRequirements": ["key requirement 1", "key requirement 2"],
-  "skillsAndTools": ["skill 1", "skill 2"],
+  "skillsAndTools": ["SQL", "Python", "Excel", "JavaScript", "Git", "AWS", "Jira", "Figma", "Tableau"],
   "department": "department name",
   "industries": ["industry 1", "industry 2"],
   "softSkills": ["soft skill 1", "soft skill 2"],
@@ -76,7 +76,9 @@ Return a JSON object with the following structure exactly:
   "technicalSkills": ["technical skill 1", "technical skill 2"],
   "reportingStructure": "reports to...",
   "travelRequirements": "travel requirements"
-}`
+}
+
+Extract at least 5 specific technical skills and tools from the job description. Skills and tools should be 1-2 words maximum (e.g., "Python", "React", "AWS", "Git", "Jira", "Excel", "SQL", etc.)`
         },
         {
           role: "user",
@@ -162,7 +164,7 @@ Return a JSON object with the following structure exactly:
   "description": "full job description",
   "positionLevel": "entry/mid/senior/manager",
   "keyRequirements": ["key requirement 1", "key requirement 2"],
-  "skillsAndTools": ["skill 1", "skill 2"],
+  "skillsAndTools": ["SQL", "Python", "Excel", "JavaScript", "Git", "AWS", "Jira", "Figma", "Tableau"],
   "department": "department name",
   "industries": ["industry 1", "industry 2"],
   "softSkills": ["soft skill 1", "soft skill 2"],
@@ -175,7 +177,9 @@ Return a JSON object with the following structure exactly:
   "technicalSkills": ["technical skill 1", "technical skill 2"],
   "reportingStructure": "reports to...",
   "travelRequirements": "travel requirements"
-}`
+}
+
+Be extremely thorough in identifying the skillsAndTools field. Extract at least 5 specific technical skills or tools mentioned in the job description. Each skill should be 1-2 words maximum (e.g., "Python", "React", "AWS", "Git", "Jira", "Excel", "SQL", etc.). Include both technical skills and tools used in the role.`
         },
         {
           role: "user",
