@@ -259,39 +259,49 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!jobUrl && !jobDescription) {
+    try {
+      if (!jobUrl && !jobDescription) {
+        toast({
+          title: "Error",
+          description: "Please enter either a job URL or description",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (jobDescription && jobDescription.length < 50) {
+        toast({
+          title: "Warning",
+          description: "Job description seems too short for effective optimization",
+          variant: "warning",
+        });
+        return;
+      }
+
+      if (jobUrl && !jobUrl.startsWith('http')) {
+        toast({
+          title: "Error",
+          description: "Please enter a valid URL starting with http:// or https://",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsProcessing(true);
+      setProgressSteps(INITIAL_STEPS);
+
+      fetchJobMutation.mutate(
+        activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
+      );
+    } catch (error) {
+      console.error("Error during form submission:", error);
       toast({
         title: "Error",
-        description: "Please enter either a job URL or description",
+        description: "An unexpected error occurred during submission. Please try again later.",
         variant: "destructive",
       });
-      return;
+      setIsProcessing(false);
     }
-
-    if (jobDescription && jobDescription.length < 50) {
-      toast({
-        title: "Warning",
-        description: "Job description seems too short for effective optimization",
-        variant: "warning",
-      });
-      return;
-    }
-
-    if (jobUrl && !jobUrl.startsWith('http')) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid URL starting with http:// or https://",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    setProgressSteps(INITIAL_STEPS);
-
-    fetchJobMutation.mutate(
-      activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
-    );
   };
 
   return (
