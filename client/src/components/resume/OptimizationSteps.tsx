@@ -1,3 +1,4 @@
+
 import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,12 @@ interface OptimizationStepsProps {
   onNext?: () => void;
   onBack?: () => void;
 }
+
+const getScoreColor = (score: number) => {
+  if (score >= 80) return "text-green-600";
+  if (score >= 60) return "text-yellow-600";
+  return "text-red-600";
+};
 
 export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: OptimizationStepsProps) {
   const currentStep = steps.findIndex(step => step.status === "in_progress");
@@ -66,85 +73,90 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
             {/* Show metrics and analysis in optimize step */}
             {step.id === "optimize" && step.status === "completed" && optimizedResume && (
               <div className="space-y-6 mt-4">
-                {/* Metrics Section */}
+                {/* Overall Score Card */}
                 <Card className="p-6">
-                  <h4 className="text-lg font-semibold mb-4">Resume Optimization Results</h4>
-                  <ResumeMetricsComparison
-                    metrics={{
-                      before: optimizedResume.metrics.before || {
-                        overall: 0,
-                        keywords: 0,
-                        skills: 0,
-                        experience: 0,
-                        education: 0,
-                        personalization: 0,
-                        aiReadiness: 0,
-                        confidence: 0
-                      },
-                      after: optimizedResume.metrics.after || {
-                        overall: 0,
-                        keywords: 0,
-                        skills: 0,
-                        experience: 0,
-                        education: 0,
-                        personalization: 0,
-                        aiReadiness: 0,
-                        confidence: 0
-                      }
-                    }}
-                    analysis={{
-                      strengths: optimizedResume.analysis?.strengths || [],
-                      improvements: optimizedResume.analysis?.improvements || [],
-                      gaps: optimizedResume.analysis?.gaps || [],
-                      suggestions: optimizedResume.analysis?.suggestions || []
-                    }}
-                  />
+                  <h4 className="text-lg font-semibold mb-4 text-center">Overall Resume Score</h4>
+                  <div className="flex justify-center gap-16 mb-6">
+                    <div className="text-center">
+                      <div className="text-sm text-muted-foreground mb-1">Before</div>
+                      <div className={`text-3xl font-bold ${getScoreColor(optimizedResume.metrics.before.overall)}`}>
+                        {optimizedResume.metrics.before.overall}%
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-sm text-muted-foreground mb-1">After</div>
+                      <div className={`text-3xl font-bold ${getScoreColor(optimizedResume.metrics.after.overall)}`}>
+                        {optimizedResume.metrics.after.overall}%
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Detailed Metrics */}
+                  <div className="space-y-4">
+                    {Object.entries(optimizedResume.metrics.before).map(([key, value]) => {
+                      if (key === 'overall') return null;
+                      const beforeScore = value as number;
+                      const afterScore = optimizedResume.metrics.after[key] as number;
+                      const improvement = afterScore - beforeScore;
+                      
+                      return (
+                        <div key={key} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="capitalize text-sm font-medium">{key}</span>
+                            <div className="flex items-center gap-4">
+                              <span className={`text-sm ${getScoreColor(beforeScore)}`}>{beforeScore}%</span>
+                              <span className="text-sm">→</span>
+                              <span className={`text-sm ${getScoreColor(afterScore)}`}>{afterScore}%</span>
+                              {improvement > 0 && (
+                                <span className="text-xs text-green-600">(+{improvement}%)</span>
+                              )}
+                            </div>
+                          </div>
+                          <Progress value={afterScore} className="h-2" />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </Card>
 
                 {/* Analysis Section */}
                 <Card className="p-6">
                   <h4 className="text-lg font-semibold mb-4">Resume Analysis</h4>
-                  <div className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
-                      {/* Strengths */}
-                      <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Strengths</h5>
-                        <ul className="list-disc list-inside space-y-1">
-                          {optimizedResume.analysis?.strengths?.map((item: string, idx: number) => (
-                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                          ))}
-                        </ul>
-                      </div>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <h5 className="font-semibold text-sm text-green-600">Strengths</h5>
+                      <ul className="list-disc list-inside space-y-1">
+                        {optimizedResume.analysis?.strengths?.map((item: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-                      {/* Improvements */}
-                      <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Improvements</h5>
-                        <ul className="list-disc list-inside space-y-1">
-                          {optimizedResume.analysis?.improvements?.map((item: string, idx: number) => (
-                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                          ))}
-                        </ul>
-                      </div>
+                    <div className="space-y-2">
+                      <h5 className="font-semibold text-sm text-amber-600">Improvements</h5>
+                      <ul className="list-disc list-inside space-y-1">
+                        {optimizedResume.analysis?.improvements?.map((item: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-                      {/* Gaps */}
-                      <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Gaps</h5>
-                        <ul className="list-disc list-inside space-y-1">
-                          {optimizedResume.analysis?.gaps?.map((item: string, idx: number) => (
-                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                          ))}
-                        </ul>
-                      </div>
+                    <div className="space-y-2">
+                      <h5 className="font-semibold text-sm text-red-600">Gaps</h5>
+                      <ul className="list-disc list-inside space-y-1">
+                        {optimizedResume.analysis?.gaps?.map((item: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-                      {/* Suggestions */}
-                      <div className="space-y-2">
-                        <h5 className="font-semibold text-sm">Suggestions</h5>
-                        <ul className="list-disc list-inside space-y-1">
-                          {optimizedResume.analysis?.suggestions?.map((item: string, idx: number) => (
-                            <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                          ))}
-                        </ul>
-                      </div>
+                    <div className="space-y-2">
+                      <h5 className="font-semibold text-sm text-blue-600">Suggestions</h5>
+                      <ul className="list-disc list-inside space-y-1">
+                        {optimizedResume.analysis?.suggestions?.map((item: string, idx: number) => (
+                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 </Card>
