@@ -67,6 +67,12 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     phone: '',
     address: ''
   }),
+  analysis: jsonb("analysis").notNull().default({
+    strengths: [],
+    improvements: [],
+    gaps: [],
+    suggestions: []
+  }),
 });
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
@@ -185,6 +191,7 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     metadata: true,
     metrics: true,
     uploadedResumeId: true,
+    analysis: true,
   });
 
 export const insertOptimizationSessionSchema = createInsertSchema(optimizationSessions)

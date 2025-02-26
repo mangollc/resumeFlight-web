@@ -107,7 +107,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
                 // Optimize resume
                 sendEvent({ status: "optimizing_resume" });
-                const { optimizedContent, changes, matchScore } = await optimizeResume(
+                const { optimizedContent, changes, analysis } = await optimizeResume(
                     resume.content,
                     jobDetails.description
                 );
@@ -125,11 +125,18 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                     jobDetails,
                     metadata: {
                         filename: resume.metadata.filename,
-                        optimizedAt: new Date().toISOString()
+                        optimizedAt: new Date().toISOString(),
+                        version: '1.0'
                     },
                     metrics: {
                         before: originalScores,
-                        after: optimizedScores,
+                        after: optimizedScores
+                    },
+                    analysis: {
+                        strengths: analysis.strengths || [],
+                        improvements: analysis.improvements || [],
+                        gaps: analysis.gaps || [],
+                        suggestions: analysis.suggestions || []
                     }
                 });
 

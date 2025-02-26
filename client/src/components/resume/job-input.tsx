@@ -514,14 +514,32 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             <h3 className="text-xl font-semibold mb-4">Resume Optimization Results</h3>
             <ResumeMetricsComparison
               metrics={{
-                before: optimizedResume.metrics.before,
-                after: optimizedResume.metrics.after
+                before: optimizedResume.metrics.before || {
+                  overall: 0,
+                  keywords: 0,
+                  skills: 0,
+                  experience: 0,
+                  education: 0,
+                  personalization: 0,
+                  aiReadiness: 0,
+                  confidence: 0
+                },
+                after: optimizedResume.metrics.after || {
+                  overall: 0,
+                  keywords: 0,
+                  skills: 0,
+                  experience: 0,
+                  education: 0,
+                  personalization: 0,
+                  aiReadiness: 0,
+                  confidence: 0
+                }
               }}
               analysis={{
-                strengths: optimizedResume.analysis.strengths,
-                improvements: optimizedResume.analysis.improvements,
-                gaps: optimizedResume.analysis.gaps,
-                suggestions: optimizedResume.analysis.suggestions
+                strengths: optimizedResume.analysis?.strengths || [],
+                improvements: optimizedResume.analysis?.improvements || [],
+                gaps: optimizedResume.analysis?.gaps || [],
+                suggestions: optimizedResume.analysis?.suggestions || []
               }}
             />
           </div>
