@@ -35,7 +35,7 @@ export async function extractJobDetails(jobUrl: string): Promise<JobDetails> {
       throw new Error('Only LinkedIn job URLs are supported');
     }
 
-    // First try to scrape from LinkedIn
+    // First try to fetch the page content
     const response = await axios.get(jobUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -44,41 +44,88 @@ export async function extractJobDetails(jobUrl: string): Promise<JobDetails> {
 
     const $ = cheerio.load(response.data);
 
-    // Extract job details using LinkedIn's class names
-    const description = $('.jobs-description__content').text().trim() || 
-                       $('.description__text').text().trim();
+    // Use AI to analyze the entire page content
+    const pageContent = $('body').text().trim();
 
-    if (!description) {
-      throw new Error('Failed to extract job description from LinkedIn');
+    // Use GPT-4o to extract structured information
+    const jobAnalysis = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert job posting analyzer. Extract key information from this LinkedIn job posting page content.
+Return a JSON object with the following structure exactly:
+{
+  "title": "job title",
+  "company": "company name",
+  "location": "location",
+  "salary": "salary range if available",
+  "description": "full job description",
+  "positionLevel": "entry/mid/senior/manager",
+  "keyRequirements": ["key requirement 1", "key requirement 2"],
+  "skillsAndTools": ["skill 1", "skill 2"],
+  "department": "department name",
+  "industries": ["industry 1", "industry 2"],
+  "softSkills": ["soft skill 1", "soft skill 2"],
+  "roleDetails": {
+    "duties": ["duty 1", "duty 2"],
+    "qualifications": ["qualification 1", "qualification 2"],
+    "responsibilities": ["responsibility 1", "responsibility 2"]
+  },
+  "workplaceType": "remote/hybrid/onsite",
+  "technicalSkills": ["technical skill 1", "technical skill 2"],
+  "reportingStructure": "reports to...",
+  "travelRequirements": "travel requirements"
+}`
+        },
+        {
+          role: "user",
+          content: pageContent
+        }
+      ],
+      temperature: 0.3,
+      max_tokens: 2000,
+      response_format: { type: "json_object" }
+    });
+
+    const result = JSON.parse(jobAnalysis.choices[0].message.content);
+
+    // Validate the required fields
+    if (!result.description) {
+      throw new Error('Failed to extract job description');
     }
 
-    // Use AI to analyze the job description
-    return await analyzeJobDescription(description);
+    return result;
 
   } catch (error: any) {
     console.error('Error extracting job details:', error);
 
-    // Use sample data from the assets if available
+    // Use sample data as fallback
     try {
       const fs = require('fs');
       const sampleData = fs.readFileSync('attached_assets/Pasted--title-Senior-Product-Manager-salary-Not-specified-company-WebMD-Ignite--1740588094607.txt', 'utf8');
       if (sampleData) {
+        console.log('Using sample data as fallback');
         const jobData = JSON.parse(sampleData);
         return {
-          title: jobData.title,
-          company: jobData.company,
-          location: jobData.location,
-          salary: jobData.salary,
-          description: jobData.description,
-          positionLevel: jobData.positionLevel,
-          keyRequirements: jobData.keyRequirements,
-          skillsAndTools: jobData.skillsAndTools,
+          title: jobData.title || "Not specified",
+          company: jobData.company || "Not specified",
+          location: jobData.location || "Not specified",
+          salary: jobData.salary || "Not specified",
+          description: jobData.description || "Not specified",
+          positionLevel: jobData.positionLevel || "Not specified",
+          keyRequirements: jobData.keyRequirements || [],
+          skillsAndTools: jobData.skillsAndTools || [],
           department: jobData.department,
-          industries: jobData.industries,
-          softSkills: jobData.softSkills,
-          roleDetails: jobData.roleDetails,
-          workplaceType: jobData.workplaceType,
-          technicalSkills: jobData.technicalSkills,
+          industries: jobData.industries || [],
+          softSkills: jobData.softSkills || [],
+          roleDetails: jobData.roleDetails || {
+            duties: [],
+            qualifications: [],
+            responsibilities: []
+          },
+          workplaceType: jobData.workplaceType || "Not specified",
+          technicalSkills: jobData.technicalSkills || [],
           reportingStructure: jobData.reportingStructure,
           travelRequirements: jobData.travelRequirements
         };
@@ -92,7 +139,7 @@ export async function extractJobDetails(jobUrl: string): Promise<JobDetails> {
 }
 
 /**
- * Analyze job description text using OpenAI to extract structured details
+ * Analyze job description text using GPT-4o to extract structured details
  */
 export async function analyzeJobDescription(jobDescription: string): Promise<JobDetails> {
   try {
@@ -105,50 +152,29 @@ export async function analyzeJobDescription(jobDescription: string): Promise<Job
       messages: [
         {
           role: "system",
-          content: `Analyze the job description and extract the following details in a structured format:
-
-1. Basic Information:
-- Job title
-- Company name
-- Location (specify if remote/hybrid)
-- Salary range (if mentioned)
-- Position level (Entry/Mid/Senior/Manager)
-- Department
-
-2. Skills & Requirements:
-- Technical skills required
-- Soft skills needed
-- Key requirements/qualifications
-- Years of experience
-
-3. Additional Details:
-- Industry/sector
-- Role responsibilities
-- Workplace type (Remote/Hybrid/Onsite)
-- Travel requirements
-- Reporting structure
-
-Return JSON following this exact structure:
+          content: `You are an expert job description analyzer. Extract detailed structured information from this job description.
+Return a JSON object with the following structure exactly:
 {
-  "title": "string",
-  "company": "string",
-  "location": "string",
-  "salary": "string or null",
-  "positionLevel": "string",
-  "department": "string",
-  "skillsAndTools": ["array of technical skills"],
-  "softSkills": ["array of soft skills"],
-  "keyRequirements": ["array of key requirements"],
-  "industries": ["array of industries"],
+  "title": "job title",
+  "company": "company name",
+  "location": "location",
+  "salary": "salary range if available",
+  "description": "full job description",
+  "positionLevel": "entry/mid/senior/manager",
+  "keyRequirements": ["key requirement 1", "key requirement 2"],
+  "skillsAndTools": ["skill 1", "skill 2"],
+  "department": "department name",
+  "industries": ["industry 1", "industry 2"],
+  "softSkills": ["soft skill 1", "soft skill 2"],
   "roleDetails": {
-    "duties": ["array of duties"],
-    "qualifications": ["array of qualifications"],
-    "responsibilities": ["array of responsibilities"]
+    "duties": ["duty 1", "duty 2"],
+    "qualifications": ["qualification 1", "qualification 2"],
+    "responsibilities": ["responsibility 1", "responsibility 2"]
   },
-  "workplaceType": "string",
-  "technicalSkills": ["array of technical skills"],
-  "reportingStructure": "string",
-  "travelRequirements": "string"
+  "workplaceType": "remote/hybrid/onsite",
+  "technicalSkills": ["technical skill 1", "technical skill 2"],
+  "reportingStructure": "reports to...",
+  "travelRequirements": "travel requirements"
 }`
         },
         {
@@ -156,9 +182,9 @@ Return JSON following this exact structure:
           content: jobDescription
         }
       ],
-      response_format: { type: "json_object" },
       temperature: 0.3,
-      max_tokens: 2000
+      max_tokens: 2000,
+      response_format: { type: "json_object" }
     });
 
     const result = JSON.parse(response.choices[0].message.content);

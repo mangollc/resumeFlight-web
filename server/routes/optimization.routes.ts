@@ -7,7 +7,7 @@ import { Router } from 'express';
 import { storage } from '../storage';
 import { optimizeResume } from '../openai';
 import { extractJobDetails, analyzeJobDescription } from '../utils/job-analysis';
-import { JobDetails, JobMetrics } from './types';
+import { JobDetails } from './types';
 import { calculateMatchScores } from '../utils/scoring';
 
 const router = Router();
@@ -26,67 +26,6 @@ router.get('/optimized-resumes', async (req, res) => {
         return res.status(500).json({
             error: "Failed to fetch optimized resumes",
             details: error.message
-        });
-    }
-});
-
-// Get single optimized resume
-router.get('/optimized-resume/:id', async (req, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Unauthorized" });
-        }
-
-        const resumeId = parseInt(req.params.id);
-        const resume = await storage.getOptimizedResume(resumeId);
-
-        if (!resume) {
-            return res.status(404).json({ error: "Resume not found" });
-        }
-
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Unauthorized access" });
-        }
-
-        // Transform single resume to include required properties
-        const transformedResume = {
-            ...resume,
-            metrics: {
-                before: resume.metrics?.before || {
-                    keywords: 0,
-                    skills: 0,
-                    experience: 0,
-                    education: 0,
-                    personalization: 0,
-                    aiReadiness: 0,
-                    overall: 0,
-                    confidence: 0
-                },
-                after: {
-                    ...(resume.metrics?.after || {
-                        keywords: 0,
-                        skills: 0,
-                        experience: 0,
-                        education: 0,
-                        personalization: 0,
-                        aiReadiness: 0,
-                        overall: 0,
-                        confidence: 0
-                    }),
-                    strengths: resume.analysis?.matches || [],
-                    improvements: resume.analysis?.improvements || [],
-                    gaps: resume.analysis?.gaps || [],
-                    suggestions: resume.analysis?.suggestions || []
-                }
-            }
-        };
-
-        return res.json(transformedResume);
-    } catch (error: any) {
-        console.error("Error fetching optimized resume:", error);
-        return res.status(500).json({
-            error: "Failed to fetch optimized resume",
-            details: error.message,
         });
     }
 });
@@ -148,7 +87,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
             // Extract job details
             sendEvent({ status: "extracting_details" });
-            let jobDetails;
+            let jobDetails: JobDetails;
             try {
                 if (jobUrl) {
                     jobDetails = await extractJobDetails(jobUrl);
@@ -157,53 +96,54 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 } else {
                     throw new Error("Either job description or URL is required");
                 }
+
+                if (!jobDetails || !jobDetails.description) {
+                    throw new Error("Failed to obtain job description from the provided source");
+                }
+
+                // Analyze description
+                sendEvent({ status: "analyzing_description" });
+                const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
+
+                // Optimize resume
+                sendEvent({ status: "optimizing_resume" });
+                const { optimizedContent, changes, matchScore } = await optimizeResume(
+                    resume.content,
+                    jobDetails.description
+                );
+
+                const optimizedScores = await calculateMatchScores(optimizedContent, jobDetails.description, true);
+
+                const optimizedResume = await storage.createOptimizedResume({
+                    userId: req.user!.id,
+                    sessionId: req.session.id,
+                    uploadedResumeId: resume.id,
+                    content: optimizedContent,
+                    originalContent: resume.content,
+                    jobDescription: jobDetails.description,
+                    jobUrl: jobUrl || null,
+                    jobDetails,
+                    metadata: {
+                        filename: resume.metadata.filename,
+                        optimizedAt: new Date().toISOString()
+                    },
+                    metrics: {
+                        before: originalScores,
+                        after: optimizedScores,
+                    }
+                });
+
+                // Send completion status with results
+                sendEvent({ 
+                    status: "completed",
+                    optimizedResume,
+                    changes 
+                });
+
             } catch (error: any) {
                 console.error('Job details extraction error:', error);
-                throw new Error(`Failed to extract job details: ${error.message}`);
+                throw error;
             }
-
-            if (!jobDetails || !jobDetails.description) {
-                throw new Error("Failed to obtain job description from the provided source");
-            }
-
-            // Analyze description
-            sendEvent({ status: "analyzing_description" });
-            const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
-
-            // Optimize resume
-            sendEvent({ status: "optimizing_resume" });
-            const { optimizedContent, changes, matchScore } = await optimizeResume(
-                resume.content,
-                jobDetails.description
-            );
-
-            const optimizedScores = await calculateMatchScores(optimizedContent, jobDetails.description, true);
-
-            const optimizedResume = await storage.createOptimizedResume({
-                userId: req.user!.id,
-                sessionId: req.session.id,
-                uploadedResumeId: resume.id,
-                content: optimizedContent,
-                originalContent: resume.content,
-                jobDescription: jobDetails.description,
-                jobUrl: jobUrl || null,
-                jobDetails,
-                metadata: {
-                    filename: resume.metadata.filename,
-                    optimizedAt: new Date().toISOString()
-                },
-                metrics: {
-                    before: originalScores,
-                    after: optimizedScores,
-                }
-            });
-
-            // Send completion status with results
-            sendEvent({ 
-                status: "completed",
-                optimizedResume,
-                changes 
-            });
 
             return res.end();
         } catch (error: any) {
@@ -224,67 +164,6 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             code: error.code || "SERVER_ERROR"
         });
     }
-});
-
-// Delete optimized resume
-router.delete('/optimized-resume/:id', async (req, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Unauthorized" });
-        }
-
-        const resumeId = parseInt(req.params.id);
-        const resume = await storage.getOptimizedResume(resumeId);
-
-        if (!resume) {
-            return res.status(404).json({ error: "Resume not found" });
-        }
-
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Unauthorized access" });
-        }
-
-        await storage.deleteOptimizedResume(resumeId);
-        return res.json({ message: "Resume deleted successfully" });
-    } catch (error: any) {
-        return res.status(500).json({
-            error: "Failed to delete resume",
-            details: error.message
-        });
-    }
-});
-
-// Error handling middleware specific to optimization routes
-router.use((err: any, req: any, res: any, next: any) => {
-    console.error('Optimization route error:', err);
-
-    if (err.type === 'entity.too.large') {
-        return res.status(413).json({
-            error: 'Request entity too large',
-            message: 'The uploaded file exceeds the maximum allowed size'
-        });
-    }
-
-    if (err.name === 'ValidationError') {
-        return res.status(400).json({
-            error: 'Validation Error',
-            message: err.message,
-            details: err.errors
-        });
-    }
-
-    if (err.name === 'ZodError') {
-        return res.status(400).json({
-            error: 'Schema Validation Error',
-            message: err.errors[0].message,
-            details: err.errors
-        });
-    }
-
-    res.status(500).json({
-        error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
-    });
 });
 
 export const optimizationRoutes = router;
