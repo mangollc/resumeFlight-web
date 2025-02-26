@@ -624,6 +624,7 @@ export default function Dashboard() {
       }
 
       setCurrentStep(nextStep);
+      window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to top after next
     }
   };
 
@@ -925,8 +926,7 @@ export default function Dashboard() {
         );
       case 2:
         if (isReviewMode) return null; // Skip rendering step 2 in review mode
-        return uploadedResume ? (
-          <div className="fade-in">
+        return uploadedResume ? (          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
                 <JobInput
