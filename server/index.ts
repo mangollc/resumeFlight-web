@@ -110,7 +110,7 @@ const startServer = async (port: number): Promise<void> => {
     }
 };
 
-console.log('Starting server on initial port 5000...');
+console.log('Starting server on port 5000...');
 startServer(5000).catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
