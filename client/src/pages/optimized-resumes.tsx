@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -166,14 +166,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       toast({
         title: "Error",
         description: error.message || "Failed to delete resume. Please try again.",
-        variant: "destructive",
-      });
-    },
-    onError: (error: any) => {
-      console.error("Delete error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete resume",
         variant: "destructive",
       });
     },
@@ -520,6 +512,22 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 }
 
 export default function OptimizedResumesPage() {
+  const queryClient = useQueryClient();
+  
+  // Force refresh data on component mount
+  useEffect(() => {
+    // Clear cache and refetch on page load
+    const refreshData = async () => {
+      await queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
+      await queryClient.refetchQueries({ 
+        queryKey: ["/api/optimized-resumes"],
+        type: 'all'
+      });
+    };
+    
+    refreshData();
+  }, [queryClient]);
+  
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {

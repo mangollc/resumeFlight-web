@@ -64,8 +64,14 @@ router.delete('/optimized/:id', async (req, res) => {
             return res.status(403).json({ error: "Not authorized" });
         }
 
-        await storage.deleteOptimizedResume(resumeId);
-        return res.json({ message: "Resume deleted successfully" });
+        // Force a complete deletion and cleanup
+        await storage.deleteOptimizedResume(resumeId, true);
+        
+        // Return success with timestamp to help client avoid caching
+        return res.json({ 
+          message: "Resume deleted successfully",
+          timestamp: Date.now()
+        });
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
