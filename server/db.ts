@@ -31,7 +31,7 @@ const DEFAULT_POOL_CONFIG = {
 export const pool = new Pool({
   ...DEFAULT_POOL_CONFIG,
   connectionString: process.env.DATABASE_URL,
-  max: 10
+  max: 4  // Reduce maximum connections
 });
 
 // Initialize Drizzle with the pool

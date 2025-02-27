@@ -83,7 +83,7 @@ const startServer = async (port: number): Promise<void> => {
         await viteSetupPromise;
 
         console.log(`Attempting to start server on port ${port}...`);
-        await new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
             const srv = server.listen(port, '0.0.0.0', () => {
                 console.log(`Server successfully started on port ${port}`);
                 resolve();
@@ -101,9 +101,14 @@ const startServer = async (port: number): Promise<void> => {
             });
 
             // Add timeout for server startup
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 reject(new Error(`Server startup timed out after 10 seconds on port ${port}`));
             }, 10000);
+
+            // Clear timeout when the server starts successfully
+            srv.once('listening', () => {
+                clearTimeout(timeoutId);
+            });
         });
     } catch (err: any) {
         console.error('Server startup error:', err);
