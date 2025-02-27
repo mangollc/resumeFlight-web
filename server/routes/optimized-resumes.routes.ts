@@ -1,20 +1,16 @@
 import { Router } from "express";
 import { db } from "../db";
-import { uploadedResumes, optimizedResumes, coverLetters } from "@shared/schema";
+import { optimizedResumes, coverLetters } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { ensureAuthenticated } from "../auth";
 
 const router = Router();
 
 // Get all optimized resumes
-router.get("/", async (req, res) => {
+router.get("/", ensureAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
     const resumes = await db.query.optimizedResumes.findMany({
-      where: eq(optimizedResumes.userId, userId),
+      where: eq(optimizedResumes.userId, req.user!.id),
       orderBy: (optimizedResumes, { desc }) => [desc(optimizedResumes.createdAt)],
       with: {
         coverLetter: true,
@@ -29,18 +25,13 @@ router.get("/", async (req, res) => {
 });
 
 // Get a single optimized resume by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.session.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
 
     const resume = await db.query.optimizedResumes.findFirst({
       where: (optimizedResumes, { and, eq }) => 
-        and(eq(optimizedResumes.id, parseInt(id)), eq(optimizedResumes.userId, userId)),
+        and(eq(optimizedResumes.id, parseInt(id)), eq(optimizedResumes.userId, req.user!.id)),
       with: {
         uploadedResume: true,
         coverLetter: true,
@@ -59,18 +50,13 @@ router.get("/:id", async (req, res) => {
 });
 
 // Download an optimized resume
-router.get("/:id/download", async (req, res) => {
+router.get("/:id/download", ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.session.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
 
     const resume = await db.query.optimizedResumes.findFirst({
       where: (optimizedResumes, { and, eq }) => 
-        and(eq(optimizedResumes.id, parseInt(id)), eq(optimizedResumes.userId, userId)),
+        and(eq(optimizedResumes.id, parseInt(id)), eq(optimizedResumes.userId, req.user!.id)),
     });
 
     if (!resume) {
@@ -78,15 +64,10 @@ router.get("/:id/download", async (req, res) => {
     }
 
     // Here you would generate and send the PDF
-    // For now, sending a placeholder response
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename || 'resume.pdf'}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
 
     // In a real implementation, you would generate and send the PDF here
-    // For example:
-    // const pdfBuffer = await generatePDF(resume.content);
-    // res.send(pdfBuffer);
-
     res.send("PDF Content Would Go Here");
   } catch (error) {
     console.error("Error downloading resume:", error);
@@ -95,19 +76,14 @@ router.get("/:id/download", async (req, res) => {
 });
 
 // Download a cover letter
-router.get("/:resumeId/cover-letter/:letterId/download", async (req, res) => {
+router.get("/:resumeId/cover-letter/:letterId/download", ensureAuthenticated, async (req, res) => {
   try {
     const { resumeId, letterId } = req.params;
-    const userId = req.session.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
 
     // Verify the resume belongs to the user
     const resume = await db.query.optimizedResumes.findFirst({
       where: (optimizedResumes, { and, eq }) => 
-        and(eq(optimizedResumes.id, parseInt(resumeId)), eq(optimizedResumes.userId, userId)),
+        and(eq(optimizedResumes.id, parseInt(resumeId)), eq(optimizedResumes.userId, req.user!.id)),
     });
 
     if (!resume) {
@@ -124,9 +100,8 @@ router.get("/:resumeId/cover-letter/:letterId/download", async (req, res) => {
       return res.status(404).json({ error: "Cover letter not found" });
     }
 
-    // Here you would generate and send the PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="cover_letter_v${letter.metadata.version}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="cover_letter.pdf"`);
 
     // In a real implementation, you would generate and send the PDF here
     res.send("Cover Letter PDF Content Would Go Here");
@@ -137,29 +112,23 @@ router.get("/:resumeId/cover-letter/:letterId/download", async (req, res) => {
 });
 
 // Download complete package (resume + cover letter)
-router.post("/:id/package/download", async (req, res) => {
+router.post("/:id/package/download", ensureAuthenticated, async (req, res) => {
   try {
     const { id } = req.params;
     const { coverLetterId } = req.body;
-    const userId = req.session.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
 
     // Verify the resume belongs to the user
     const resume = await db.query.optimizedResumes.findFirst({
       where: (optimizedResumes, { and, eq }) => 
-        and(eq(optimizedResumes.id, parseInt(id)), eq(optimizedResumes.userId, userId)),
+        and(eq(optimizedResumes.id, parseInt(id)), eq(optimizedResumes.userId, req.user!.id)),
     });
 
     if (!resume) {
       return res.status(404).json({ error: "Resume not found" });
     }
 
-    // Here you would generate the ZIP file with resume and cover letter
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', `attachment; filename="resume_package_${Date.now()}.zip"`);
+    res.setHeader('Content-Disposition', `attachment; filename="resume_package.zip"`);
 
     // In a real implementation, you would generate and send the ZIP here
     res.send("ZIP Package Content Would Go Here");

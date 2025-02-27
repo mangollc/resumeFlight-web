@@ -8,31 +8,21 @@ import { authRoutes } from "./auth.routes";
 import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
-import { setupAuth } from "../auth";
+import optimizedResumeRoutes from "./optimized-resumes.routes";
 
 export function registerRoutes(app: Express): Server {
-    // Set up authentication
-    setupAuth(app);
-
     // Global middleware
     app.use((req, res, next) => {
         res.setHeader("Content-Type", "application/json");
         next();
     });
 
-    // Health check endpoint
-    app.get("/api/health", (_req, res) => {
-        res.json({
-            status: "healthy",
-            timestamp: new Date().toISOString()
-        });
-    });
-
     // Register route modules with proper prefixes
-    app.use('/api', authRoutes);
-    app.use('/api', resumeRoutes);  // This will handle /api/uploaded-resumes
-    app.use('/api', optimizationRoutes); // Add optimization routes
+    app.use('/api/auth', authRoutes);
+    app.use('/api/resumes', resumeRoutes);
+    app.use('/api/optimization', optimizationRoutes);
     app.use('/api/analysis', analysisRoutes);
+    app.use('/api/optimized-resumes', optimizedResumeRoutes);
 
     return createServer(app);
 }
