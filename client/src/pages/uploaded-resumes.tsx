@@ -65,7 +65,12 @@ export default function UploadedResumesPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       console.log(`Deleting uploaded resume with ID: ${id}`);
-      const response = await fetch(`/api/resumes/uploaded/${id}`, {
+      
+      // Explicitly log the exact API endpoint being called
+      const apiEndpoint = `/api/resumes/uploaded/${id}`;
+      console.log(`Calling DELETE endpoint: ${apiEndpoint}`);
+      
+      const response = await fetch(apiEndpoint, {
         method: "DELETE",
         headers: {
           'Accept': 'application/json',
@@ -74,23 +79,38 @@ export default function UploadedResumesPage() {
         credentials: 'include'
       });
 
+      console.log(`Delete response status: ${response.status}`);
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to delete resume');
+        try {
+          const errorData = await response.json();
+          console.error("Delete error response:", errorData);
+          throw new Error(errorData.message || errorData.error || 'Failed to delete resume');
+        } catch (parseError) {
+          console.error("Error parsing error response:", parseError);
+          throw new Error(`Server returned ${response.status}: Failed to delete resume`);
+        }
       }
       
-      // Handle response regardless of content type
+      // Handle successful response
       try {
         const contentType = response.headers.get('content-type');
+        console.log(`Response content type: ${contentType}`);
+        
         if (contentType && contentType.includes('application/json')) {
-          return await response.json();
+          const jsonData = await response.json();
+          console.log("Delete success response:", jsonData);
+          return jsonData;
         }
-        // If not JSON or empty response, return success object
+        
+        // If not JSON or empty response, log and return success object
         console.log("Non-JSON response received on deletion, assuming success");
-        return { success: true };
+        return { success: true, message: "Resume deleted successfully" };
       } catch (error) {
-        console.log("Error parsing response but assuming success:", error);
-        return { success: true };
+        console.log("Error parsing success response:", error);
+        // Even if we can't parse the response, we'll consider it a success
+        // since the HTTP status was in the 200 range
+        return { success: true, message: "Resume deleted" };
       }
     },
     onSuccess: () => {
