@@ -120,9 +120,9 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                 </Card>
 
                 {/* Analysis Section */}
-                <Card className="p-6">
-                  <h4 className="text-lg font-semibold mb-4">Resume Analysis</h4>
-                  <div className="grid gap-6 md:grid-cols-2">
+                <Card className="p-4 sm:p-6">
+                  <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Resume Analysis</h4>
+                  <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <h5 className="font-semibold text-sm text-green-600">Strengths</h5>
                       <ul className="list-disc list-inside space-y-1">
