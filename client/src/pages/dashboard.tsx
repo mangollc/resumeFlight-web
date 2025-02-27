@@ -967,7 +967,10 @@ export default function Dashboard() {
   return (
     <>
         <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-          {/* Add Navbar here if needed */}
+          <div className="mb-6">
+            {/* Import and use the Navbar component from layout folder */}
+            {React.createElement(require('@/components/layout/navbar').Navbar, { collapsed: false })}
+          </div>
           <div className="min-h-screen flex flex-col">
             {proverb && (
               <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">

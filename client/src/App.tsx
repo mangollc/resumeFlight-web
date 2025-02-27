@@ -5,6 +5,7 @@ import SubscriptionPage from "@/pages/subscription";
 import SettingsPage from "@/pages/settings";
 import { Toaster } from "@/components/ui/toaster";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+import { Navbar } from "@/components/layout/navbar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import OptimizedResumesPage from "@/pages/optimized-resumes";
