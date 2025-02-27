@@ -170,6 +170,7 @@ export default function Dashboard() {
   // Add loading state for review mode
   const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
   const [error, setError] = useState<Error | null>(null);
+  const [optimizedResumeVersion, setOptimizedResumeVersion] = useState<string>('');
 
   // Initialize all state variables
   const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
