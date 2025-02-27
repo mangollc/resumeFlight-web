@@ -127,11 +127,46 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
         return {}; // Return empty object on parsing error
       }
     },
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["/api/optimized-resumes"] });
+      
+      // Snapshot the previous value
+      const previousResumes = queryClient.getQueryData<OptimizedResume[]>(["/api/optimized-resumes"]);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData<OptimizedResume[]>(["/api/optimized-resumes"], (old) => {
+        if (!old) return [];
+        return old.filter((resume) => resume.id !== id);
+      });
+      
+      // Return a context object with the previous value
+      return { previousResumes };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+      // Force a refetch to ensure we get fresh data
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/optimized-resumes"],
+        refetchType: 'all'
+      });
+      
+      // Also clear the cache completely to ensure stale data is removed
+      queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
+      
       toast({
         title: "Success",
         description: "Resume deleted successfully",
+      });
+    },
+    onError: (error: any, id, context: any) => {
+      console.error("Delete error:", error);
+      if (context?.previousResumes) {
+        queryClient.setQueryData(["/api/optimized-resumes"], context.previousResumes);
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete resume. Please try again.",
+        variant: "destructive",
       });
     },
     onError: (error: any) => {

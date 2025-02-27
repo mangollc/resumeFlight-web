@@ -34,7 +34,7 @@ export async function apiRequest(
       try {
         const errorText = await response.clone().text();
         const contentType = response.headers.get('content-type');
-        
+
         // Check if the response is HTML (error page) instead of JSON
         if (contentType && contentType.includes('text/html')) {
           console.log("Server returned HTML instead of JSON:", errorText.substring(0, 100) + "...");
@@ -74,14 +74,27 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      retry: 1,
     },
     mutations: {
       retry: false,
     },
   },
 });
+
+// Utility function to force a complete refresh of a query
+export const forceQueryRefresh = async (queryKey: string[]) => {
+  // Clear the cache
+  queryClient.removeQueries({ queryKey });
+
+  // Force a refetch
+  await queryClient.invalidateQueries({ 
+    queryKey,
+    refetchType: 'all' 
+  });
+
+  // Ensure any components using this data re-render
+  return queryClient.refetchQueries({ queryKey });
+};

@@ -99,15 +99,43 @@ export default function UploadedResumesPage() {
       }
     },
     onMutate: async (id) => {
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
+      
+      // Snapshot the previous value
       const previousResumes = queryClient.getQueryData<UploadedResume[]>(["/api/uploaded-resumes"]);
-      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) =>
-        old?.filter((resume) => resume.id !== id)
-      );
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) => {
+        if (!old) return [];
+        return old.filter((resume) => resume.id !== id);
+      });
+      
+      // Return a context object with the previous value
       return { previousResumes };
     },
+    // Also improve error handling to restore previous state
+    onError: (error: any, id, context) => {
+      console.error("Delete error:", error);
+      if (context?.previousResumes) {
+        queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
+      }
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete resume. Please try again.",
+        variant: "destructive",
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
+      // Force a refetch to ensure we get fresh data
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/uploaded-resumes"],
+        refetchType: 'all'
+      });
+      
+      // Also clear the cache completely to ensure stale data is removed
+      queryClient.removeQueries({ queryKey: ["/api/uploaded-resumes"] });
+      
       toast({
         title: "Success",
         description: "Resume deleted successfully",
