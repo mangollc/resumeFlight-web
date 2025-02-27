@@ -1,0 +1,24 @@
+Creating EventSource with URL: https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/api/uploaded-resumes/3/optimize?jobDescription=Supply+Chain+Data+Analyst+-+Hybrid%0AcyberThink%2C+Inc%0ARidgefield+Park%2C+NJ%0A%0A%0AQuick+Apply%0A%0A%0A%2430+-+%2440+%2F+hr%0A%0AFull-time%0A%0APosted+5+days+ago%0A%0AJob+description%0AJob+Description%3A%0AAs+a+Supply+Chain+Data+Analyst%2C+you+will+work+with+the+Team+Lead+to+manage+a+specific+range+of+reports+or+projects+while+working+closely+with+the+other+SCM+Planners+at+EBD.+The+Data+Analyst+will+also+manage+tactical+projects+on+behalf+of+the+entire+Supply+Chain+Team%2C+and+generate+reports+for+internal+Customers+and+Executive+Management%0A%0ADuties+And+Responsibilities%3A%0AImproved+SCM+Operation+and+Forecast+Accuracy%0AProvide+Monthly+snapshot+of+demand+forecast+and+major+SCM+KPIs+by+total+and+product+level%0AAnalytically+bridge+the+gap+between+planning+and+execution+on+a+weekly+basis%0AIdentify+the+main+root+cause+of+failures+for+each+step+of+operation+and+Implement+each+cadence+with+all+counterparts%0ADrive+operational+requirements+for+new+technology+segments+for+the+Display+product+group%0AReduced+Potential+Stock-Outs%0AProvide+a+List+of+Top+Opportunities+for+review+during+internal+meetings+to+ensure+AP1+forecasts+are+entered+%28and+orders+placed+to+commits%29+to+optimize+WoS+Stocking+factoring+in+validated+Opportunities.%0AProvide+a+Standardized+Report+for+B2B+CPFR+Team+to+review+with+Tier+2+%2F+Tier+3+Sales+Teams+or+Distributors+as+required%0AImproved+Consensus+between+Sales%2FSCM%2FMarketing%2FLogistics%0AImprove+collaboration+and+support+to+mitigate+the+target+gap%0AMonitor+major+SCM+projects+and+ensure+each+progress+on+a+weekly+basic%0A%0ARequired+Knowledge%2C+Education%2C+And%2For+Experience%3A%0AUndergraduate+Degree+in+Business%2C+Economics%2C+Finance%2C+or+similar.%0AMinimum+3+years+of+work+experience+in+a+relevant+field+%28Forecasting%2C+Demand+Planning%2C+Metrics%2C+Reporting%29%0AExcellent+Analytical+and+Computer+Skills.%0AHigh+proficiency+in+Microsoft+Excel%2C+Outlook%2C+and+Office+Suite.%0ASAP%2C+Tableau+and+Alteryx+experience+require.%0AExcellent+Communication+skills+%28written%2C+verbal%29.%0AMust+be+comfortable+working+in+a+multi-cultural+business+environment.%0AMust+be+available+to+work+overtime+if+business+need.%0A%0A%0AThe+hourly+range+for+roles+of+this+nature+are+%2430.00+to+%2440.00%2Fhr.+Rates+are+heavily+dependent+on+skills%2C+experience%2C+location%2C+and+industry.%0A%0AcyberThink+is+an+Equal+Opportunity+Employer.
+EventSource connection opened
+Received event: 
+Object {status: "started"}
+Received event: 
+Object {status: "extracting_details"}
+Received event: 
+Object {status: "analyzing_description"}
+Received event: 
+Object {status: "optimizing_resume"}
+Received event: 
+Object {status: "completed", optimizedResume: {…}, changes: Array(7)}
+Request timed out
+Retrying (1/2)...
+EventSource error: 
+Event {isTrusted: true}
+
+Retrying (2/2)...
+EventSource error: 
+Event {isTrusted: true}
+
+Mutation error: 
+Error {}
+
