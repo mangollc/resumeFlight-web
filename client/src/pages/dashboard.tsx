@@ -1265,6 +1265,4 @@ const renderStep5 = () => {
       </>
     );
   }
-
-  // Function is already defined above
 }
