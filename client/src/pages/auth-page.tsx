@@ -41,8 +41,14 @@ export default function AuthPage() {
   }, []);
 
   // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+  
+  // Return early if user is logged in to prevent rendering the login page
   if (user) {
-    setLocation("/");
     return null;
   }
 
