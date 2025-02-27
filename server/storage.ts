@@ -26,6 +26,9 @@ export interface IStorage {
   getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
   deleteOptimizedResume(id: number): Promise<void>;
   getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]>;
+  // Cover Letter operations
+  createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter>;
+  getCoverLetterByResumeId(resumeId: number): Promise<CoverLetter | undefined>;
   // Other operations
   sessionStore: session.Store;
   getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined>;
@@ -544,6 +547,82 @@ export class DatabaseStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Error getting optimization sessions by user:', error);
+
+  async createCoverLetter(coverLetter: InsertCoverLetter & { 
+    userId: number;
+    highlights?: string[];
+    confidence?: number;
+    version?: string;
+    versionHistory?: {
+      content: string;
+      version: string;
+      generatedAt: string;
+    }[];
+  }): Promise<CoverLetter> {
+    try {
+      const [result] = await db
+        .insert(coverLetters)
+        .values({
+          userId: coverLetter.userId,
+          optimizedResumeId: coverLetter.optimizedResumeId,
+          content: coverLetter.content,
+          metadata: coverLetter.metadata || {
+            filename: `Cover_Letter_${Date.now()}`,
+            generatedAt: new Date().toISOString(),
+            version: coverLetter.version || '1.0'
+          },
+          highlights: coverLetter.highlights || [],
+          confidence: coverLetter.confidence || 0,
+          version: coverLetter.version || '1.0',
+          versionHistory: coverLetter.versionHistory || [{
+            content: coverLetter.content,
+            version: coverLetter.version || '1.0',
+            generatedAt: new Date().toISOString()
+          }],
+          createdAt: await getCurrentESTTimestamp()
+        })
+        .returning();
+
+      return result;
+    } catch (error) {
+      console.error('Error creating cover letter:', error);
+      throw new Error('Failed to create cover letter');
+    }
+  }
+
+  async getCoverLetterByResumeId(resumeId: number): Promise<CoverLetter | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(coverLetters)
+        .where(eq(coverLetters.optimizedResumeId, resumeId));
+
+      if (!result) return undefined;
+
+      return {
+        ...result,
+        metadata: result.metadata as CoverLetter['metadata']
+      };
+    } catch (error) {
+      console.error('Error getting cover letter by resume ID:', error);
+      throw new Error('Failed to get cover letter');
+    }
+  }
+
+  async getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(resumeMatchScores)
+        .where(eq(resumeMatchScores.optimizedResumeId, optimizedResumeId));
+
+      return result;
+    } catch (error) {
+      console.error('Error getting resume match score:', error);
+      return undefined;
+    }
+  }
+
       throw new Error('Failed to get optimization sessions');
     }
   }

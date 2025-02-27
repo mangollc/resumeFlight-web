@@ -172,7 +172,7 @@ process.on('SIGTERM', () => {
             console.error('Error during shutdown:', err);
             process.exit(1);
         }
-        
+
         // Instead of exiting, try to restart after a delay
         log('Server closed successfully. Attempting to restart in 3 seconds...');
         setTimeout(() => {
@@ -183,7 +183,7 @@ process.on('SIGTERM', () => {
             });
         }, 3000);
     });
-    
+
     // Still keep the force shutdown as a fallback, but extend the timeout
     setTimeout(() => {
         console.error('Force restarting after timeout');

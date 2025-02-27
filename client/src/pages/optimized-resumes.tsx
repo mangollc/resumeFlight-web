@@ -31,6 +31,8 @@ import {
   Code,
   ArrowUpCircle,
   HelpCircle,
+  FileDown, // Added import
+  BarChart2, //Presumed import - adjust if incorrect
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -62,6 +64,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Added import. Adjust if incorrect
+import { Card } from "@/components/ui/card"; // Added import. Adjust if incorrect
+
 
 const getScoreColor = (score: number) => {
   if (score >= 80) return "bg-emerald-500";
@@ -91,94 +96,128 @@ function MetricRow({ label, score }: { label: string; score: number }) {
 
 function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const analysisData = resume.analysis || {};
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      console.log(`Attempting to delete optimized resume with ID: ${id}`);
-
-      try {
-        const response = await fetch(`/api/analysis/optimized/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          cache: 'no-cache',
-          credentials: 'include'
-        });
-
-        console.log(`Delete response status: ${response.status}`);
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Server error response: ${errorText}`);
-          throw new Error(`Delete failed: ${response.status} - ${errorText}`);
-        }
-
-        // Try to parse as JSON, but don't fail if it's not JSON
-        return response.json().catch(() => {
-          console.log('Response was not JSON, but deletion succeeded');
-          return { success: true };
-        });
-      } catch (error) {
-        console.error('Network or parsing error:', error);
-        throw error;
-      }
-    },
-    onSuccess: (data, variables) => {
-      console.log(`Successfully deleted optimized resume with ID: ${variables}`);
-      toast({
-        title: 'Resume deleted',
-        description: 'The optimized resume has been deleted successfully.',
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
-    },
-    onError: (error) => {
-      console.error('Error in delete mutation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete the resume. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const downloadDocument = async (
-    type: "resume" | "cover-letter",
-    format: "pdf" | "docx",
-  ) => {
+  // Function to download resume as DOCX
+  const downloadResumeDocx = async (resumeId: number) => {
     try {
-      const endpoint =
-        type === "resume"
-          ? `/api/optimized-resume/${resume.id}/download`
-          : `/api/cover-letter/${resume.id}/download`;
+      toast({
+        title: "Downloading resume...",
+        description: "Preparing your resume document",
+      });
 
-      const response = await fetch(`${endpoint}?format=${format}`);
-      if (!response.ok) throw new Error(`Failed to download ${type}`);
+      // Fetch as blob
+      const response = await fetch(`/api/documents/resume/${resumeId}/download`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      });
 
+      if (!response.ok) {
+        throw new Error('Failed to download resume');
+      }
+
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'resume.docx';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/i);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create download link
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
       a.href = url;
-      a.download = `${type === "resume" ? "resume" : "cover_letter"}_v${resume.metadata.version}.${format}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
+
+      // Clean up
+      URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast({
-        title: "Success",
-        description: `${type === "resume" ? "Resume" : "Cover Letter"} downloaded successfully`,
+        title: "Download complete",
+        description: "Your resume has been downloaded",
+        variant: "success",
       });
     } catch (error) {
-      console.error("Download error:", error);
+      console.error('Error downloading resume:', error);
       toast({
-        title: "Error",
-        description: `Failed to download ${type}`,
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Failed to download resume",
         variant: "destructive",
       });
+    }
+  };
+
+  // Function to download cover letter as DOCX
+  const downloadCoverLetterDocx = async (resumeId: number) => {
+    try {
+      setIsGenerating(true);
+      toast({
+        title: "Generating cover letter...",
+        description: "This may take a moment",
+      });
+
+      // Fetch as blob
+      const response = await fetch(`/api/documents/cover-letter/${resumeId}/download`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate cover letter');
+      }
+
+      // Get filename from Content-Disposition header
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'cover_letter.docx';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/i);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create download link
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+
+      // Clean up
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Cover letter generated",
+        description: "Your cover letter has been downloaded",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error('Error generating cover letter:', error);
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Failed to generate cover letter",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -247,6 +286,15 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
               <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx")}>
                 <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => downloadResumeDocx(resume.id)}>
+                <FileDown className="mr-2 h-4 w-4" />
+                <span>Download Resume (DOCX)</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadCoverLetterDocx(resume.id)}>
+                <FileText className="mr-2 h-4 w-4" />
+                <span>Generate & Download Cover Letter</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <AlertDialog>
