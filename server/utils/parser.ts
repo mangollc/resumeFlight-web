@@ -1,5 +1,6 @@
-
-import mammoth from 'mammoth';
+import * as mammoth from 'mammoth';
+import * as path from 'path';
+import { openai } from '../openai';
 
 interface ParsedContact {
   fullName: string;
@@ -14,7 +15,7 @@ function extractContactInfo(text: string): ParsedContact {
   const phoneRegex = /[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,}/;
   const locationRegex = /([A-Z][a-zA-Z\s]+),\s*([A-Z]{2})/;
   const addressRegex = /\d+\s+[A-Za-z\s]+,?\s*[A-Za-z\s]+(,\s*[A-Z]{2})(\s+\d{5}(-\d{4})?)?/;
-  
+
   let contact: ParsedContact = {
     fullName: '',
     email: '',
@@ -29,12 +30,12 @@ function extractContactInfo(text: string): ParsedContact {
       break;
     }
   }
-  
+
   // If no all-caps name found, use first line
   if (!contact.fullName && lines.length > 0) {
     contact.fullName = lines[0];
   }
-  
+
   // Extract other contact details
   for (const line of lines) {
     // Email extraction
@@ -42,7 +43,7 @@ function extractContactInfo(text: string): ParsedContact {
     if (emailMatch && !contact.email) {
       contact.email = emailMatch[0];
     }
-    
+
     // Phone extraction - more robust pattern matching
     const phoneMatch = line.match(phoneRegex);
     if (phoneMatch && !contact.phone) {
@@ -61,7 +62,7 @@ function extractContactInfo(text: string): ParsedContact {
     if (locationMatch && !contact.address) {
       const [_, city, state] = locationMatch;
       contact.address = `${city.trim()}, ${state.trim()}`;
-      
+
       // Try to find country/zip if it exists in the same line
       const countryMatch = line.match(/,\s*([A-Z][a-zA-Z\s]+)$/);
       if (countryMatch) {
@@ -76,10 +77,10 @@ function extractContactInfo(text: string): ParsedContact {
 
 export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ content: string, contactInfo: ParsedContact }> {
   console.log('Parsing resume file:', { mimetype });
-  
+
   try {
     let text: string;
-    
+
     if (mimetype === "application/pdf") {
       text = buffer.toString('utf8');
       console.log('Parsed PDF content length:', text.length);
@@ -87,8 +88,23 @@ export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ c
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
       console.log('Parsed DOCX content length:', text.length);
+    } else {
+      throw new Error(`Unsupported file type: ${mimetype}`);
+    }
 
-import { openai } from '../openai';
+    // First extract basic contact info with regex
+    const basicContactInfo = extractContactInfo(text);
+
+    // Then enhance with AI if possible
+    const enhancedContactInfo = await enhanceContactInfoWithAI(text, basicContactInfo);
+
+    console.log('Extracted contact info:', enhancedContactInfo);
+    return { content: text, contactInfo: enhancedContactInfo };
+  } catch (error) {
+    console.error('Error parsing resume:', error);
+    throw new Error(`Failed to parse resume: ${error.message}`);
+  }
+}
 
 /**
  * Use AI to extract contact information from resume text
@@ -103,7 +119,7 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
 
     // Take first 1000 characters which likely has contact info
     const resumeStart = resumeText.substring(0, 1000);
-    
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -114,14 +130,14 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
           - email: Email address
           - phone: Phone number
           - address: Physical address (as detailed as possible)
-          
+
           Use existing information if available, otherwise extract from text.`
         },
         {
           role: "user",
           content: `Extract contact information from this resume. 
           Existing information: ${JSON.stringify(basicContactInfo)}
-          
+
           Resume text:
           ${resumeStart}`
         }
@@ -138,7 +154,7 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
     }
 
     const aiExtractedInfo = JSON.parse(content);
-    
+
     // Merge AI-extracted info with basic info, preferring AI results if they exist
     return {
       fullName: aiExtractedInfo.fullName || basicContactInfo.fullName || '',
@@ -149,23 +165,5 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
   } catch (error) {
     console.error("Error using AI to extract contact info:", error);
     return basicContactInfo;
-  }
-}
-
-    } else {
-      throw new Error(`Unsupported file type: ${mimetype}`);
-    }
-
-    // First extract basic contact info with regex
-    const basicContactInfo = extractContactInfo(text);
-    
-    // Then enhance with AI if possible
-    const enhancedContactInfo = await enhanceContactInfoWithAI(text, basicContactInfo);
-    
-    console.log('Extracted contact info:', enhancedContactInfo);
-    return { content: text, contactInfo: enhancedContactInfo };
-  } catch (error) {
-    console.error('Error parsing resume:', error);
-    throw new Error(`Failed to parse resume: ${error.message}`);
   }
 }
