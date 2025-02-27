@@ -1,49 +1,41 @@
 
 import { ReactNode } from "react";
-import { useLocation } from "wouter";
+import { Redirect } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Toaster } from "@/components/ui/toaster";
 
-type ProtectedRouteProps = {
+interface ProtectedRouteProps {
   children: ReactNode;
-};
+}
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const { user, loading } = useAuth();
 
-  // If auth is loading, show nothing or a loading spinner
-  if (isLoading) {
+  // Show loading state
+  if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="h-screen w-screen flex items-center justify-center">
         <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
-  // If not authenticated, redirect to login
+  // Redirect if not authenticated
   if (!user) {
-    navigate("/auth");
-    return null;
+    return <Redirect to="/auth" />;
   }
 
-  // If authenticated, render the protected content
+  // Render protected content
   return (
-    <SidebarProvider>
-      <div className="flex h-screen">
-        <Sidebar />
-        <div className="flex-1 overflow-auto">
+    <div className="flex h-screen bg-background overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
           {children}
-        </div>
+        </main>
       </div>
-    </SidebarProvider>
-  );
-}
-
-export function ProtectedLayout({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <main className="flex-1">{children}</main>
+      <Toaster />
     </div>
   );
 }

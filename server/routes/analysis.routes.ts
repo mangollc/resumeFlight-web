@@ -7,14 +7,24 @@ import { storage } from "../storage";
 
 const router = Router();
 
-// Get all optimized resumes
-router.get("/optimized", async (req, res) => {
+// Get optimized resumes
+router.get('/optimized', async (req, res) => {
   try {
-    const resumes = await storage.getOptimizedResumes(req.user?.id);
-    res.json(resumes);
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ 
+        error: "Unauthorized",
+        message: "Please log in to view optimized resumes"
+      });
+    }
+
+    const optimizedResumes = await storage.getOptimizedResumesByUser(req.user.id);
+    res.json(optimizedResumes);
   } catch (error: any) {
-    console.error("Error fetching optimized resumes:", error);
-    res.status(500).json({ error: error.message });
+    console.error('Error fetching optimized resumes:', error);
+    res.status(500).json({
+      error: "Failed to fetch optimized resumes",
+      details: error.message
+    });
   }
 });
 
@@ -98,5 +108,5 @@ router.get('/analysis/:resumeId', async (req, res) => {
   }
 });
 
-// Export the router (not an object with the router)
-export const analysisRoutes = router;
+// Export the router
+export default router;
