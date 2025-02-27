@@ -448,15 +448,51 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   );
 }
 
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/components/ui/use-toast";
+import { OptimizedResume } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Trash } from "lucide-react";
+
 export default function OptimizedResumesPage() {
+  const queryClient = useQueryClient();
+  
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
-    queryKey: ["/api/optimized-resumes"],
+    queryKey: ["/api/analysis/optimized"],
     select: (data) => {
       return [...data].sort((a, b) => {
         return (
           new Date(b.metadata.optimizedAt).getTime() -
           new Date(a.metadata.optimizedAt).getTime()
         );
+      });
+    },
+  });
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/analysis/optimized/${id}`, {
+        method: "DELETE",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete resume");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis/optimized"] });
+    },
+    onError: (error) => {
+      console.error("Error deleting resume:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete resume. Please try again.",
+        variant: "destructive",
       });
     },
   });

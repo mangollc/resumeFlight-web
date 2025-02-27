@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { UploadedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,11 @@ import {
 
 export default function UploadedResumesPage() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: resumes = [], isLoading, isError, error } = useQuery({
     queryKey: ["/api/uploaded-resumes"],
     queryFn: async () => {
-      console.log('Fetching uploaded resumes...');
       const response = await fetch("/api/uploaded-resumes", {
         headers: {
           'Accept': 'application/json',
@@ -57,37 +57,37 @@ export default function UploadedResumesPage() {
         throw new Error('Invalid response format');
       }
 
-      const data = await response.json();
-      console.log('Received resumes:', data);
-      return data;
+      return response.json();
     },
     retry: 1
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
-    },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
-      const previousResumes = queryClient.getQueryData<UploadedResume[]>(["/api/uploaded-resumes"]);
-      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) =>
-        old?.filter((resume) => resume.id !== id)
-      );
-      return { previousResumes };
+      const response = await fetch(`/api/uploaded-resumes/${id}`, {
+        method: "DELETE",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete resume');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       toast({
         title: "Success",
         description: "Resume deleted successfully",
-        duration: 2000, // Set to 2 seconds
+        duration: 2000,
       });
     },
-    onError: (error: Error, _, context) => {
-      if (context?.previousResumes) {
-        queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
-      }
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to delete resume",

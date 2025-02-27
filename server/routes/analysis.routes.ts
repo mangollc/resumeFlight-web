@@ -18,6 +18,32 @@ router.get('/optimized', async (req, res) => {
         return res.json(resumes);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
+
+// Delete optimized resume
+router.delete('/optimized/:id', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
+        const resumeId = parseInt(req.params.id);
+        const resume = await storage.getOptimizedResume(resumeId);
+
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        await storage.deleteOptimizedResume(resumeId);
+        return res.status(200).json({ success: true });
+    } catch (error: any) {
+        console.error("Error deleting optimized resume:", error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
     }
 });
 
