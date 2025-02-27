@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,8 @@ import {
   FileText,
   Code,
   ArrowUpCircle,
+  MoreHorizontal,
+  Trash
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -448,17 +450,9 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   );
 }
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/components/ui/use-toast";
-import { OptimizedResume } from "@shared/schema";
-import { Button } from "@/components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Trash } from "lucide-react";
-
 export default function OptimizedResumesPage() {
   const queryClient = useQueryClient();
-  
+
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/analysis/optimized"],
     select: (data) => {
@@ -470,18 +464,18 @@ export default function OptimizedResumesPage() {
       });
     },
   });
-  
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/analysis/optimized/${id}`, {
         method: "DELETE",
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to delete resume");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
