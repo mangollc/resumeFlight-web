@@ -156,15 +156,23 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       // Return a context object with the previous value
       return { previousResumes };
     },
-    onSuccess: () => {
-      // Force a refetch to ensure we get fresh data
+    onSuccess: (data) => {
+      console.log("Delete success response:", data);
+      
+      // Force an immediate refetch to ensure we get fresh data
       queryClient.invalidateQueries({ 
         queryKey: ["/api/optimized-resumes"],
         refetchType: 'all'
       });
       
-      // Also clear the cache completely to ensure stale data is removed
+      // Clear the cache completely to ensure stale data is removed
       queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
+      
+      // Force refetch after a small delay to ensure backend has processed the deletion
+      setTimeout(() => {
+        console.log("Performing delayed refetch after deletion");
+        queryClient.refetchQueries({ queryKey: ["/api/optimized-resumes"] });
+      }, 500);
       
       toast({
         title: "Success",

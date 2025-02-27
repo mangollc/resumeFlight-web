@@ -44,6 +44,21 @@ export async function apiRequest(
       } catch (readError) {
         console.log("Could not read error details:", readError);
       }
+    } else if (method === "DELETE") {
+      // On successful delete, immediately clear related cache to ensure UI consistency
+      const cacheKeys = [
+        "/api/optimized-resumes",
+        "/api/uploaded-resumes"
+      ];
+
+      // Wait slightly to ensure the deletion has propagated
+      setTimeout(() => {
+        console.log("Force invalidating cache after DELETE operation");
+        cacheKeys.forEach(key => {
+          queryClient.invalidateQueries({ queryKey: [key] });
+          queryClient.removeQueries({ queryKey: [key] });
+        });
+      }, 100);
     }
 
     return response;

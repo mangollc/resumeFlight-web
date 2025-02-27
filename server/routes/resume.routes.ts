@@ -13,6 +13,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db";
 import express from "express";
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { uploadedResumes } from "@shared/schema";
 
 const router = Router();
 
@@ -98,7 +99,7 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
 router.delete('/resume/:id', async (req, res) => {
     // Ensure we always send JSON response
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Not authenticated" });
@@ -114,8 +115,41 @@ router.delete('/resume/:id', async (req, res) => {
             return res.status(403).json({ error: "Not authorized" });
         }
 
-        await storage.deleteUploadedResume(resumeId);
-        res.json({ message: "Resume deleted" });
+        console.log(`Deleting uploaded resume with ID: ${resumeId} requested by user: ${req.user!.id}`);
+
+        try {
+            // Attempt to delete the resume
+            await storage.deleteUploadedResume(resumeId);
+
+            // Double-check if deletion was successful
+            const resumeStillExists = await db.select().from(uploadedResumes).where(eq(uploadedResumes.id, resumeId));
+            if (resumeStillExists.length > 0) {
+                console.log(`Warning: Resume ${resumeId} still exists after deletion attempt, trying direct DB deletion`);
+                await db.delete(uploadedResumes).where(eq(uploadedResumes.id, resumeId));
+            }
+
+            return res.json({ 
+                message: "Resume deleted successfully",
+                id: resumeId,
+                timestamp: Date.now() 
+            });
+        } catch (error) {
+            console.error("Error deleting uploaded resume:", error);
+            // Attempt direct database deletion as fallback
+            try {
+                await db.delete(uploadedResumes).where(eq(uploadedResumes.id, resumeId));
+                return res.json({ 
+                    message: "Resume deleted via fallback method",
+                    id: resumeId,
+                    timestamp: Date.now()
+                });
+            } catch (fallbackError) {
+                return res.status(500).json({ 
+                    error: "Failed to delete resume", 
+                    details: fallbackError.message 
+                });
+            }
+        }
     } catch (error: any) {
         console.error('Delete error:', error);
         res.status(500).json({

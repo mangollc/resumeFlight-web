@@ -2,9 +2,13 @@
  * Resume analysis and optimization routes
  */
 
-import { Router } from 'express';
-import { storage } from '../storage';
-import { optimizeResume } from '../openai';
+import { Router } from "express";
+import { storage } from "../storage";
+import { createReadStream } from "fs";
+import { join } from "path";
+import { optimizeResume } from "../utils/optimization";
+import { db } from "../db";
+import { optimizedResumes, eq } from "@shared/schema";
 
 const router = Router();
 
@@ -48,7 +52,7 @@ router.get('/optimized/:id', async (req, res) => {
 router.delete('/optimized/:id', async (req, res) => {
     // Ensure we always send JSON response
     res.setHeader('Content-Type', 'application/json');
-    
+
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Not authenticated" });
@@ -64,17 +68,45 @@ router.delete('/optimized/:id', async (req, res) => {
             return res.status(403).json({ error: "Not authorized" });
         }
 
-        // Force a complete deletion and cleanup
-        console.log(`Delete request received for optimized resume ID: ${resumeId}`);
-        await storage.deleteOptimizedResume(resumeId, true);
-        
-        // Return success with timestamp to help client avoid caching
-        console.log(`Delete for optimized resume ID: ${resumeId} completed successfully`);
-        return res.status(200).json({ 
-          message: "Resume deleted successfully",
-          timestamp: Date.now(),
-          id: resumeId
-        });
+        // Log deletion attempt with more details
+        console.log(`Deleting optimized resume with ID: ${resumeId} requested by user: ${req.user!.id}`);
+
+        try {
+            // Force a complete deletion and cleanup with explicit error handling
+            await storage.deleteOptimizedResume(resumeId, true);
+
+            // Double-check if the resume still exists
+            const resumeAfterDelete = await storage.getOptimizedResume(resumeId);
+            if (resumeAfterDelete) {
+                console.log(`Warning: Resume ${resumeId} still exists after deletion attempt`);
+                // Try one more time with direct database access
+                await db.delete(optimizedResumes).where(eq(optimizedResumes.id, resumeId));
+            }
+
+            // Instruct client to invalidate cache
+            return res.json({ 
+                message: "Resume deleted successfully",
+                timestamp: Date.now(),
+                id: resumeId
+            });
+        } catch (deleteError) {
+            console.error(`Error during optimized resume deletion:`, deleteError);
+            // Attempt direct database deletion as fallback
+            try {
+                await db.delete(optimizedResumes).where(eq(optimizedResumes.id, resumeId));
+                return res.json({ 
+                    message: "Resume deleted via fallback method",
+                    timestamp: Date.now(),
+                    id: resumeId
+                });
+            } catch (fallbackError) {
+                console.error(`Fallback deletion also failed:`, fallbackError);
+                return res.status(500).json({
+                    error: "Failed to delete resume after multiple attempts",
+                    details: fallbackError.message
+                });
+            }
+        }
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
     }
