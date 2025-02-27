@@ -622,10 +622,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-      throw new Error('Failed to get optimization sessions');
-    }
-  }
-
   async createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore> {
     try {
       const [result] = await db
