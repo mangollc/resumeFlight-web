@@ -966,21 +966,45 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1">
-        {proverb && (
-          <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
-            <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
-          </div>
-        )}
-        {showWelcome && <WelcomeAnimation proverb={proverb} />}
-        <ResumeStepTracker
-          steps={steps}
-          currentStep={currentStep}
-          completedSteps={completedSteps}
-        />
-        {renderCurrentStep()}
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      {showWelcome ? (
+        <WelcomeAnimation />
+      ) : (
+        <div className="space-y-8">
+          {proverb && (
+            <div className="mb-8 bg-primary/5 p-4 rounded-lg">
+              <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
+            </div>
+          )}
+          <ResumeStepTracker
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={completedSteps}
+          />
+          {renderCurrentStep()}
+        </div>
+      )}
+
+      <LoadingDialog
+        open={isOptimizing}
+        title="Optimizing Resume"
+        description="Please wait while we optimize your resume using AI..."
+        steps={currentOptimizationSteps}
+        onOpenChange={(open) => {
+          if (!open && isOptimizing) {
+            // Close dialog and cancel operation
+            setIsOptimizing(false);
+          }
+        }}
+      />
+
+      <LoadingDialog
+        open={isGeneratingCoverLetter}
+        title="Generating Cover Letter"
+        description="Please wait while we generate your cover letter using AI..."
+        steps={currentCoverLetterSteps}
+        onOpenChange={setIsGeneratingCoverLetter}
+      />
     </div>
   );
 }
