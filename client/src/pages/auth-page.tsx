@@ -74,17 +74,17 @@ export default function AuthPage() {
         </Card>
       </div>
 
-      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-12 lg:pl-24">
+      <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-8 lg:p-12 lg:pl-24">
         <div className="max-w-xl text-white">
-          <div className="text-center mb-12">
-            <p className="text-xl italic font-light mb-4">
+          <div className="text-center mb-8 lg:mb-12">
+            <p className="text-lg lg:text-xl italic font-light mb-4">
               "{proverb}"
             </p>
           </div>
-          <h1 className="text-4xl font-bold mb-6 text-center">
+          <h1 className="text-3xl lg:text-4xl font-bold mb-4 lg:mb-6 text-center">
             Optimize Your Resume with AI
           </h1>
-          <p className="text-lg mb-8 text-center">
+          <p className="text-base lg:text-lg mb-6 lg:mb-8 text-center">
             Upload your resume and let our AI technology optimize it for your dream job. Get better matches and more interviews with ResumeFlight.
           </p>
           <ul className="space-y-4 max-w-md mx-auto">

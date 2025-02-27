@@ -1,0 +1,129 @@
+
+/* Mobile optimization styles */
+@media (max-width: 640px) {
+  /* Add more spacing for touch targets */
+  button, 
+  [role="button"],
+  a {
+    min-height: 44px;
+    padding: 0.5rem;
+  }
+  
+  /* Improve readability */
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Better form controls on mobile */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  /* Hide scrollbars but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Improve mobile cards */
+  .card-mobile {
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+  
+  /* Fix for mobile fixed position elements */
+  .fixed-mobile {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--background);
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  
+  /* Mobile optimized fonts */
+  .text-mobile-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  .text-mobile-base {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  .text-mobile-lg {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+  
+  /* Mobile-first fluid typography */
+  :root {
+    --fluid-min-width: 320;
+    --fluid-max-width: 1140;
+    
+    --fluid-min-size-xs: 12;
+    --fluid-max-size-xs: 14;
+    
+    --fluid-min-size-sm: 14;
+    --fluid-max-size-sm: 16;
+    
+    --fluid-min-size-base: 16;
+    --fluid-max-size-base: 18;
+    
+    --fluid-min-size-h4: 18;
+    --fluid-max-size-h4: 22;
+    
+    --fluid-min-size-h3: 20;
+    --fluid-max-size-h3: 24;
+    
+    --fluid-min-size-h2: 22;
+    --fluid-max-size-h2: 30;
+    
+    --fluid-min-size-h1: 24;
+    --fluid-max-size-h1: 36;
+    
+    --fluid-xs: calc(
+      (var(--fluid-min-size-xs) * 1px) + (var(--fluid-max-size-xs) - var(--fluid-min-size-xs)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+    
+    --fluid-sm: calc(
+      (var(--fluid-min-size-sm) * 1px) + (var(--fluid-max-size-sm) - var(--fluid-min-size-sm)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+    
+    --fluid-base: calc(
+      (var(--fluid-min-size-base) * 1px) + (var(--fluid-max-size-base) - var(--fluid-min-size-base)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+    
+    --fluid-h4: calc(
+      (var(--fluid-min-size-h4) * 1px) + (var(--fluid-max-size-h4) - var(--fluid-min-size-h4)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+    
+    --fluid-h3: calc(
+      (var(--fluid-min-size-h3) * 1px) + (var(--fluid-max-size-h3) - var(--fluid-min-size-h3)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+    
+    --fluid-h2: calc(
+      (var(--fluid-min-size-h2) * 1px) + (var(--fluid-max-size-h2) - var(--fluid-min-size-h2)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+    
+    --fluid-h1: calc(
+      (var(--fluid-min-size-h1) * 1px) + (var(--fluid-max-size-h1) - var(--fluid-min-size-h1)) *
+      ((100vw - (var(--fluid-min-width) * 1px)) / (var(--fluid-max-width) - var(--fluid-min-width)))
+    );
+  }
+}

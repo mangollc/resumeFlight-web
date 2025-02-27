@@ -419,7 +419,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'gaps' && (
-                        <div className="px-4 pb-3 space-y-2">
+                        <div className="px-4 pb-3 space-y-2 max-h-60 overflow-y-auto">
                           {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
                             <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
                               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -512,7 +512,7 @@ export default function OptimizedResumesPage() {
     <div className="flex-1 h-full bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
-          <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent">
             Optimized Resumes
           </h1>
         </div>

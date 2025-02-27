@@ -65,12 +65,15 @@ export function ResumeSteps({ currentStep, totalSteps, completedSteps, onNext, o
   return (
     <div className="w-full space-y-4">
       {/* Mobile step indicator */}
-      <div className="lg:hidden space-y-4">
+      <div className="lg:hidden space-y-3">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">Step {currentStep + 1} of {totalSteps}</span>
           <span className="text-muted-foreground">{steps[currentStep].title}</span>
         </div>
-        <Progress value={((currentStep + 1) / totalSteps) * 100} className="h-2" />
+        <Progress value={((currentStep + 1) / totalSteps) * 100} className="h-2.5 rounded-full" />
+        <div className="text-xs text-muted-foreground mt-1">
+          {steps[currentStep].description}
+        </div>
 
         {/* Mobile step carousel */}
         <div className="relative h-48 overflow-hidden my-8">

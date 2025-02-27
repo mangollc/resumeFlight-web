@@ -1,4 +1,7 @@
 
+import { MobileAnalysisCard } from './MobileAnalysisCard';
+
+
 import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,7 +125,9 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                 {/* Analysis Section */}
                 <Card className="p-4 sm:p-6">
                   <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Resume Analysis</h4>
-                  <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+                  
+                  {/* Desktop view */}
+                  <div className="hidden md:grid gap-4 sm:gap-6 md:grid-cols-2">
                     <div className="space-y-2">
                       <h5 className="font-semibold text-sm text-green-600">Strengths</h5>
                       <ul className="list-disc list-inside space-y-1">
@@ -140,6 +145,26 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                         ))}
                       </ul>
                     </div>
+                  </div>
+                  
+                  {/* Mobile view */}
+                  <div className="md:hidden space-y-3">
+                    <MobileAnalysisCard
+                      title="Strengths"
+                      icon="strength"
+                      items={optimizedResume.analysis?.strengths || []}
+                    />
+                    <MobileAnalysisCard
+                      title="Improvements"
+                      icon="improvement"
+                      items={optimizedResume.analysis?.improvements || []}
+                    />
+                    <MobileAnalysisCard
+                      title="Gaps"
+                      icon="gap"
+                      items={optimizedResume.analysis?.gaps || []}
+                    />
+                  </div>div>
 
                     <div className="space-y-2">
                       <h5 className="font-semibold text-sm text-red-600">Gaps</h5>
