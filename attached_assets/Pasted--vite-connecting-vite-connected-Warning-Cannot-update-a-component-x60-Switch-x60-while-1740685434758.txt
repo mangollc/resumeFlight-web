@@ -1,0 +1,23 @@
+[vite] connecting...
+[vite] connected.
+Warning: Cannot update a component (&#x60;Switch&#x60;) while rendering a different component (&#x60;AuthPage&#x60;). To locate the bad setState() call inside &#x60;AuthPage&#x60;, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
+    at AuthPage (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/pages/auth-page.tsx:46:53)
+    at Route (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=47e20208:323:16)
+    at Switch (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=47e20208:379:17)
+    at Router
+    at ErrorBoundary (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/hooks/use-auth.tsx:29:5)
+    at AuthProvider (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/hooks/use-auth.tsx:83:32)
+    at QueryClientProvider (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=47e20208:2805:3)
+    at App
+at AuthPage (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/pages/auth-page.tsx:46:53)
+at Route (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=47e20208:323:16)
+at Switch (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=47e20208:379:17)
+at Router
+at ErrorBoundary (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/hooks/use-auth.tsx:29:5)
+at AuthProvider (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/hooks/use-auth.tsx:83:32)
+at QueryClientProvider (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=47e20208:2805:3)
+at App
+at t.value (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
