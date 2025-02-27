@@ -1,7 +1,6 @@
-
 import { Router } from "express";
 import { db } from "../db";
-import { uploadedResumes, optimizedResumes, coverLetters } from "../db/schema";
+import { uploadedResumes, optimizedResumes, coverLetters } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const router = Router();
@@ -34,7 +33,7 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.session.userId;
-    
+
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -64,7 +63,7 @@ router.get("/:id/download", async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.session.userId;
-    
+
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -82,12 +81,12 @@ router.get("/:id/download", async (req, res) => {
     // For now, sending a placeholder response
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename || 'resume.pdf'}"`);
-    
+
     // In a real implementation, you would generate and send the PDF here
     // For example:
     // const pdfBuffer = await generatePDF(resume.content);
     // res.send(pdfBuffer);
-    
+
     res.send("PDF Content Would Go Here");
   } catch (error) {
     console.error("Error downloading resume:", error);
@@ -100,7 +99,7 @@ router.get("/:resumeId/cover-letter/:letterId/download", async (req, res) => {
   try {
     const { resumeId, letterId } = req.params;
     const userId = req.session.userId;
-    
+
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -128,7 +127,7 @@ router.get("/:resumeId/cover-letter/:letterId/download", async (req, res) => {
     // Here you would generate and send the PDF
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="cover_letter_v${letter.metadata.version}.pdf"`);
-    
+
     // In a real implementation, you would generate and send the PDF here
     res.send("Cover Letter PDF Content Would Go Here");
   } catch (error) {
@@ -143,7 +142,7 @@ router.post("/:id/package/download", async (req, res) => {
     const { id } = req.params;
     const { coverLetterId } = req.body;
     const userId = req.session.userId;
-    
+
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -161,7 +160,7 @@ router.post("/:id/package/download", async (req, res) => {
     // Here you would generate the ZIP file with resume and cover letter
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="resume_package_${Date.now()}.zip"`);
-    
+
     // In a real implementation, you would generate and send the ZIP here
     res.send("ZIP Package Content Would Go Here");
   } catch (error) {
