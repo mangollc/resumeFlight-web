@@ -78,6 +78,8 @@ function Router() {
   );
 }
 
+import { SidebarProvider } from './components/layout/sidebar';
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
