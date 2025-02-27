@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import db from '../db';
+import { db } from '../db';
 import { ensureAuthenticated } from '../auth';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { OptimizedResume } from '@shared/schema';
