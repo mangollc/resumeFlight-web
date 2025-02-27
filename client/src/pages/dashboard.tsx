@@ -8,7 +8,7 @@ import Preview from "@/components/resume/preview";
 import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
 import { CoverLetterComponent } from "@/components/resume/CoverLetter";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
@@ -175,7 +175,7 @@ export default function Dashboard() {
   const [coverLetterVersion, setCoverLetterVersion] = useState('1.0');
   const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
   const [selectedCoverLetterVersion, setSelectedCoverLetterVersion] = useState<string>("");
-  const [coverLetters, setCoverLetters] = useState<CoverLetterType[]>([]);
+  const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [proverb, setProverb] = useState("");
   const [showWelcome, setShowWelcome] = useState(false);
@@ -249,7 +249,7 @@ export default function Dashboard() {
     setOptimizationVersion(prev => incrementVersion(prev));
   };
 
-  const handleCoverLetterGenerated = (letter: CoverLetterType) => {
+  const handleCoverLetterGenerated = (letter: CoverLetter) => {
     setCoverLetter(letter);
     // Ensure no duplicate versions in the array
     const existingVersions = new Set(coverLetters.map(l => l.metadata.version));
@@ -383,7 +383,7 @@ export default function Dashboard() {
 
     try {
       setIsDownloading(true);
-      const selectedLetter = coverLetters.find(letter => 
+      const selectedLetter = coverLetters.find(letter =>
         letter.metadata.version.toString() === version
       );
 
@@ -872,7 +872,8 @@ export default function Dashboard() {
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
                   initialJobDetails={jobDetails}
-                />                {renderNavigation()}
+                />
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
@@ -965,58 +966,22 @@ export default function Dashboard() {
   });
 
   return (
-    <>
-        <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-          <div className="mb-6">
-            {/* Import and use the Navbar component from layout folder */}
-            {React.createElement(require('@/components/layout/navbar').Navbar, { collapsed: false })}
+    <div className="min-h-screen flex flex-col">
+      <div className="flex-1">
+        {proverb && (
+          <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
+            <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
           </div>
-          <div className="min-h-screen flex flex-col">
-            {proverb && (
-              <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
-                <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
-              </div>
-            )}
-            {showWelcome ? (
-              <WelcomeAnimation />
-            ) : (
-              <div className="space-y-8">
-                <ResumeStepTracker
-                  steps={steps}
-                  currentStep={currentStep}
-                  completedSteps={completedSteps}
-                />
-                {renderCurrentStep()}
-              </div>
-            )}
-          </div>
-        </div>
-        <LoadingDialog
-          open={isOptimizing}
-          title="Optimizing Resume"
-          description={
-            <div className="space-y-4">
-              <p>Please wait while we optimize your resume using AI...</p>
-              <div className="flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            </div>
-          }
-          steps={currentOptimizationSteps}
-          onOpenChange={(open) => {
-            if (!open && isOptimizing) {
-              handleCancel();
-            }
-          }}
+        )}
+        {showWelcome && <WelcomeAnimation proverb={proverb} />}
+        <ResumeStepTracker
+          steps={steps}
+          currentStep={currentStep}
+          completedSteps={completedSteps}
         />
-        <LoadingDialog
-          open={isGeneratingCoverLetter}
-          title="Generating Cover Letter"
-          description="Please wait while we generate your cover letter using AI..."
-          steps={currentCoverLetterSteps}
-          onOpenChange={setIsGeneratingCoverLetter}
-        />
-    </>
+        {renderCurrentStep()}
+      </div>
+    </div>
   );
 }
 
@@ -1043,7 +1008,7 @@ const renderStep5 = () => {
     }, [optimizedResumes, optimizedResumeVersion]);
 
     // Find the selected resume
-    const selectedResume = optimizedResumeVersion 
+    const selectedResume = optimizedResumeVersion
       ? optimizedResumes.find(r => r.metadata?.version.toString() === optimizedResumeVersion)
       : optimizedResumes[0];
 
@@ -1095,16 +1060,16 @@ const renderStep5 = () => {
                     <div className="flex justify-between items-center">
                       <CardTitle>Optimized Resume</CardTitle>
                       {selectedResume && (
-                        <DownloadOptions 
-                          documentId={selectedResume.id} 
-                          documentType="resume" 
+                        <DownloadOptions
+                          documentId={selectedResume.id}
+                          documentType="resume"
                         />
                       )}
                     </div>
                     {optimizedResumes.length > 0 && (
                       <div className="mt-2">
-                        <Select 
-                          value={optimizedResumeVersion} 
+                        <Select
+                          value={optimizedResumeVersion}
                           onValueChange={setOptimizedResumeVersion}
                         >
                           <SelectTrigger className="w-[180px]">
@@ -1112,8 +1077,8 @@ const renderStep5 = () => {
                           </SelectTrigger>
                           <SelectContent>
                             {optimizedResumes.map((resume) => (
-                              <SelectItem 
-                                key={resume.id} 
+                              <SelectItem
+                                key={resume.id}
                                 value={resume.metadata.version.toString()}
                               >
                                 Version {resume.metadata.version}
@@ -1148,16 +1113,16 @@ const renderStep5 = () => {
                     <div className="flex justify-between items-center">
                       <CardTitle>Cover Letter</CardTitle>
                       {selectedCoverLetter && (
-                        <DownloadOptions 
-                          documentId={selectedCoverLetter.id} 
-                          documentType="cover-letter" 
+                        <DownloadOptions
+                          documentId={selectedCoverLetter.id}
+                          documentType="cover-letter"
                         />
                       )}
                     </div>
                     {coverLetters.length > 0 && (
                       <div className="mt-2">
-                        <Select 
-                          value={coverLetterVersion} 
+                        <Select
+                          value={coverLetterVersion}
                           onValueChange={setCoverLetterVersion}
                         >
                           <SelectTrigger className="w-[180px]">
@@ -1165,8 +1130,8 @@ const renderStep5 = () => {
                           </SelectTrigger>
                           <SelectContent>
                             {coverLetters.map((letter) => (
-                              <SelectItem 
-                                key={letter.id} 
+                              <SelectItem
+                                key={letter.id}
                                 value={letter.metadata.version.toString()}
                               >
                                 Version {letter.metadata.version}
@@ -1205,7 +1170,7 @@ const renderStep5 = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
-                  <Button 
+                  <Button
                     onClick={handleDownloadPackage}
                     className="w-full"
                     variant="outline"
@@ -1223,10 +1188,7 @@ const renderStep5 = () => {
 
               {/* Navigation */}
               <div className="mt-8 flex justify-between">
-                <Button 
-                  variant="outline" 
-                  onClick={handlePrevious}
-                >
+                <Button variant="outline" onClick={handlePrevious}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Previous
                 </Button>
