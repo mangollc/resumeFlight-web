@@ -98,51 +98,26 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
 router.delete('/resume/:id', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
-            return res.status(401).json({ 
-                error: "Not authenticated",
-                message: "Please log in to delete resumes" 
-            });
+            return res.status(401).json({ error: "Not authenticated" });
         }
 
         const resumeId = parseInt(req.params.id);
-        if (isNaN(resumeId)) {
-            return res.status(400).json({ 
-                error: "Invalid resume ID",
-                message: "The provided resume ID is not valid"
-            });
-        }
-
         const resume = await storage.getUploadedResume(resumeId);
-        if (!resume) {
-            return res.status(404).json({ 
-                error: "Resume not found",
-                message: "The requested resume could not be found"
-            });
-        }
 
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
         if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ 
-                error: "Not authorized",
-                message: "You don't have permission to delete this resume"
-            });
+            return res.status(403).json({ error: "Not authorized" });
         }
 
         await storage.deleteUploadedResume(resumeId);
-        res.json({ 
-            success: true,
-            message: "Resume deleted successfully" 
-        });
+        res.json({ message: "Resume deleted" });
     } catch (error: any) {
         console.error('Delete error:', error);
-        if (error.message.includes('associated optimized versions')) {
-            return res.status(409).json({
-                error: "Cannot delete resume",
-                message: "This resume has optimized versions. Please delete those first."
-            });
-        }
         res.status(500).json({
             error: "Failed to delete resume",
-            message: "An unexpected error occurred while deleting the resume"
+            details: error.message
         });
     }
 });

@@ -171,16 +171,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUploadedResume(id: number): Promise<void> {
     try {
-      // First verify if any optimized resumes reference this uploaded resume
-      const optimizedResumes = await db
-        .select()
-        .from(optimizedResumes)
-        .where(eq(optimizedResumes.uploadedResumeId, id));
-
-      if (optimizedResumes.length > 0) {
-        throw new Error('Cannot delete resume: It has associated optimized versions');
-      }
-
       await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
     } catch (error) {
       console.error('Error deleting uploaded resume:', error);
@@ -327,10 +317,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteOptimizedResume(id: number): Promise<void> {
     try {
-      // Delete associated match scores first
-      await db.delete(resumeMatchScores).where(eq(resumeMatchScores.optimizedResumeId, id));
-
-      // Delete the optimized resume
       await db.delete(optimizedResumes).where(eq(optimizedResumes.id, id));
     } catch (error) {
       console.error('Error deleting optimized resume:', error);
@@ -516,18 +502,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating resume match score:', error);
       throw new Error('Failed to create resume match score');
-    }
-  }
-  async getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined> {
-    try {
-      const [score] = await db
-        .select()
-        .from(resumeMatchScores)
-        .where(eq(resumeMatchScores.optimizedResumeId, optimizedResumeId));
-      return score;
-    } catch (error) {
-      console.error('Error getting resume match score:', error);
-      throw new Error('Failed to get resume match score');
     }
   }
 }
