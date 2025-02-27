@@ -82,7 +82,7 @@ const startServer = async (port: number): Promise<void> => {
         console.log('Waiting for Vite setup to complete...');
         await viteSetupPromise;
 
-        console.log(`Attempting to start server on port ${port}...`);
+        console.log(`Starting server on port ${port}...`);
         return new Promise<void>((resolve, reject) => {
             const srv = server.listen(port, '0.0.0.0', () => {
                 console.log(`Server successfully started on port ${port}`);
@@ -90,14 +90,8 @@ const startServer = async (port: number): Promise<void> => {
             });
 
             srv.once('error', (err: NodeJS.ErrnoException) => {
-                if (err.code === 'EADDRINUSE') {
-                    console.log(`Port ${port} is in use, trying ${port + 1}`);
-                    srv.close();
-                    startServer(port + 1).then(resolve).catch(reject);
-                } else {
-                    console.error('Server startup error:', err);
-                    reject(err);
-                }
+                console.error('Server startup error:', err);
+                reject(err);
             });
 
             // Add timeout for server startup
