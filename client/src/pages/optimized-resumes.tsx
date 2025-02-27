@@ -249,6 +249,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                       onClick={(e) => {
                         e.stopPropagation();
                         try {
+                          console.log("Attempting to delete resume with ID:", resume.id);
                           deleteMutation.mutate(resume.id);
                         } catch (error) {
                           console.error("Delete action error:", error);

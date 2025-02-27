@@ -28,11 +28,15 @@ export async function apiRequest(
   try {
     const response = await fetch(url, options);
 
-    // For debugging
-    if (!response.ok && method === "DELETE") {
+    // Enhanced debugging for all request methods
+    if (!response.ok) {
       console.log(`API request failed: ${method} ${url} ${response.status}`);
-      const errorText = await response.text().catch(() => "No error details");
-      console.log("Error details:", errorText);
+      try {
+        const errorText = await response.clone().text();
+        console.log("Error details:", errorText);
+      } catch (readError) {
+        console.log("Could not read error details:", readError);
+      }
     }
 
     return response;
