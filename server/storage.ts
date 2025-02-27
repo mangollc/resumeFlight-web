@@ -170,50 +170,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUploadedResume(id: number): Promise<void> {
-    console.log(`Storage: Starting to delete uploaded resume with ID ${id}`);
-    
     try {
-      // Use a transaction to ensure the operation is atomic
-      await pool.query('BEGIN');
-      
-      // First verify the resume exists
-      const checkResult = await db.select({ count: sql`count(*)` })
-        .from(uploadedResumes)
-        .where(eq(uploadedResumes.id, id));
-      
-      const count = Number(checkResult[0]?.count || 0);
-      console.log(`Storage: Found ${count} resumes with ID ${id}`);
-      
-      if (count === 0) {
-        console.log(`Storage: Resume with ID ${id} not found, nothing to delete`);
-        await pool.query('ROLLBACK');
-        return;
-      }
-      
-      // Execute the delete using raw SQL to get detailed feedback
-      const deleteResult = await pool.query(
-        'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id', 
-        [id]
-      );
-      
-      console.log(`Storage: Delete SQL executed, affected rows:`, deleteResult.rowCount);
-      
-      if (deleteResult.rowCount === 0) {
-        console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
-        await pool.query('ROLLBACK');
-        throw new Error(`No rows deleted for resume ID ${id}`);
-      }
-      
-      await pool.query('COMMIT');
-      console.log(`Storage: Successfully deleted resume with ID ${id}`);
-      
+      await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
     } catch (error) {
-      await pool.query('ROLLBACK').catch(rollbackErr => {
-        console.error('Error during transaction rollback:', rollbackErr);
-      });
-      
-      console.error('Error deleting uploaded resume from database:', error);
-      throw new Error(`Failed to delete uploaded resume: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Error deleting uploaded resume:', error);
+      throw new Error('Failed to delete uploaded resume');
     }
   }
 

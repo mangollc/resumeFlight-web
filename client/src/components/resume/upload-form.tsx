@@ -57,22 +57,9 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
       console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: "Failed to upload resume: " + (error.message || "Unknown error"),
+        description: error.message || "Failed to upload resume",
         variant: "destructive"
       });
-      
-      // Show a more specific message for PDF issues
-      if (file?.type === 'application/pdf') {
-        toast({
-          title: "PDF Upload Tips",
-          description: "PDFs are now supported. If you're still having issues, try using a different PDF or converting to DOCX format.",
-          duration: 6000
-        });
-      }
-      
-      // Reset upload state
-      setUploading(false);
-      setProgress(0);
     }
   });
 

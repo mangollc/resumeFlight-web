@@ -170,27 +170,11 @@ export const insertUserSchema = createInsertSchema(users)
     email: data.email.toLowerCase(),
   }));
 
-export const insertUploadedResumeSchema = z.object({
-  content: z.string(),
-  metadata: z.object({
-    filename: z.string(),
-    fileType: z.string(),
-    uploadedAt: z.string(),
-    originalFileBase64: z.string().optional(), // Store original file as Base64
-    contentSanitized: z.boolean().optional(), // Flag to indicate content was sanitized
-  }),
-  contactInfo: z.object({
-    fullName: z.string().optional().default(''),
-    email: z.string().optional().default(''),
-    phone: z.string().optional().default(''),
-    address: z.string().optional().default(''),
-  }).optional().default({
-    fullName: '',
-    email: '',
-    phone: '',
-    address: '',
-  }),
-});
+export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
+  .pick({
+    content: true,
+    metadata: true,
+  });
 
 export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
   .pick({

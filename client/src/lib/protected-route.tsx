@@ -1,46 +1,33 @@
-
-import React from 'react';
-import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
+import { Redirect, Route } from "wouter";
 
-interface ProtectedRouteProps {
-  component: React.ComponentType<any>;
-  path: string;
-}
-
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  component: Component,
+export function ProtectedRoute({
   path,
-}) => {
+  component: Component,
+}: {
+  path: string;
+  component: () => React.JSX.Element;
+}) {
   const { user, isLoading } = useAuth();
-  const [isMatch] = useRoute(path);
-  const [, setLocation] = useLocation();
-
-  React.useEffect(() => {
-    if (isMatch && !isLoading && !user) {
-      setLocation('/auth');
-    }
-  }, [isMatch, user, isLoading, setLocation]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <Route path={path}>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-border" />
+        </div>
+      </Route>
+    );
   }
 
-  if (!user && isMatch) {
-    return null;
+  if (!user) {
+    return (
+      <Route path={path}>
+        <Redirect to="/auth" />
+      </Route>
+    );
   }
 
-  return <Component />;
-};
-
-export const ProtectedLayout = ({ component: Component }: { component: React.ComponentType<any> }) => {
-  return (
-    <div className="flex h-screen flex-col md:flex-row">
-      <div className="w-full flex-1 flex flex-col">
-        <main className="flex-1 overflow-y-auto">
-          <Component />
-        </main>
-      </div>
-    </div>
-  );
-};
+  return <Component />
+}

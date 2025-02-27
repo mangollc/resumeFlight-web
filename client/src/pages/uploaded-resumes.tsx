@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { UploadedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -34,11 +34,11 @@ import {
 
 export default function UploadedResumesPage() {
   const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: resumes = [], isLoading, isError, error } = useQuery({
     queryKey: ["/api/uploaded-resumes"],
     queryFn: async () => {
+      console.log('Fetching uploaded resumes...');
       const response = await fetch("/api/uploaded-resumes", {
         headers: {
           'Accept': 'application/json',
@@ -57,96 +57,37 @@ export default function UploadedResumesPage() {
         throw new Error('Invalid response format');
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('Received resumes:', data);
+      return data;
     },
     retry: 1
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      console.log(`Deleting uploaded resume with ID: ${id}`);
-      
-      // Explicitly log the exact API endpoint being called
-      const apiEndpoint = `/api/resumes/uploaded/${id}`;
-      console.log(`Calling DELETE endpoint: ${apiEndpoint}`);
-      
-      // Force cache busting by adding a timestamp
-      const cacheBustUrl = `${apiEndpoint}?_t=${Date.now()}`;
-      
-      const response = await fetch(cacheBustUrl, {
-        method: "DELETE",
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store'
-        },
-        credentials: 'include'
-      });
-
-      console.log(`Delete response status: ${response.status}`);
-      
-      if (!response.ok) {
-        try {
-          const contentType = response.headers.get('content-type');
-          
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            console.error("Delete error response:", errorData);
-            throw new Error(errorData.message || errorData.error || 'Failed to delete resume');
-          } else {
-            // Handle non-JSON error response
-            const textError = await response.text();
-            console.error("Non-JSON error response:", textError);
-            throw new Error(`Server returned ${response.status}: Failed to delete resume`);
-          }
-        } catch (parseError) {
-          console.error("Error parsing error response:", parseError);
-          throw new Error(`Server returned ${response.status}: Failed to delete resume`);
-        }
-      }
-      
-      // Handle successful response
-      try {
-        const contentType = response.headers.get('content-type');
-        console.log(`Response content type: ${contentType}`);
-        
-        if (contentType && contentType.includes('application/json')) {
-          const jsonData = await response.json();
-          console.log("Delete success response:", jsonData);
-          return jsonData;
-        }
-        
-        // If not JSON response but status is OK, log text response and assume success
-        const textResponse = await response.text();
-        console.log("Non-JSON success response:", textResponse);
-        console.log("Non-JSON response received on deletion, assuming success");
-        // Invalidate query cache to refresh UI
-        queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
-        return { success: true, message: "Resume deleted successfully" };
-      } catch (error) {
-        console.log("Error parsing success response:", error);
-        // Even if we can't parse the response, we'll consider it a success
-        // since the HTTP status was in the 200 range
-        return { success: true, message: "Resume deleted" };
-      }
+      await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
+      const previousResumes = queryClient.getQueryData<UploadedResume[]>(["/api/uploaded-resumes"]);
+      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) =>
+        old?.filter((resume) => resume.id !== id)
+      );
+      return { previousResumes };
     },
     onSuccess: () => {
-      // Force a hard refresh of the data
-      queryClient.removeQueries({ queryKey: ["/api/uploaded-resumes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
-      
-      // Short delay to ensure database has time to update
-      setTimeout(() => {
-        queryClient.refetchQueries({ queryKey: ["/api/uploaded-resumes"] });
-      }, 500);
-      
       toast({
         title: "Success",
         description: "Resume deleted successfully",
-        duration: 2000,
+        duration: 2000, // Set to 2 seconds
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error, _, context) => {
+      if (context?.previousResumes) {
+        queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
+      }
       toast({
         title: "Error",
         description: error.message || "Failed to delete resume",

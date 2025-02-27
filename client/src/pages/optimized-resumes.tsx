@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,8 +30,6 @@ import {
   FileText,
   Code,
   ArrowUpCircle,
-  MoreHorizontal,
-  Trash
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -97,34 +95,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/optimized-resume/${id}`, {
-        method: "DELETE",
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to delete resume");
-      }
-
-      // Handle both JSON and non-JSON responses
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          return await response.json();
-        } catch (err) {
-          console.log("Failed to parse JSON response:", err);
-          return { success: true };
-        }
-      }
-
-      // If response is not JSON or empty, just return success
-      console.log("Non-JSON response received, assuming success");
-      return { success: true };
+      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
@@ -478,67 +449,14 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 }
 
 export default function OptimizedResumesPage() {
-  const queryClient = useQueryClient();
-
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
-    queryKey: ["/api/analysis/optimized"],
+    queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       return [...data].sort((a, b) => {
         return (
           new Date(b.metadata.optimizedAt).getTime() -
           new Date(a.metadata.optimizedAt).getTime()
         );
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      console.log(`Deleting uploaded resume with ID: ${id}`);
-      const response = await fetch(`/api/resumes/uploaded/${id}`, {
-        method: "DELETE",
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to delete resume");
-      }
-
-      // Handle both JSON and non-JSON responses
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          return await response.json();
-        } catch (err) {
-          console.log("Failed to parse JSON response:", err);
-          return { success: true };
-        }
-      }
-
-      // If response is not JSON or empty, just return success
-      console.log("Non-JSON response received, assuming success");
-      return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/analysis/optimized"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
-      toast({
-        title: "Success",
-        description: "Resume deleted successfully",
-        duration: 2000,
-      });
-    },
-    onError: (error: any) => {
-      console.error("Error deleting resume:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete resume. Please try again.",
-        variant: "destructive",
       });
     },
   });

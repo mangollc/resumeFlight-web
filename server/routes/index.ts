@@ -6,7 +6,7 @@ import { Express } from "express";
 import { createServer, type Server } from "http";
 import { authRoutes } from "./auth.routes";
 import { resumeRoutes } from "./resume.routes";
-import analysisRoutes from "./analysis.routes";
+import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
 import { setupAuth } from "../auth";
 
@@ -36,3 +36,6 @@ export function registerRoutes(app: Express): Server {
 
     return createServer(app);
 }
+
+// Export types used by routes
+export * from './types';

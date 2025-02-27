@@ -68,29 +68,20 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
             return res.status(400).json({ error: "No file uploaded" });
         }
 
-        const { content, contactInfo, originalBuffer } = await parseResume(req.file.buffer, req.file.mimetype);
-
-        // Handle PDF differently - store a sanitized version of the content
-        let safeContent = content;
-        let metadata: any = {
-            filename: req.file.originalname,
-            fileType: req.file.mimetype,
-            uploadedAt: new Date().toISOString()
-        };
-
-        // For PDFs, we'll store the original file as base64 in metadata
-        if (req.file.mimetype === "application/pdf") {
-            // For PDFs, store content as base64-encoded string
-            metadata.originalFileBase64 = req.file.buffer.toString('base64');
-            // Use a sanitized version of content for text extraction
-            safeContent = safeContent.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x80-\xFF]/g, '');
-        }
+        const { content, contactInfo } = await parseResume(req.file.buffer, req.file.mimetype);
+        const resumeData = insertUploadedResumeSchema.parse({
+            content,
+            metadata: {
+                filename: req.file.originalname,
+                fileType: req.file.mimetype,
+                uploadedAt: new Date().toISOString()
+            },
+            contactInfo
+        });
 
         const resume = await storage.createUploadedResume({
-            userId: req.user!.id,
-            content: safeContent,
-            metadata: metadata,
-            contactInfo
+            ...resumeData,
+            userId: req.user!.id
         });
 
         res.status(201).json(resume);
@@ -128,44 +119,6 @@ router.delete('/resume/:id', async (req, res) => {
             error: "Failed to delete resume",
             details: error.message
         });
-    }
-});
-
-// Get original resume file
-router.get('/resume/:id/original', async (req, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-
-        const resumeId = parseInt(req.params.id);
-        const resume = await storage.getUploadedResume(resumeId);
-
-        if (!resume) {
-            return res.status(404).json({ error: "Resume not found" });
-        }
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Not authorized" });
-        }
-
-        // Get the original file as Base64 from metadata
-        const originalFileBase64 = resume.metadata.originalFileBase64;
-        if (!originalFileBase64) {
-            return res.status(404).json({ error: "Original file not found" });
-        }
-
-        // Convert Base64 back to buffer
-        const fileBuffer = Buffer.from(originalFileBase64, 'base64');
-
-        // Set appropriate headers
-        res.setHeader('Content-Type', resume.metadata.fileType);
-        res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename}"`);
-
-        // Send the file
-        res.send(fileBuffer);
-    } catch (error: any) {
-        console.error("Error getting original resume:", error);
-        return res.status(500).json({ error: error.message });
     }
 });
 
