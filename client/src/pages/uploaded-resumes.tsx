@@ -66,84 +66,25 @@ export default function UploadedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
-      if (!response.ok) {
-        // Try to parse as JSON, but handle non-JSON responses
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Failed to delete resume");
-          } else {
-            // Handle non-JSON response
-            const errorText = await response.text();
-            console.error("Server returned non-JSON error:", errorText.substring(0, 100));
-            throw new Error("Server error - received non-JSON response");
-          }
-        } catch (parseError) {
-          console.error("Error parsing response:", parseError);
-          throw new Error("Failed to delete resume - could not parse server response");
-        }
-      }
-      
-      // Handle successful response, carefully parsing JSON
-      try {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          return await response.json();
-        }
-        return {}; // Return empty object if not JSON
-      } catch (error) {
-        console.error("Error parsing success response:", error);
-        return {}; // Return empty object on parsing error
-      }
+      await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
     },
     onMutate: async (id) => {
-      // Cancel any outgoing refetches to avoid overwriting our optimistic update
       await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
-      
-      // Snapshot the previous value
       const previousResumes = queryClient.getQueryData<UploadedResume[]>(["/api/uploaded-resumes"]);
-      
-      // Optimistically update to the new value
-      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) => {
-        if (!old) return [];
-        return old.filter((resume) => resume.id !== id);
-      });
-      
-      // Return a context object with the previous value
+      queryClient.setQueryData<UploadedResume[]>(["/api/uploaded-resumes"], (old) =>
+        old?.filter((resume) => resume.id !== id)
+      );
       return { previousResumes };
     },
-    // Also improve error handling to restore previous state
-    onError: (error: any, id, context) => {
-      console.error("Delete error:", error);
-      if (context?.previousResumes) {
-        queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
-      }
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete resume. Please try again.",
-        variant: "destructive",
-      });
-    },
     onSuccess: () => {
-      // Force a refetch to ensure we get fresh data
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/uploaded-resumes"],
-        refetchType: 'all'
-      });
-      
-      // Also clear the cache completely to ensure stale data is removed
-      queryClient.removeQueries({ queryKey: ["/api/uploaded-resumes"] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       toast({
         title: "Success",
         description: "Resume deleted successfully",
-        duration: 2000,
+        duration: 2000, // Set to 2 seconds
       });
     },
-    onError: (error: any, _, context) => {
-      console.error("Delete uploaded resume error:", error);
+    onError: (error: Error, _, context) => {
       if (context?.previousResumes) {
         queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
       }
@@ -275,14 +216,7 @@ export default function UploadedResumesPage() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => {
-                                    try {
-                                      console.log("Attempting to delete uploaded resume with ID:", resume.id);
-                                      deleteMutation.mutate(resume.id);
-                                    } catch (error) {
-                                      console.error("Delete action error:", error);
-                                    }
-                                  }}
+                                  onClick={() => deleteMutation.mutate(resume.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   disabled={deleteMutation.isPending}
                                 >

@@ -29,9 +29,9 @@ export function registerRoutes(app: Express): Server {
     });
 
     // Register route modules with proper prefixes
-    app.use('/api', authRoutes);
-    app.use('/api', resumeRoutes);  // This will handle /api/uploaded-resumes
-    app.use('/api', optimizationRoutes); // Add optimization routes
+    app.use('/api/auth', authRoutes);
+    app.use('/api/uploaded-resumes', resumeRoutes);  // Fix path to match client expectation
+    app.use('/api/optimization', optimizationRoutes);
     app.use('/api/analysis', analysisRoutes);
 
     return createServer(app);

@@ -8,64 +8,19 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: "GET" | "POST" | "PUT" | "DELETE",
+  method: string,
   url: string,
-  data?: any
-) {
-  const options: RequestInit = {
+  data?: unknown | undefined,
+): Promise<Response> {
+  const res = await fetch(url, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
+    headers: data ? { "Content-Type": "application/json" } : {},
+    body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
-  };
+  });
 
-  if (data) {
-    options.body = JSON.stringify(data);
-  }
-
-  try {
-    const response = await fetch(url, options);
-
-    // Enhanced debugging for all request methods
-    if (!response.ok) {
-      console.log(`API request failed: ${method} ${url} ${response.status}`);
-      try {
-        const errorText = await response.clone().text();
-        const contentType = response.headers.get('content-type');
-
-        // Check if the response is HTML (error page) instead of JSON
-        if (contentType && contentType.includes('text/html')) {
-          console.log("Server returned HTML instead of JSON:", errorText.substring(0, 100) + "...");
-        } else {
-          console.log("Error details:", errorText);
-        }
-      } catch (readError) {
-        console.log("Could not read error details:", readError);
-      }
-    } else if (method === "DELETE") {
-      // On successful delete, immediately clear related cache to ensure UI consistency
-      const cacheKeys = [
-        "/api/optimized-resumes",
-        "/api/uploaded-resumes"
-      ];
-
-      // Wait slightly to ensure the deletion has propagated
-      setTimeout(() => {
-        console.log("Force invalidating cache after DELETE operation");
-        cacheKeys.forEach(key => {
-          queryClient.invalidateQueries({ queryKey: [key] });
-          queryClient.removeQueries({ queryKey: [key] });
-        });
-      }, 100);
-    }
-
-    return response;
-  } catch (error) {
-    console.error(`API request error for ${method} ${url}:`, error);
-    throw error;
-  }
+  await throwIfResNotOk(res);
+  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -89,32 +44,14 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60, // 1 minute
-      cacheTime: 1000 * 60 * 10, // 10 minutes
-      retry: 2,
-      refetchOnWindowFocus: true,
-      refetchOnMount: true,
+      queryFn: getQueryFn({ on401: "throw" }),
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
     },
     mutations: {
-      retry: 1,
-      onError: (error) => {
-        console.error("Mutation error:", error);
-      }
-    }
+      retry: false,
+    },
   },
 });
-
-// Utility function to force a complete refresh of a query
-export const forceQueryRefresh = async (queryKey: string[]) => {
-  // Clear the cache
-  queryClient.removeQueries({ queryKey });
-
-  // Force a refetch
-  await queryClient.invalidateQueries({ 
-    queryKey,
-    refetchType: 'all' 
-  });
-
-  // Ensure any components using this data re-render
-  return queryClient.refetchQueries({ queryKey });
-};

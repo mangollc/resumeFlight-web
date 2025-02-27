@@ -13,7 +13,6 @@ import { eq, and, desc } from "drizzle-orm";
 import { db } from "../db";
 import express from "express";
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import { uploadedResumes } from "@shared/schema";
 
 const router = Router();
 
@@ -97,64 +96,53 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
 
 // Delete resume
 router.delete('/resume/:id', async (req, res) => {
-    // Ensure we always send JSON response
-    res.setHeader('Content-Type', 'application/json');
-
     try {
         if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
+            return res.status(401).json({ 
+                error: "Not authenticated",
+                message: "Please log in to delete resumes" 
+            });
         }
 
         const resumeId = parseInt(req.params.id);
-        const resume = await storage.getUploadedResume(resumeId);
-
-        if (!resume) {
-            return res.status(404).json({ error: "Resume not found" });
-        }
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Not authorized" });
-        }
-
-        console.log(`Deleting uploaded resume with ID: ${resumeId} requested by user: ${req.user!.id}`);
-
-        try {
-            // Attempt to delete the resume
-            await storage.deleteUploadedResume(resumeId);
-
-            // Double-check if deletion was successful
-            const resumeStillExists = await db.select().from(uploadedResumes).where(eq(uploadedResumes.id, resumeId));
-            if (resumeStillExists.length > 0) {
-                console.log(`Warning: Resume ${resumeId} still exists after deletion attempt, trying direct DB deletion`);
-                await db.delete(uploadedResumes).where(eq(uploadedResumes.id, resumeId));
-            }
-
-            return res.json({ 
-                message: "Resume deleted successfully",
-                id: resumeId,
-                timestamp: Date.now() 
+        if (isNaN(resumeId)) {
+            return res.status(400).json({ 
+                error: "Invalid resume ID",
+                message: "The provided resume ID is not valid"
             });
-        } catch (error) {
-            console.error("Error deleting uploaded resume:", error);
-            // Attempt direct database deletion as fallback
-            try {
-                await db.delete(uploadedResumes).where(eq(uploadedResumes.id, resumeId));
-                return res.json({ 
-                    message: "Resume deleted via fallback method",
-                    id: resumeId,
-                    timestamp: Date.now()
-                });
-            } catch (fallbackError) {
-                return res.status(500).json({ 
-                    error: "Failed to delete resume", 
-                    details: fallbackError.message 
-                });
-            }
         }
+
+        const resume = await storage.getUploadedResume(resumeId);
+        if (!resume) {
+            return res.status(404).json({ 
+                error: "Resume not found",
+                message: "The requested resume could not be found"
+            });
+        }
+
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ 
+                error: "Not authorized",
+                message: "You don't have permission to delete this resume"
+            });
+        }
+
+        await storage.deleteUploadedResume(resumeId);
+        res.json({ 
+            success: true,
+            message: "Resume deleted successfully" 
+        });
     } catch (error: any) {
         console.error('Delete error:', error);
+        if (error.message.includes('associated optimized versions')) {
+            return res.status(409).json({
+                error: "Cannot delete resume",
+                message: "This resume has optimized versions. Please delete those first."
+            });
+        }
         res.status(500).json({
             error: "Failed to delete resume",
-            details: error.message
+            message: "An unexpected error occurred while deleting the resume"
         });
     }
 });

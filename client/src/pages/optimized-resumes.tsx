@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -95,98 +95,19 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      console.log(`Attempting to delete resume with ID: ${id}`);
-      
-      // Make the delete request
-      const response = await apiRequest("DELETE", `/api/optimized-resume/${id}`);
-      console.log(`Delete response status:`, response.status);
-      
-      if (!response.ok) {
-        // Enhanced error handling
-        let errorMessage = `Failed to delete resume (${response.status})`;
-        
-        try {
-          // Check if response is JSON
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-            console.error("Delete JSON error:", errorData);
-          } else {
-            // Handle non-JSON response
-            const errorText = await response.text();
-            console.error("Server returned non-JSON error:", errorText);
-            errorMessage += ` - ${errorText.substring(0, 100)}`;
-          }
-        } catch (parseError) {
-          console.error("Error parsing error response:", parseError);
-        }
-        
-        throw new Error(errorMessage);
-      }
-      
-      // Handle successful response
-      console.log("Delete successful");
-      try {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const result = await response.json();
-          console.log("Delete result:", result);
-          return result;
-        }
-        return { success: true, id }; // Return simple success object if not JSON
-      } catch (error) {
-        console.error("Error parsing success response:", error);
-        return { success: true, id }; // Return simple success object on parsing error
-      }
+      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
     },
-    onMutate: async (id) => {
-      // Cancel any outgoing refetches to avoid overwriting our optimistic update
-      await queryClient.cancelQueries({ queryKey: ["/api/optimized-resumes"] });
-      
-      // Snapshot the previous value
-      const previousResumes = queryClient.getQueryData<OptimizedResume[]>(["/api/optimized-resumes"]);
-      
-      // Optimistically update to the new value
-      queryClient.setQueryData<OptimizedResume[]>(["/api/optimized-resumes"], (old) => {
-        if (!old) return [];
-        return old.filter((resume) => resume.id !== id);
-      });
-      
-      // Return a context object with the previous value
-      return { previousResumes };
-    },
-    onSuccess: (data) => {
-      console.log("Delete success response:", data);
-      
-      // Force an immediate refetch to ensure we get fresh data
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/optimized-resumes"],
-        refetchType: 'all'
-      });
-      
-      // Clear the cache completely to ensure stale data is removed
-      queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
-      
-      // Force refetch after a small delay to ensure backend has processed the deletion
-      setTimeout(() => {
-        console.log("Performing delayed refetch after deletion");
-        queryClient.refetchQueries({ queryKey: ["/api/optimized-resumes"] });
-      }, 500);
-      
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
       toast({
         title: "Success",
         description: "Resume deleted successfully",
       });
     },
-    onError: (error: any, id, context: any) => {
-      console.error("Delete error:", error);
-      if (context?.previousResumes) {
-        queryClient.setQueryData(["/api/optimized-resumes"], context.previousResumes);
-      }
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to delete resume. Please try again.",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -321,12 +242,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <AlertDialogAction
                       onClick={(e) => {
                         e.stopPropagation();
-                        try {
-                          console.log("Attempting to delete resume with ID:", resume.id);
-                          deleteMutation.mutate(resume.id);
-                        } catch (error) {
-                          console.error("Delete action error:", error);
-                        }
+                        deleteMutation.mutate(resume.id);
                       }}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
@@ -533,36 +449,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 }
 
 export default function OptimizedResumesPage() {
-  const queryClient = useQueryClient();
-  
-  // Force refresh data on component mount
-  useEffect(() => {
-    // Clear cache and refetch on page load with retry logic
-    const refreshData = async () => {
-      try {
-        console.log("Clearing optimized resumes cache and refetching data");
-        // First clear the cache
-        await queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
-        
-        // Then refetch with retry option
-        await queryClient.refetchQueries({ 
-          queryKey: ["/api/optimized-resumes"],
-          type: 'all',
-        });
-      } catch (error) {
-        console.error("Error refreshing optimized resumes:", error);
-      }
-    };
-    
-    refreshData();
-    
-    // Set up an interval to poll for data every 10 seconds
-    const intervalId = setInterval(refreshData, 10000);
-    
-    // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [queryClient]);
-  
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
