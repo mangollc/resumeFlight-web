@@ -142,13 +142,27 @@ const startServer = async (port: number) => {
     });
   } catch (err: any) {
     log('Server error:', err);
-    throw err;
+    // Wait 3 seconds and try to restart instead of throwing
+    log('Attempting to restart server in 3 seconds...');
+    setTimeout(() => {
+      startServer(port).catch(restartErr => {
+        log('Failed to restart server:', restartErr);
+        process.exit(1);
+      });
+    }, 3000);
   }
 };
 
 startServer(5000).catch(err => {
   log('Failed to start server:', err);
-  process.exit(1);
+  // Wait 3 seconds and try to restart instead of exiting
+  log('Attempting to restart server in 3 seconds...');
+  setTimeout(() => {
+    startServer(5000).catch(restartErr => {
+      log('Failed to restart server after retry:', restartErr);
+      process.exit(1);
+    });
+  }, 3000);
 });
 
 process.on('SIGTERM', () => {
@@ -158,13 +172,27 @@ process.on('SIGTERM', () => {
             console.error('Error during shutdown:', err);
             process.exit(1);
         }
-        process.exit(0);
+        
+        // Instead of exiting, try to restart after a delay
+        log('Server closed successfully. Attempting to restart in 3 seconds...');
+        setTimeout(() => {
+            log('Restarting server after SIGTERM...');
+            startServer(5000).catch(restartErr => {
+                console.error('Failed to restart server after SIGTERM:', restartErr);
+                process.exit(1);
+            });
+        }, 3000);
     });
-    // Force shutdown after 10 seconds
+    
+    // Still keep the force shutdown as a fallback, but extend the timeout
     setTimeout(() => {
-        console.error('Forced shutdown after timeout');
-        process.exit(1);
-    }, 10000);
+        console.error('Force restarting after timeout');
+        server.close();
+        startServer(5000).catch(err => {
+            console.error('Failed to restart after force shutdown:', err);
+            process.exit(1);
+        });
+    }, 15000);
 });
 
 process.on('SIGINT', () => {
