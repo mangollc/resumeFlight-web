@@ -10,10 +10,6 @@ deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
-[[ports]]
-localPort = 5001
-externalPort = 80
-
 [workflows]
 runButton = "Start application"
 
