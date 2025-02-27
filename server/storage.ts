@@ -242,7 +242,7 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
-      // Extract contact information from resume content
+      // Enhanced contact information extraction
       const contactInfo = {
         fullName: '',
         email: '',
@@ -250,41 +250,55 @@ export class DatabaseStorage implements IStorage {
         address: ''
       };
 
-      // Simple regex patterns for contact info extraction
-      const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
-      const phoneRegex = /(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
+      // Improved regex patterns for contact info extraction
+      const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+      const phoneRegex = /(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([0-9]{ 3 })\s*\)|([0-9]{ 3 }))\s*(?:[.-]\s*)?)?([0-9]{ 3 })\s*(?:[.-]\s*)?([0-9]{ 4 })/g;
+      const addressRegex = /(\d{1,}) [a-zA-Z0-9\s]+(Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)[,\s]+[a-zA-Z]+[,\s]+[A-Z]{2}[,\s]+\d{5}/gi;
+
       const lines = resume.content.split('\n');
+      let headerSection = lines.slice(0, Math.min(15, lines.length)).join('\n');
 
-      // Look for contact information in first few lines
-      for (let i = 0; i < Math.min(10, lines.length); i++) {
-        const line = lines[i].trim();
+      // Extract email
+      const emailMatches = headerSection.match(emailRegex);
+      if (emailMatches && emailMatches.length > 0) {
+        contactInfo.email = emailMatches[0].toLowerCase();
+      }
 
-        // Extract email if not found yet
-        if (!contactInfo.email) {
-          const emailMatch = line.match(emailRegex);
-          if (emailMatch) {
-            contactInfo.email = emailMatch[0];
+      // Extract phone
+      const phoneMatches = headerSection.match(phoneRegex);
+      if (phoneMatches && phoneMatches.length > 0) {
+        contactInfo.phone = phoneMatches[0].replace(/[^\d]/g, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      }
+
+      // Extract address
+      const addressMatches = headerSection.match(addressRegex);
+      if (addressMatches && addressMatches.length > 0) {
+        contactInfo.address = addressMatches[0].trim();
+      }
+
+      // Extract full name (usually the first non-empty line that's not email/phone/address)
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && 
+            !trimmedLine.match(emailRegex) && 
+            !trimmedLine.match(phoneRegex) && 
+            !trimmedLine.match(addressRegex) &&
+            trimmedLine.length > 1 && 
+            trimmedLine.split(' ').length <= 4) {
+          contactInfo.fullName = trimmedLine;
+          break;
+        }
+      }
+
+      // If name wasn't found in the simple search, try to find it in the first 3 lines
+      if (!contactInfo.fullName) {
+        const firstThreeLines = lines.slice(0, 3);
+        for (const line of firstThreeLines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine && trimmedLine.length > 1 && trimmedLine.split(' ').length <= 4) {
+            contactInfo.fullName = trimmedLine;
+            break;
           }
-        }
-
-        // Extract phone if not found yet
-        if (!contactInfo.phone) {
-          const phoneMatch = line.match(phoneRegex);
-          if (phoneMatch) {
-            contactInfo.phone = phoneMatch[0];
-          }
-        }
-
-        // First non-empty line is usually the name
-        if (!contactInfo.fullName && line && !line.match(emailRegex) && !line.match(phoneRegex)) {
-          contactInfo.fullName = line;
-        }
-
-        // Look for address in lines that have common address patterns
-        if (!contactInfo.address &&
-            (line.includes('Street') || line.includes('Ave') || line.includes('Road') ||
-             line.includes('Lane') || line.includes('Drive') || line.includes('Blvd'))) {
-          contactInfo.address = line;
         }
       }
 
@@ -314,14 +328,7 @@ export class DatabaseStorage implements IStorage {
         }
       };
 
-      // Ensure proper structure for analysis
-      const analysis = {
-        strengths: resume.analysis?.strengths || [],
-        improvements: resume.analysis?.improvements || [],
-        gaps: resume.analysis?.gaps || [],
-        suggestions: resume.analysis?.suggestions || []
-      };
-
+      // Rest of the existing code remains the same
       const [result] = await db
         .insert(optimizedResumes)
         .values({
@@ -339,24 +346,25 @@ export class DatabaseStorage implements IStorage {
             version: '1.0'
           },
           metrics,
-          analysis,
+          analysis: {
+            strengths: resume.analysis?.strengths || [],
+            improvements: resume.analysis?.improvements || [],
+            gaps: resume.analysis?.gaps || [],
+            suggestions: resume.analysis?.suggestions || []
+          },
           version: '1.0',
           createdAt: await getCurrentESTTimestamp(),
           contactInfo
         })
         .returning();
 
-      if (!result) {
-        throw new Error('Failed to create optimized resume: No result returned');
-      }
-
       return {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
-        analysis: result.analysis as OptimizedResume['analysis'],
-        contactInfo: result.contactInfo as OptimizedResume['contactInfo']
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
+        analysis: result.analysis as OptimizedResume['analysis']
       };
     } catch (error) {
       console.error('Error creating optimized resume:', error);
