@@ -66,7 +66,7 @@ export default function UploadedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const apiEndpoint = `/api/uploaded-resume/${id}`;
+      const apiEndpoint = `/api/resume/${id}`;
       console.log(`Calling DELETE endpoint: ${apiEndpoint}`);
 
       // Add cache busting
