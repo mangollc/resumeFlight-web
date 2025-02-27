@@ -77,7 +77,20 @@ export default function UploadedResumesPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to delete resume');
       }
-      return response.json();
+      
+      // Handle response regardless of content type
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        }
+        // If not JSON or empty response, return success object
+        console.log("Non-JSON response received on deletion, assuming success");
+        return { success: true };
+      } catch (error) {
+        console.log("Error parsing response but assuming success:", error);
+        return { success: true };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });

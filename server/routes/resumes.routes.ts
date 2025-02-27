@@ -60,11 +60,15 @@ router.delete('/:id', async (req, res) => {
         }
 
         await storage.deleteUploadedResume(resumeId);
+        // Make sure we set the content type header properly before sending the response
         res.setHeader('Content-Type', 'application/json');
-        return res.status(200).json({ success: true });
+        // Send a proper JSON response
+        return res.status(200).json({ success: true, message: "Resume deleted successfully" });
     } catch (error: any) {
         console.error("Error deleting uploaded resume:", error);
-        return res.status(500).json({ error: error.message });
+        // Set content type header even for error responses
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({ error: error.message || "Failed to delete resume", success: false });
     }
 });
 
