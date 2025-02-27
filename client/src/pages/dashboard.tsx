@@ -1266,9 +1266,5 @@ const renderStep5 = () => {
     );
   }
 
-  function formatDownloadFilename(filename: string, jobTitle: string, version: number): string {
-    const baseFilename = filename.replace(/\.[^/.]+$/, ''); // Remove extension
-    const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(); // Sanitize job title for filename
-    return `${baseFilename}_${formattedJobTitle}_v${version.toFixed(1)}`;
-  }
+  // Function is already defined above
 }
