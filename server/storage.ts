@@ -173,20 +173,44 @@ export class DatabaseStorage implements IStorage {
     console.log(`Storage: Starting to delete uploaded resume with ID ${id}`);
     
     try {
-      // Use a direct SQL query for more detailed control and feedback
-      const result = await pool.query(
-        'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id', 
+      // First verify the resume exists
+      const checkResult = await pool.query(
+        'SELECT id FROM uploaded_resumes WHERE id = $1', 
         [id]
       );
       
-      console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
-      
-      if (result.rowCount === 0) {
-        console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
-        throw new Error(`No rows were deleted for resume ID ${id}`);
+      if (checkResult.rowCount === 0) {
+        console.error(`Storage: Resume with ID ${id} not found`);
+        throw new Error(`Resume with ID ${id} not found`);
       }
       
-      console.log(`Storage: Successfully deleted resume with ID ${id}`);
+      // Use a transaction to ensure atomicity
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        // Delete the resume
+        const result = await client.query(
+          'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id', 
+          [id]
+        );
+        
+        console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
+        
+        if (result.rowCount === 0) {
+          await client.query('ROLLBACK');
+          console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
+          throw new Error(`No rows were deleted for resume ID ${id}`);
+        }
+        
+        await client.query('COMMIT');
+        console.log(`Storage: Successfully deleted resume with ID ${id}`);
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
     } catch (error) {
       console.error('Error deleting uploaded resume from database:', error);
       throw new Error(`Failed to delete uploaded resume: ${error instanceof Error ? error.message : String(error)}`);

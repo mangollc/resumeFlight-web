@@ -103,12 +103,12 @@ router.delete('/resume/:id', async (req, res) => {
 
         console.log(`API: Delete request for resume ID: ${req.params.id}`);
         const resumeId = parseInt(req.params.id);
-        
+
         if (isNaN(resumeId)) {
             console.error(`API: Invalid resume ID: ${req.params.id}`);
             return res.status(400).json({ error: "Invalid resume ID" });
         }
-        
+
         console.log(`API: Fetching resume with ID: ${resumeId}`);
         const resume = await storage.getUploadedResume(resumeId);
 
@@ -121,20 +121,19 @@ router.delete('/resume/:id', async (req, res) => {
 
         console.log(`API: Deleting resume with ID: ${resumeId}`);
         await storage.deleteUploadedResume(resumeId);
-        
+
         // Ensure proper response headers
         res.setHeader('Content-Type', 'application/json');
-        res.status(200).json({ 
+        return res.status(200).json({ 
             success: true,
             message: "Resume deleted successfully", 
             resumeId 
         });
-        
-        console.log(`API: Successfully deleted resume with ID: ${resumeId}`);
+
     } catch (error: any) {
         console.error('Delete error:', error);
         res.setHeader('Content-Type', 'application/json');
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             error: "Failed to delete resume",
             details: error.message

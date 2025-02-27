@@ -67,24 +67,48 @@ export default function UploadedResumesPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const apiEndpoint = `/api/resume/${id}`;
-      console.log(`Calling DELETE endpoint: ${apiEndpoint}`);
+      console.log(`Deleting uploaded resume with ID: ${id}`);
 
-      // Add cache busting
-      const cacheBustUrl = `${apiEndpoint}?_t=${Date.now()}`;
+      try {
+        const response = await fetch(apiEndpoint, {
+          method: "DELETE",
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          },
+          credentials: 'include'
+        });
 
-      const response = await fetch(cacheBustUrl, {
-        method: "DELETE",
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
-        },
-        credentials: 'include'
-      });
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMessage = `Failed to delete resume with ID ${id}`;
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to delete resume with ID ${id}`);
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.error || errorData.details) {
+              errorMessage = errorData.error || errorData.details;
+            }
+          } catch (e) {
+            console.error("Error parsing error response:", e);
+          }
+
+          throw new Error(errorMessage);
+        }
+
+        // Try to parse JSON response
+        const contentType = response.headers.get('content-type');
+        console.log(`Response status: ${response.status}, content type: ${contentType}`);
+
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        } else {
+          console.log("Non-JSON response received, but operation successful");
+          return { success: true, id };
+        }
+      } catch (error) {
+        console.error("Error in delete operation:", error);
+        throw error;
       }
     },
     onMutate: async (id) => {
