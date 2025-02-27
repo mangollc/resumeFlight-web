@@ -95,7 +95,12 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
+      const response = await apiRequest("DELETE", `/api/optimized-resume/${id}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete resume");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
@@ -104,10 +109,11 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
         description: "Resume deleted successfully",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      console.error("Delete error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to delete resume",
         variant: "destructive",
       });
     },
@@ -242,7 +248,11 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                     <AlertDialogAction
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteMutation.mutate(resume.id);
+                        try {
+                          deleteMutation.mutate(resume.id);
+                        } catch (error) {
+                          console.error("Delete action error:", error);
+                        }
                       }}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
