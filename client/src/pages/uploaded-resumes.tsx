@@ -66,7 +66,26 @@ export default function UploadedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
+      const apiEndpoint = `/api/uploaded-resume/${id}`;
+      console.log(`Calling DELETE endpoint: ${apiEndpoint}`);
+
+      // Add cache busting
+      const cacheBustUrl = `${apiEndpoint}?_t=${Date.now()}`;
+
+      const response = await fetch(cacheBustUrl, {
+        method: "DELETE",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to delete resume with ID ${id}`);
+      }
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });

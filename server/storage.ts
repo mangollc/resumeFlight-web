@@ -170,11 +170,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUploadedResume(id: number): Promise<void> {
+    console.log(`Storage: Starting to delete uploaded resume with ID ${id}`);
+    
     try {
-      await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
+      // Use a direct SQL query for more detailed control and feedback
+      const result = await pool.query(
+        'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id', 
+        [id]
+      );
+      
+      console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
+      
+      if (result.rowCount === 0) {
+        console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
+        throw new Error(`No rows were deleted for resume ID ${id}`);
+      }
+      
+      console.log(`Storage: Successfully deleted resume with ID ${id}`);
     } catch (error) {
-      console.error('Error deleting uploaded resume:', error);
-      throw new Error('Failed to delete uploaded resume');
+      console.error('Error deleting uploaded resume from database:', error);
+      throw new Error(`Failed to delete uploaded resume: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
