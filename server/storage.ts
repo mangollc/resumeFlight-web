@@ -540,13 +540,12 @@ export class DatabaseStorage implements IStorage {
         .from(optimizationSessions)
         .where(eq(optimizationSessions.userId, userId));
 
-      return results.map(result => ({
-        ...result,
-        comparisons: result.comparisons as OptimizationSession['comparisons'],
-        reviewState: result.reviewState as OptimizationSession['reviewState'],
-      }));
+      return results;
     } catch (error) {
       console.error('Error getting optimization sessions by user:', error);
+      throw new Error('Failed to get optimization sessions');
+    }
+  }
 
   async createCoverLetter(coverLetter: InsertCoverLetter & { 
     userId: number;
