@@ -223,21 +223,13 @@ export class DatabaseStorage implements IStorage {
       const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
       if (!result) return undefined;
 
-      const metrics = result.metrics as OptimizedResume['metrics'];
-      const analysis = {
-        matches: metrics.after.strengths || [],
-        improvements: metrics.after.improvements || [],
-        gaps: metrics.after.gaps || [],
-        suggestions: metrics.after.suggestions || []
-      };
-
       return {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: metrics,
+        metrics: result.metrics as OptimizedResume['metrics'],
         contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-        analysis
+        analysis: result.analysis as OptimizedResume['analysis']
       };
     } catch (error) {
       console.error('Error getting optimized resume:', error);
