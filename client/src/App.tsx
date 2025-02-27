@@ -77,3 +77,24 @@ function App() {
 }
 
 export default App;
+import { Route, Switch } from "wouter";
+import Dashboard from "./pages/dashboard";
+import Review from "./pages/review";
+import OptimizedResumes from "./pages/optimized-resumes";
+import CoverLetters from "./pages/cover-letters";
+import { Toaster } from "@/components/ui/toaster";
+
+export default function App() {
+  return (
+    <>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/review/:id" component={Review} />
+        <Route path="/optimized-resumes" component={OptimizedResumes} />
+        <Route path="/cover-letters" component={CoverLetters} />
+      </Switch>
+      <Toaster />
+    </>
+  );
+}

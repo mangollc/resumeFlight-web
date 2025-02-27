@@ -79,6 +79,14 @@ app.get("/api/health", async (_req, res) => {
 
 console.log('Registering routes...');
 // Register routes
+import resumeRoutes from "./routes/resume.routes";
+import optimizedResumeRoutes from "./routes/optimized-resumes.routes";
+
+// Register routes
+app.use("/api/uploaded-resumes", resumeRoutes);
+app.use("/api/optimized-resumes", optimizedResumeRoutes);
+app.use("/api/optimized-resume", optimizedResumeRoutes);
+
 const server = registerRoutes(app);
 
 // Enhanced error handling middleware

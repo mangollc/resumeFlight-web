@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { WelcomeAnimation } from "@/components/ui/welcome-animation";
 import { type UploadedResume, type OptimizedResume, type CoverLetter } from "@shared/schema";
 import UploadForm from "@/components/resume/upload-form";
@@ -37,8 +37,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ResumeMetricsComparison } from "@/components/resume/ResumeMetricsComparison";
-import DownloadOptions from "@/components/resume/DownloadOptions"; // Added import
-import { useRouter } from 'next/router';
+import DownloadOptions from "@/components/resume/DownloadOptions";
 
 
 const jobProverbs = [
@@ -159,24 +158,14 @@ const INITIAL_STEPS: ProgressStep[] = [
 
 
 export default function Dashboard() {
-  const router = useRouter();
   const { user } = useAuth();
-  const params = useParams<{ id?: string }>();
   const location = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Use the ID directly from the URL path for optimized resumes
-  const optimizedId = params.id;
-  const isReviewMode = !!optimizedId;
-
-  // Add loading state for review mode
-  const [isLoadingReview, setIsLoadingReview] = useState(isReviewMode);
-  const [error, setError] = useState<Error | null>(null);
-
   // Initialize all state variables
-  const [currentStep, setCurrentStep] = useState(isReviewMode ? 5 : 1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>(isReviewMode ? [1, 2, 3, 4, 5] : []);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
   const [jobDetails, setJobDetails] = useState<JobDetails | null>(null);
@@ -203,70 +192,21 @@ export default function Dashboard() {
   const [optimizedResumeData, setOptimizedResumeData] = useState<OptimizedResume[]>([]);
   const [optimizedResumeVersion, setOptimizedResumeVersion] = useState<string>("");
 
-
-  // Fetch optimized resume data when in review mode
+  // Welcome animation effect
   useEffect(() => {
-    if (isReviewMode) {
-      const fetchOptimizedResume = async () => {
-        try {
-          setIsLoadingReview(true);
-          const response = await apiRequest('GET', `/api/optimized-resume/${optimizedId}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch optimized resume');
-          }
-          const data = await response.json();
-
-          // Set uploaded resume from the optimized resume data
-          if (data.uploadedResume) {
-            setUploadedResume(data.uploadedResume);
-          }
-
-          setOptimizedResume(data);
-          setOptimizedResumeData([data]);
-          setJobDetails(data.jobDetails);
-
-          if (data.coverLetter) {
-            setCoverLetter(data.coverLetter);
-            setCoverLetters([data.coverLetter]);
-            setSelectedCoverLetterVersion(data.coverLetter.metadata.version.toString());
-          }
-
-          setCompletedSteps([1, 2, 3, 4, 5]);
-          setCurrentStep(5);
-          setShowWelcome(false);
-        } catch (error) {
-          console.error('Error fetching optimized resume:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load optimization session",
-            variant: "destructive",
-          });
-        } finally {
-          setIsLoadingReview(false);
-        }
-      };
-
-      fetchOptimizedResume();
-    }
-  }, [isReviewMode, optimizedId, toast]);
-
-  // Welcome animation effect - Only show if not in review mode
-  useEffect(() => {
-    if (!isReviewMode) {
-      const randomIndex = Math.floor(Math.random() * jobProverbs.length);
-      setProverb(jobProverbs[randomIndex]);
-    }
-  }, [isReviewMode]);
+    const randomIndex = Math.floor(Math.random() * jobProverbs.length);
+    setProverb(jobProverbs[randomIndex]);
+  }, []);
 
   useEffect(() => {
-    if (!isReviewMode && currentStep === 1) {
+    if (currentStep === 1) {
       setShowWelcome(true);
       const timer = setTimeout(() => {
         setShowWelcome(false);
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [isReviewMode, currentStep]);
+  }, [currentStep]);
 
 
   const handleResumeUploaded = async (resume: UploadedResume) => {
@@ -730,42 +670,12 @@ export default function Dashboard() {
   };
 
   const renderCurrentStep = () => {
-    if (isReviewMode) {
-      if (isLoadingReview) {
-        return (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center space-y-4">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-              <p className="text-muted-foreground">Loading optimization session...</p>
-            </div>
-          </div>
-        );
-      }
-      return optimizedResume ? (
-        renderOptimizedContent()
-      ) : null;
-    }
-
-    // Don't render steps if we're in review mode and don't have all required data
-    if (isReviewMode && (!optimizedResume || !uploadedResume)) {
-      return (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
-            <AlertTriangle className="w-8 h-8 mx-auto text-destructive mb-4" />
-            <p className="text-muted-foreground">Unable to load optimization session. Please try again.</p>
-          </div>
-        </div>
-      );
-    }
-
     const commonCardProps = {
       className: "border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 w-full mx-auto relative bg-gradient-to-b from-card to-card/95"
     };
 
-
     switch (currentStep) {
       case 1:
-        if (isReviewMode) return null; // Skip rendering step 1 in review mode
         return (
           <div className="fade-in">
             <Card {...commonCardProps}>
@@ -954,8 +864,8 @@ export default function Dashboard() {
           </div>
         );
       case 2:
-        if (isReviewMode) return null; // Skip rendering step 2 in review mode
-        return uploadedResume ? (          <div className="fade-in">
+        return uploadedResume ? (
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
                 <JobInput
@@ -968,7 +878,6 @@ export default function Dashboard() {
           </div>
         ) : null;
       case 3:
-        if (isReviewMode) return null; // Skip rendering step 3 in review mode
         return optimizedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
@@ -996,7 +905,6 @@ export default function Dashboard() {
         ) : null;
 
       case 4:
-        if (isReviewMode) return null; // Skip rendering step 4 in review mode
         return optimizedResume ? (
           <div className="fade-in">
             <Card {...commonCardProps}>
@@ -1047,50 +955,12 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    // Set random proverb and show welcome animation
-    if (!isReviewMode) {
-      const randomIndex = Math.floor(Math.random() * jobProverbs.length);
-      setProverb(jobProverbs[randomIndex]);
-      setShowWelcome(true);
-
-      // Only hide welcome animation after timeout
-      const timer = setTimeout(() => {
-        setShowWelcome(false);
-      }, 3000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isReviewMode]);
-
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleCancel = () => {
     setIsOptimizing(false);
   };
-
-  // Show loading state while fetching review data
-  if (isLoadingReview) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading your review data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!optimizedResume && isReviewMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <p className="text-muted-foreground">No optimization data found</p>
-        </div>
-      </div>
-    );
-  }
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
@@ -1100,28 +970,23 @@ export default function Dashboard() {
     <>
         <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
           <div className="min-h-screen flex flex-col">
-            {!isReviewMode && (
-              <>
-                {proverb && !optimizedId && !window.location.search.includes('review') && (
-                  <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
-                    <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
-                  </div>
-                )}
-                {showWelcome ? (
-                  <WelcomeAnimation />
-                ) : (
-                  <div className="space-y-8">
-                    <ResumeStepTracker
-                      steps={steps}
-                      currentStep={currentStep}
-                      completedSteps={completedSteps}
-                    />
-                    {renderCurrentStep()}
-                  </div>
-                )}
-              </>
+            {proverb && (
+              <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
+                <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
+              </div>
             )}
-            {isReviewMode && renderCurrentStep()}
+            {showWelcome ? (
+              <WelcomeAnimation />
+            ) : (
+              <div className="space-y-8">
+                <ResumeStepTracker
+                  steps={steps}
+                  currentStep={currentStep}
+                  completedSteps={completedSteps}
+                />
+                {renderCurrentStep()}
+              </div>
+            )}
           </div>
         </div>
         <LoadingDialog

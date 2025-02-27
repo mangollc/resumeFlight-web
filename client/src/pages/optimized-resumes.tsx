@@ -543,3 +543,187 @@ export default function OptimizedResumesPage() {
     </div>
   );
 }
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Eye, 
+  FileText, 
+  Download, 
+  Clock, 
+  Briefcase, 
+  Building, 
+  MapPin, 
+  Loader2 
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+
+type OptimizedResume = {
+  id: string;
+  createdAt: string;
+  jobDetails: {
+    title: string;
+    company: string;
+    location: string;
+  };
+  metadata: {
+    version: number;
+    filename: string;
+  };
+  coverLetter?: {
+    id: string;
+  };
+};
+
+export default function OptimizedResumesPage() {
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
+
+  // Fetch optimized resumes
+  const { data: optimizedResumes = [], isLoading } = useQuery({
+    queryKey: ['/api/optimized-resumes'],
+    queryFn: async () => {
+      const response = await fetch('/api/optimized-resumes');
+      if (!response.ok) throw new Error('Failed to fetch optimized resumes');
+      return response.json();
+    },
+  });
+
+  const handleDownload = async (resumeId: string, filename: string) => {
+    try {
+      setIsDownloading(prev => ({ ...prev, [resumeId]: true }));
+      const response = await fetch(`/api/optimized-resume/${resumeId}/download`);
+      if (!response.ok) {
+        throw new Error('Failed to download resume');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'optimized-resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Resume downloaded successfully",
+        duration: 2000
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download resume",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDownloading(prev => ({ ...prev, [resumeId]: false }));
+    }
+  };
+
+  const handleReview = (resumeId: string) => {
+    window.location.href = `/review/${resumeId}`;
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Optimized Resumes</h1>
+          <Button variant="outline" onClick={() => window.location.href = '/dashboard'}>
+            Create New Resume
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[300px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : optimizedResumes.length === 0 ? (
+          <Card className="p-8 text-center">
+            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              Optimize your first resume to get started
+            </p>
+            <Button className="mt-6" onClick={() => window.location.href = '/dashboard'}>
+              Create Your First Optimized Resume
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {optimizedResumes.map((resume: OptimizedResume) => (
+              <Card key={resume.id} className="overflow-hidden transition-all hover:shadow-md">
+                <CardHeader className="bg-muted/30 pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl">{resume.jobDetails.title}</CardTitle>
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="mr-2 h-4 w-4" />
+                        {format(new Date(resume.createdAt), 'MMM d, yyyy')}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="mt-1">
+                      v{resume.metadata.version}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm">
+                      <Briefcase className="mr-2 h-4 w-4 text-muted-foreground" />
+                      <span>{resume.jobDetails.company || 'Company not specified'}</span>
+                    </div>
+                    {resume.jobDetails.location && (
+                      <div className="flex items-center text-sm">
+                        <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                        <span>{resume.jobDetails.location}</span>
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center">
+                      {resume.coverLetter && (
+                        <Badge variant="secondary" className="mr-2">
+                          + Cover Letter
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="bg-muted/20 pt-3 pb-3 flex justify-between">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-[48%]"
+                    onClick={() => handleDownload(resume.id, resume.metadata.filename)}
+                    disabled={isDownloading[resume.id]}
+                  >
+                    {isDownloading[resume.id] ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Download
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    size="sm"
+                    className="w-[48%]"
+                    onClick={() => handleReview(resume.id)}
+                  >
+                    <Eye className="mr-2 h-4 w-4" />
+                    Review
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
