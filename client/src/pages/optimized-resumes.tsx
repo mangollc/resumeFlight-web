@@ -92,7 +92,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
-  const analysisData = resume.analysis || {};
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -351,20 +350,20 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <CheckCircle className="h-4 w-4 text-emerald-500" />
                           <span className="font-medium text-sm">Strengths</span>
                           <span className="text-xs text-muted-foreground">
-                            {(analysisData.strengths || []).length || 0}
+                            {(resume.analysis?.strengths || []).length || 0}
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'strengths' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'strengths' && (
                         <div className="px-4 pb-3 space-y-2">
-                          {(analysisData.strengths || []).map((strength, idx) => (
+                          {(resume.analysis?.strengths || []).map((strength, idx) => (
                             <div key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
                               <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{strength}</span>
                             </div>
                           ))}
-                          {(!analysisData.strengths || analysisData.strengths.length === 0) && (
+                          {(!resume.analysis?.strengths || resume.analysis.strengths.length === 0) && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No strengths identified yet</span>
@@ -383,20 +382,20 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <ArrowUpCircle className="h-4 w-4 text-amber-500" />
                           <span className="font-medium text-sm">Improvements</span>
                           <span className="text-xs text-muted-foreground">
-                            {(analysisData.improvements || []).length || 0}
+                            {(resume.analysis?.improvements || []).length || 0}
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'improvements' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'improvements' && (
                         <div className="px-4 pb-3 space-y-2">
-                          {(analysisData.improvements || []).map((improvement, idx) => (
+                          {(resume.analysis?.improvements || []).map((improvement, idx) => (
                             <div key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
                               <ArrowUpCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{improvement}</span>
                             </div>
                           ))}
-                          {(!analysisData.improvements || analysisData.improvements.length === 0) && (
+                          {(!resume.analysis?.improvements || resume.analysis.improvements.length === 0) && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No improvements identified yet</span>
@@ -414,20 +413,20 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <AlertTriangle className="h-4 w-4 text-red-500" />
                           <span className="font-medium text-sm">Gaps</span>
                           <span className="text-xs text-muted-foreground">
-                            {(analysisData.gaps || []).length || 0}
+                            {(resume.analysis?.gaps || []).length || 0}
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'gaps' && (
                         <div className="px-4 pb-3 space-y-2 max-h-60 overflow-y-auto">
-                          {(analysisData.gaps || []).map((gap, idx) => (
+                          {(resume.analysis?.gaps || []).map((gap, idx) => (
                             <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
                               <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{gap}</span>
                             </div>
                           ))}
-                          {(!analysisData.gaps || analysisData.gaps.length === 0) && (
+                          {(!resume.analysis?.gaps || resume.analysis.gaps.length === 0) && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No gaps identified</span>
@@ -446,20 +445,20 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                           <Lightbulb className="h-4 w-4 text-blue-500" />
                           <span className="font-medium text-sm">Suggestions</span>
                           <span className="text-xs text-muted-foreground">
-                            {(analysisData.suggestions || []).length || 0}
+                            {(resume.analysis?.suggestions || []).length || 0}
                           </span>
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'suggestions' ? 'rotate-180' : ''}`} />
                       </button>
                       {activeSection === 'suggestions' && (
                         <div className="px-4 pb-3 space-y-2">
-                          {(analysisData.suggestions || []).map((suggestion, idx) => (
+                          {(resume.analysis?.suggestions || []).map((suggestion, idx) => (
                             <div key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
                               <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
                               <span>{suggestion}</span>
                             </div>
                           ))}
-                          {(!analysisData.suggestions || analysisData.suggestions.length === 0) && (
+                          {(!resume.analysis?.suggestions || resume.analysis.suggestions.length === 0) && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No suggestions available</span>
