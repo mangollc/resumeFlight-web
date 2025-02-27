@@ -74,7 +74,8 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
             metadata: {
                 filename: req.file.originalname,
                 fileType: req.file.mimetype,
-                uploadedAt: new Date().toISOString()
+                uploadedAt: new Date().toISOString(),
+                originalFileBase64: req.file.buffer.toString('base64') //Store original file as Base64
             },
             contactInfo
         });
@@ -119,6 +120,44 @@ router.delete('/resume/:id', async (req, res) => {
             error: "Failed to delete resume",
             details: error.message
         });
+    }
+});
+
+// Get original resume file
+router.get('/resume/:id/original', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
+        const resumeId = parseInt(req.params.id);
+        const resume = await storage.getUploadedResume(resumeId);
+
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        // Get the original file as Base64 from metadata
+        const originalFileBase64 = resume.metadata.originalFileBase64;
+        if (!originalFileBase64) {
+            return res.status(404).json({ error: "Original file not found" });
+        }
+
+        // Convert Base64 back to buffer
+        const fileBuffer = Buffer.from(originalFileBase64, 'base64');
+
+        // Set appropriate headers
+        res.setHeader('Content-Type', resume.metadata.fileType);
+        res.setHeader('Content-Disposition', `attachment; filename="${resume.metadata.filename}"`);
+
+        // Send the file
+        res.send(fileBuffer);
+    } catch (error: any) {
+        console.error("Error getting original resume:", error);
+        return res.status(500).json({ error: error.message });
     }
 });
 

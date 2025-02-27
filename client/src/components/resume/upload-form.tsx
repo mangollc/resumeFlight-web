@@ -57,9 +57,18 @@ export default function UploadForm({ onSuccess }: UploadFormProps) {
       console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to upload resume",
+        description: "Failed to upload resume: " + (error.message || "Unknown error"),
         variant: "destructive"
       });
+      
+      // Show a more specific message for PDF issues
+      if (file?.type === 'application/pdf') {
+        toast({
+          title: "PDF Upload Tips",
+          description: "Make sure your PDF is not password protected or corrupted. PDFs with complex formatting may not parse correctly.",
+          duration: 6000
+        });
+      }
     }
   });
 
