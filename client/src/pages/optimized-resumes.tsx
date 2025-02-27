@@ -111,13 +111,19 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
         throw new Error(errorData.error || "Failed to delete resume");
       }
 
-      // Check if there's actually JSON content to parse
+      // Handle both JSON and non-JSON responses
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        return response.json().catch(() => ({ success: true }));
+        try {
+          return await response.json();
+        } catch (err) {
+          console.log("Failed to parse JSON response:", err);
+          return { success: true };
+        }
       }
-      
-      // If no JSON content or empty response, just return success
+
+      // If response is not JSON or empty, just return success
+      console.log("Non-JSON response received, assuming success");
       return { success: true };
     },
     onSuccess: () => {
@@ -502,13 +508,19 @@ export default function OptimizedResumesPage() {
         throw new Error(errorData.error || "Failed to delete resume");
       }
 
-      // Check if there's actually JSON content to parse
+      // Handle both JSON and non-JSON responses
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        return response.json().catch(() => ({ success: true }));
+        try {
+          return await response.json();
+        } catch (err) {
+          console.log("Failed to parse JSON response:", err);
+          return { success: true };
+        }
       }
-      
-      // If no JSON content or empty response, just return success
+
+      // If response is not JSON or empty, just return success
+      console.log("Non-JSON response received, assuming success");
       return { success: true };
     },
     onSuccess: () => {

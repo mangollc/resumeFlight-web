@@ -60,6 +60,7 @@ router.delete('/:id', async (req, res) => {
         }
 
         await storage.deleteUploadedResume(resumeId);
+        res.setHeader('Content-Type', 'application/json');
         return res.status(200).json({ success: true });
     } catch (error: any) {
         console.error("Error deleting uploaded resume:", error);
