@@ -18,6 +18,8 @@ router.get('/optimized', async (req, res) => {
         return res.json(resumes);
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
+    }
+});
 
 // Delete optimized resume
 router.delete('/optimized/:id', async (req, res) => {

@@ -77,9 +77,9 @@ const ONE_DAY = 86400000; // 24 hours in milliseconds
 //   const apiRouter = Router();
 //
 //   // Register API routes
-//   apiRouter.use("/analysis", analysisRoutes);
-//   apiRouter.use("/optimization", optimizationRoutes);
-//   apiRouter.use("/uploaded-resumes", uploadedResumesRoutes);
+//   apiRouter.use("/analysis", analysisRoutes.analysisRoutes);
+//   apiRouter.use("/optimization", optimizationRoutes.optimizationRoutes);
+//   apiRouter.use("/uploaded-resumes", uploadedResumesRoutes.resumesRoutes);
 //
 //   // Authentication routes
 //   apiRouter.post("/register", async (req, res) => {
