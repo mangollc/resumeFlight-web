@@ -1,5 +1,5 @@
 import { Route, Switch, Redirect } from "wouter";
-import AuthPage from "@/pages/auth";
+import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import SubscriptionPage from "@/pages/subscription";
 import SettingsPage from "@/pages/settings";
