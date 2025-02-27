@@ -46,9 +46,9 @@ import session from "express-session";
 import passport from "passport";
 import { storage } from "../storage";
 import { setupPassport } from "../auth";
-import analysisRoutes from "./analysis.routes";
-import optimizationRoutes from "./optimization.routes";
-import uploadedResumesRoutes from "./resumes.routes";
+import * as analysisRoutes from "./analysis.routes";
+import * as optimizationRoutes from "./optimization.routes";
+import * as uploadedResumesRoutes from "./resumes.routes";
 
 // Constants for session configuration
 const ONE_DAY = 86400000; // 24 hours in milliseconds
