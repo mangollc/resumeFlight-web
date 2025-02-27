@@ -95,36 +95,49 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      console.log(`Attempting to delete resume with ID: ${id}`);
+      
+      // Make the delete request
       const response = await apiRequest("DELETE", `/api/optimized-resume/${id}`);
+      console.log(`Delete response status:`, response.status);
+      
       if (!response.ok) {
-        // Try to parse as JSON, but handle non-JSON responses
+        // Enhanced error handling
+        let errorMessage = `Failed to delete resume (${response.status})`;
+        
         try {
+          // Check if response is JSON
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const errorData = await response.json();
-            throw new Error(errorData.error || "Failed to delete resume");
+            errorMessage = errorData.error || errorMessage;
+            console.error("Delete JSON error:", errorData);
           } else {
             // Handle non-JSON response
             const errorText = await response.text();
-            console.error("Server returned non-JSON error:", errorText.substring(0, 100));
-            throw new Error("Server error - received non-JSON response");
+            console.error("Server returned non-JSON error:", errorText);
+            errorMessage += ` - ${errorText.substring(0, 100)}`;
           }
         } catch (parseError) {
-          console.error("Error parsing response:", parseError);
-          throw new Error("Failed to delete resume - could not parse server response");
+          console.error("Error parsing error response:", parseError);
         }
+        
+        throw new Error(errorMessage);
       }
       
-      // Handle successful response, carefully parsing JSON
+      // Handle successful response
+      console.log("Delete successful");
       try {
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-          return await response.json();
+          const result = await response.json();
+          console.log("Delete result:", result);
+          return result;
         }
-        return {}; // Return empty object if not JSON
+        return { success: true, id }; // Return simple success object if not JSON
       } catch (error) {
         console.error("Error parsing success response:", error);
-        return {}; // Return empty object on parsing error
+        return { success: true, id }; // Return simple success object on parsing error
       }
     },
     onMutate: async (id) => {
@@ -516,16 +529,30 @@ export default function OptimizedResumesPage() {
   
   // Force refresh data on component mount
   useEffect(() => {
-    // Clear cache and refetch on page load
+    // Clear cache and refetch on page load with retry logic
     const refreshData = async () => {
-      await queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
-      await queryClient.refetchQueries({ 
-        queryKey: ["/api/optimized-resumes"],
-        type: 'all'
-      });
+      try {
+        console.log("Clearing optimized resumes cache and refetching data");
+        // First clear the cache
+        await queryClient.removeQueries({ queryKey: ["/api/optimized-resumes"] });
+        
+        // Then refetch with retry option
+        await queryClient.refetchQueries({ 
+          queryKey: ["/api/optimized-resumes"],
+          type: 'all',
+        });
+      } catch (error) {
+        console.error("Error refreshing optimized resumes:", error);
+      }
     };
     
     refreshData();
+    
+    // Set up an interval to poll for data every 10 seconds
+    const intervalId = setInterval(refreshData, 10000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, [queryClient]);
   
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({

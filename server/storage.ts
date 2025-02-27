@@ -315,12 +315,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deleteOptimizedResume(id: number): Promise<void> {
+  async deleteOptimizedResume(id: number, force: boolean = false): Promise<void> {
     try {
-      await db.delete(optimizedResumes).where(eq(optimizedResumes.id, id));
+      console.log(`Attempting to delete optimized resume ID: ${id}, force: ${force}`);
+      const deleteResult = await db.delete(optimizedResumes).where(eq(optimizedResumes.id, id)).returning();
+      console.log(`Delete result:`, deleteResult);
+      
+      if (deleteResult.length === 0 && !force) {
+        console.warn(`No resume found with ID ${id} to delete`);
+      }
     } catch (error) {
       console.error('Error deleting optimized resume:', error);
-      throw new Error('Failed to delete optimized resume');
+      throw new Error(`Failed to delete optimized resume: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

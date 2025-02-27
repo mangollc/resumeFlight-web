@@ -74,13 +74,18 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      refetchOnWindowFocus: false,
-      retry: 1,
+      staleTime: 1000 * 60, // 1 minute
+      cacheTime: 1000 * 60 * 10, // 10 minutes
+      retry: 2,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
     },
     mutations: {
-      retry: false,
-    },
+      retry: 1,
+      onError: (error) => {
+        console.error("Mutation error:", error);
+      }
+    }
   },
 });
 

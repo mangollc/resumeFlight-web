@@ -65,12 +65,15 @@ router.delete('/optimized/:id', async (req, res) => {
         }
 
         // Force a complete deletion and cleanup
+        console.log(`Delete request received for optimized resume ID: ${resumeId}`);
         await storage.deleteOptimizedResume(resumeId, true);
         
         // Return success with timestamp to help client avoid caching
-        return res.json({ 
+        console.log(`Delete for optimized resume ID: ${resumeId} completed successfully`);
+        return res.status(200).json({ 
           message: "Resume deleted successfully",
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          id: resumeId
         });
     } catch (error: any) {
         return res.status(500).json({ error: error.message });
