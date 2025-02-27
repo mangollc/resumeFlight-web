@@ -46,6 +46,9 @@ router.get('/optimized/:id', async (req, res) => {
 
 // Delete optimized resume
 router.delete('/optimized/:id', async (req, res) => {
+    // Ensure we always send JSON response
+    res.setHeader('Content-Type', 'application/json');
+    
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Not authenticated" });

@@ -68,10 +68,35 @@ export default function UploadedResumesPage() {
     mutationFn: async (id: number) => {
       const response = await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to delete resume");
+        // Try to parse as JSON, but handle non-JSON responses
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to delete resume");
+          } else {
+            // Handle non-JSON response
+            const errorText = await response.text();
+            console.error("Server returned non-JSON error:", errorText.substring(0, 100));
+            throw new Error("Server error - received non-JSON response");
+          }
+        } catch (parseError) {
+          console.error("Error parsing response:", parseError);
+          throw new Error("Failed to delete resume - could not parse server response");
+        }
       }
-      return response.json().catch(() => ({}));
+      
+      // Handle successful response, carefully parsing JSON
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        }
+        return {}; // Return empty object if not JSON
+      } catch (error) {
+        console.error("Error parsing success response:", error);
+        return {}; // Return empty object on parsing error
+      }
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
