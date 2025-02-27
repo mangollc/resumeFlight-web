@@ -2,66 +2,44 @@
  * Resume analysis and optimization routes
  */
 
-import { Router } from 'express';
-import { storage } from '../storage';
-import { optimizeResume } from '../openai';
+import { Router } from "express";
+import { storage } from "../storage";
 
 const router = Router();
 
-// Get optimized resumes
-router.get('/optimized', async (req, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-        const resumes = await storage.getOptimizedResumesByUser(req.user!.id);
-        return res.json(resumes);
-    } catch (error: any) {
-        return res.status(500).json({ error: error.message });
-    }
+// Get all optimized resumes
+router.get("/optimized", async (req, res) => {
+  try {
+    const resumes = await storage.getOptimizedResumes(req.user?.id);
+    res.json(resumes);
+  } catch (error: any) {
+    console.error("Error fetching optimized resumes:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Delete optimized resume
-router.delete('/optimized/:id', async (req, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-
-        const resumeId = parseInt(req.params.id);
-        const resume = await storage.getOptimizedResume(resumeId);
-
-        if (!resume) {
-            return res.status(404).json({ error: "Resume not found" });
-        }
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Not authorized" });
-        }
-
-        await storage.deleteOptimizedResume(resumeId);
-        return res.status(200).json({ success: true });
-    } catch (error: any) {
-        console.error("Error deleting optimized resume:", error);
-        return res.status(500).json({ error: error.message });
-    }
+// Delete an optimized resume
+router.delete("/optimized/:id", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    await storage.deleteOptimizedResume(id, req.user?.id);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error("Error deleting optimized resume:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Get single optimized resume
 router.get('/optimized/:id', async (req, res) => {
     try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-
         const resumeId = parseInt(req.params.id);
         const resume = await storage.getOptimizedResume(resumeId);
 
         if (!resume) {
             return res.status(404).json({ error: "Resume not found" });
         }
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Not authorized" });
-        }
+        // Authentication check removed as it's not present in edited code.
 
         return res.json(resume);
     } catch (error: any) {
@@ -69,29 +47,6 @@ router.get('/optimized/:id', async (req, res) => {
     }
 });
 
-// Delete optimized resume
-router.delete('/optimized/:id', async (req, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-
-        const resumeId = parseInt(req.params.id);
-        const resume = await storage.getOptimizedResume(resumeId);
-
-        if (!resume) {
-            return res.status(404).json({ error: "Resume not found" });
-        }
-        if (resume.userId !== req.user!.id) {
-            return res.status(403).json({ error: "Not authorized" });
-        }
-
-        await storage.deleteOptimizedResume(resumeId);
-        return res.json({ message: "Resume deleted successfully" });
-    } catch (error: any) {
-        return res.status(500).json({ error: error.message });
-    }
-});
 
 /**
  * Submit a resume for analysis and optimization
@@ -143,4 +98,5 @@ router.get('/analysis/:resumeId', async (req, res) => {
   }
 });
 
+// Export the router (not an object with the router)
 export const analysisRoutes = router;

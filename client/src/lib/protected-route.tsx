@@ -1,27 +1,49 @@
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 
-interface ProtectedRouteProps {
+type ProtectedRouteProps = {
   children: ReactNode;
-}
+};
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const { user, isLoading } = useAuth();
+  const [, navigate] = useLocation();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      setLocation("/auth");
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
-
-  // Show nothing while loading
+  // If auth is loading, show nothing or a loading spinner
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
   }
 
-  // Only render children when authenticated
-  return isAuthenticated ? <>{children}</> : null;
+  // If not authenticated, redirect to login
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
+
+  // If authenticated, render the protected content
+  return (
+    <SidebarProvider>
+      <div className="flex h-screen">
+        <Sidebar />
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
+      </div>
+    </SidebarProvider>
+  );
+}
+
+export function ProtectedLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <main className="flex-1">{children}</main>
+    </div>
+  );
 }
