@@ -83,9 +83,18 @@ export default function UploadedResumesPage() {
       
       if (!response.ok) {
         try {
-          const errorData = await response.json();
-          console.error("Delete error response:", errorData);
-          throw new Error(errorData.message || errorData.error || 'Failed to delete resume');
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            console.error("Delete error response:", errorData);
+            throw new Error(errorData.message || errorData.error || 'Failed to delete resume');
+          } else {
+            // Handle non-JSON error response
+            const textError = await response.text();
+            console.error("Non-JSON error response:", textError);
+            throw new Error(`Server returned ${response.status}: Failed to delete resume`);
+          }
         } catch (parseError) {
           console.error("Error parsing error response:", parseError);
           throw new Error(`Server returned ${response.status}: Failed to delete resume`);
@@ -103,8 +112,12 @@ export default function UploadedResumesPage() {
           return jsonData;
         }
         
-        // If not JSON or empty response, log and return success object
+        // If not JSON response but status is OK, log text response and assume success
+        const textResponse = await response.text();
+        console.log("Non-JSON success response:", textResponse);
         console.log("Non-JSON response received on deletion, assuming success");
+        // Invalidate query cache to refresh UI
+        queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
         return { success: true, message: "Resume deleted successfully" };
       } catch (error) {
         console.log("Error parsing success response:", error);
