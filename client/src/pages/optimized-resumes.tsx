@@ -1,28 +1,42 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Clock, Calendar, Building, MapPin, Download, ArrowRight, ExternalLink, Eye, Edit, Copy, Loader2 } from "lucide-react";
+import { FileText, Clock, Calendar, Building, MapPin, Download, ArrowRight, ExternalLink, Eye, Edit, Copy, Loader2, MoreVertical, Info, Trash2, ArrowUpCircle, Briefcase } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { type OptimizedResume } from "@shared/schema";
-import { OtherJobsSection } from "@/components/ui/other-jobs-section";
 import DownloadOptions from "@/components/resume/DownloadOptions";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Review } from "@/components/review";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const getScoreColor = (score: number): string => {
+  if (score >= 80) return "bg-green-500";
+  if (score >= 60) return "bg-yellow-500";
+  return "bg-red-500";
+};
 
 export default function OptimizedResumes() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
+  const queryClient = useQueryClient();
 
   // Fetch optimized resumes
   const { data: optimizedResumes = [], isLoading } = useQuery({
