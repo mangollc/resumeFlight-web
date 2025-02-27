@@ -4,7 +4,7 @@ import Dashboard from "@/pages/dashboard";
 import SubscriptionPage from "@/pages/subscription";
 import SettingsPage from "@/pages/settings";
 import { Toaster } from "@/components/ui/toaster";
-import { Sidebar } from "@/components/ui/sidebar";
+import Sidebar from "@/components/ui/sidebar"; // Fixed import here.  Assumed 'Sidebar' is a default export.
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import OptimizedResumesPage from "@/pages/optimized-resumes";
