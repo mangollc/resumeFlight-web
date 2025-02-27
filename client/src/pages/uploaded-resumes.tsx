@@ -66,7 +66,12 @@ export default function UploadedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
+      const response = await apiRequest("DELETE", `/api/uploaded-resume/${id}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete resume");
+      }
+      return response.json().catch(() => ({}));
     },
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["/api/uploaded-resumes"] });
@@ -81,10 +86,11 @@ export default function UploadedResumesPage() {
       toast({
         title: "Success",
         description: "Resume deleted successfully",
-        duration: 2000, // Set to 2 seconds
+        duration: 2000,
       });
     },
-    onError: (error: Error, _, context) => {
+    onError: (error: any, _, context) => {
+      console.error("Delete uploaded resume error:", error);
       if (context?.previousResumes) {
         queryClient.setQueryData(["/api/uploaded-resumes"], context.previousResumes);
       }
@@ -216,7 +222,14 @@ export default function UploadedResumesPage() {
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
-                                  onClick={() => deleteMutation.mutate(resume.id)}
+                                  onClick={() => {
+                                    try {
+                                      console.log("Attempting to delete uploaded resume with ID:", resume.id);
+                                      deleteMutation.mutate(resume.id);
+                                    } catch (error) {
+                                      console.error("Delete action error:", error);
+                                    }
+                                  }}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   disabled={deleteMutation.isPending}
                                 >
