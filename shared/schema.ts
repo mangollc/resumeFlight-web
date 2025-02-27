@@ -177,6 +177,7 @@ export const insertUploadedResumeSchema = z.object({
     fileType: z.string(),
     uploadedAt: z.string(),
     originalFileBase64: z.string().optional(), // Store original file as Base64
+    contentSanitized: z.boolean().optional(), // Flag to indicate content was sanitized
   }),
   contactInfo: z.object({
     fullName: z.string().optional().default(''),

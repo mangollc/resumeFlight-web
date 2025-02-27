@@ -52,14 +52,25 @@ function extractContactInfo(text: string): ParsedContact {
   return contact;
 }
 
-export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ content: string, contactInfo: ParsedContact }> {
+export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ content: string, contactInfo: ParsedContact, originalBuffer?: Buffer }> {
   console.log('Parsing resume file:', { mimetype });
   
   try {
     let text: string;
+    let originalBuffer: Buffer | undefined;
     
     if (mimetype === "application/pdf") {
-      text = buffer.toString('utf8');
+      // For PDF, extract text for analysis but keep original buffer for storage
+      try {
+        // First try to extract text
+        text = buffer.toString('utf8');
+        // If we're here, there might be some text content in the PDF
+      } catch (err) {
+        // If text extraction fails, use a placeholder text
+        text = "PDF binary content - text extraction not possible";
+      }
+      // Store the original buffer for later conversion to Base64
+      originalBuffer = buffer;
       console.log('Parsed PDF content length:', text.length);
     } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
       const result = await mammoth.extractRawText({ buffer });
@@ -70,7 +81,7 @@ export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ c
     }
 
     const contactInfo = extractContactInfo(text);
-    return { content: text, contactInfo };
+    return { content: text, contactInfo, originalBuffer };
   } catch (error) {
     console.error('Error parsing resume:', error);
     throw new Error(`Failed to parse resume: ${error.message}`);

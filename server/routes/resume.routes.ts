@@ -68,21 +68,29 @@ router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, 
             return res.status(400).json({ error: "No file uploaded" });
         }
 
-        const { content, contactInfo } = await parseResume(req.file.buffer, req.file.mimetype);
-        const resumeData = insertUploadedResumeSchema.parse({
-            content,
-            metadata: {
-                filename: req.file.originalname,
-                fileType: req.file.mimetype,
-                uploadedAt: new Date().toISOString(),
-                originalFileBase64: req.file.buffer.toString('base64') //Store original file as Base64
-            },
-            contactInfo
-        });
+        const { content, contactInfo, originalBuffer } = await parseResume(req.file.buffer, req.file.mimetype);
+
+        // Handle PDF differently - store a sanitized version of the content
+        let safeContent = content;
+        let metadata: any = {
+            filename: req.file.originalname,
+            fileType: req.file.mimetype,
+            uploadedAt: new Date().toISOString()
+        };
+
+        // For PDFs, we'll store the original file as base64 in metadata
+        if (req.file.mimetype === "application/pdf") {
+            // For PDFs, store content as base64-encoded string
+            metadata.originalFileBase64 = req.file.buffer.toString('base64');
+            // Use a sanitized version of content for text extraction
+            safeContent = safeContent.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x80-\xFF]/g, '');
+        }
 
         const resume = await storage.createUploadedResume({
-            ...resumeData,
-            userId: req.user!.id
+            userId: req.user!.id,
+            content: safeContent,
+            metadata: metadata,
+            contactInfo
         });
 
         res.status(201).json(resume);
