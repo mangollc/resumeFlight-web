@@ -78,7 +78,7 @@ function Router() {
   );
 }
 
-import { SidebarProvider } from './components/layout/sidebar';
+import { SidebarProvider } from './components/layout/sidebar'; // Import from layout
 
 function App() {
   return (
