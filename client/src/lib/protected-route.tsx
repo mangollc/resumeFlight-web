@@ -1,41 +1,46 @@
 
-import { ReactNode } from "react";
-import { Redirect } from "wouter";
+import React from 'react';
+import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Toaster } from "@/components/ui/toaster";
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  component: React.ComponentType<any>;
+  path: string;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  component: Component,
+  path,
+}) => {
+  const { user, isLoading } = useAuth();
+  const [isMatch] = useRoute(path);
+  const [, setLocation] = useLocation();
 
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
-      </div>
-    );
+  React.useEffect(() => {
+    if (isMatch && !isLoading && !user) {
+      setLocation('/auth');
+    }
+  }, [isMatch, user, isLoading, setLocation]);
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  // Redirect if not authenticated
-  if (!user) {
-    return <Redirect to="/auth" />;
+  if (!user && isMatch) {
+    return null;
   }
 
-  // Render protected content
+  return <Component />;
+};
+
+export const ProtectedLayout = ({ component: Component }: { component: React.ComponentType<any> }) => {
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="flex h-screen flex-col md:flex-row">
+      <div className="w-full flex-1 flex flex-col">
         <main className="flex-1 overflow-y-auto">
-          {children}
+          <Component />
         </main>
       </div>
-      <Toaster />
     </div>
   );
-}
+};

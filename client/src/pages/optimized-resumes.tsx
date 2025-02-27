@@ -448,7 +448,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
   );
 }
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";

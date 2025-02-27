@@ -1,161 +1,183 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
+
+import React, { createContext, useContext, useState } from 'react';
+import { useLocation } from 'wouter';
+import { cn } from "@/lib/utils";
 import {
-  FileText,
-  ChevronRight,
-  ChevronLeft,
-  Settings,
-  LogOut,
   Home,
+  FileText,
+  Settings,
   User,
-  CheckCircle,
-  BarChart,
+  CreditCard,
+  CheckSquare,
+  Menu,
+  X,
+  ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/use-auth";
 
-export function Sidebar() {
-  const [expanded, setExpanded] = useState(true);
-  const [location] = useLocation();
-  const { user, logout } = useAuth();
+type SidebarContextType = {
+  isOpen: boolean;
+  toggle: () => void;
+  close: () => void;
+};
 
-  const toggleSidebar = () => {
-    setExpanded(!expanded);
-  };
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-  };
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    throw new Error('useSidebar must be used within a SidebarProvider');
+  }
+  return context;
+};
 
-  const isActive = (path: string) => {
-    return location === path;
-  };
+export const SidebarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isOpen, setIsOpen] = useState(false);
 
-  const navItems = [
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <Home className="h-5 w-5" />,
-    },
-    {
-      name: "My Resumes",
-      path: "/uploaded-resumes",
-      icon: <FileText className="h-5 w-5" />,
-    },
-    {
-      name: "Optimized Resumes",
-      path: "/optimized-resumes",
-      icon: <CheckCircle className="h-5 w-5" />,
-    },
-    {
-      name: "Analytics",
-      path: "/analytics",
-      icon: <BarChart className="h-5 w-5" />,
-    },
-    {
-      name: "Settings",
-      path: "/settings",
-      icon: <Settings className="h-5 w-5" />,
-    },
-  ];
+  const toggle = () => setIsOpen(!isOpen);
+  const close = () => setIsOpen(false);
 
   return (
-    <div
-      className={`bg-card border-r h-full flex flex-col transition-all duration-300 ${
-        expanded ? "w-64" : "w-16"
-      }`}
-    >
-      <div className="p-4 flex items-center justify-between">
-        {expanded && (
-          <div className="font-semibold text-lg bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">
-            Resume AI
-          </div>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleSidebar}
-          className="h-8 w-8 ml-auto"
-        >
-          {expanded ? (
-            <ChevronLeft className="h-4 w-4" />
-          ) : (
-            <ChevronRight className="h-4 w-4" />
-          )}
+    <SidebarContext.Provider value={{ isOpen, toggle, close }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+};
+
+export function Sidebar() {
+  const { isOpen, toggle, close } = useSidebar();
+  const [, setLocation] = useLocation();
+  const { user, logoutMutation } = useAuth();
+  
+  const navigate = (path: string) => {
+    setLocation(path);
+    close();
+  };
+
+  return (
+    <>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
+        <Button variant="ghost" size="icon" onClick={toggle} className="md:hidden">
+          <Menu className="h-6 w-6" />
+          <span className="sr-only">Toggle menu</span>
         </Button>
-      </div>
-
-      <div className="mt-4 flex-1 overflow-y-auto">
-        <nav className="space-y-1 px-2">
-          {navItems.map((item) => (
-            <TooltipProvider key={item.path}>
-              <Tooltip delayDuration={200}>
-                <TooltipTrigger asChild>
-                  <Link href={item.path}>
-                    <Button
-                      variant={isActive(item.path) ? "secondary" : "ghost"}
-                      className={`w-full justify-start ${
-                        expanded ? "" : "justify-center"
-                      }`}
-                    >
-                      {item.icon}
-                      {expanded && <span className="ml-3">{item.name}</span>}
-                    </Button>
-                  </Link>
-                </TooltipTrigger>
-                {!expanded && (
-                  <TooltipContent side="right">{item.name}</TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          ))}
-        </nav>
-      </div>
-
-      <div className="p-4 border-t">
-        <div
-          className={`flex items-center ${
-            expanded ? "justify-between" : "justify-center"
-          }`}
-        >
-          {expanded && user && (
-            <div className="flex items-center">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>
-                  {getInitials(user.name || user.email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="ml-2 overflow-hidden">
-                <p className="text-sm font-medium truncate">
-                  {user.name || user.email}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <TooltipProvider>
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={logout}
-                  className="h-8 w-8"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Log out</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-6 w-6 text-primary" />
+          <span className="font-semibold text-lg">Resumate</span>
         </div>
       </div>
-    </div>
+
+      {/* Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+          onClick={close}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={cn(
+          "fixed top-0 bottom-0 left-0 z-50 w-72 border-r bg-card p-6 shadow-lg transition-transform md:sticky md:z-0 md:transform-none",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="h-6 w-6 text-primary" />
+            <span className="font-semibold text-lg">Resumate</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={close} className="md:hidden">
+            <X className="h-5 w-5" />
+            <span className="sr-only">Close sidebar</span>
+          </Button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="py-2">
+            <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase mb-3">
+              Main
+            </div>
+            <nav className="grid gap-1">
+              <Button
+                variant="ghost"
+                className="justify-start"
+                onClick={() => navigate('/dashboard')}
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start"
+                onClick={() => navigate('/uploaded-resumes')}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Uploaded Resumes
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start"
+                onClick={() => navigate('/optimized-resumes')}
+              >
+                <CheckSquare className="mr-2 h-4 w-4" />
+                Optimized Resumes
+              </Button>
+            </nav>
+          </div>
+          
+          <div className="py-2">
+            <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase mb-3">
+              Settings
+            </div>
+            <nav className="grid gap-1">
+              <Button
+                variant="ghost"
+                className="justify-start"
+                onClick={() => navigate('/settings')}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
+              <Button
+                variant="ghost"
+                className="justify-start"
+                onClick={() => navigate('/subscription')}
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Subscription
+              </Button>
+            </nav>
+          </div>
+        </div>
+
+        <div className="absolute bottom-6 left-6 right-6">
+          {user && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 pb-2">
+                <div className="rounded-full bg-primary/10 p-1">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div className="grid gap-0.5">
+                  <p className="text-sm font-medium">{user.name || user.email}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-start"
+                onClick={() => logoutMutation.mutate()}
+              >
+                <ChevronRight className="mr-2 h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

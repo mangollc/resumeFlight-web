@@ -47,18 +47,31 @@ function ProtectedLayout({ component: Component }: { component: React.ComponentT
   );
 }
 
+function ProtectedLayoutWithSidebar({ component: Component }) {
+  return (
+    <div className="flex h-screen flex-col md:flex-row">
+      <Sidebar />
+      <div className="w-full flex-1 flex flex-col">
+        <main className="flex-1 overflow-y-auto">
+          <Component />
+        </main>
+      </div>
+    </div>
+  );
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/">
         <Redirect to="/dashboard" />
       </Route>
-      <ProtectedRoute path="/dashboard" component={() => <ProtectedLayout component={Dashboard} />} />
-      <ProtectedRoute path="/resume/:id/optimize/review" component={() => <ProtectedLayout component={Dashboard} />} />
-      <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayout component={UploadedResumesPage} />} />
-      <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayout component={OptimizedResumesPage} />} />
-      <ProtectedRoute path="/subscription" component={() => <ProtectedLayout component={SubscriptionPage} />} />
-      <ProtectedRoute path="/settings" component={() => <ProtectedLayout component={SettingsPage} />} />
+      <ProtectedRoute path="/dashboard" component={() => <ProtectedLayoutWithSidebar component={Dashboard} />} />
+      <ProtectedRoute path="/resume/:id/optimize/review" component={() => <ProtectedLayoutWithSidebar component={Dashboard} />} />
+      <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayoutWithSidebar component={UploadedResumesPage} />} />
+      <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayoutWithSidebar component={OptimizedResumesPage} />} />
+      <ProtectedRoute path="/subscription" component={() => <ProtectedLayoutWithSidebar component={SubscriptionPage} />} />
+      <ProtectedRoute path="/settings" component={() => <ProtectedLayoutWithSidebar component={SettingsPage} />} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
@@ -69,8 +82,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <SidebarProvider>
+          <Router />
+          <Toaster />
+        </SidebarProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
