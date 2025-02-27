@@ -20,7 +20,7 @@ const cn = (...args: (string | undefined)[]) => args.filter(Boolean).join(' ');
 
 function App() {
   return (
-    <>
+    <AuthProvider>
       <Switch>
         <Route path="/auth">
           <AuthPage />
@@ -32,7 +32,7 @@ function App() {
           <Redirect to="/dashboard" />
         </Route>
         <Route path="/dashboard">
-          <ProtectedRoute>
+          <ProtectedRoute path="/dashboard" component={() => (
             <div className="flex min-h-screen">
               <Sidebar />
               <div className="flex-1">
@@ -42,10 +42,10 @@ function App() {
                 </div>
               </div>
             </div>
-          </ProtectedRoute>
+          )} />
         </Route>
         <Route path="/uploaded-resumes">
-          <ProtectedRoute>
+          <ProtectedRoute path="/uploaded-resumes" component={() => (
             <div className="flex min-h-screen">
               <Sidebar />
               <div className="flex-1">
@@ -55,10 +55,10 @@ function App() {
                 </div>
               </div>
             </div>
-          </ProtectedRoute>
+          )} />
         </Route>
         <Route path="/optimized-resumes">
-          <ProtectedRoute>
+          <ProtectedRoute path="/optimized-resumes" component={() => (
             <div className="flex min-h-screen">
               <Sidebar />
               <div className="flex-1">
@@ -68,10 +68,10 @@ function App() {
                 </div>
               </div>
             </div>
-          </ProtectedRoute>
+          )} />
         </Route>
         <Route path="/subscription">
-          <ProtectedRoute>
+          <ProtectedRoute path="/subscription" component={() => (
             <div className="flex min-h-screen">
               <Sidebar />
               <div className="flex-1">
