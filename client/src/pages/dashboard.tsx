@@ -924,7 +924,7 @@ export default function Dashboard() {
                     </div>
                   ) : null}
 
-                  {{uploadMode === 'upload' && (
+                  {uploadMode === 'upload' && (
                     <UploadForm onSuccess={handleResumeUploaded} />
                   )}
                   {/* Job Details Display Section */}
