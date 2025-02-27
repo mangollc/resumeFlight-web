@@ -52,6 +52,41 @@ function extractContactInfo(text: string): ParsedContact {
     // Address extraction - try full address
     const addressMatch = line.match(addressRegex);
     if (addressMatch && !contact.address) {
+      contact.address = addressMatch[0];
+      continue;
+    }
+
+    // Fallback to city/state format
+    const locationMatch = line.match(locationRegex);
+    if (locationMatch && !contact.address) {
+      const [_, city, state] = locationMatch;
+      contact.address = `${city.trim()}, ${state.trim()}`;
+      
+      // Try to find country/zip if it exists in the same line
+      const countryMatch = line.match(/,\s*([A-Z][a-zA-Z\s]+)$/);
+      if (countryMatch) {
+        contact.address += `, ${countryMatch[1].trim()}`;
+      }
+    }
+  }
+
+  // Use AI to analyze the resume and extract contact info if OpenAI is available
+  return contact;
+}
+
+export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ content: string, contactInfo: ParsedContact }> {
+  console.log('Parsing resume file:', { mimetype });
+  
+  try {
+    let text: string;
+    
+    if (mimetype === "application/pdf") {
+      text = buffer.toString('utf8');
+      console.log('Parsed PDF content length:', text.length);
+    } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      const result = await mammoth.extractRawText({ buffer });
+      text = result.value;
+      console.log('Parsed DOCX content length:', text.length);
 
 import { openai } from '../openai';
 
@@ -117,41 +152,6 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
   }
 }
 
-      contact.address = addressMatch[0];
-      continue;
-    }
-
-    // Fallback to city/state format
-    const locationMatch = line.match(locationRegex);
-    if (locationMatch && !contact.address) {
-      const [_, city, state] = locationMatch;
-      contact.address = `${city.trim()}, ${state.trim()}`;
-      
-      // Try to find country/zip if it exists in the same line
-      const countryMatch = line.match(/,\s*([A-Z][a-zA-Z\s]+)$/);
-      if (countryMatch) {
-        contact.address += `, ${countryMatch[1].trim()}`;
-      }
-    }
-  }
-
-  // Use AI to analyze the resume and extract contact info if OpenAI is available
-  return contact;
-}
-
-export async function parseResume(buffer: Buffer, mimetype: string): Promise<{ content: string, contactInfo: ParsedContact }> {
-  console.log('Parsing resume file:', { mimetype });
-  
-  try {
-    let text: string;
-    
-    if (mimetype === "application/pdf") {
-      text = buffer.toString('utf8');
-      console.log('Parsed PDF content length:', text.length);
-    } else if (mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-      const result = await mammoth.extractRawText({ buffer });
-      text = result.value;
-      console.log('Parsed DOCX content length:', text.length);
     } else {
       throw new Error(`Unsupported file type: ${mimetype}`);
     }
