@@ -925,7 +925,7 @@ export default function Dashboard() {
                         {optimizedResume.jobDetails.keyRequirements && optimizedResume.jobDetails.keyRequirements.length > 0 && (
                           <div>
                             <p className="font-medium">Key Requirements</p>
-                            <ul className="list-disc listinside text-muted-foreground">
+                            <ul className="list-disclist-inside text-muted-foreground">
                               {optimizedResume.jobDetails.keyRequirements.map((req, index) => (
                                 <li key={index}>{req}</li>
                               ))}
@@ -1097,57 +1097,59 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      <div className="min-h-screen flex flex-col">
-        {!isReviewMode && (
-          <>
-            {proverb && !optimizedId && !window.location.search.includes('review') && (
-              <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
-                <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
-              </div>
+    <>
+        <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
+          <div className="min-h-screen flex flex-col">
+            {!isReviewMode && (
+              <>
+                {proverb && !optimizedId && !window.location.search.includes('review') && (
+                  <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
+                    <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
+                  </div>
+                )}
+                {showWelcome ? (
+                  <WelcomeAnimation />
+                ) : (
+                  <div className="space-y-8">
+                    <ResumeStepTracker
+                      steps={steps}
+                      currentStep={currentStep}
+                      completedSteps={completedSteps}
+                    />
+                    {renderCurrentStep()}
+                  </div>
+                )}
+              </>
             )}
-            {showWelcome ? (
-              <WelcomeAnimation />
-            ) : (
-              <div className="space-y-8">
-                <ResumeStepTracker
-                  steps={steps}
-                  currentStep={currentStep}
-                  completedSteps={completedSteps}
-                />
-                {renderCurrentStep()}
-              </div>
-            )}
-          </>
-        )}
-        {isReviewMode && renderCurrentStep()}
-      </div>
-      <LoadingDialog
-        open={isOptimizing}
-        title="Optimizing Resume"
-        description={
-          <div className="space-y-4">
-            <p>Please wait while we optimize your resume using AI...</p>
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
+            {isReviewMode && renderCurrentStep()}
           </div>
-        }
-        steps={currentOptimizationSteps}
-        onOpenChange={(open) => {
-          if (!open && isOptimizing) {
-            handleCancel();
+        </div>
+        <LoadingDialog
+          open={isOptimizing}
+          title="Optimizing Resume"
+          description={
+            <div className="space-y-4">
+              <p>Please wait while we optimize your resume using AI...</p>
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            </div>
           }
-        }}
-      />
-      <LoadingDialog
-        open={isGeneratingCoverLetter}
-        title="Generating Cover Letter"
-        description="Please wait while we generate your cover letter using AI..."
-        steps={currentCoverLetterSteps}
-        onOpenChange={setIsGeneratingCoverLetter}
-      />
-    </div>
+          steps={currentOptimizationSteps}
+          onOpenChange={(open) => {
+            if (!open && isOptimizing) {
+              handleCancel();
+            }
+          }}
+        />
+        <LoadingDialog
+          open={isGeneratingCoverLetter}
+          title="Generating Cover Letter"
+          description="Please wait while we generate your cover letter using AI..."
+          steps={currentCoverLetterSteps}
+          onOpenChange={setIsGeneratingCoverLetter}
+        />
+    </>
   );
 }
 
