@@ -5,9 +5,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { checkDatabaseConnection } from "./db";
-import { setupAuth } from "./auth";
-import session from "express-session";
-import { storage } from "./storage";
 
 // Global error handlers
 process.on('uncaughtException', (error) => {
@@ -53,9 +50,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Setup authentication
-setupAuth(app);
-
 // Health check endpoint
 app.get("/api/health", async (_req, res) => {
     try {
@@ -85,14 +79,6 @@ app.get("/api/health", async (_req, res) => {
 
 console.log('Registering routes...');
 // Register routes
-import resumeRoutes from "./routes/resume.routes";
-import optimizedResumeRoutes from "./routes/optimized-resumes.routes";
-
-// Register routes
-app.use("/api/uploaded-resumes", resumeRoutes);
-app.use("/api/optimized-resumes", optimizedResumeRoutes);
-//Removed duplicate route
-
 const server = registerRoutes(app);
 
 // Enhanced error handling middleware
@@ -144,7 +130,7 @@ const startServer = async (port: number) => {
         log(`Server successfully started on port ${port}`);
         resolve(srv);
       });
-      srv.once('error', (err: NodeJS.ErrnoException) => {
+      srv.once('error', (err) => {
         if (err.code === 'EADDRINUSE') {
           log(`Port ${port} is in use, trying ${port + 1}`);
           srv.close();

@@ -1,204 +1,125 @@
+/**
+ * Resume management routes
+ * Handles basic CRUD operations for resumes
+ */
 
 import { Router } from 'express';
-import { db } from '../db';
-import { ensureAuthenticated } from '../auth';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { OptimizedResume } from '@shared/schema';
-
-const resumeRoutes = Router();
+import { storage } from '../storage';
+import multer from 'multer';
+import { insertUploadedResumeSchema } from '@shared/schema';
+import { MulterRequest } from './types';
+import { parseResume } from '../utils/parser';
+import { eq, and, desc } from "drizzle-orm";
+import { db } from "../db";
+import express from "express";
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
 const router = Router();
 
-// Fetch all optimized resumes for the authenticated user
-router.get('/optimized-resumes', ensureAuthenticated, async (req, res) => {
-  try {
-    const userId = req.user!.id;
-    const optimizedResumes = await db.query.optimizedResumes.findMany({
-      where: (optimizedResumes, { eq }) => eq(optimizedResumes.userId, userId)
-    });
-    
-    res.json(optimizedResumes);
-  } catch (error) {
-    console.error('Error fetching optimized resumes:', error);
-    res.status(500).json({ error: 'Failed to fetch optimized resumes' });
-  }
-});
-
-// Fetch a specific optimized resume by ID
-router.get('/optimized-resume/:id', ensureAuthenticated, async (req, res) => {
-  try {
-    const resumeId = req.params.id;
-    const userId = req.user!.id;
-    
-    const optimizedResume = await db.query.optimizedResumes.findFirst({
-      where: (optimizedResumes, { eq, and }) => 
-        and(
-          eq(optimizedResumes.id, resumeId),
-          eq(optimizedResumes.userId, userId)
-        )
-    });
-    
-    if (!optimizedResume) {
-      return res.status(404).json({ error: 'Optimized resume not found' });
-    }
-    
-    res.json(optimizedResume);
-  } catch (error) {
-    console.error('Error fetching optimized resume:', error);
-    res.status(500).json({ error: 'Failed to fetch optimized resume' });
-  }
-});
-
-// Download optimized resume
-router.get('/optimized-resume/:id/download', ensureAuthenticated, async (req, res) => {
-  try {
-    const resumeId = req.params.id;
-    const userId = req.user!.id;
-    const format = req.query.format as string || 'pdf';
-    
-    // Fetch the optimized resume
-    const optimizedResume = await db.query.optimizedResumes.findFirst({
-      where: (optimizedResumes, { eq, and }) => 
-        and(
-          eq(optimizedResumes.id, resumeId),
-          eq(optimizedResumes.userId, userId)
-        )
-    });
-    
-    if (!optimizedResume) {
-      return res.status(404).json({ error: 'Optimized resume not found' });
-    }
-
-    if (format === 'docx') {
-      // Handle DOCX format
-      // This is a simplified implementation - in a real app, you'd use a library like docx.js
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="resume.docx"`);
-      
-      // In a real implementation, you would generate a proper DOCX file
-      // For now, we'll send the content as is (this won't be a valid DOCX but demonstrates the concept)
-      res.send(optimizedResume.content);
-    } else {
-      // Default to PDF
-      // Create a simple PDF with the resume content
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      
-      const { width, height } = page.getSize();
-      const margin = 50;
-      const fontSize = 12;
-      
-      // Split content into lines and write to PDF
-      const content = optimizedResume.content;
-      const lines = content.split('\n');
-      
-      let y = height - margin;
-      for (const line of lines) {
-        const textWidth = font.widthOfTextAtSize(line, fontSize);
-        page.drawText(line, {
-          x: margin,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
-          maxWidth: width - 2 * margin,
-        });
-        y -= fontSize * 1.2;
-        
-        // Add a new page if needed
-        if (y < margin) {
-          const newPage = pdfDoc.addPage();
-          y = newPage.getSize().height - margin;
+// Configure multer for file uploads
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype === "application/pdf" || 
+            file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+            cb(null, true);
+        } else {
+            cb(new Error("Only PDF and DOCX files are allowed"));
         }
-      }
-      
-      const pdfBytes = await pdfDoc.save();
-      
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="resume.pdf"`);
-      res.send(Buffer.from(pdfBytes));
     }
-  } catch (error) {
-    console.error('Error generating resume download:', error);
-    res.status(500).json({ error: 'Failed to generate resume download' });
-  }
 });
 
-// Download cover letter
-router.get('/optimized-resume/cover-letter/:id/download', ensureAuthenticated, async (req, res) => {
-  try {
-    const coverId = req.params.id;
-    const userId = req.user!.id;
-    const format = req.query.format as string || 'pdf';
-    
-    // Fetch the cover letter
-    const coverLetter = await db.query.coverLetters.findFirst({
-      where: (coverLetters, { eq, and }) => 
-        and(
-          eq(coverLetters.id, coverId),
-          eq(coverLetters.userId, userId)
-        )
-    });
-    
-    if (!coverLetter) {
-      return res.status(404).json({ error: 'Cover letter not found' });
-    }
+// Get user's resumes - endpoint matching client expectation
+router.get('/uploaded-resumes', async (req, res) => {
+    try {
+        console.log('GET /uploaded-resumes - Auth status:', req.isAuthenticated());
+        console.log('User:', req.user);
 
-    if (format === 'docx') {
-      // Handle DOCX format
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="cover_letter.docx"`);
-      
-      // In a real implementation, you would generate a proper DOCX file
-      res.send(coverLetter.content);
-    } else {
-      // Default to PDF
-      const pdfDoc = await PDFDocument.create();
-      const page = pdfDoc.addPage();
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      
-      const { width, height } = page.getSize();
-      const margin = 50;
-      const fontSize = 12;
-      
-      // Split content into lines and write to PDF
-      const content = coverLetter.content;
-      const lines = content.split('\n');
-      
-      let y = height - margin;
-      for (const line of lines) {
-        page.drawText(line, {
-          x: margin,
-          y,
-          size: fontSize,
-          font,
-          color: rgb(0, 0, 0),
-          maxWidth: width - 2 * margin,
-        });
-        y -= fontSize * 1.2;
-        
-        // Add a new page if needed
-        if (y < margin) {
-          const newPage = pdfDoc.addPage();
-          y = newPage.getSize().height - margin;
+        if (!req.isAuthenticated() || !req.user) {
+            return res.status(401).json({ 
+                error: "Unauthorized",
+                message: "Please log in to view resumes"
+            });
         }
-      }
-      
-      const pdfBytes = await pdfDoc.save();
-      
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="cover_letter.pdf"`);
-      res.send(Buffer.from(pdfBytes));
+
+        const resumes = await storage.getUploadedResumesByUser(req.user.id);
+        console.log('Found resumes:', resumes);
+
+        // Set proper content type and return JSON response
+        res.setHeader('Content-Type', 'application/json');
+        res.json(resumes);
+    } catch (error: any) {
+        console.error('Error fetching resumes:', error);
+        res.status(500).json({
+            error: "Failed to fetch resumes",
+            details: error.message
+        });
     }
-  } catch (error) {
-    console.error('Error generating cover letter download:', error);
-    res.status(500).json({ error: 'Failed to generate cover letter download' });
-  }
 });
 
-// Add the router to the module exports
-export default router;
+// Upload new resume
+router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
 
+        const { content, contactInfo } = await parseResume(req.file.buffer, req.file.mimetype);
+        const resumeData = insertUploadedResumeSchema.parse({
+            content,
+            metadata: {
+                filename: req.file.originalname,
+                fileType: req.file.mimetype,
+                uploadedAt: new Date().toISOString()
+            },
+            contactInfo
+        });
 
-export { resumeRoutes };
+        const resume = await storage.createUploadedResume({
+            ...resumeData,
+            userId: req.user!.id
+        });
+
+        res.status(201).json(resume);
+    } catch (error: any) {
+        console.error('Upload error:', error);
+        res.status(400).json({
+            error: "Failed to upload resume",
+            details: error.message
+        });
+    }
+});
+
+// Delete resume
+router.delete('/resume/:id', async (req, res) => {
+    try {
+        if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: "Not authenticated" });
+        }
+
+        const resumeId = parseInt(req.params.id);
+        const resume = await storage.getUploadedResume(resumeId);
+
+        if (!resume) {
+            return res.status(404).json({ error: "Resume not found" });
+        }
+        if (resume.userId !== req.user!.id) {
+            return res.status(403).json({ error: "Not authorized" });
+        }
+
+        await storage.deleteUploadedResume(resumeId);
+        res.json({ message: "Resume deleted" });
+    } catch (error: any) {
+        console.error('Delete error:', error);
+        res.status(500).json({
+            error: "Failed to delete resume",
+            details: error.message
+        });
+    }
+});
+
+export const resumeRoutes = router;

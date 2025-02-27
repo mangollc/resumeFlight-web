@@ -1,22 +1,58 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { Link, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Clock, Calendar, Building, MapPin, Download, ArrowRight, ExternalLink, Eye, Edit, Copy, Loader2, MoreVertical, Info, Trash2, ArrowUpCircle, Briefcase } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { type OptimizedResume } from "@shared/schema";
-import DownloadOptions from "@/components/resume/DownloadOptions";
-import { apiRequest } from "@/lib/queryClient";
+import {
+  MoreVertical,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
+  Info,
+  ChartBar,
+  LucideIcon,
+  Star,
+  ArrowUpRight,
+  Gauge,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  CircleAlert,
+  Lightbulb,
+  GraduationCap,
+  Briefcase,
+  Award,
+  Brain,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  FileText,
+  Code,
+  ArrowUpCircle,
+} from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/use-auth";
-import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,83 +62,40 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const getScoreColor = (score: number): string => {
-  if (score >= 80) return "bg-green-500";
+const getScoreColor = (score: number) => {
+  if (score >= 80) return "bg-emerald-500";
   if (score >= 60) return "bg-yellow-500";
   return "bg-red-500";
 };
 
-export default function OptimizedResumes() {
-  const { user } = useAuth();
+const getScoreTextColor = (score: number) => {
+  if (score >= 80) return "text-emerald-500";
+  if (score >= 60) return "text-yellow-500";
+  return "text-red-500";
+};
+
+function MetricRow({ label, score }: { label: string; score: number }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium capitalize">{label}</span>
+        <span className={`text-sm font-medium ${getScoreTextColor(score)}`}>
+          {score.toFixed(1)}%
+        </span>
+      </div>
+      <Progress value={score} className={`h-2 ${getScoreColor(score)}`} />
+    </div>
+  );
+}
+
+function ResumeRow({ resume }: { resume: OptimizedResume }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
-  const [isDownloading, setIsDownloading] = useState<Record<string, boolean>>({});
-  const queryClient = useQueryClient();
-
-  // Fetch optimized resumes
-  const { data: optimizedResumes = [], isLoading } = useQuery({
-    queryKey: ['/api/optimized-resumes'],
-    queryFn: async () => {
-      const response = await fetch('/api/optimized-resumes');
-      if (!response.ok) throw new Error('Failed to fetch optimized resumes');
-      return response.json();
-    },
-    select: (data) => {
-      return [...data].sort((a, b) => {
-        return (
-          new Date(b.metadata.optimizedAt || b.createdAt).getTime() -
-          new Date(a.metadata.optimizedAt || a.createdAt).getTime()
-        );
-      });
-    },
-  });
-
-  const handleDownload = async (resumeId: string) => {
-    try {
-      setIsDownloading(prev => ({ ...prev, [resumeId]: true }));
-
-      const response = await fetch(`/api/optimized-resume/${resumeId}/download`);
-      if (!response.ok) {
-        throw new Error('Failed to download resume');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-
-      // Get filename from resume object
-      const resume = optimizedResumes.find((r: OptimizedResume) => r.id === resumeId);
-      a.download = resume?.metadata?.filename || 'resume.pdf';
-
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success",
-        description: "Resume downloaded successfully",
-        duration: 2000
-      });
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to download resume",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(prev => ({ ...prev, [resumeId]: false }));
-    }
-  };
 
   const deleteMutation = useMutation({
-    mutationFn: async (resumeId: string) => {
-      const response = await apiRequest("DELETE", `/api/optimized-resume/${resumeId}`);
-      if (!response.ok) {
-        throw new Error("Failed to delete resume");
-      }
-      return response.json();
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
@@ -111,26 +104,379 @@ export default function OptimizedResumes() {
         description: "Resume deleted successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete resume",
+        description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const handleDelete = async (resumeId: string) => {
+  const downloadDocument = async (
+    type: "resume" | "cover-letter",
+    format: "pdf" | "docx",
+  ) => {
     try {
-      await deleteMutation.mutateAsync(resumeId);
+      const endpoint =
+        type === "resume"
+          ? `/api/optimized-resume/${resume.id}/download`
+          : `/api/cover-letter/${resume.id}/download`;
+
+      const response = await fetch(`${endpoint}?format=${format}`);
+      if (!response.ok) throw new Error(`Failed to download ${type}`);
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${type === "resume" ? "resume" : "cover_letter"}_v${resume.metadata.version}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: `${type === "resume" ? "Resume" : "Cover Letter"} downloaded successfully`,
+      });
     } catch (error) {
-      console.error("Delete error:", error);
+      console.error("Download error:", error);
+      toast({
+        title: "Error",
+        description: `Failed to download ${type}`,
+        variant: "destructive",
+      });
     }
   };
 
-  const handleReview = (resumeId: string) => {
-    window.location.href = `/review/${resumeId}`;
-  };
+  return (
+    <>
+      <TableRow
+        className={`group transition-colors ${isExpanded ? "bg-muted/50" : "hover:bg-muted/30"}`}
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <TableCell className="w-4">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </TableCell>
+        <TableCell>
+          <div className="text-sm">#{resume.id}</div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-col gap-0.5">
+            <div className="text-sm">{new Date(resume.metadata.optimizedAt).toLocaleDateString()}</div>
+            <div className="text-xs text-muted-foreground">{new Date(resume.metadata.optimizedAt).toLocaleTimeString()}</div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <div className="text-sm font-medium">{resume.metadata.version}</div>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-col gap-1">
+            <div className="text-sm">{resume.jobDetails?.title || "N/A"}</div>
+            <div className="text-xs text-muted-foreground">{resume.jobDetails?.company || "N/A"}</div>
+          </div>
+        </TableCell>
+        <TableCell className="hidden lg:table-cell text-right">
+          <div className="flex items-center justify-end gap-2">
+            <span className={`text-sm ${getScoreTextColor(resume.metrics.after.overall)}`}>
+              {resume.metrics.after.overall.toFixed(1)}%
+            </span>
+          </div>
+        </TableCell>
+        <TableCell className="w-8">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+                <span className="sr-only">Actions</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Download Resume</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => downloadDocument("resume", "pdf")}>
+                <FileText className="mr-2 h-4 w-4" />
+                PDF Format
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx")}>
+                <FileText className="mr-2 h-4 w-4" />
+                DOCX Format
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf")}>
+                <FileText className="mr-2 h-4 w-4" />
+                PDF Format
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx")}>
+                <FileText className="mr-2 h-4 w-4" />
+                DOCX Format
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the optimized resume and its
+                      corresponding cover letter. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMutation.mutate(resume.id);
+                      }}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+
+      {isExpanded && (
+        <TableRow>
+          <TableCell colSpan={8} className="bg-muted/30 border-t border-muted">
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-card rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <ChartBar className="h-5 w-5 text-primary" />
+                    Resume Metrics
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      <div className="bg-primary/5 rounded-lg p-4">
+                        <MetricRow
+                          label="Overall Score"
+                          score={resume.metrics.after.overall}
+                          className="text-primary font-semibold"
+                        />
+                      </div>
+                      <MetricRow
+                        label="Skills"
+                        score={resume.metrics.after.skills}
+                      />
+                      <MetricRow
+                        label="Keywords"
+                        score={resume.metrics.after.keywords}
+                      />
+                      <MetricRow
+                        label="Education"
+                        score={resume.metrics.after.education}
+                      />
+                    </div>
+                    <div className="space-y-6">
+                      <MetricRow
+                        label="Experience"
+                        score={resume.metrics.after.experience}
+                      />
+                      <MetricRow
+                        label="AI Readiness"
+                        score={resume.metrics.after.aiReadiness}
+                      />
+                      <MetricRow
+                        label="Personalization"
+                        score={resume.metrics.after.personalization}
+                      />
+                      <MetricRow
+                        label="Confidence"
+                        score={resume.metrics.after.confidence}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Analysis</h3>
+                  <div className="space-y-3">
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'strengths' ? '' : 'strengths')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                          <span className="font-medium text-sm">Strengths</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics.after.analysis?.strengths?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'strengths' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'strengths' && (
+                        <div className="px-4 pb-3 space-y-2">
+                          {resume.metrics.after.analysis?.strengths?.map((strength, idx) => (
+                            <div key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
+                              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span>{strength}</span>
+                            </div>
+                          ))}
+                          {(!resume.metrics.after.analysis?.strengths || resume.metrics.after.analysis.strengths.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No strengths identified yet</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'improvements' ? '' : 'improvements')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ArrowUpCircle className="h-4 w-4 text-amber-500" />
+                          <span className="font-medium text-sm">Improvements</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics?.improvements?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'improvements' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'improvements' && (
+                        <div className="px-4 pb-3 space-y-2">
+                          {resume.metrics?.improvements?.map((improvement, idx) => (
+                            <div key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
+                              <ArrowUpCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span>{improvement}</span>
+                            </div>
+                          ))}
+                          {(!resume.metrics?.improvements || resume.metrics.improvements.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No improvements identified yet</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span className="font-medium text-sm">Gaps</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics.after.analysis?.gaps?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'gaps' && (
+                        <div className="px-4 pb-3 space-y-2">
+                          {resume.metrics.after.analysis?.gaps?.map((gap, idx) => (
+                            <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
+                              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span>{gap}</span>
+                            </div>
+                          ))}
+                          {(!resume.metrics.after.analysis?.gaps || resume.metrics.after.analysis.gaps.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No gaps identified</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'suggestions' ? '' : 'suggestions')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Lightbulb className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium text-sm">Suggestions</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({resume.metrics.after.analysis?.suggestions?.length || 0})
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'suggestions' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'suggestions' && (
+                        <div className="px-4 pb-3 space-y-2">
+                          {resume.metrics.after.analysis?.suggestions?.map((suggestion, idx) => (
+                            <div key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
+                              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span>{suggestion}</span>
+                            </div>
+                          ))}
+                          {(!resume.metrics.after.analysis?.suggestions || resume.metrics.after.analysis.suggestions.length === 0) && (
+                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
+                              <Info className="h-4 w-4" />
+                              <span>No suggestions available</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
+export default function OptimizedResumesPage() {
+  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
+    queryKey: ["/api/optimized-resumes"],
+    select: (data) => {
+      return [...data].sort((a, b) => {
+        return (
+          new Date(b.metadata.optimizedAt).getTime() -
+          new Date(a.metadata.optimizedAt).getTime()
+        );
+      });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 h-full">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+            <div className="space-y-2">
+              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 bg-muted rounded"></div>
+              <div className="h-12 bg-muted rounded"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-full bg-gradient-to-b from-background to-muted/20">
@@ -141,134 +487,56 @@ export default function OptimizedResumes() {
           </h1>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {resumes && resumes.length > 0 ? (
+          <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-4"></TableHead>
+                  <TableHead className="w-20">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      ID
+                    </span>
+                  </TableHead>
+                  <TableHead>
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Date/Time
+                    </span>
+                  </TableHead>
+                  <TableHead>
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Version
+                    </span>
+                  </TableHead>
+                  <TableHead>
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Job Details
+                    </span>
+                  </TableHead>
+                  <TableHead className="hidden lg:table-cell text-right">
+                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
+                      Match Score
+                    </span>
+                  </TableHead>
+                  <TableHead className="w-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {resumes.map((resume) => (
+                  <ResumeRow key={resume.id} resume={resume} />
+                ))}
+              </TableBody>
+            </Table>
           </div>
-        ) : optimizedResumes.length === 0 ? (
-          <Card className="p-8 text-center">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No optimized resumes yet</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              Optimize your first resume to get started
-            </p>
-            <Button className="mt-6" onClick={() => window.location.href = '/dashboard'}>
-              Create Your First Optimized Resume
-            </Button>
-          </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {optimizedResumes.map((resume: OptimizedResume) => (
-              <Card key={resume.id} className="overflow-hidden transition-all hover:shadow-md">
-                <CardHeader className="bg-muted/30 pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl">{resume.jobDetails?.title || "Untitled Position"}</CardTitle>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="mr-2 h-4 w-4" />
-                        {format(new Date(resume.createdAt), 'MMM d, yyyy')}
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleReview(resume.id)}>
-                          <Info className="mr-2 h-4 w-4" />
-                          <span>Review</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDownload(resume.id)}>
-                          <ArrowUpCircle className="mr-2 h-4 w-4" />
-                          <span>Download</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this resume?')) {
-                              handleDelete(resume.id);
-                            }
-                          }}
-                          className="text-red-500"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          <span>Delete</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="flex items-center mt-2">
-                    {resume.jobDetails?.company && (
-                      <div className="text-sm text-muted-foreground flex items-center mr-4">
-                        <Briefcase className="mr-1 h-4 w-4" />
-                        {resume.jobDetails.company}
-                      </div>
-                    )}
-                    {resume.jobDetails?.location && (
-                      <div className="text-sm text-muted-foreground flex items-center">
-                        <MapPin className="mr-1 h-4 w-4" />
-                        {resume.jobDetails.location}
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-sm font-medium">{resume.metadata?.filename || "resume.pdf"}</span>
-                    </div>
-                    {resume.metadata?.version && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
-                        v{resume.metadata.version}
-                      </span>
-                    )}
-                  </div>
-
-                  {resume.metrics?.overallScore && (
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium">Match Score</span>
-                        <span className="text-sm font-semibold">{resume.metrics.overallScore}%</span>
-                      </div>
-                      <Progress 
-                        value={resume.metrics.overallScore} 
-                        className="h-2"
-                        indicatorClassName={getScoreColor(resume.metrics.overallScore)}
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex justify-end mt-4 space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDownload(resume.id)}
-                      disabled={isDownloading[resume.id]}
-                    >
-                      {isDownloading[resume.id] ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <ArrowUpCircle className="mr-2 h-4 w-4" />
-                      )}
-                      Download
-                    </Button>
-                    <Button 
-                      variant="default" 
-                      size="sm"
-                      onClick={() => handleReview(resume.id)}
-                    >
-                      <Info className="mr-2 h-4 w-4" />
-                      Review
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="text-center py-16 bg-gradient-to-b from-background to-muted/20 rounded-lg border-2 border-dashed">
+            <FileText className="mx-auto h-16 w-16 text-primary/60 animate-heartbeat" />
+            <h3 className="mt-6 text-xl font-semibold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent animate-typing">
+              Ready to Enhance Your Resume?
+            </h3>
+            <p className="text-muted-foreground mt-2 max-w-sm mx-auto opacity-0 animate-[fadeIn_1s_ease-in_forwards_0.5s]">
+              Transform your resume with AI-powered optimization to stand out from the crowd
+            </p>
           </div>
         )}
       </div>

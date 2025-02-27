@@ -96,13 +96,5 @@ export function setupAuth(app: Express) {
   });
 }
 
-// Middleware to ensure user is authenticated
-export function ensureAuthenticated(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ message: "Not authenticated" });
-}
-
 // Export utility functions for use in auth.routes.ts
 export { hashPassword, comparePasswords };

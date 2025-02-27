@@ -1,86 +1,75 @@
-import { Route, Switch, Redirect } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
+import UploadedResumesPage from "@/pages/uploaded-resumes";
+import OptimizedResumesPage from "@/pages/optimized-resumes";
 import SubscriptionPage from "@/pages/subscription";
 import SettingsPage from "@/pages/settings";
-import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "./lib/protected-route";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
-import { AuthProvider } from "@/hooks/use-auth";
-import { ProtectedRoute } from "@/lib/protected-route";
-import OptimizedResumesPage from "@/pages/optimized-resumes";
-import UploadedResumesPage from "@/pages/uploaded-resumes";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import React, { useState } from 'react';
 
-// Layout component for protected pages
-const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
-  const [collapsed, setCollapsed] = useState(false);
+const cn = (...args: (string | undefined)[]) => args.filter(Boolean).join(' ');
+
+function Layout({ children }: { children: React.ReactNode }) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar onCollapsedChange={setCollapsed} />
-      <div className="flex-1 flex flex-col">
-        <Navbar collapsed={collapsed} />
-        <main className="flex-1 p-6 mt-14">
-          {children}
+    <div className="flex min-h-screen bg-background">
+      <Sidebar onCollapsedChange={setSidebarCollapsed} />
+      <div className="flex-1">
+        <Navbar collapsed={sidebarCollapsed} />
+        <main className={cn(
+          "mt-14 lg:mt-12", 
+          sidebarCollapsed ? "lg:ml-16" : "lg:ml-56",
+          "transition-all duration-300 ease-in-out"
+        )}>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>
   );
-};
+}
+
+function ProtectedLayout({ component: Component }: { component: React.ComponentType }) {
+  return (
+    <Layout>
+      <Component />
+    </Layout>
+  );
+}
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/">
+        <Redirect to="/dashboard" />
+      </Route>
+      <ProtectedRoute path="/dashboard" component={() => <ProtectedLayout component={Dashboard} />} />
+      <ProtectedRoute path="/resume/:id/optimize/review" component={() => <ProtectedLayout component={Dashboard} />} />
+      <ProtectedRoute path="/uploaded-resumes" component={() => <ProtectedLayout component={UploadedResumesPage} />} />
+      <ProtectedRoute path="/optimized-resumes" component={() => <ProtectedLayout component={OptimizedResumesPage} />} />
+      <ProtectedRoute path="/subscription" component={() => <ProtectedLayout component={SubscriptionPage} />} />
+      <ProtectedRoute path="/settings" component={() => <ProtectedLayout component={SettingsPage} />} />
+      <Route path="/auth" component={AuthPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Switch>
-          <Route path="/auth">
-            <AuthPage />
-          </Route>
-          <Route path="/">
-            <Redirect to="/dashboard" />
-          </Route>
-          <Route path="/dashboard">
-            <ProtectedRoute>
-              <ProtectedLayout>
-                <Dashboard />
-              </ProtectedLayout>
-            </ProtectedRoute>
-          </Route>
-          <Route path="/uploaded-resumes">
-            <ProtectedRoute>
-              <ProtectedLayout>
-                <UploadedResumesPage />
-              </ProtectedLayout>
-            </ProtectedRoute>
-          </Route>
-          <Route path="/optimized-resumes">
-            <ProtectedRoute>
-              <ProtectedLayout>
-                <OptimizedResumesPage />
-              </ProtectedLayout>
-            </ProtectedRoute>
-          </Route>
-          <Route path="/subscription">
-            <ProtectedRoute>
-              <ProtectedLayout>
-                <SubscriptionPage />
-              </ProtectedLayout>
-            </ProtectedRoute>
-          </Route>
-          <Route path="/settings">
-            <ProtectedRoute>
-              <ProtectedLayout>
-                <SettingsPage />
-              </ProtectedLayout>
-            </ProtectedRoute>
-          </Route>
-          <Route>
-            <Redirect to="/not-found" />
-          </Route>
-        </Switch>
+        <Router />
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
