@@ -77,11 +77,6 @@ function App() {
 }
 
 export default App;
-import { Route, Switch } from "wouter";
-import Dashboard from "./pages/dashboard";
-import Review from "./pages/review";
-import OptimizedResumes from "./pages/optimized-resumes";
-import CoverLetters from "./pages/cover-letters";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function App() {
