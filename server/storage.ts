@@ -325,19 +325,13 @@ export class DatabaseStorage implements IStorage {
       const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
 
       return results.map(result => {
-        const metrics = result.metrics as OptimizedResume['metrics'];
         return {
           ...result,
           metadata: result.metadata as OptimizedResume['metadata'],
           jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-          metrics,
+          metrics: result.metrics as OptimizedResume['metrics'],
           contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-          analysis: {
-            matches: metrics.after.strengths || [],
-            improvements: metrics.after.improvements || [],
-            gaps: metrics.after.gaps || [],
-            suggestions: metrics.after.suggestions || []
-          }
+          analysis: result.analysis as OptimizedResume['analysis']
         };
       });
     } catch (error) {
