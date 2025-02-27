@@ -5,6 +5,8 @@ import { ensureAuthenticated } from '../auth';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { OptimizedResume } from '@shared/schema';
 
+const resumeRoutes = Router();
+
 const router = Router();
 
 // Fetch all optimized resumes for the authenticated user
@@ -197,3 +199,6 @@ router.get('/optimized-resume/cover-letter/:id/download', ensureAuthenticated, a
 
 // Add the router to the module exports
 export default router;
+
+
+export { resumeRoutes };
