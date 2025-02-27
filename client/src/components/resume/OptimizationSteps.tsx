@@ -1,12 +1,11 @@
-
 import { MobileAnalysisCard } from './MobileAnalysisCard';
-
-
 import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, CheckCircle, ArrowUpCircle, AlertCircle, LightbulbIcon } from "lucide-react";
+import PDFDocument from "../documents/PDFDocument";
 
 export type ProgressStep = {
   id: string;
@@ -93,7 +92,7 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Detailed Metrics */}
                   <div className="space-y-4">
                     {Object.entries(optimizedResume.metrics.before).map(([key, value]) => {
@@ -101,7 +100,7 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                       const beforeScore = value as number;
                       const afterScore = optimizedResume.metrics.after[key] as number;
                       const improvement = afterScore - beforeScore;
-                      
+
                       return (
                         <div key={key} className="space-y-2">
                           <div className="flex justify-between items-center">
@@ -125,63 +124,94 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                 {/* Analysis Section */}
                 <Card className="p-4 sm:p-6">
                   <h4 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Resume Analysis</h4>
-                  
-                  {/* Desktop view */}
-                  <div className="hidden md:grid gap-4 sm:gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm text-green-600">Strengths</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis?.strengths?.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
+
+                  <div className="space-y-3">
+                    {/* Strengths */}
+                    <div className="rounded-lg border">
+                      <div className="w-full px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                          <span className="font-medium text-sm">Strengths</span>
+                          <span className="text-xs text-muted-foreground">
+                            {optimizedResume.analysis?.strengths?.length || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="px-4 pb-3">
+                        <ul className="space-y-1 text-sm">
+                          {optimizedResume.analysis?.strengths?.map((item: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm text-amber-600">Improvements</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis?.improvements?.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  {/* Mobile view */}
-                  <div className="md:hidden space-y-3">
-                    <MobileAnalysisCard
-                      title="Strengths"
-                      icon="strength"
-                      items={optimizedResume.analysis?.strengths || []}
-                    />
-                    <MobileAnalysisCard
-                      title="Improvements"
-                      icon="improvement"
-                      items={optimizedResume.analysis?.improvements || []}
-                    />
-                    <MobileAnalysisCard
-                      title="Gaps"
-                      icon="gap"
-                      items={optimizedResume.analysis?.gaps || []}
-                    />
-                  </div>div>
-
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm text-red-600">Gaps</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis?.gaps?.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
+                    {/* Improvements */}
+                    <div className="rounded-lg border">
+                      <div className="w-full px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ArrowUpCircle className="h-4 w-4 text-amber-500" />
+                          <span className="font-medium text-sm">Improvements</span>
+                          <span className="text-xs text-muted-foreground">
+                            {optimizedResume.analysis?.improvements?.length || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="px-4 pb-3">
+                        <ul className="space-y-1 text-sm">
+                          {optimizedResume.analysis?.improvements?.map((item: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <h5 className="font-semibold text-sm text-blue-600">Suggestions</h5>
-                      <ul className="list-disc list-inside space-y-1">
-                        {optimizedResume.analysis?.suggestions?.map((item: string, idx: number) => (
-                          <li key={idx} className="text-sm text-muted-foreground">{item}</li>
-                        ))}
-                      </ul>
+                    {/* Gaps */}
+                    <div className="rounded-lg border">
+                      <div className="w-full px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <span className="font-medium text-sm">Gaps</span>
+                          <span className="text-xs text-muted-foreground">
+                            {optimizedResume.analysis?.gaps?.length || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="px-4 pb-3">
+                        <ul className="space-y-1 text-sm">
+                          {optimizedResume.analysis?.gaps?.map((item: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Suggestions */}
+                    <div className="rounded-lg border">
+                      <div className="w-full px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <LightbulbIcon className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium text-sm">Suggestions</span>
+                          <span className="text-xs text-muted-foreground">
+                            {optimizedResume.analysis?.suggestions?.length || 0}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="px-4 pb-3">
+                        <ul className="space-y-1 text-sm">
+                          {optimizedResume.analysis?.suggestions?.map((item: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </Card>
