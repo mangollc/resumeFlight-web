@@ -81,10 +81,10 @@ function App() {
                 </div>
               </div>
             </div>
-          </ProtectedRoute>
+          )} />
         </Route>
         <Route path="/settings">
-          <ProtectedRoute>
+          <ProtectedRoute path="/settings" component={() => (
             <div className="flex min-h-screen">
               <Sidebar />
               <div className="flex-1">
@@ -94,14 +94,14 @@ function App() {
                 </div>
               </div>
             </div>
-          </ProtectedRoute>
+          )} />
         </Route>
         <Route>
           <Redirect to="/not-found" />
         </Route>
       </Switch>
       <Toaster />
-    </>
+    </AuthProvider>
   );
 }
 
