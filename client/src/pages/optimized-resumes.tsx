@@ -95,27 +95,38 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      console.log(`Deleting optimized resume with ID: ${id}`);
-      const response = await fetch(`/api/resume/optimized/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        cache: 'no-cache',
-        credentials: 'include'
-      });
+      console.log(`Attempting to delete optimized resume with ID: ${id}`);
+      
+      try {
+        const response = await fetch(`/api/analysis/optimized/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-cache',
+          credentials: 'include'
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+        console.log(`Delete response status: ${response.status}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Server error response: ${errorText}`);
+          throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+        }
+
+        // Try to parse as JSON, but don't fail if it's not JSON
+        return response.json().catch(() => {
+          console.log('Response was not JSON, but deletion succeeded');
+          return { success: true };
+        });
+      } catch (error) {
+        console.error('Network or parsing error:', error);
+        throw error;
       }
-
-      return response.json().catch(() => {
-        console.log('Response was not JSON, but deletion succeeded');
-        return { success: true };
-      });
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      console.log(`Successfully deleted optimized resume with ID: ${variables}`);
       toast({
         title: 'Resume deleted',
         description: 'The optimized resume has been deleted successfully.',
@@ -123,7 +134,7 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
       queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
     },
     onError: (error) => {
-      console.error('Error deleting optimized resume:', error);
+      console.error('Error in delete mutation:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete the resume. Please try again.',
