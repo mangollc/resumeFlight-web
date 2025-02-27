@@ -97,7 +97,28 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
+      const response = await fetch(`/api/optimized-resume/${id}`, {
+        method: "DELETE",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete resume");
+      }
+
+      // Check if there's actually JSON content to parse
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json().catch(() => ({ success: true }));
+      }
+      
+      // If no JSON content or empty response, just return success
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
@@ -477,15 +498,22 @@ export default function OptimizedResumesPage() {
       });
 
       if (!response.ok) {
-        // Try to parse error message, or use default if not available
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to delete resume");
       }
 
-      return response.json();
+      // Check if there's actually JSON content to parse
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return response.json().catch(() => ({ success: true }));
+      }
+      
+      // If no JSON content or empty response, just return success
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis/optimized"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
       toast({
         title: "Success",
         description: "Resume deleted successfully",
