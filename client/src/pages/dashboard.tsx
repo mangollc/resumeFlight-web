@@ -9,7 +9,7 @@ import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
 import { CoverLetterComponent } from "@/components/resume/CoverLetter";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download } from "lucide-react";
+import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download, CheckCircle, ArrowUpCircle, AlertCircle, LightbulbIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -721,6 +721,86 @@ export default function Dashboard() {
           </div>
           <Preview resume={optimizedResume} showMetrics={true} />
         </div>
+
+        {/* Analysis UI similar to optimized-resume page */}
+        {optimizedResume?.analysis && (
+          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+            <h3 className="text-xl font-semibold mb-4">Analysis</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Strengths Section */}
+              <div className="rounded-lg border p-4">
+                <h4 className="font-medium text-lg flex items-center mb-3">
+                  <span className="mr-2 bg-green-100 text-green-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                    {optimizedResume.analysis.strengths.length}
+                  </span>
+                  Strengths
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  {optimizedResume.analysis.strengths.map((strength, idx) => (
+                    <li key={`strength-${idx}`} className="flex items-start">
+                      <CheckCircle className="h-4 w-4 mr-2 mt-1 text-green-600 flex-shrink-0" />
+                      <span>{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Improvements Section */}
+              <div className="rounded-lg border p-4">
+                <h4 className="font-medium text-lg flex items-center mb-3">
+                  <span className="mr-2 bg-orange-100 text-orange-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                    {optimizedResume.analysis.improvements.length}
+                  </span>
+                  Improvements
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  {optimizedResume.analysis.improvements.map((improvement, idx) => (
+                    <li key={`improvement-${idx}`} className="flex items-start">
+                      <ArrowUpCircle className="h-4 w-4 mr-2 mt-1 text-orange-600 flex-shrink-0" />
+                      <span>{improvement}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Gaps Section */}
+              <div className="rounded-lg border p-4">
+                <h4 className="font-medium text-lg flex items-center mb-3">
+                  <span className="mr-2 bg-red-100 text-red-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                    {optimizedResume.analysis.gaps.length}
+                  </span>
+                  Gaps
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  {optimizedResume.analysis.gaps.map((gap, idx) => (
+                    <li key={`gap-${idx}`} className="flex items-start">
+                      <AlertCircle className="h-4 w-4 mr-2 mt-1 text-red-600 flex-shrink-0" />
+                      <span>{gap}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Suggestions Section */}
+              <div className="rounded-lg border p-4">
+                <h4 className="font-medium text-lg flex items-center mb-3">
+                  <span className="mr-2 bg-blue-100 text-blue-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                    {optimizedResume.analysis.suggestions.length}
+                  </span>
+                  Suggestions
+                </h4>
+                <ul className="space-y-2 text-sm">
+                  {optimizedResume.analysis.suggestions.map((suggestion, idx) => (
+                    <li key={`suggestion-${idx}`} className="flex items-start">
+                      <LightbulbIcon className="h-4 w-4 mr-2 mt-1 text-blue-600 flex-shrink-0" />
+                      <span>{suggestion}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
         {coverLetter && (
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
             <div className="flex justify-between items-center mb-4">
@@ -844,7 +924,7 @@ export default function Dashboard() {
                     </div>
                   ) : null}
 
-                  {uploadMode === 'upload' && (
+                  {{uploadMode === 'upload' && (
                     <UploadForm onSuccess={handleResumeUploaded} />
                   )}
                   {/* Job Details Display Section */}
@@ -1289,6 +1369,10 @@ export default function Dashboard() {
 
   const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
+  });
+
+  const { data: optimizedResumes } = useQuery<OptimizedResume[]>({
+    queryKey: ["/api/optimized-resumes"],
   });
 
   return (
