@@ -928,9 +928,7 @@ export default function Dashboard() {
                     />
                 ) : (
                   <div className="mt-6 space-y-8">
-                    <CoverLetterComponent
-                      coverLetter={coverLetter}
-                    />
+                    <CoverLetterComponent coverLetter={coverLetter} />
                   </div>
                 )}
                 {renderNavigation()}
@@ -1066,210 +1064,211 @@ const renderStep5 = () => {
       : coverLetters[0];
 
     return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold">Your Optimized Documents</h2>
-          <p className="text-muted-foreground">
-            Your personalized resume and cover letter are ready to download in your preferred format.
-          </p>
-        </div>
-
-        {optimizedResumes.length === 0 ? (
-          <div className="text-center py-6 border rounded-lg">
-            <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
-            <h3 className="mt-4 text-lg font-semibold">No optimized documents available yet</h3>
-            <p className="text-sm text-muted-foreground mt-2">
-              Please complete the previous steps to generate your job-optimized documents
+      <>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold">Your Optimized Documents</h2>
+            <p className="text-muted-foreground">
+              Your personalized resume and cover letter are ready to download in your preferred format.
             </p>
           </div>
-        ) : (
-          <>
-            {/* Document Selection and Preview Cards */}
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Resume Card */}
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-muted/30 pb-4">
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Optimized Resume</CardTitle>
-                    {selectedResume && (
-                      <DownloadOptions 
-                        documentId={selectedResume.id} 
-                        documentType="resume" 
-                      />
-                    )}
-                  </div>
-                  {optimizedResumes.length > 0 && (
-                    <div className="mt-2">
-                      <Select 
-                        value={optimizedResumeVersion} 
-                        onValueChange={setOptimizedResumeVersion}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select version" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {optimizedResumes.map((resume) => (
-                            <SelectItem 
-                              key={resume.id} 
-                              value={resume.metadata.version.toString()}
-                            >
-                              Version {resume.metadata.version}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </CardHeader>
-                <CardContent className="p-0 max-h-[500px] overflow-auto">
-                  {selectedResume ? (
-                    <div className="p-4">
-                      <div className="border p-4 rounded bg-white">
-                        <div className="whitespace-pre-wrap font-serif text-sm">
-                          {selectedResume.content.substring(0, 500)}...
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
-                      <p className="mt-2 text-muted-foreground">No resume selected</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              {/* Cover Letter Card */}
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-muted/30 pb-4">
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Cover Letter</CardTitle>
-                    {selectedCoverLetter && (
-                      <DownloadOptions 
-                        documentId={selectedCoverLetter.id} 
-                        documentType="cover-letter" 
-                      />
-                    )}
-                  </div>
-                  {coverLetters.length > 0 && (
-                    <div className="mt-2">
-                      <Select 
-                        value={coverLetterVersion} 
-                        onValueChange={setCoverLetterVersion}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select version" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {coverLetters.map((letter) => (
-                            <SelectItem 
-                              key={letter.id} 
-                              value={letter.metadata.version.toString()}
-                            >
-                              Version {letter.metadata.version}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </CardHeader>
-                <CardContent className="p-0 max-h-[500px] overflow-auto">
-                  {selectedCoverLetter ? (
-                    <div className="p-4">
-                      <div className="border p-4 rounded bg-white">
-                        <div className="whitespace-pre-wrap font-serif text-sm">
-                          {selectedCoverLetter.content.substring(0, 500)}...
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
-                      <p className="mt-2 text-muted-foreground">No cover letter selected</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+          {optimizedResumes.length === 0 ? (
+            <div className="text-center py-6 border rounded-lg">
+              <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-semibold">No optimized documents available yet</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                Please complete the previous steps to generate your job-optimized documents
+              </p>
             </div>
+          ) : (
+            <>
+              {/* Document Selection and Preview Cards */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Resume Card */}
+                <Card className="overflow-hidden">
+                  <CardHeader className="bg-muted/30 pb-4">
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Optimized Resume</CardTitle>
+                      {selectedResume && (
+                        <DownloadOptions 
+                          documentId={selectedResume.id} 
+                          documentType="resume" 
+                        />
+                      )}
+                    </div>
+                    {optimizedResumes.length > 0 && (
+                      <div className="mt-2">
+                        <Select 
+                          value={optimizedResumeVersion} 
+                          onValueChange={setOptimizedResumeVersion}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select version" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {optimizedResumes.map((resume) => (
+                              <SelectItem 
+                                key={resume.id} 
+                                value={resume.metadata.version.toString()}
+                              >
+                                Version {resume.metadata.version}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent className="p-0 max-h-[500px] overflow-auto">
+                    {selectedResume ? (
+                      <div className="p-4">
+                        <div className="border p-4 rounded bg-white">
+                          <div className="whitespace-pre-wrap font-serif text-sm">
+                            {selectedResume.content.substring(0, 500)}...
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <p className="mt-2 text-muted-foreground">No resume selected</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
 
-            {/* Download Package Option */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Download Complete Package</CardTitle>
-                <CardDescription>
-                  Get both your optimized resume and cover letter together in a single download
-                </CardDescription>
-              </CardHeader>
-              <CardFooter>
+                {/* Cover Letter Card */}
+                <Card className="overflow-hidden">
+                  <CardHeader className="bg-muted/30 pb-4">
+                    <div className="flex justify-between items-center">
+                      <CardTitle>Cover Letter</CardTitle>
+                      {selectedCoverLetter && (
+                        <DownloadOptions 
+                          documentId={selectedCoverLetter.id} 
+                          documentType="cover-letter" 
+                        />
+                      )}
+                    </div>
+                    {coverLetters.length > 0 && (
+                      <div className="mt-2">
+                        <Select 
+                          value={coverLetterVersion} 
+                          onValueChange={setCoverLetterVersion}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select version" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {coverLetters.map((letter) => (
+                              <SelectItem 
+                                key={letter.id} 
+                                value={letter.metadata.version.toString()}
+                              >
+                                Version {letter.metadata.version}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </CardHeader>
+                  <CardContent className="p-0 max-h-[500px] overflow-auto">
+                    {selectedCoverLetter ? (
+                      <div className="p-4">
+                        <div className="border p-4 rounded bg-white">
+                          <div className="whitespace-pre-wrap font-serif text-sm">
+                            {selectedCoverLetter.content.substring(0, 500)}...
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileText className="h-10 w-10 mx-auto text-muted-foreground" />
+                        <p className="mt-2 text-muted-foreground">No cover letter selected</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Download Package Option */}
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Download Complete Package</CardTitle>
+                  <CardDescription>
+                    Get both your optimized resume and cover letter together in a single download
+                  </CardDescription>
+                </CardHeader>
+                <CardFooter>
+                  <Button 
+                    onClick={handleDownloadPackage}
+                    className="w-full"
+                    variant="outline"
+                    disabled={isDownloading || !selectedResume || !selectedCoverLetter}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Download Complete Package
+                  </Button>
+                </CardFooter>
+              </Card>
+
+              {/* Navigation */}
+              <div className="mt-8 flex justify-between">
                 <Button 
-                  onClick={handleDownloadPackage}
-                  className="w-full"
-                  variant="outline"
-                  disabled={isDownloading || !selectedResume || !selectedCoverLetter}
+                  variant="outline" 
+                  onClick={handlePrevious}
                 >
-                  {isDownloading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Download Complete Package
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Previous
                 </Button>
-              </CardFooter>
-            </Card>
 
-            {/* Navigation */}
-            <div className="mt-8 flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={handlePrevious}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-
-              <Button
-                onClick={() => router.push('/optimized-resumes')}
-              >
-                Save & Go to All Documents
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+                <Button
+                  onClick={() => router.push('/optimized-resumes')}
+                >
+                  Save & Go to All Documents
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+        <LoadingDialog
+          open={isOptimizing}
+          title="Optimizing Resume"
+          description={
+            <div className="space-y-4">
+              <p>Please wait while we optimize your resume using AI...</p>
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
             </div>
-          </>
-        )}
-      </div>
-      <LoadingDialog
-        open={isOptimizing}
-        title="Optimizing Resume"
-        description={
-          <div className="space-y-4">
-            <p>Please wait while we optimize your resume using AI...</p>
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          </div>
-        }
-        steps={currentOptimizationSteps}
-        onOpenChange={(open) => {
-          if (!open && isOptimizing) {
-            handleCancel();
           }
-        }}
-      />
-      <LoadingDialog
-        open={isGeneratingCoverLetter}
-        title="Generating Cover Letter"
-        description="Please wait while we generate your cover letter using AI..."
-        steps={currentCoverLetterSteps}
-        onOpenChange={setIsGeneratingCoverLetter}
-      />
-    </div>
-  );
-}
+          steps={currentOptimizationSteps}
+          onOpenChange={(open) => {
+            if (!open && isOptimizing) {
+              handleCancel();
+            }
+          }}
+        />
+        <LoadingDialog
+          open={isGeneratingCoverLetter}
+          title="Generating Cover Letter"
+          description="Please wait while we generate your cover letter using AI..."
+          steps={currentCoverLetterSteps}
+          onOpenChange={setIsGeneratingCoverLetter}
+        />
+      </>
+    );
+  }
 
-function formatDownloadFilename(filename: string, jobTitle: string, version: number): string {
-  const baseFilename = filename.replace(/\.[^/.]+$/, ''); // Remove extension
-  const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(); // Sanitize job title for filename
-  return `${baseFilename}_${formattedJobTitle}_v${version.toFixed(1)}`;
-}
+  function formatDownloadFilename(filename: string, jobTitle: string, version: number): string {
+    const baseFilename = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+    const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(); // Sanitize job title for filename
+    return `${baseFilename}_${formattedJobTitle}_v${version.toFixed(1)}`;
+  }
 }
