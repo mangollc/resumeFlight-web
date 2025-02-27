@@ -95,20 +95,39 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/optimized-resume/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-      toast({
-        title: "Success",
-        description: "Resume deleted successfully",
+      console.log(`Deleting optimized resume with ID: ${id}`);
+      const response = await fetch(`/api/resume/optimized/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-cache',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+      }
+
+      return response.json().catch(() => {
+        console.log('Response was not JSON, but deletion succeeded');
+        return { success: true };
       });
     },
-    onError: (error: Error) => {
+    onSuccess: () => {
       toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+        title: 'Resume deleted',
+        description: 'The optimized resume has been deleted successfully.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting optimized resume:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete the resume. Please try again.',
+        variant: 'destructive',
       });
     },
   });
