@@ -925,7 +925,7 @@ export default function Dashboard() {
                         {optimizedResume.jobDetails.keyRequirements && optimizedResume.jobDetails.keyRequirements.length > 0 && (
                           <div>
                             <p className="font-medium">Key Requirements</p>
-                            <ul className="list-disc list-inside text-muted-foreground">
+                            <ul className="list-disc listinside text-muted-foreground">
                               {optimizedResume.jobDetails.keyRequirements.map((req, index) => (
                                 <li key={index}>{req}</li>
                               ))}
@@ -1076,7 +1076,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading optimization session...</p>
+          <p className="text-muted-foreground">Loading your review data...</p>
         </div>
       </div>
     );
@@ -1371,65 +1371,6 @@ const renderStep5 = () => {
           </>
         )}
       </div>
-    );
-  };
-
-  const handlePrevious = () => {
-    setCurrentStep(prev => prev -1);
-  }
-
-  // Show loading state while fetching review data
-  if (isLoadingReview) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Loading optimization session...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!optimizedResume && isReviewMode) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <p className="text-muted-foreground">No optimization data found</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { data: resumes } = useQuery<UploadedResume[]>({
-    queryKey: ["/api/uploaded-resumes"],
-  });
-
-  return (
-    <div className="max-w-7xl mx-auto px-6 py-8 lg:pl-24">
-      <div className="min-h-screen flex flex-col">
-        {!isReviewMode && (
-          <>
-            {proverb && !optimizedId && !window.location.search.includes('review') && (
-              <div className="mb-8 mt-[-1rem] bg-primary/5 p-4 rounded-lg">
-                <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
-              </div>
-            )}
-            {showWelcome ? (
-              <WelcomeAnimation />
-            ) : (
-              <div className="space-y-8">
-                <ResumeStepTracker
-                  steps={steps}
-                  currentStep={currentStep}
-                  completedSteps={completedSteps}
-                />
-                {renderCurrentStep()}
-              </div>
-            )}
-          </>
-        )}
-        {isReviewMode && renderCurrentStep()}
-      </div>
       <LoadingDialog
         open={isOptimizing}
         title="Optimizing Resume"
@@ -1463,4 +1404,5 @@ function formatDownloadFilename(filename: string, jobTitle: string, version: num
   const baseFilename = filename.replace(/\.[^/.]+$/, ''); // Remove extension
   const formattedJobTitle = jobTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase(); // Sanitize job title for filename
   return `${baseFilename}_${formattedJobTitle}_v${version.toFixed(1)}`;
+}
 }
