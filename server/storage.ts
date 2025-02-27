@@ -174,38 +174,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUploadedResume(id: number): Promise<void> {
     console.log(`Storage: Starting to delete uploaded resume with ID ${id}`);
-    
+
     try {
       // First verify the resume exists
       const checkResult = await pool.query(
-        'SELECT id FROM uploaded_resumes WHERE id = $1', 
+        'SELECT id FROM uploaded_resumes WHERE id = $1',
         [id]
       );
-      
+
       if (checkResult.rowCount === 0) {
         console.error(`Storage: Resume with ID ${id} not found`);
         throw new Error(`Resume with ID ${id} not found`);
       }
-      
+
       // Use a transaction to ensure atomicity
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        
+
         // Delete the resume
         const result = await client.query(
-          'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id', 
+          'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id',
           [id]
         );
-        
+
         console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
-        
+
         if (result.rowCount === 0) {
           await client.query('ROLLBACK');
           console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
           throw new Error(`No rows were deleted for resume ID ${id}`);
         }
-        
+
         await client.query('COMMIT');
         console.log(`Storage: Successfully deleted resume with ID ${id}`);
       } catch (error) {
@@ -242,6 +242,52 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
+      // Extract contact information from resume content
+      const contactInfo = {
+        fullName: '',
+        email: '',
+        phone: '',
+        address: ''
+      };
+
+      // Simple regex patterns for contact info extraction
+      const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
+      const phoneRegex = /(\+\d{1,2}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
+      const lines = resume.content.split('\n');
+
+      // Look for contact information in first few lines
+      for (let i = 0; i < Math.min(10, lines.length); i++) {
+        const line = lines[i].trim();
+
+        // Extract email if not found yet
+        if (!contactInfo.email) {
+          const emailMatch = line.match(emailRegex);
+          if (emailMatch) {
+            contactInfo.email = emailMatch[0];
+          }
+        }
+
+        // Extract phone if not found yet
+        if (!contactInfo.phone) {
+          const phoneMatch = line.match(phoneRegex);
+          if (phoneMatch) {
+            contactInfo.phone = phoneMatch[0];
+          }
+        }
+
+        // First non-empty line is usually the name
+        if (!contactInfo.fullName && line && !line.match(emailRegex) && !line.match(phoneRegex)) {
+          contactInfo.fullName = line;
+        }
+
+        // Look for address in lines that have common address patterns
+        if (!contactInfo.address &&
+            (line.includes('Street') || line.includes('Ave') || line.includes('Road') ||
+             line.includes('Lane') || line.includes('Drive') || line.includes('Blvd'))) {
+          contactInfo.address = line;
+        }
+      }
+
       // Ensure proper structure for metrics
       const metrics = {
         before: {
@@ -296,12 +342,7 @@ export class DatabaseStorage implements IStorage {
           analysis,
           version: '1.0',
           createdAt: await getCurrentESTTimestamp(),
-          contactInfo: {
-            fullName: '',
-            email: '',
-            phone: '',
-            address: ''
-          }
+          contactInfo
         })
         .returning();
 
@@ -345,38 +386,38 @@ export class DatabaseStorage implements IStorage {
 
   async deleteOptimizedResume(id: number): Promise<void> {
     console.log(`Storage: Starting to delete optimized resume with ID ${id}`);
-    
+
     try {
       // First verify the resume exists
       const checkResult = await pool.query(
-        'SELECT id FROM optimized_resumes WHERE id = $1', 
+        'SELECT id FROM optimized_resumes WHERE id = $1',
         [id]
       );
-      
+
       if (checkResult.rowCount === 0) {
         console.error(`Storage: Optimized resume with ID ${id} not found`);
         throw new Error(`Optimized resume with ID ${id} not found`);
       }
-      
+
       // Use a transaction to ensure atomicity
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        
+
         // Delete the resume
         const result = await client.query(
-          'DELETE FROM optimized_resumes WHERE id = $1 RETURNING id', 
+          'DELETE FROM optimized_resumes WHERE id = $1 RETURNING id',
           [id]
         );
-        
+
         console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
-        
+
         if (result.rowCount === 0) {
           await client.query('ROLLBACK');
           console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
           throw new Error(`No rows were deleted for optimized resume ID ${id}`);
         }
-        
+
         await client.query('COMMIT');
         console.log(`Storage: Successfully deleted optimized resume with ID ${id}`);
       } catch (error) {
@@ -547,7 +588,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createCoverLetter(coverLetter: InsertCoverLetter & { 
+  async createCoverLetter(coverLetter: InsertCoverLetter & {
     userId: number;
     highlights?: string[];
     confidence?: number;
