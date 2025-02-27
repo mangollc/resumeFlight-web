@@ -59,6 +59,7 @@ router.delete('/:id', async (req, res) => {
             return res.status(403).json({ error: "Not authorized" });
         }
 
+        console.log(`Deleting resume with ID: ${resumeId}`);
         await storage.deleteUploadedResume(resumeId);
         // Make sure we set the content type header properly before sending the response
         res.setHeader('Content-Type', 'application/json');

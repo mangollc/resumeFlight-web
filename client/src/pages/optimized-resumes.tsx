@@ -494,7 +494,8 @@ export default function OptimizedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/uploaded-resumes/${id}`, {
+      console.log(`Deleting uploaded resume with ID: ${id}`);
+      const response = await fetch(`/api/resumes/uploaded/${id}`, {
         method: "DELETE",
         headers: {
           'Accept': 'application/json',
