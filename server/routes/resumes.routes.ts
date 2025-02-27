@@ -61,14 +61,28 @@ router.delete('/:id', async (req, res) => {
 
         console.log(`Deleting resume with ID: ${resumeId}`);
         try {
-            await storage.deleteUploadedResume(resumeId);
+            // Use a timeout to ensure the operation doesn't hang
+            const deletePromise = storage.deleteUploadedResume(resumeId);
+            
+            // Set a timeout of 10 seconds for the operation
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Delete operation timed out')), 10000);
+            });
+            
+            // Wait for the delete operation to complete or timeout
+            await Promise.race([deletePromise, timeoutPromise]);
+            
             console.log(`Successfully deleted resume with ID: ${resumeId}`);
             
-            // Explicitly clear any previous headers to prevent conflicts
+            // Clear all previous headers
+            res.removeHeader('Content-Type');
+            res.removeHeader('Content-Length');
+            
+            // Set content type explicitly
             res.setHeader('Content-Type', 'application/json');
             
             // Send a proper JSON response
-            return res.status(200).json({ success: true, message: "Resume deleted successfully" });
+            return res.status(200).json({ success: true, message: "Resume deleted successfully", resumeId });
         } catch (deleteError) {
             console.error("Error in deleteUploadedResume operation:", deleteError);
             res.setHeader('Content-Type', 'application/json');

@@ -70,11 +70,15 @@ export default function UploadedResumesPage() {
       const apiEndpoint = `/api/resumes/uploaded/${id}`;
       console.log(`Calling DELETE endpoint: ${apiEndpoint}`);
       
-      const response = await fetch(apiEndpoint, {
+      // Force cache busting by adding a timestamp
+      const cacheBustUrl = `${apiEndpoint}?_t=${Date.now()}`;
+      
+      const response = await fetch(cacheBustUrl, {
         method: "DELETE",
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store'
         },
         credentials: 'include'
       });
@@ -127,7 +131,15 @@ export default function UploadedResumesPage() {
       }
     },
     onSuccess: () => {
+      // Force a hard refresh of the data
+      queryClient.removeQueries({ queryKey: ["/api/uploaded-resumes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/uploaded-resumes"] });
+      
+      // Short delay to ensure database has time to update
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["/api/uploaded-resumes"] });
+      }, 500);
+      
       toast({
         title: "Success",
         description: "Resume deleted successfully",
