@@ -467,25 +467,36 @@ export default function OptimizedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/analysis/optimized/${id}`, {
+      const response = await fetch(`/api/uploaded-resumes/${id}`, {
         method: "DELETE",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include'
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete resume");
+        // Try to parse error message, or use default if not available
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to delete resume");
       }
 
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis/optimized"] });
+      toast({
+        title: "Success",
+        description: "Resume deleted successfully",
+        duration: 2000,
+      });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error deleting resume:", error);
       toast({
         title: "Error",
-        description: "Failed to delete resume. Please try again.",
+        description: error.message || "Failed to delete resume. Please try again.",
         variant: "destructive",
       });
     },
