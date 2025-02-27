@@ -434,22 +434,22 @@ export default function Dashboard() {
 
   const handleDownloadCoverLetter = async (version: string) => {
     if (!optimizedResume?.id) return;
-    
+
     try {
       setIsDownloading(true);
       const selectedLetter = coverLetters.find(letter => 
         letter.metadata.version.toString() === version
       );
-      
+
       if (!selectedLetter) {
         throw new Error('Cover letter not found');
       }
-      
+
       const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/cover-letter/${selectedLetter.id}/download`);
       if (!response.ok) {
         throw new Error('Failed to download cover letter');
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -459,7 +459,7 @@ export default function Dashboard() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Success",
         description: "Cover letter downloaded successfully",
@@ -1069,7 +1069,7 @@ export default function Dashboard() {
                   {/* Resume Download Section */}
                   <div className="space-y-4 border rounded-lg p-6">
                     <h4 className="text-lg font-medium">Optimized Resume</h4>
-                    
+
                     {optimizedResume ? (
                       <>
                         <div className="space-y-4">
@@ -1094,7 +1094,7 @@ export default function Dashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-                          
+
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Format</label>
                             <Select defaultValue="pdf">
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-                          
+
                           <Button 
                             onClick={() => handleDownload(optimizedResume.id)}
                             className="w-full"
@@ -1128,11 +1128,11 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Cover Letter Download Section */}
                   <div className="space-y-4 border rounded-lg p-6">
                     <h4 className="text-lg font-medium">Cover Letter</h4>
-                    
+
                     {coverLetters.length > 0 ? (
                       <>
                         <div className="space-y-4">
@@ -1157,7 +1157,7 @@ export default function Dashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-                          
+
                           <div className="space-y-2">
                             <label className="text-sm font-medium">Format</label>
                             <Select defaultValue="pdf">
@@ -1171,7 +1171,7 @@ export default function Dashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-                          
+
                           <Button 
                             onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
                             className="w-full"
@@ -1193,14 +1193,14 @@ export default function Dashboard() {
                     )}
                   </div>
                 </div>
-                
+
                 {/* Download Package Option */}
                 <div className="mt-8 border rounded-lg p-6">
                   <h4 className="text-lg font-medium mb-4">Download Complete Package</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     Download both the optimized resume and cover letter as a single package
                   </p>
-                  
+
                   <Button 
                     onClick={handleDownloadPackage}
                     className="w-full"
@@ -1214,7 +1214,7 @@ export default function Dashboard() {
                     Download Complete Package
                   </Button>
                 </div>
-                
+
                 {/* Navigation */}
                 <div className="mt-8 flex justify-between">
                   <Button 
@@ -1224,7 +1224,7 @@ export default function Dashboard() {
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Previous
                   </Button>
-                  
+
                   <Button 
                     onClick={() => window.location.href = '/optimized-resumes'}
                     variant="secondary"

@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog"
@@ -39,6 +40,7 @@ export function Navbar({ collapsed }: NavbarProps) {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-2xl font-bold">Resume Tips</DialogTitle>
+              <DialogDescription>Helpful tips to improve your resume.</DialogDescription> {/*Added DialogDescription*/}
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
