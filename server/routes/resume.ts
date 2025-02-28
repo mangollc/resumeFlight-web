@@ -1,7 +1,7 @@
 // Create optimized resume record
       console.log("Creating optimized resume version", version);
       // Ensure content is properly formatted as a string
-      let content = result.optimizedContent;
+      let content = result.optimisedResume;
       if (typeof content === 'object') {
         content = JSON.stringify(content);
       } else if (Array.isArray(content)) {
@@ -11,7 +11,7 @@
       // Make sure we don't have "[object Object]" in the content
       if (content.includes("[object Object]")) {
         console.error("Invalid content format detected, attempting to fix");
-        content = JSON.stringify(result.optimizedContent);
+        content = JSON.stringify(result.optimisedResume);
       }
 
       const optimizedResume = await db.insert(schema.optimizedResumes).values({

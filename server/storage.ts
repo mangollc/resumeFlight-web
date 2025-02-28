@@ -276,7 +276,7 @@ export class DatabaseStorage implements IStorage {
       if (addressMatches && addressMatches.length > 0) {
         contactInfo.address = addressMatches[0].trim();
       }
-      
+
       // Extract LinkedIn profile
       const linkedinRegex = /linkedin\.com\/in\/[a-zA-Z0-9-]+/gi;
       const linkedinMatches = headerSection.match(linkedinRegex);
@@ -338,7 +338,7 @@ export class DatabaseStorage implements IStorage {
 
       // Determine version number - find the latest version for this resume/job combination
       let versionNumber = '1.0';
-      
+
       try {
         // Check for existing optimizations for this resume and job description
         const existingOptimizations = await db
@@ -372,7 +372,7 @@ export class DatabaseStorage implements IStorage {
           userId: resume.userId,
           sessionId: resume.sessionId,
           uploadedResumeId: resume.uploadedResumeId,
-          content: resume.content,
+          optimisedResume: resume.optimisedResume || resume.content,
           originalContent: resume.originalContent,
           jobDescription: resume.jobDescription,
           jobUrl: resume.jobUrl || null,

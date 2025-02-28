@@ -153,7 +153,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
             // Calculate optimized scores
             const optimizedScores = await calculateMatchScores(
-                optimizationResult.optimizedContent,
+                optimizationResult.optimisedResume,
                 jobDetails.description,
                 true
             );

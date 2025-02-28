@@ -195,7 +195,7 @@ export async function optimizeResume(
   jobDescription: string,
   version?: number,
 ): Promise<{ 
-  optimizedContent: string; 
+  optimisedResume: string; 
   changes: string[]; 
   analysis: {
     strengths: string[];
