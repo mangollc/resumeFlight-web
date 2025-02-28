@@ -163,6 +163,33 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Add delete mutation for optimized resumes
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest('DELETE', `/api/optimized-resume/${id}`);
+      if (!response.ok) {
+        throw new Error('Failed to delete resume');
+      }
+      return id;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['/api/optimized-resumes'] });
+      toast({
+        title: "Success",
+        description: "Resume deleted successfully",
+        duration: 2000,
+      });
+    },
+    onError: (error) => {
+      console.error('Delete error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete resume",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Use the ID directly from the URL path for optimized resumes
   const optimizedId = params.id;
   const isReviewMode = !!optimizedId;
@@ -570,6 +597,20 @@ export default function Dashboard() {
       });
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this resume? This action cannot be undone.")) {
+      try {
+        await deleteMutation.mutateAsync(id);
+        // If we're deleting the current resume and in review mode, redirect to dashboard
+        if (isReviewMode && optimizedId && parseInt(optimizedId) === id) {
+          window.location.href = '/dashboard';
+        }
+      } catch (error) {
+        console.error("Error deleting resume:", error);
+      }
     }
   };
 
