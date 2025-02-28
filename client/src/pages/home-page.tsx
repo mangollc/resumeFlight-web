@@ -13,7 +13,7 @@ import UploadForm from "@/components/resume/upload-form";
 import JobInput from "@/components/resume/job-input";
 import Preview from "@/components/resume/preview";
 import CoverLetterComponent from "@/components/resume/cover-letter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UploadedResume, OptimizedResume } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { ArrowRight, FileText, Upload } from "lucide-react";
@@ -23,12 +23,15 @@ export default function HomePage() {
   const [selectedResume, setSelectedResume] = useState<UploadedResume | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
+  const queryClient = useQueryClient();
 
-  // Optimized query with better error handling and caching
-  const { data: resumes, isLoading } = useQuery<UploadedResume[]>({
+  // Pre-fetch resumes data
+  const { data: resumes = [], isLoading } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
-    staleTime: 30000, // Cache data for 30 seconds
-    cacheTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
+    gcTime: Infinity, // Keep the data indefinitely
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on component mount
   });
 
   const handleOptimized = (optimized: OptimizedResume) => {
@@ -49,6 +52,23 @@ export default function HomePage() {
       </h2>
     </div>
   );
+
+  // Show loading skeleton while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="min-h-screen max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="animate-pulse space-y-8">
+          <div className="h-8 bg-muted rounded w-1/4"></div>
+          <div className="grid gap-8 lg:gap-12 lg:grid-cols-[2fr,3fr]">
+            <div className="space-y-8">
+              <div className="h-64 bg-muted rounded-xl"></div>
+            </div>
+            <div className="h-96 bg-muted rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
