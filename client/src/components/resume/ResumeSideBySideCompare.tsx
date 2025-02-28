@@ -31,7 +31,7 @@ export function ResumeSideBySideCompare({ originalResume, optimizedResume }: Res
         <pre className="whitespace-pre-wrap text-sm">{originalResume}</pre>
       </div>
       <div className="border rounded-lg p-4 overflow-auto">
-        <h3 className="font-semibold mb-2">Optimized Version</h3>
+        <h3 className="font-semibold mb-2">Optimized Resume</h3>
         <pre className="whitespace-pre-wrap text-sm">{optimizedResume}</pre>
       </div>
     </div>

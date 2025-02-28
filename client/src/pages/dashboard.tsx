@@ -1393,9 +1393,9 @@ export default function Dashboard() {
                                       key={version} 
                                       value={version}
                                     >
-                                      Version {version} ({new Date(
+                                      Optimized Resume v{version} • {new Date(
                                         optimizedResumes.find(r => r.metadata.version.toString() === version)?.metadata.optimizedAt || ''
-                                      ).toLocaleDateString()})
+                                      ).toLocaleDateString()}
                                     </SelectItem>
                                   ))
                                 }

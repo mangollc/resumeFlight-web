@@ -17,8 +17,14 @@ const Preview = ({ resume, showMetrics = false }: PreviewProps) => {
     console.error("Error parsing resume content:", e);
   }
 
+  // Get the resume version
+  const version = resume.metadata?.version || '1.0';
+  
   return (
     <div>
+      {resume.metadata && (
+        <h2 className="text-xl font-semibold mb-4">Optimized Resume v{version}</h2>
+      )}
       <div dangerouslySetInnerHTML={{ __html: content }} />
       {showMetrics && (
         <div>
