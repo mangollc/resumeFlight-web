@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { type OptimizedResume } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
+import { FileDown, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CoverLetterProps {
   resume: OptimizedResume;
@@ -11,6 +12,50 @@ interface CoverLetterProps {
 
 export default function CoverLetterComponent({ resume }: CoverLetterProps) {
   const { toast } = useToast();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [coverLetter, setCoverLetter] = useState(resume.coverLetter);
+
+  const generateCoverLetter = async (isRegenerate: boolean = false) => {
+    try {
+      setIsGenerating(true);
+      const version = isRegenerate ? (parseFloat(resume.version || '0') + 0.1).toFixed(1) : 0.1;
+
+      const response = await apiRequest('/api/optimized-resume/' + resume.id + '/cover-letter', {
+        method: 'POST',
+        body: {
+          version: parseFloat(version),
+          contactInfo: resume.contactInfo || {
+            email: '',
+            phone: '',
+            fullName: '',
+            linkedin: '',
+            location: ''
+          }
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate cover letter");
+      }
+
+      const data = await response.json();
+      setCoverLetter(data.content);
+
+      toast({
+        title: "Success",
+        description: isRegenerate ? "Cover letter regenerated successfully" : "Cover letter generated successfully",
+      });
+    } catch (error) {
+      console.error("Error generating cover letter:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate cover letter",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const downloadDocument = async (format: 'pdf' | 'docx') => {
     try {
@@ -55,22 +100,41 @@ export default function CoverLetterComponent({ resume }: CoverLetterProps) {
   };
 
   return (
-    <Card className="p-6">
-      <div className="prose max-w-none dark:prose-invert">
-        <div className="whitespace-pre-wrap font-serif text-base">
-          {resume.coverLetter}
+    <div className="space-y-6">
+      {!coverLetter ? (
+        <div className="text-center py-8">
+          <Button 
+            onClick={() => generateCoverLetter(false)} 
+            disabled={isGenerating}
+          >
+            {isGenerating ? "Generating..." : "Generate Cover Letter"}
+          </Button>
         </div>
-      </div>
-      <div className="mt-6 flex gap-4">
-        <Button onClick={() => downloadDocument('pdf')} variant="outline" size="sm">
-          <FileDown className="mr-2 h-4 w-4" />
-          Download PDF
-        </Button>
-        <Button onClick={() => downloadDocument('docx')} variant="outline" size="sm">
-          <FileDown className="mr-2 h-4 w-4" />
-          Download DOCX
-        </Button>
-      </div>
-    </Card>
+      ) : (
+        <>
+          <Card className="p-6">
+            <div className="prose max-w-none dark:prose-invert">
+              <div className="whitespace-pre-wrap font-serif text-base">
+                {coverLetter}
+              </div>
+            </div>
+          </Card>
+          <div className="flex flex-wrap gap-4">
+            <Button onClick={() => generateCoverLetter(true)} variant="outline" size="sm">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Regenerate
+            </Button>
+            <Button onClick={() => downloadDocument('pdf')} variant="outline" size="sm">
+              <FileDown className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+            <Button onClick={() => downloadDocument('docx')} variant="outline" size="sm">
+              <FileDown className="mr-2 h-4 w-4" />
+              Download DOCX
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
