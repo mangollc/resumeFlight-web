@@ -404,7 +404,7 @@ Return a JSON object with:
     }
       
     return {
-      optimizedContent: finalContent,
+      optimisedResume: finalContent,
       changes: allChanges,
       analysis: {
         strengths: analysisResult.analysis.strengths || [],

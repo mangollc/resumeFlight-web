@@ -7,7 +7,7 @@
       } else if (Array.isArray(content)) {
         content = content.join("\n\n");
       }
-      
+
       // Make sure we don't have "[object Object]" in the content
       if (content.includes("[object Object]")) {
         console.error("Invalid content format detected, attempting to fix");
@@ -18,7 +18,7 @@
         sessionId: session.id,
         userId: session.userId,
         uploadedResumeId: uploadedResumeId,
-        content: content,
+        optimisedResume: content, //This line is changed
         originalContent: uploadedResume.content,
         metadata: {
           version: version,

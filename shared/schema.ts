@@ -27,7 +27,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   sessionId: text("session_id").notNull(),
   userId: integer("user_id").notNull(),
   uploadedResumeId: integer("uploaded_resume_id").notNull(),
-  content: text("content").notNull(),
+  optimisedResume: text("optimised_resume").notNull(),
   originalContent: text("original_content").notNull(),
   jobDescription: text("job_description").notNull(),
   jobUrl: text("job_url"),

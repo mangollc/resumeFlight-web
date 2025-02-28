@@ -21,8 +21,8 @@ const Preview = ({ resume, showMetrics = false }: PreviewProps) => {
   const version = resume.metadata?.version || '1.0';
   
   // Format content properly
-  let displayContent = content;
-  if (content.includes("[object Object]")) {
+  let displayContent = resume.optimisedResume || content;
+  if (displayContent.includes("[object Object]")) {
     try {
       // Attempt to parse and format JSON content
       const parsedContent = JSON.parse(content.replace(/\[object Object\]/g, '""'));
