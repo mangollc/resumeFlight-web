@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,8 +31,8 @@ import {
   Code,
   ArrowUpCircle,
   HelpCircle,
-  FileDown, // Added import
-  BarChart2, //Presumed import - adjust if incorrect
+  FileDown,
+  BarChart2,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -64,8 +64,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Added import. Adjust if incorrect
-import { Card } from "@/components/ui/card"; // Added import. Adjust if incorrect
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
 
 
 const getScoreColor = (score: number) => {
@@ -94,132 +94,19 @@ function MetricRow({ label, score }: { label: string; score: number }) {
   );
 }
 
-function ResumeRow({ resume }: { resume: OptimizedResume }) {
+function ResumeRow({ 
+  resume, 
+  deleteMutation,
+  downloadDocument 
+}: { 
+  resume: OptimizedResume;
+  deleteMutation: UseMutationResult;
+  downloadDocument: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => Promise<void>;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showAnalysis, setShowAnalysis] = useState(false);
   const [activeSection, setActiveSection] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
   const analysisData = resume.analysis || {};
-
-  // Function to download resume as DOCX
-  const downloadResumeDocx = async (resumeId: number) => {
-    try {
-      toast({
-        title: "Downloading resume...",
-        description: "Preparing your resume document",
-      });
-
-      // Fetch as blob
-      const response = await fetch(`/api/documents/resume/${resumeId}/download`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to download resume');
-      }
-
-      // Get filename from Content-Disposition header
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = 'resume.docx';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="(.+)"/i);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      // Create download link
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Download complete",
-        description: "Your resume has been downloaded",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error('Error downloading resume:', error);
-      toast({
-        title: "Download failed",
-        description: error instanceof Error ? error.message : "Failed to download resume",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to download cover letter as DOCX
-  const downloadCoverLetterDocx = async (resumeId: number) => {
-    try {
-      setIsGenerating(true);
-      toast({
-        title: "Generating cover letter...",
-        description: "This may take a moment",
-      });
-
-      // Fetch as blob
-      const response = await fetch(`/api/documents/cover-letter/${resumeId}/download`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate cover letter');
-      }
-
-      // Get filename from Content-Disposition header
-      const contentDisposition = response.headers.get('Content-Disposition');
-      let filename = 'cover_letter.docx';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="(.+)"/i);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      // Create download link
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Cover letter generated",
-        description: "Your cover letter has been downloaded",
-        variant: "success",
-      });
-    } catch (error) {
-      console.error('Error generating cover letter:', error);
-      toast({
-        title: "Generation failed",
-        description: error instanceof Error ? error.message : "Failed to generate cover letter",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   return (
     <>
@@ -269,33 +156,33 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel>Download Resume</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument("resume", "pdf")}>
+              <DropdownMenuItem onSelect={() => downloadDocument("resume", "pdf", resume.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 PDF Format
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx")}>
+              <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx", resume.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf")}>
+              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf", resume.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 PDF Format
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx")}>
+              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx", resume.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => downloadResumeDocx(resume.id)}>
+              {/* <DropdownMenuItem onClick={() => downloadResumeDocx(resume.id)}>
                 <FileDown className="mr-2 h-4 w-4" />
                 <span>Download Resume (DOCX)</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => downloadCoverLetterDocx(resume.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 <span>Generate & Download Cover Letter</span>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -352,7 +239,6 @@ function ResumeRow({ resume }: { resume: OptimizedResume }) {
                         <MetricRow
                           label="Overall Score"
                           score={resume.metrics.after.overall}
-                          className="text-primary font-semibold"
                         />
                       </div>
                       <MetricRow
@@ -541,6 +427,73 @@ export default function OptimizedResumesPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest(`/api/resume/optimized/${id}`, {
+        method: 'DELETE'
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
+      toast({
+        title: "Success",
+        description: "Resume deleted successfully",
+        duration: 2000,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete resume",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => {
+    try {
+      toast({
+        title: "Processing",
+        description: `Preparing your ${type} for download...`,
+      });
+
+      const endpoint = `/api/documents/${type}/${resumeId}/download?format=${format}`;
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Accept': format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download ${type}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}-${resumeId}.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Success",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} downloaded successfully`,
+      });
+    } catch (error) {
+      console.error(`Error downloading ${type}:`, error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : `Failed to download ${type}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 h-full">
@@ -602,8 +555,8 @@ export default function OptimizedResumesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resumes.map((resume) => (
-                  <ResumeRow key={resume.id} resume={resume} />
+                {resumes?.map((resume) => (
+                  <ResumeRow key={resume.id} resume={resume} deleteMutation={deleteMutation} downloadDocument={downloadDocument} />
                 ))}
               </TableBody>
             </Table>
