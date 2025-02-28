@@ -180,7 +180,7 @@ export const insertUploadedResumeSchema = createInsertSchema(uploadedResumes)
 export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
   .pick({
     sessionId: true,
-    content: true,
+    optimisedResume: true,
     originalContent: true,
     jobDescription: true,
     jobUrl: true,
