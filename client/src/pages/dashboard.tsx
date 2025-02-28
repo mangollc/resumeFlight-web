@@ -446,15 +446,31 @@ export default function Dashboard() {
         filename = optimizedResume?.metadata.filename || 'resume.docx';
       }
 
+      // Ensure we're getting the correct content type from the response
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      
+      // Create and use a properly configured blob with the correct MIME type
+      const docxBlob = new Blob([blob], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      
+      const url = window.URL.createObjectURL(docxBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      
+      // Make sure this is a proper download, not just opening in browser
+      a.setAttribute('download', filename);
+      a.setAttribute('target', '_blank');
+      
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
 
       toast({
         title: "Success",
@@ -514,15 +530,31 @@ export default function Dashboard() {
         filename = `${name}_${position}_CoverLetter_v${version}.docx`;
       }
 
+      // Ensure we're getting the correct content type from the response
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      
+      // Create and use a properly configured blob with the correct MIME type
+      const docxBlob = new Blob([blob], { 
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+      });
+      
+      const url = window.URL.createObjectURL(docxBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
+      
+      // Make sure this is a proper download, not just opening in browser
+      a.setAttribute('download', filename);
+      a.setAttribute('target', '_blank');
+      
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Cleanup with a small delay to ensure download starts
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
 
       toast({
         title: "Success",
