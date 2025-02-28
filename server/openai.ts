@@ -190,6 +190,50 @@ Ensure each score is calculated based on:
   }
 }
 
+function formatResumeToText(resume: any): string {
+  const sections: string[] = [];
+
+  // Contact Information
+  const contact = resume.contactInfo;
+  sections.push(`${contact.fullName}
+${contact.email} | ${contact.phone}
+${contact.location}${contact.linkedin ? ` | ${contact.linkedin}` : ''}\n`);
+
+  // Professional Summary
+  sections.push(`PROFESSIONAL SUMMARY\n${resume.professionalSummary}\n`);
+
+  // Skills
+  sections.push(`SKILLS
+Technical: ${resume.skills.technical.join(', ')}
+Soft Skills: ${resume.skills.soft.join(', ')}\n`);
+
+  // Experience
+  sections.push(`PROFESSIONAL EXPERIENCE
+${resume.experience.map(exp => 
+    `${exp.title} - ${exp.company}
+${exp.location} | ${exp.dates}
+${exp.achievements.map(achievement => `• ${achievement}`).join('\n')}`
+  ).join('\n\n')}\n`);
+
+  // Education
+  sections.push(`EDUCATION
+${resume.education.map(edu =>
+    `${edu.degree}
+${edu.institution} | ${edu.graduationDate}
+${edu.honors ? `\nHonors: ${edu.honors}` : ''}`
+  ).join('\n\n')}\n`);
+
+  // Certifications
+  if (resume.certifications && resume.certifications.length > 0) {
+    sections.push(`CERTIFICATIONS
+${resume.certifications.map(cert =>
+      `${cert.name} - ${cert.issuer} (${cert.dateReceived})`
+    ).join('\n')}`);
+  }
+
+  return sections.join('\n\n').trim();
+}
+
 export async function optimizeResume(
   resumeText: string,
   jobDescription: string,
@@ -349,50 +393,6 @@ Optimize this section of the resume based on the job description and return a JS
     console.error("[OpenAI] Optimization error:", error);
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
-}
-
-function formatResumeToText(resume: any): string {
-  const sections: string[] = [];
-
-  // Contact Information
-  const contact = resume.contactInfo;
-  sections.push(`${contact.fullName}
-${contact.email} | ${contact.phone}
-${contact.location}${contact.linkedin ? ` | ${contact.linkedin}` : ''}\n`);
-
-  // Professional Summary
-  sections.push(`PROFESSIONAL SUMMARY\n${resume.professionalSummary}\n`);
-
-  // Skills
-  sections.push(`SKILLS
-Technical: ${resume.skills.technical.join(', ')}
-Soft Skills: ${resume.skills.soft.join(', ')}\n`);
-
-  // Experience
-  sections.push(`PROFESSIONAL EXPERIENCE
-${resume.experience.map(exp => 
-    `${exp.title} - ${exp.company}
-${exp.location} | ${exp.dates}
-${exp.achievements.map(achievement => `• ${achievement}`).join('\n')}`
-  ).join('\n\n')}\n`);
-
-  // Education
-  sections.push(`EDUCATION
-${resume.education.map(edu =>
-    `${edu.degree}
-${edu.institution} | ${edu.graduationDate}
-${edu.honors ? `Honors: ${edu.honors}` : ''}`
-  ).join('\n\n')}\n`);
-
-  // Certifications
-  if (resume.certifications && resume.certifications.length > 0) {
-    sections.push(`CERTIFICATIONS
-${resume.certifications.map(cert =>
-      `${cert.name} - ${cert.issuer} (${cert.dateReceived})`
-    ).join('\n')}`);
-  }
-
-  return sections.join('\n\n').trim();
 }
 
 export async function generateCoverLetter(
