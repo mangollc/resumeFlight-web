@@ -230,8 +230,12 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        metrics: result.metrics as OptimizedResume['metrics'],
         contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
+        skills: result.skills as OptimizedResume['skills'],
+        experience: result.experience as OptimizedResume['experience'],
+        education: result.education as OptimizedResume['education'],
+        certifications: result.certifications as OptimizedResume['certifications'],
+        metrics: result.metrics as OptimizedResume['metrics'],
         analysis: result.analysis as OptimizedResume['analysis']
       };
     } catch (error) {
@@ -250,7 +254,6 @@ export class DatabaseStorage implements IStorage {
         hasJobDetails: !!resume.jobDetails
       });
 
-      // Insert the new optimized resume
       const [result] = await db
         .insert(optimizedResumes)
         .values({
@@ -267,6 +270,21 @@ export class DatabaseStorage implements IStorage {
             optimizedAt: new Date().toISOString(),
             version: '1.0'
           },
+          contactInfo: resume.contactInfo || {
+            fullName: '',
+            email: '',
+            phone: '',
+            linkedin: '',
+            location: ''
+          },
+          professionalSummary: resume.professionalSummary || '',
+          skills: resume.skills || {
+            technical: [],
+            soft: []
+          },
+          experience: resume.experience || [],
+          education: resume.education || [],
+          certifications: resume.certifications || [],
           metrics: resume.metrics || {
             before: {
               overall: 0,
@@ -306,6 +324,11 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
+        skills: result.skills as OptimizedResume['skills'],
+        experience: result.experience as OptimizedResume['experience'],
+        education: result.education as OptimizedResume['education'],
+        certifications: result.certifications as OptimizedResume['certifications'],
         metrics: result.metrics as OptimizedResume['metrics'],
         analysis: result.analysis as OptimizedResume['analysis']
       };
@@ -363,7 +386,12 @@ export class DatabaseStorage implements IStorage {
         analysis: optimizedResumes.analysis,
         version: optimizedResumes.version,
         createdAt: optimizedResumes.createdAt,
-        contactInfo: optimizedResumes.contactInfo
+        contactInfo: optimizedResumes.contactInfo,
+        professionalSummary: optimizedResumes.professionalSummary,
+        skills: optimizedResumes.skills,
+        experience: optimizedResumes.experience,
+        education: optimizedResumes.education,
+        certifications: optimizedResumes.certifications
       })
         .from(optimizedResumes)
         .where(eq(optimizedResumes.userId, userId));
@@ -375,7 +403,12 @@ export class DatabaseStorage implements IStorage {
           jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
           metrics: result.metrics as OptimizedResume['metrics'],
           contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-          analysis: result.analysis as OptimizedResume['analysis']
+          analysis: result.analysis as OptimizedResume['analysis'],
+          skills: result.skills as OptimizedResume['skills'],
+          experience: result.experience as OptimizedResume['experience'],
+          education: result.education as OptimizedResume['education'],
+          certifications: result.certifications as OptimizedResume['certifications'],
+          professionalSummary: result.professionalSummary as OptimizedResume['professionalSummary']
         };
       });
     } catch (error) {
@@ -449,7 +482,12 @@ export class DatabaseStorage implements IStorage {
         metrics: optimizedResumes.metrics,
         analysis: optimizedResumes.analysis,
         createdAt: optimizedResumes.createdAt,
-        contactInfo: optimizedResumes.contactInfo
+        contactInfo: optimizedResumes.contactInfo,
+        professionalSummary: optimizedResumes.professionalSummary,
+        skills: optimizedResumes.skills,
+        experience: optimizedResumes.experience,
+        education: optimizedResumes.education,
+        certifications: optimizedResumes.certifications
       })
         .from(optimizedResumes)
         .where(and(
@@ -479,7 +517,12 @@ export class DatabaseStorage implements IStorage {
             personalization: 0,
             aiReadiness: 0,
             overall: 0
-          }
+          },
+          skills: result.skills as OptimizedResume['skills'],
+          experience: result.experience as OptimizedResume['experience'],
+          education: result.education as OptimizedResume['education'],
+          certifications: result.certifications as OptimizedResume['certifications'],
+          professionalSummary: result.professionalSummary as OptimizedResume['professionalSummary']
         };
       });
 
