@@ -441,7 +441,26 @@ export class DatabaseStorage implements IStorage {
 
   async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
     try {
-      const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
+      // Use explicit column selection to avoid schema mismatches
+      const results = await db.select({
+        id: optimizedResumes.id,
+        userId: optimizedResumes.userId,
+        sessionId: optimizedResumes.sessionId,
+        uploadedResumeId: optimizedResumes.uploadedResumeId,
+        optimisedResume: optimizedResumes.optimisedResume,
+        originalContent: optimizedResumes.originalContent,
+        jobDescription: optimizedResumes.jobDescription,
+        jobUrl: optimizedResumes.jobUrl,
+        jobDetails: optimizedResumes.jobDetails,
+        metadata: optimizedResumes.metadata,
+        metrics: optimizedResumes.metrics,
+        analysis: optimizedResumes.analysis,
+        version: optimizedResumes.version,
+        createdAt: optimizedResumes.createdAt,
+        contactInfo: optimizedResumes.contactInfo
+      })
+      .from(optimizedResumes)
+      .where(eq(optimizedResumes.userId, userId));
 
       return results.map(result => {
         return {
