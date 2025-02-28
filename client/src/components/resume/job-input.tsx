@@ -228,15 +228,24 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
             evtSource.onerror = (error) => {
               console.error("EventSource error:", error);
-              clearTimeout(timeout);
-              evtSource.close();
-
               if (retryCount < MAX_RETRIES) {
                 retryCount++;
                 console.log(`Retrying (${retryCount}/${MAX_RETRIES})...`);
-                setupEventSource();
+                setTimeout(() => {
+                  evtSource.close();
+                  setupEventSource();
+                }, 1000 * retryCount); // Exponential backoff
               } else {
-                reject(new Error("Connection failed after multiple retries. Please try again."));
+                console.error("Mutation error:", error);
+                evtSource.close();
+                // Show toast for better user feedback
+                toast({
+                  title: "Job Parsing Error",
+                  description: "Failed to parse LinkedIn job. Please try again or use manual input.",
+                  variant: "destructive",
+                  duration: 5000,
+                });
+                reject(new Error("Failed to connect to job parsing service after multiple attempts"));
               }
             };
 

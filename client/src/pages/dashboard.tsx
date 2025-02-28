@@ -296,13 +296,22 @@ export default function Dashboard() {
     return `${major}.${minor + 1}`;
   };
 
-  const handleOptimizationComplete = (resume: OptimizedResume, details: JobDetails) => {
-    setOptimizedResume(resume);
-    setJobDetails(details);
-    if (!completedSteps.includes(2)) {
-      setCompletedSteps(prev => [...prev, 2]);
+  const handleOptimizationComplete = async (resume: OptimizedResume, details: JobDetails) => {
+    try {
+      setOptimizedResume(resume);
+      setJobDetails(details);
+      if (!completedSteps.includes(2)) {
+        setCompletedSteps(prev => [...prev, 2]);
+      }
+      setOptimizationVersion(prev => incrementVersion(prev));
+    } catch (error) {
+      console.error("Error processing job details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process job details. Please try again.",
+        variant: "destructive",
+      });
     }
-    setOptimizationVersion(prev => incrementVersion(prev));
   };
 
   const handleCoverLetterGenerated = (letter: CoverLetterType) => {
