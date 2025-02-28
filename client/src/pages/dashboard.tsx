@@ -225,6 +225,7 @@ export default function Dashboard() {
 
   const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false); // Added isDownloading state
 
 
   // Fetch optimized resume data when in review mode
@@ -621,7 +622,6 @@ export default function Dashboard() {
       setIsDownloading(true);
 
       const formData = new FormData();
-      formData.append('sessionId', sessionId);
       if (jobDetails) {
         formData.append('jobDetails', JSON.stringify(jobDetails));
       }
@@ -682,7 +682,7 @@ export default function Dashboard() {
       console.error('Download error:', error);
       toast({
         title: "Error",
-        description: "Failed to download package",
+        description: error instanceof Error ? error.message : "Failed to download package",
         variant: "destructive",
       });
     } finally {
@@ -1514,7 +1514,7 @@ export default function Dashboard() {
   }, [isReviewMode]);
 
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
-  const [isDownloading, setIsDownloading] = useState(false);
+
 
   const handleCancel = () => {
     setIsOptimizing(false);
