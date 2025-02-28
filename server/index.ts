@@ -27,26 +27,22 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Request logging middleware
-app.use((req, res, next) => {
-    const start = Date.now();
-    const path = req.path;
+// Import enhanced logger
+import { requestLogger } from './utils/logger';
 
-    res.on("finish", () => {
-        const duration = Date.now() - start;
-        if (path.startsWith("/api") && !path.includes("/resume/")) {
-            log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
-        }
-    });
-    next();
-});
+// Request logging middleware with enhanced details
+app.use(requestLogger);
 
 // Add CSP headers
 app.use((req, res, next) => {
     res.setHeader(
         'Content-Security-Policy',
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;"
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' * https://*.replit.dev https://*.repl.co;"
     );
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     next();
 });
 
@@ -128,6 +124,7 @@ const startServer = async (port: number) => {
     await new Promise((resolve, reject) => {
       const srv = server.listen(port, '0.0.0.0', () => {
         log(`Server successfully started on port ${port}`);
+        log(`Server accessible at http://0.0.0.0:${port} and via Replit domains`);
         resolve(srv);
       });
       srv.once('error', (err) => {

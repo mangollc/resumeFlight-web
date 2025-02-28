@@ -9,11 +9,15 @@ import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
 import { setupAuth } from "../auth";
+import { corsMiddleware } from "../utils/cors";
 
 export function registerRoutes(app: Express): Server {
     // Set up authentication
     setupAuth(app);
 
+    // Apply CORS middleware globally
+    app.use(corsMiddleware);
+    
     // Global middleware
     app.use((req, res, next) => {
         res.setHeader("Content-Type", "application/json");
