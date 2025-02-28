@@ -404,7 +404,7 @@ export default function Dashboard() {
   const handleDownload = async (resumeId: string) => {
     try {
       setIsDownloading(true);
-      
+
       // Request document in DOCX format specifically
       const response = await fetch(`/api/optimized-resume/${resumeId}/download`, {
         method: 'GET',
@@ -412,15 +412,15 @@ export default function Dashboard() {
           'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to download resume');
       }
-      
+
       // Get proper filename from content-disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'resume.docx';
-      
+
       if (contentDisposition) {
         const filenameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
         if (filenameMatch && filenameMatch[1]) {
@@ -436,7 +436,7 @@ export default function Dashboard() {
         // Fallback to the metadata filename
         filename = optimizedResume?.metadata.filename || 'resume.docx';
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -446,7 +446,7 @@ export default function Dashboard() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Success",
         description: "Resume downloaded successfully as DOCX",
@@ -484,7 +484,7 @@ export default function Dashboard() {
           'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         }
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to download cover letter');
       }
@@ -492,7 +492,7 @@ export default function Dashboard() {
       // Get proper filename from content-disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `cover_letter_v${version}.docx`;
-      
+
       if (contentDisposition) {
         const filenameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
         if (filenameMatch && filenameMatch[1]) {
@@ -546,7 +546,7 @@ export default function Dashboard() {
       if (coverLetter) {
         formData.append('coverLetterId', coverLetter.id.toString());
       }
-      
+
       // Specify that we prefer DOCX format documents in the package
       formData.append('format', 'docx');
       formData.append('selectedResumeVersion', optimizedResumeVersion);
@@ -567,7 +567,7 @@ export default function Dashboard() {
       // Get proper filename from content-disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `resume-package-${Date.now()}.zip`;
-      
+
       if (contentDisposition) {
         const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
         if (matches != null && matches[1]) {
@@ -915,7 +915,7 @@ export default function Dashboard() {
     if (isReviewMode && (!optimizedResume || !uploadedResume)) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-4">
+          <div className="text-centerspace-y-4">
             <AlertTriangle className="w-8 h-8 mx-auto text-destructive mb-4" />
             <p className="text-muted-foreground">Unable to load optimization session. Please try again.</p>
           </div>
@@ -1257,12 +1257,13 @@ export default function Dashboard() {
                                 <SelectValue placeholder="Select version" />
                               </SelectTrigger>
                               <SelectContent>
-                                {optimizedResumes.map((resume) => (
+                                {/* Use Set to eliminate duplicate versions */}
+                                {Array.from(new Set(optimizedResumes.map(resume => resume.metadata.version.toString()))).map((version) => (
                                   <SelectItem 
-                                    key={resume.id} 
-                                    value={resume.metadata.version.toString()}
+                                    key={version} 
+                                    value={version}
                                   >
-                                    Version {resume.metadata.version}
+                                    Version {version}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
