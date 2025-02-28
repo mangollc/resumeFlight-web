@@ -448,24 +448,24 @@ export default function Dashboard() {
 
       // Ensure we're getting the correct content type from the response
       const blob = await response.blob();
-      
+
       // Create and use a properly configured blob with the correct MIME type
       const docxBlob = new Blob([blob], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       });
-      
+
       const url = window.URL.createObjectURL(docxBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
-      
+
       // Make sure this is a proper download, not just opening in browser
       a.setAttribute('download', filename);
       a.setAttribute('target', '_blank');
-      
+
       document.body.appendChild(a);
       a.click();
-      
+
       // Cleanup
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
@@ -532,24 +532,24 @@ export default function Dashboard() {
 
       // Ensure we're getting the correct content type from the response
       const blob = await response.blob();
-      
+
       // Create and use a properly configured blob with the correct MIME type
       const docxBlob = new Blob([blob], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       });
-      
+
       const url = window.URL.createObjectURL(docxBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
-      
+
       // Make sure this is a proper download, not just opening in browser
       a.setAttribute('download', filename);
       a.setAttribute('target', '_blank');
-      
+
       document.body.appendChild(a);
       a.click();
-      
+
       // Cleanup with a small delay to ensure download starts
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
@@ -814,19 +814,36 @@ export default function Dashboard() {
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-semibold">Optimized Resume</h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDownload(optimizedResume.id)}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="mr-2 h-4 w-4" />
-              )}
-              Download
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(optimizedResume.content);
+                  toast({
+                    title: "Copied!",
+                    description: "Resume content copied to clipboard",
+                    duration: 2000,
+                  });
+                }}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownload(optimizedResume.id)}
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Download
+              </Button>
+            </div>
           </div>
           <Preview resume={optimizedResume} showMetrics={true} />
         </div>
