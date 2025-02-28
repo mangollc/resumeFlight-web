@@ -1370,25 +1370,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Download Package Option */}
-                <div className="mt-8 border rounded-lg p-6">
-                  <h4 className="text-lg font-medium mb-4">Download Complete Package</h4>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Download both the optimized resume and cover letter as a single package
-                  </p>
-
-                  <Button 
-                    onClick={handleDownloadPackage}
-                    className="w-full"
-                    disabled={isDownloading || !optimizedResume || !coverLetter}
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="mr-2 h-4 w-4" />
-                    )}
-                    Download Complete Package
-                  </Button>
-                </div>
+                {/*Removed Download Complete Package Section as requested*/}
 
                 {/* Navigation */}
                 <div className="mt-8 flex justify-between">
