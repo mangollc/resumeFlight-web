@@ -32,12 +32,9 @@ const upload = multer({
     }
 });
 
-// Get user's resumes - endpoint matching client expectation
+// Get user's resumes
 router.get('/uploaded-resumes', async (req, res) => {
     try {
-        console.log('GET /uploaded-resumes - Auth status:', req.isAuthenticated());
-        console.log('User:', req.user);
-
         if (!req.isAuthenticated() || !req.user) {
             return res.status(401).json({ 
                 error: "Unauthorized",
@@ -46,9 +43,6 @@ router.get('/uploaded-resumes', async (req, res) => {
         }
 
         const resumes = await storage.getUploadedResumesByUser(req.user.id);
-        console.log('Found resumes:', resumes);
-
-        // Set proper content type and return JSON response
         res.setHeader('Content-Type', 'application/json');
         res.json(resumes);
     } catch (error: any) {
@@ -60,43 +54,7 @@ router.get('/uploaded-resumes', async (req, res) => {
     }
 });
 
-// Upload new resume
-router.post('/resume/upload', upload.single('file'), async (req: MulterRequest, res) => {
-    try {
-        if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Not authenticated" });
-        }
-        if (!req.file) {
-            return res.status(400).json({ error: "No file uploaded" });
-        }
-
-        const { content, contactInfo } = await parseResume(req.file.buffer, req.file.mimetype);
-        const resumeData = insertUploadedResumeSchema.parse({
-            content,
-            metadata: {
-                filename: req.file.originalname,
-                fileType: req.file.mimetype,
-                uploadedAt: new Date().toISOString()
-            },
-            contactInfo
-        });
-
-        const resume = await storage.createUploadedResume({
-            ...resumeData,
-            userId: req.user!.id
-        });
-
-        res.status(201).json(resume);
-    } catch (error: any) {
-        console.error('Upload error:', error);
-        res.status(400).json({
-            error: "Failed to upload resume",
-            details: error.message
-        });
-    }
-});
-
-// Delete resume
+// Delete uploaded resume
 router.delete('/resume/:id', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
@@ -111,7 +69,6 @@ router.delete('/resume/:id', async (req, res) => {
             return res.status(400).json({ error: "Invalid resume ID" });
         }
 
-        console.log(`API: Fetching resume with ID: ${resumeId}`);
         const resume = await storage.getUploadedResume(resumeId);
 
         if (!resume) {
@@ -121,20 +78,14 @@ router.delete('/resume/:id', async (req, res) => {
             return res.status(403).json({ error: "Not authorized" });
         }
 
-        console.log(`API: Deleting resume with ID: ${resumeId}`);
         await storage.deleteUploadedResume(resumeId);
-
-        // Ensure proper response headers
-        res.setHeader('Content-Type', 'application/json');
         return res.status(200).json({ 
             success: true,
             message: "Resume deleted successfully", 
             resumeId 
         });
-
     } catch (error: any) {
         console.error('Delete error:', error);
-        res.setHeader('Content-Type', 'application/json');
         return res.status(500).json({
             success: false,
             error: "Failed to delete resume",
@@ -143,8 +94,8 @@ router.delete('/resume/:id', async (req, res) => {
     }
 });
 
-// Delete optimized resume
-router.delete('/optimized/:id', async (req, res) => {
+// Delete optimized resume - Updated route to match client-side request
+router.delete('/resume/optimized/:id', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
             return res.status(401).json({ error: "Not authenticated" });
@@ -158,7 +109,6 @@ router.delete('/optimized/:id', async (req, res) => {
             return res.status(400).json({ error: "Invalid resume ID" });
         }
 
-        console.log(`API: Fetching optimized resume with ID: ${resumeId}`);
         const resume = await storage.getOptimizedResume(resumeId);
 
         if (!resume) {
@@ -171,11 +121,7 @@ router.delete('/optimized/:id', async (req, res) => {
             return res.status(403).json({ error: "Not authorized" });
         }
 
-        console.log(`API: Deleting optimized resume with ID: ${resumeId}`);
         await storage.deleteOptimizedResume(resumeId);
-
-        // Ensure proper response headers
-        res.setHeader('Content-Type', 'application/json');
         res.status(200).json({ 
             success: true,
             message: "Optimized resume deleted successfully", 
@@ -185,7 +131,6 @@ router.delete('/optimized/:id', async (req, res) => {
         console.log(`API: Successfully deleted optimized resume with ID: ${resumeId}`);
     } catch (error: any) {
         console.error('Delete optimized resume error:', error);
-        res.setHeader('Content-Type', 'application/json');
         res.status(500).json({
             success: false,
             error: "Failed to delete optimized resume",

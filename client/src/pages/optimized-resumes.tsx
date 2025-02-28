@@ -94,11 +94,11 @@ function MetricRow({ label, score }: { label: string; score: number }) {
   );
 }
 
-function ResumeRow({ 
-  resume, 
+function ResumeRow({
+  resume,
   deleteMutation,
-  downloadDocument 
-}: { 
+  downloadDocument
+}: {
   resume: OptimizedResume;
   deleteMutation: UseMutationResult;
   downloadDocument: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => Promise<void>;
