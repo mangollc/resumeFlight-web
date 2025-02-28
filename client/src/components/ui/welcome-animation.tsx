@@ -8,27 +8,21 @@ interface WelcomeAnimationProps {
 
 export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
   const { user } = useAuth();
-  const [show, setShow] = useState(false);
+  const [shouldShow, setShouldShow] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const hasShownWelcome = localStorage.getItem('hasShownWelcome');
-      if (!hasShownWelcome) {
-        setShow(true);
-        localStorage.setItem('hasShownWelcome', 'true');
+    // Check if we've already shown the welcome message this session
+    const hasShownWelcome = localStorage.getItem('hasShownWelcome');
+    setShouldShow(!hasShownWelcome && !!user);
 
-        const timer = setTimeout(() => {
-          setShow(false);
-        }, 3000); 
-        return () => clearTimeout(timer);
-      }
+    if (!hasShownWelcome && user) {
+      localStorage.setItem('hasShownWelcome', 'true');
     }
   }, [user]);
 
   const isReviewPage = window.location.pathname.includes('/review') || window.location.search.includes('optimizedId');
-  if (!show || !user || isReviewPage) return null;
+  if (!shouldShow || !user || isReviewPage) return null;
 
-  
   return (
     <div className={cn("space-y-2 text-center lg:text-left mb-4", className)}>
       <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
