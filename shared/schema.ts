@@ -34,6 +34,21 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   jobDetails: jsonb("job_details").notNull().default({}),
   metadata: jsonb("metadata").notNull().default({}),
   version: text("version").notNull().default('1.0'),
+  contactInfo: jsonb("contact_info").notNull().default({
+    fullName: "",
+    email: "",
+    phone: "",
+    linkedin: "",
+    location: ""
+  }),
+  professionalSummary: text("professional_summary").notNull().default(''),
+  skills: jsonb("skills").notNull().default({
+    technical: [],
+    soft: []
+  }),
+  experience: jsonb("experience").notNull().default([]),
+  education: jsonb("education").notNull().default([]),
+  certifications: jsonb("certifications").notNull().default([]),
   metrics: jsonb("metrics").notNull().default({
     before: {
       overall: 0,
@@ -179,6 +194,12 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     jobUrl: true,
     jobDetails: true,
     metadata: true,
+    contactInfo: true,
+    professionalSummary: true,
+    skills: true,
+    experience: true,
+    education: true,
+    certifications: true,
     metrics: true,
     uploadedResumeId: true,
     analysis: true,
@@ -226,6 +247,36 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     description: string;
     requirements: string[];
   };
+  contactInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    linkedin: string;
+    location: string;
+  };
+  professionalSummary: string;
+  skills: {
+    technical: string[];
+    soft: string[];
+  };
+  experience: Array<{
+    title: string;
+    company: string;
+    location: string;
+    dates: string;
+    achievements: string[];
+  }>;
+  education: Array<{
+    degree: string;
+    institution: string;
+    graduationDate: string;
+    honors?: string;
+  }>;
+  certifications: Array<{
+    name: string;
+    issuer: string;
+    dateReceived: string;
+  }>;
   metrics: {
     before: {
       overall: number;
