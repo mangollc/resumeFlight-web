@@ -216,8 +216,14 @@ export async function optimizeResume(
 
     console.log(`[OpenAI] Processing ${resumeChunks.length} chunks`);
 
-    let optimizedChunks: string[] = [];
+    let optimizedChunks: any[] = [];
     let allChanges: string[] = [];
+    let combinedAnalysis = {
+      strengths: [] as string[],
+      improvements: [] as string[],
+      gaps: [] as string[],
+      suggestions: [] as string[]
+    };
 
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[OpenAI] Processing chunk ${i + 1}/${resumeChunks.length}`);
@@ -232,47 +238,48 @@ export async function optimizeResume(
             messages: [
               {
                 role: "system",
-                content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description using the following structured format:
+                content: `You are an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). 
+Optimize this section of the resume based on the job description and return a JSON response with the following structure:
 
-1. Contact Information
-   - Full Name (prominently displayed)
-   - Phone Number
-   - Email Address
-   - LinkedIn Profile (if provided)
-   - Location (City/State)
-
-2. Professional Summary (2-4 sentences)
-   - Overview of professional background, key skills, and career goals
-   - Tailored to job description with relevant keywords
-   - Focus on most relevant expertise and achievements
-
-3. Skills
-   - Highlight both technical and soft skills relevant to the target role
-   - Organize in bullet points or a clean table format
-   - Categorize into sections if appropriate (Technical/Soft Skills)
-
-4. Professional Experience
-   - List in reverse chronological order
-   - Include job title, company name, location, and dates
-   - Focus on achievements with quantifiable results
-   - Use strong action verbs and emphasize metrics (%, $, time saved)
-
-5. Education
-   - Include degree, institution name, graduation date
-   - Mention honors or relevant coursework if applicable
-
-6. Certifications (if applicable)
-   - List relevant certifications with issuing organization and date
-
-Return a JSON object with:
 {
-  "optimizedContent": "the enhanced resume section",
-  "changes": ["list specific improvements made"],
-  "sectionAnalysis": {
-    "strengths": ["identified strengths"],
-    "improvements": ["areas improved"],
-    "gaps": ["identified gaps"],
-    "suggestions": ["specific suggestions"]
+  "optimizedContent": {
+    "contactInfo": {
+      "fullName": "string",
+      "phone": "string",
+      "email": "string",
+      "linkedin": "string",
+      "location": "string"
+    },
+    "professionalSummary": "string (2-4 sentences)",
+    "skills": {
+      "technical": ["string"],
+      "soft": ["string"]
+    },
+    "experience": [{
+      "title": "string",
+      "company": "string",
+      "location": "string",
+      "dates": "string",
+      "achievements": ["string"]
+    }],
+    "education": [{
+      "degree": "string",
+      "institution": "string",
+      "graduationDate": "string",
+      "honors": "string"
+    }],
+    "certifications": [{
+      "name": "string",
+      "issuer": "string",
+      "dateReceived": "string"
+    }]
+  },
+  "changes": ["string"],
+  "analysis": {
+    "strengths": ["string"],
+    "improvements": ["string"],
+    "gaps": ["string"],
+    "suggestions": ["string"]
   }
 }`
               },
@@ -307,31 +314,85 @@ Return a JSON object with:
 
       optimizedChunks.push(result.optimizedContent);
       if (result.changes) allChanges.push(...result.changes);
+      if (result.analysis) {
+        combinedAnalysis.strengths.push(...(result.analysis.strengths || []));
+        combinedAnalysis.improvements.push(...(result.analysis.improvements || []));
+        combinedAnalysis.gaps.push(...(result.analysis.gaps || []));
+        combinedAnalysis.suggestions.push(...(result.analysis.suggestions || []));
+      }
     }
 
     console.log("[OpenAI] All chunks processed successfully");
 
-    // Combine chunks and validate
-    const combinedContent = optimizedChunks.join("\n\n").trim();
-    if (!combinedContent) {
-      throw new Error("Failed to generate optimized content");
-    }
+    // Combine chunks into a properly formatted resume
+    const finalResume = {
+      contactInfo: optimizedChunks[0].contactInfo,
+      professionalSummary: optimizedChunks[0].professionalSummary,
+      skills: {
+        technical: [...new Set(optimizedChunks.flatMap(chunk => chunk.skills?.technical || []))],
+        soft: [...new Set(optimizedChunks.flatMap(chunk => chunk.skills?.soft || []))]
+      },
+      experience: optimizedChunks.flatMap(chunk => chunk.experience || []),
+      education: optimizedChunks.flatMap(chunk => chunk.education || []),
+      certifications: optimizedChunks.flatMap(chunk => chunk.certifications || [])
+    };
 
+    // Convert the structured resume back to formatted text
+    const formattedResume = formatResumeToText(finalResume);
 
     return {
-      optimisedResume: combinedContent,
+      optimisedResume: formattedResume,
       changes: allChanges,
-      analysis: {
-        strengths: [],
-        improvements: [],
-        gaps: [],
-        suggestions: []
-      }
+      analysis: combinedAnalysis
     };
   } catch (error: any) {
     console.error("[OpenAI] Optimization error:", error);
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
+}
+
+function formatResumeToText(resume: any): string {
+  const sections: string[] = [];
+
+  // Contact Information
+  const contact = resume.contactInfo;
+  sections.push(`${contact.fullName}
+${contact.email} | ${contact.phone}
+${contact.location}${contact.linkedin ? ` | ${contact.linkedin}` : ''}\n`);
+
+  // Professional Summary
+  sections.push(`PROFESSIONAL SUMMARY\n${resume.professionalSummary}\n`);
+
+  // Skills
+  sections.push(`SKILLS
+Technical: ${resume.skills.technical.join(', ')}
+Soft Skills: ${resume.skills.soft.join(', ')}\n`);
+
+  // Experience
+  sections.push(`PROFESSIONAL EXPERIENCE
+${resume.experience.map(exp => 
+    `${exp.title} - ${exp.company}
+${exp.location} | ${exp.dates}
+${exp.achievements.map(achievement => `• ${achievement}`).join('\n')}`
+  ).join('\n\n')}\n`);
+
+  // Education
+  sections.push(`EDUCATION
+${resume.education.map(edu =>
+    `${edu.degree}
+${edu.institution} | ${edu.graduationDate}
+${edu.honors ? `Honors: ${edu.honors}` : ''}`
+  ).join('\n\n')}\n`);
+
+  // Certifications
+  if (resume.certifications && resume.certifications.length > 0) {
+    sections.push(`CERTIFICATIONS
+${resume.certifications.map(cert =>
+      `${cert.name} - ${cert.issuer} (${cert.dateReceived})`
+    ).join('\n')}`);
+  }
+
+  return sections.join('\n\n').trim();
 }
 
 export async function generateCoverLetter(
