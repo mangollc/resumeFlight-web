@@ -250,6 +250,8 @@ export default function Dashboard() {
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
       setProverb(jobProverbs[randomIndex]);
+      // Disable welcome animation completely
+      setShowWelcome(false);
     }
   }, [isReviewMode]);
 
@@ -1327,14 +1329,15 @@ export default function Dashboard() {
     if (!isReviewMode) {
       const randomIndex = Math.floor(Math.random() * jobProverbs.length);
       setProverb(jobProverbs[randomIndex]);
-      setShowWelcome(true);
+      // Disable welcome animation completely
+      setShowWelcome(false);
 
       // Only hide welcome animation after timeout
-      const timer = setTimeout(() => {
-        setShowWelcome(false);
-      }, 3000);
+      // const timer = setTimeout(() => {
+      //   setShowWelcome(false);
+      // }, 3000);
 
-      return () => clearTimeout(timer);
+      // return () => clearTimeout(timer);
     }
   }, [isReviewMode]);
 
@@ -1385,9 +1388,9 @@ export default function Dashboard() {
                 <p className="text-center text-lg italic text-primary">{`"${proverb}"`}</p>
               </div>
             )}
-            {showWelcome ? (
+            {/* {showWelcome ? (
               <WelcomeAnimation />
-            ) : (
+            ) : ( */}
               <div className="space-y-8">
                 <ResumeStepTracker
                   steps={steps}
@@ -1396,7 +1399,7 @@ export default function Dashboard() {
                 />
                 {renderCurrentStep()}
               </div>
-            )}
+            {/* )} */}
           </>
         )}
         {isReviewMode && renderCurrentStep()}
