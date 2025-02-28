@@ -907,8 +907,7 @@ export default function Dashboard() {
         );
       }
       return optimizedResume ? (
-        renderOptimizedContent()
-      ) : null;
+        renderOptimizedContent()) : null;
     }
 
     // Don't render steps if we're in review mode and don't have all required data
@@ -1194,6 +1193,18 @@ export default function Dashboard() {
                     )}
                     Download
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleRegenerateCoverLetter}
+                    disabled={isGeneratingCoverLetter}
+                  >
+                    {isGeneratingCoverLetter ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    Regenerate
+                  </Button>
                   {!coverLetter && (
                     <Button
                       variant="outline"
@@ -1243,11 +1254,10 @@ export default function Dashboard() {
                   {/* Resume Download Section */}
                   <div className="space-y-4 border rounded-lg p-6">
                     <h4 className="text-lg font-medium">Optimized Resume</h4>
-
-                    {optimizedResume ? (
-                      <>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
+                    <div className="flex items-center">
+                      {optimizedResume && (
+                        <>
+                          <div className="space-y-2 mr-4">
                             <label className="text-sm font-medium">Select Resume Version</label>
                             <Select 
                               value={optimizedResumeVersion} 
@@ -1269,23 +1279,8 @@ export default function Dashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Format</label>
-                            <Select defaultValue="pdf">
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pdf">PDF</SelectItem>
-                                <SelectItem value="docx">DOCX</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
                           <Button 
                             onClick={() => handleDownload(optimizedResume.id)}
-                            className="w-full"
                             disabled={isDownloading}
                           >
                             {isDownloading ? (
@@ -1293,25 +1288,20 @@ export default function Dashboard() {
                             ) : (
                               <Download className="mr-2 h-4 w-4" />
                             )}
-                            Download Resume
+                            Download
                           </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-4 text-muted-foreground">
-                        No optimized resume available
-                      </div>
-                    )}
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* Cover Letter Download Section */}
                   <div className="space-y-4 border rounded-lg p-6">
                     <h4 className="text-lg font-medium">Cover Letter</h4>
-
-                    {coverLetters.length > 0 ? (
-                      <>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
+                    <div className="flex items-center">
+                      {coverLetters.length > 0 ? (
+                        <>
+                          <div className="space-y-2 mr-4">
                             <label className="text-sm font-medium">Select Cover Letter Version</label>
                             <Select 
                               value={selectedCoverLetterVersion} 
@@ -1332,24 +1322,8 @@ export default function Dashboard() {
                               </SelectContent>
                             </Select>
                           </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Format</label>
-                            <Select defaultValue="pdf">
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="pdf">PDF</SelectItem>
-                                <SelectItem value="docx">DOCX</SelectItem>
-                                <SelectItem value="txt">TXT</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
                           <Button 
                             onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
-                            className="w-full"
                             disabled={isDownloading}
                           >
                             {isDownloading ? (
@@ -1357,15 +1331,15 @@ export default function Dashboard() {
                             ) : (
                               <Download className="mr-2 h-4 w-4" />
                             )}
-                            Download Cover Letter
+                            Download
                           </Button>
+                        </>
+                      ) : (
+                        <div className="text-center py-4 text-muted-foreground">
+                          No cover letter available
                         </div>
-                      </>
-                    ) : (
-                      <div className="text-center py-4 text-muted-foreground">
-                        No cover letter available
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
 
