@@ -11,65 +11,73 @@ export const optimizeResume = async (
     const url = `/api/uploaded-resumes/${uploadedResumeId}/optimize?${params.toString()}`;
     console.log("Creating EventSource with URL:", url);
 
-    // Close any existing connection
     let retryCount = 0;
     const maxRetries = 3;
-    const eventSource = new EventSource(url);
+    const retryDelay = 1000; // 1 second
 
-    // Handle initial connection
-    eventSource.onopen = () => {
-      console.log("EventSource connection established");
-      retryCount = 0;
-    };
+    const createEventSource = () => {
+      const eventSource = new EventSource(url, {
+        withCredentials: true // Enable credentials for cross-origin requests
+      });
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+      eventSource.onopen = () => {
+        console.log("EventSource connection established");
+        retryCount = 0;
+      };
 
-        if (data.step === "complete") {
-          console.log("Optimization complete, closing EventSource");
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.step === "complete") {
+            console.log("Optimization complete, closing EventSource");
+            eventSource.close();
+            resolve(data.result);
+          } else if (data.step === "error") {
+            console.error("Received error from server:", data.error);
+            eventSource.close();
+            reject(new Error(data.error || "Unknown error occurred"));
+          } else {
+            onProgress({
+              step: data.step,
+              status: data.status,
+              details: data.details
+            });
+          }
+        } catch (err) {
+          console.error("Error parsing event data:", err);
           eventSource.close();
-          resolve(data.result);
-        } else if (data.step === "error") {
-          console.error("Received error from server:", data.error);
-          eventSource.close();
-          reject(new Error(data.error || "Unknown error occurred"));
-        } else {
-          onProgress({
-            step: data.step,
-            status: data.status,
-            details: data.details
-          });
+          reject(new Error("Failed to parse server response"));
         }
-      } catch (err) {
-        console.error("Error parsing event data:", err);
-      }
-    };
+      };
 
-    eventSource.onerror = (error) => {
-      console.error("EventSource error:", error);
-
-      // Implement retry logic
-      if (retryCount < maxRetries) {
-        retryCount++;
-        console.log(`Retrying (${retryCount}/${maxRetries})...`);
-        // The browser will automatically try to reconnect
-      } else {
-        console.error("Max retries reached, closing connection");
+      eventSource.onerror = (error) => {
+        console.error("EventSource error:", error);
         eventSource.close();
-        reject(new Error("Failed to connect to optimization service after multiple attempts"));
-      }
+
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Retrying (${retryCount}/${maxRetries}) in ${retryDelay}ms...`);
+          setTimeout(createEventSource, retryDelay * retryCount);
+        } else {
+          console.error("Max retries reached");
+          reject(new Error("Failed to connect to optimization service after multiple attempts"));
+        }
+      };
+
+      // Add timeout to prevent hanging connections
+      const timeout = setTimeout(() => {
+        console.error("Connection timeout after 2 minutes");
+        eventSource.close();
+        reject(new Error("Connection timeout after 2 minutes"));
+      }, 120000);
+
+      // Clean up timeout on success or error
+      eventSource.addEventListener('complete', () => clearTimeout(timeout));
+      eventSource.addEventListener('error', () => clearTimeout(timeout));
     };
 
-    // Add timeout to prevent hanging connections
-    const timeout = setTimeout(() => {
-      console.error("Connection timeout after 2 minutes");
-      eventSource.close();
-      reject(new Error("Connection timeout after 2 minutes"));
-    }, 120000);
-
-    // Clean up timeout on success or error
-    eventSource.addEventListener('complete', () => clearTimeout(timeout));
-    eventSource.addEventListener('error', () => clearTimeout(timeout));
+    // Start the initial connection
+    createEventSource();
   });
 };
