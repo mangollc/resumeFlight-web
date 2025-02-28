@@ -172,27 +172,15 @@ process.on('SIGTERM', () => {
             console.error('Error during shutdown:', err);
             process.exit(1);
         }
-
-        // Instead of exiting, try to restart after a delay
-        log('Server closed successfully. Attempting to restart in 3 seconds...');
-        setTimeout(() => {
-            log('Restarting server after SIGTERM...');
-            startServer(5000).catch(restartErr => {
-                console.error('Failed to restart server after SIGTERM:', restartErr);
-                process.exit(1);
-            });
-        }, 3000);
+        log('Server closed successfully.');
+        process.exit(0);
     });
 
-    // Still keep the force shutdown as a fallback, but extend the timeout
+    // Force shutdown as a fallback
     setTimeout(() => {
-        console.error('Force restarting after timeout');
-        server.close();
-        startServer(5000).catch(err => {
-            console.error('Failed to restart after force shutdown:', err);
-            process.exit(1);
-        });
-    }, 15000);
+        console.error('Force shutting down after timeout');
+        process.exit(1);
+    }, 5000);
 });
 
 process.on('SIGINT', () => {
