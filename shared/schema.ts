@@ -62,14 +62,7 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     gaps: [],
     suggestions: []
   }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  contactInfo: jsonb("contact_info").notNull().default({
-    fullName: '',
-    email: '',
-    phone: '',
-    address: '',
-    linkedin: ''
-  })
+  createdAt: timestamp("created_at").notNull().defaultNow()
 });
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
@@ -230,7 +223,8 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     title: string;
     company: string;
     location: string;
-    description?: string;
+    description: string;
+    requirements: string[];
   };
   metrics: {
     before: {
@@ -259,13 +253,6 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     improvements: string[];
     gaps: string[];
     suggestions: string[];
-  };
-  contactInfo: {
-    fullName: string;
-    email: string;
-    phone: string;
-    address?: string;
-    linkedin?: string;
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;

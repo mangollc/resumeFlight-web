@@ -90,8 +90,8 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
     const jobUrl = req.query.jobUrl as string;
 
     if (!jobDescription && !jobUrl) {
-      sendEvent({ 
-        status: "error", 
+      sendEvent({
+        status: "error",
         message: "Job description or URL is required",
         code: "MISSING_JOB_INFO"
       });
@@ -115,7 +115,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
       try {
         optimizationResult = await Promise.race([
           optimizeResume(resume.content, jobDetails.description),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Optimization timed out')), 110000)
           )
         ]) as Awaited<ReturnType<typeof optimizeResume>>;
@@ -129,7 +129,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
       } catch (error: any) {
         if (error.message.includes('timed out')) {
-          sendEvent({ 
+          sendEvent({
             status: "error",
             message: "Resume optimization is taking longer than expected. Please try again.",
             code: "TIMEOUT_ERROR"
@@ -148,12 +148,19 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
       const optimizedResume = await storage.createOptimizedResume({
         userId: req.user!.id,
+        sessionId: req.session.id, // Added sessionId
         uploadedResumeId: resume.id,
-        content: optimizationResult.optimisedResume,
-        originalContent: resume.content || '',
+        optimisedResume: optimizationResult.optimisedResume,
+        originalContent: resume.content,
         jobDescription: jobDetails.description,
         jobUrl: jobUrl || null,
-        jobDetails,
+        jobDetails: {
+          title: jobDetails.title || '',
+          company: jobDetails.company || '',
+          location: jobDetails.location || '',
+          description: jobDetails.description,
+          requirements: jobDetails.requirements || []
+        },
         metadata: {
           filename: resume.metadata?.filename || 'resume.txt',
           optimizedAt: new Date().toISOString(),
@@ -164,15 +171,15 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
           after: optimizedScores
         },
         analysis: {
-          strengths: optimizationResult.analysis.strengths,
-          improvements: optimizationResult.analysis.improvements,
-          gaps: optimizationResult.analysis.gaps,
-          suggestions: optimizationResult.analysis.suggestions
+          strengths: optimizationResult.analysis.strengths || [],
+          improvements: optimizationResult.analysis.improvements || [],
+          gaps: optimizationResult.analysis.gaps || [],
+          suggestions: optimizationResult.analysis.suggestions || []
         }
       });
 
       // Send completion status with results
-      sendEvent({ 
+      sendEvent({
         status: "completed",
         optimizedResume,
         changes: optimizationResult.changes
@@ -181,7 +188,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
       return res.end();
     } catch (error: any) {
       console.error("Optimization process error:", error);
-      sendEvent({ 
+      sendEvent({
         status: "error",
         message: error.message || "Failed to optimize resume",
         code: error.code || "OPTIMIZATION_ERROR",
