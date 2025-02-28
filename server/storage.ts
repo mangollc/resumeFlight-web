@@ -409,6 +409,36 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateOptimizedResume(id: number, data: Partial<OptimizedResume>): Promise<OptimizedResume> {
+    try {
+      const [resume] = await db
+        .update(optimizedResumes)
+        .set(data)
+        .where(eq(optimizedResumes.id, id))
+        .returning();
+
+      return {
+        ...resume,
+        metadata: resume.metadata as OptimizedResume['metadata'],
+        jobDetails: resume.jobDetails as OptimizedResume['jobDetails'],
+        metrics: resume.metrics as OptimizedResume['metrics'],
+        contactInfo: resume.contactInfo as OptimizedResume['contactInfo'],
+        resumeMatchScores: {
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          overall: 0
+        }
+      };
+    } catch (error) {
+      console.error('Error updating optimized resume:', error);
+      throw new Error('Failed to update optimized resume');
+    }
+  }
+
   async getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]> {
     try {
       const results = await db.select().from(optimizedResumes).where(eq(optimizedResumes.userId, userId));
@@ -479,7 +509,23 @@ export class DatabaseStorage implements IStorage {
 
   async getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]> {
     try {
-      const results = await db.select()
+      const results = await db.select({
+        id: optimizedResumes.id,
+        sessionId: optimizedResumes.sessionId,
+        userId: optimizedResumes.userId,
+        uploadedResumeId: optimizedResumes.uploadedResumeId,
+        optimisedResume: optimizedResumes.optimisedResume,
+        originalContent: optimizedResumes.originalContent,
+        jobDescription: optimizedResumes.jobDescription,
+        jobUrl: optimizedResumes.jobUrl,
+        jobDetails: optimizedResumes.jobDetails,
+        metadata: optimizedResumes.metadata,
+        version: optimizedResumes.version,
+        metrics: optimizedResumes.metrics,
+        analysis: optimizedResumes.analysis,
+        createdAt: optimizedResumes.createdAt,
+        contactInfo: optimizedResumes.contactInfo
+      })
         .from(optimizedResumes)
         .where(and(
           eq(optimizedResumes.jobDescription, jobDescription),
@@ -516,37 +562,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error getting optimized resumes by job description:', error);
       return [];
-    }
-  }
-
-  // Optimized Resume methods with update functionality
-  async updateOptimizedResume(id: number, data: Partial<OptimizedResume>): Promise<OptimizedResume> {
-    try {
-      const [resume] = await db
-        .update(optimizedResumes)
-        .set(data)
-        .where(eq(optimizedResumes.id, id))
-        .returning();
-
-      return {
-        ...resume,
-        metadata: resume.metadata as OptimizedResume['metadata'],
-        jobDetails: resume.jobDetails as OptimizedResume['jobDetails'],
-        metrics: resume.metrics as OptimizedResume['metrics'],
-        contactInfo: resume.contactInfo as OptimizedResume['contactInfo'],
-        resumeMatchScores: {
-          keywords: 0,
-          skills: 0,
-          experience: 0,
-          education: 0,
-          personalization: 0,
-          aiReadiness: 0,
-          overall: 0
-        }
-      };
-    } catch (error) {
-      console.error('Error updating optimized resume:', error);
-      throw new Error('Failed to update optimized resume');
     }
   }
 
