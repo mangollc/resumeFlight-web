@@ -223,12 +223,60 @@ ${edu.institution} | ${edu.graduationDate}
 ${edu.honors ? `\nHonors: ${edu.honors}` : ''}`
   ).join('\n\n')}\n`);
 
-  // Certifications
+  // Certifications (if available)
   if (resume.certifications && resume.certifications.length > 0) {
     sections.push(`CERTIFICATIONS
 ${resume.certifications.map(cert =>
       `${cert.name} - ${cert.issuer} (${cert.dateReceived})`
     ).join('\n')}`);
+  }
+
+  // Optional Sections - only add if they exist and have content
+  const optionalSections = resume.optionalSections || {};
+
+  // Projects
+  if (optionalSections.projects?.length > 0) {
+    sections.push(`\nPROJECTS
+${optionalSections.projects.map(proj =>
+      `${proj.title}
+${proj.description}
+Date: ${proj.date}`
+    ).join('\n\n')}`);
+  }
+
+  // Awards and Achievements
+  if (optionalSections.awardsAndAchievements?.length > 0) {
+    sections.push(`\nAWARDS AND ACHIEVEMENTS
+${optionalSections.awardsAndAchievements.map(award =>
+      `${award.title} - ${award.organization}
+Date: ${award.date}`
+    ).join('\n\n')}`);
+  }
+
+  // Volunteer Work
+  if (optionalSections.volunteerWork?.length > 0) {
+    sections.push(`\nVOLUNTEER WORK
+${optionalSections.volunteerWork.map(work =>
+      `${work.role} - ${work.organization}
+${work.location} | ${work.dates}`
+    ).join('\n\n')}`);
+  }
+
+  // Languages
+  if (optionalSections.languages?.length > 0) {
+    sections.push(`\nLANGUAGES
+${optionalSections.languages.map(lang =>
+      `${lang.language} - ${lang.proficiency}`
+    ).join('\n')}`);
+  }
+
+  // Publications
+  if (optionalSections.publications?.length > 0) {
+    sections.push(`\nPUBLICATIONS
+${optionalSections.publications.map(pub =>
+      `${pub.title}
+${pub.journal} (${pub.date})`
+    ).join('\n\n')}`);
   }
 
   return sections.join('\n\n').trim();
@@ -316,7 +364,34 @@ Optimize this section of the resume based on the job description and return a JS
       "name": "string",
       "issuer": "string",
       "dateReceived": "string"
-    }]
+    }],
+    "optionalSections": {
+      "projects": [{
+        "title": "string",
+        "description": "string",
+        "date": "string"
+      }],
+      "awardsAndAchievements": [{
+        "title": "string",
+        "organization": "string",
+        "date": "string"
+      }],
+      "volunteerWork": [{
+        "role": "string",
+        "organization": "string",
+        "location": "string",
+        "dates": "string"
+      }],
+      "languages": [{
+        "language": "string",
+        "proficiency": "string"
+      }],
+      "publications": [{
+        "title": "string",
+        "journal": "string",
+        "date": "string"
+      }]
+    }
   },
   "changes": ["string"],
   "analysis": {
@@ -325,7 +400,13 @@ Optimize this section of the resume based on the job description and return a JS
     "gaps": ["string"],
     "suggestions": ["string"]
   }
-}`
+}
+
+IMPORTANT: For optional sections (projects, awards, volunteer work, languages, publications):
+1. Only include sections that are explicitly present in the original resume
+2. Do not fabricate or add sections that don't exist
+3. If a section exists but is irrelevant to the job, you may exclude it
+4. Maintain the exact structure and format of the original content within these sections`
               },
               {
                 role: "user",
@@ -378,7 +459,14 @@ Optimize this section of the resume based on the job description and return a JS
       },
       experience: optimizedChunks.flatMap(chunk => chunk.experience || []),
       education: optimizedChunks.flatMap(chunk => chunk.education || []),
-      certifications: optimizedChunks.flatMap(chunk => chunk.certifications || [])
+      certifications: optimizedChunks.flatMap(chunk => chunk.certifications || []),
+      optionalSections: {
+        projects: optimizedChunks.flatMap(chunk => chunk.optionalSections?.projects || []),
+        awardsAndAchievements: optimizedChunks.flatMap(chunk => chunk.optionalSections?.awardsAndAchievements || []),
+        volunteerWork: optimizedChunks.flatMap(chunk => chunk.optionalSections?.volunteerWork || []),
+        languages: optimizedChunks.flatMap(chunk => chunk.optionalSections?.languages || []),
+        publications: optimizedChunks.flatMap(chunk => chunk.optionalSections?.publications || [])
+      }
     };
 
     // Convert the structured resume back to formatted text

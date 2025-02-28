@@ -3,6 +3,14 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export type OptionalSection = {
+  projects?: { title: string; description: string; date: string }[];
+  awardsAndAchievements?: { title: string; organization: string; date: string }[];
+  volunteerWork?: { role: string; organization: string; location: string; dates: string }[];
+  languages?: { language: string; proficiency: string }[];
+  publications?: { title: string; journal: string; date: string }[];
+};
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -49,6 +57,13 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   experience: jsonb("experience").notNull().default([]),
   education: jsonb("education").notNull().default([]),
   certifications: jsonb("certifications").notNull().default([]),
+  optionalSections: jsonb("optional_sections").notNull().default({
+    projects: [],
+    awardsAndAchievements: [],
+    volunteerWork: [],
+    languages: [],
+    publications: []
+  }),
   metrics: jsonb("metrics").notNull().default({
     before: {
       overall: 0,
@@ -203,6 +218,7 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     metrics: true,
     uploadedResumeId: true,
     analysis: true,
+    optionalSections: true
   });
 
 export const insertOptimizationSessionSchema = createInsertSchema(optimizationSessions)
@@ -277,6 +293,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     issuer: string;
     dateReceived: string;
   }>;
+  optionalSections: OptionalSection;
   metrics: {
     before: {
       overall: number;
