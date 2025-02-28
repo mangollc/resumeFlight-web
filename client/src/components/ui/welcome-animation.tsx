@@ -9,19 +9,26 @@ interface WelcomeAnimationProps {
 
 export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
   const { user } = useAuth();
-  const [show, setShow] = useState(true); // Start as true when component mounts
+  const [show, setShow] = useState(false); // Start as false and check localStorage
 
   useEffect(() => {
     if (user) {
-      // Hide animation after 5 seconds
-      const timer = setTimeout(() => {
-        setShow(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+      // Check if we've already shown the welcome message this session
+      const hasShownWelcome = localStorage.getItem('hasShownWelcome');
+      if (!hasShownWelcome) {
+        setShow(true);
+        localStorage.setItem('hasShownWelcome', 'true');
+
+        // Hide animation after 5 seconds
+        const timer = setTimeout(() => {
+          setShow(false);
+        }, 5000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [user]);
 
-  // Don't show welcome animation on review pages
+  // Don't show welcome animation on review pages or if already shown
   const isReviewPage = window.location.pathname.includes('/review') || window.location.search.includes('optimizedId');
   if (!show || !user || isReviewPage) return null;
 
