@@ -67,7 +67,8 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     fullName: '',
     email: '',
     phone: '',
-    address: ''
+    address: '',
+    linkedin: ''
   })
 });
 
@@ -264,6 +265,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     email: string;
     phone: string;
     address?: string;
+    linkedin?: string;
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;

@@ -242,12 +242,13 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
-      // Enhanced contact information extraction
+      // Enhanced contact information extraction for structured format
       const contactInfo = {
         fullName: '',
         email: '',
         phone: '',
-        address: ''
+        address: '',
+        linkedin: ''
       };
 
       // Improved regex patterns for contact info extraction
@@ -274,6 +275,13 @@ export class DatabaseStorage implements IStorage {
       const addressMatches = headerSection.match(addressRegex);
       if (addressMatches && addressMatches.length > 0) {
         contactInfo.address = addressMatches[0].trim();
+      }
+      
+      // Extract LinkedIn profile
+      const linkedinRegex = /linkedin\.com\/in\/[a-zA-Z0-9-]+/gi;
+      const linkedinMatches = headerSection.match(linkedinRegex);
+      if (linkedinMatches && linkedinMatches.length > 0) {
+        contactInfo.linkedin = linkedinMatches[0].trim();
       }
 
       // Extract full name (usually the first non-empty line that's not email/phone/address)

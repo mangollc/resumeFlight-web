@@ -235,7 +235,46 @@ export async function optimizeResume(
             messages: [
               {
                 role: "system",
-                content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description to ensure perfect alignment with role requirements, keywords, and industry standards.
+                content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description using the following structured format:
+
+1. Contact Information
+   - Full Name (prominently displayed)
+   - Phone Number
+   - Email Address
+   - LinkedIn Profile (if provided)
+   - Location (City/State)
+
+2. Professional Summary (2-4 sentences)
+   - Overview of professional background, key skills, and career goals
+   - Tailored to job description with relevant keywords
+   - Focus on most relevant expertise and achievements
+
+3. Skills
+   - Highlight both technical and soft skills relevant to the target role
+   - Organize in bullet points or a clean table format
+   - Categorize into sections if appropriate (Technical/Soft Skills)
+
+4. Professional Experience
+   - List in reverse chronological order
+   - Include job title, company name, location, and dates
+   - Focus on achievements with quantifiable results
+   - Use strong action verbs and emphasize metrics (%, $, time saved)
+
+5. Education
+   - Include degree, institution name, graduation date
+   - Mention honors or relevant coursework if applicable
+
+6. Certifications (if applicable)
+   - List relevant certifications with issuing organization and date
+
+7. Optional sections (if relevant and space permits)
+   - Projects, Awards & Achievements, Publications
+
+Ensure the resume is:
+- ATS-compliant with standard fonts and clear headings
+- Highlighting major accomplishments and metrics
+- Optimized with keywords from the job description
+- Proofread for grammar, consistency, and clarity
 
 1. Identify and incorporate key terms, phrases, and industry jargon from the job description
 2. Rewrite the professional summary to directly reflect core responsibilities and qualifications
@@ -295,13 +334,27 @@ Return a JSON object with:
             {
               role: "system",
               content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
-Ensure the resume:
-1. Incorporates all relevant keywords and industry terminology
-2. Highlights achievements that align with job requirements
-3. Organizes information in an ATS-friendly format
-4. Properly emphasizes technical and soft skills mentioned in the job description
-5. Includes appropriate education and certifications
-6. Presents a professional, industry-specific style
+Evaluate how well the resume follows the structured format and addresses job requirements:
+
+1. Structure Evaluation:
+   - Proper formatting of contact information
+   - Effectiveness of professional summary
+   - Organization of skills section
+   - Impact of professional experience descriptions
+   - Presentation of education and certifications
+
+2. Content Evaluation:
+   - Incorporation of relevant keywords and industry terminology
+   - Alignment of achievements with job requirements
+   - Quantifiable results and metrics
+   - Technical and soft skills coverage
+   - Overall ATS compatibility
+
+3. Improvement Assessment:
+   - Compare original vs. optimized versions
+   - Identify specific enhancements made
+   - Evaluate keyword density and placement
+   - Assess professional tone and clarity
 
 Return a JSON object with:
 {
