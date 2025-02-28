@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, InsertUser } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const jobProverbs = [
@@ -34,19 +35,28 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [proverb, setProverb] = useState("");
+  const { toast } = useToast();
 
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * jobProverbs.length);
     setProverb(jobProverbs[randomIndex]);
   }, []);
 
-  // Redirect if already logged in
+  // Handle successful authentication
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      // Show welcome message only on successful login/register
+      if (loginMutation.isSuccess || registerMutation.isSuccess) {
+        toast({
+          title: "Welcome to ResumeFlight! 👋",
+          description: `Good to see you, ${user.name}! Let's optimize your resume.`,
+          duration: 5000,
+        });
+      }
+      setLocation("/dashboard");
     }
-  }, [user, setLocation]);
-  
+  }, [user, loginMutation.isSuccess, registerMutation.isSuccess, toast, setLocation]);
+
   // Return early if user is logged in to prevent rendering the login page
   if (user) {
     return null;
