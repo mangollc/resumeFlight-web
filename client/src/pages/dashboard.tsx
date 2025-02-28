@@ -1149,26 +1149,28 @@ export default function Dashboard() {
                 <div id="optimized-preview" className="space-y-8">
                   <div className="flex justify-between items-center">
                     <h3 className="text-xl font-semibold text-foreground/90">Resume Analysis</h3>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownload(optimizedResume.id)}
-                      disabled={isDownloading}
-                    >
-                      {isDownloading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Download className="mr-2 h-4 w-4" />
-                      )}
-                      Download
-                    </Button>
                   </div>
                   <ResumeMetricsComparison
                     metrics={optimizedResume.metrics}
                     analysis={optimizedResume.analysis}
                   />
                   <div className="pt-4">
-                    <h3 className="text-xl font-semibold text-foreground/90 mb-6">Optimized Resume</h3>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-foreground/90">Optimized Resume</h3>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(optimizedResume.id)}
+                        disabled={isDownloading}
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Download className="mr-2 h-4 w-4" />
+                        )}
+                        Download
+                      </Button>
+                    </div>
                     <Preview
                       resume={optimizedResume}
                       showMetrics={false}
@@ -1189,31 +1191,48 @@ export default function Dashboard() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
-                    disabled={isDownloading}
-                  >
-                    {isDownloading ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Download className="mr-2 h-4 w-4" />
-                    )}
-                    Download
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleRegenerateCoverLetter}
-                    disabled={isGeneratingCoverLetter}
-                  >
-                    {isGeneratingCoverLetter ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                    )}
-                    Regenerate
-                  </Button>
+                  {coverLetter && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-4 w-4" />
+                      )}
+                      Download
+                    </Button>
+                  )}
+                  {coverLetter ? (
+                    <Button
+                      variant="outline"
+                      onClick={handleRegenerateCoverLetter}
+                      disabled={isGeneratingCoverLetter}
+                    >
+                      {isGeneratingCoverLetter ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                      )}
+                      Regenerate
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={handleRegenerateCoverLetter}
+                      disabled={isGeneratingCoverLetter}
+                    >
+                      {isGeneratingCoverLetter ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <FileText className="mr-2 h-4 w-4" />
+                      )}
+                      Generate Cover Letter
+                    </Button>
+                  )}
                   {!coverLetter && (
                     <Button
                       variant="outline"
