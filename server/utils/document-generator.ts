@@ -6,7 +6,7 @@ export const generateResumeName = (resume: OptimizedResume): string => {
   const position = resume.jobDetails.title?.replace(/[^a-zA-Z0-9]/g, '_') || 'position';
   const version = resume.version || '1.0';
   const date = new Date().toISOString().split('T')[0];
-  
+
   return `${name}_${position}_v${version}_${date}.docx`;
 };
 
@@ -15,13 +15,13 @@ export const generateCoverLetterName = (coverLetter: CoverLetter, resume: Optimi
   const position = resume.jobDetails.title?.replace(/[^a-zA-Z0-9]/g, '_') || 'position';
   const version = coverLetter.version;
   const date = new Date().toISOString().split('T')[0];
-  
+
   return `${name}_${position}_CoverLetter_v${version}_${date}.docx`;
 };
 
 export const generateResumeDoc = (resume: OptimizedResume): Document => {
   const sections = resume.content.split('\n\n').filter(section => section.trim());
-  
+
   const doc = new Document({
     styles: {
       default: {
@@ -88,11 +88,25 @@ export const generateResumeDoc = (resume: OptimizedResume): Document => {
             })
           ]
         }),
+        ...(resume.contactInfo.linkedin ? [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: {
+              after: 400
+            },
+            children: [
+              new TextRun({
+                text: resume.contactInfo.linkedin,
+                size: 24
+              })
+            ]
+          })
+        ] : []),
         ...sections.map(section => {
           const lines = section.split('\n');
           const title = lines[0].trim();
           const content = lines.slice(1).join('\n').trim();
-          
+
           return [
             new Paragraph({
               heading: HeadingLevel.HEADING_1,

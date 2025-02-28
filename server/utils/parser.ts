@@ -130,6 +130,7 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
           - email: Email address
           - phone: Phone number
           - address: Physical address (as detailed as possible)
+          - linkedin: LinkedIn profile URL (format: linkedin.com/in/username)
 
           Use existing information if available, otherwise extract from text.`
         },
@@ -160,7 +161,8 @@ export async function enhanceContactInfoWithAI(resumeText: string, basicContactI
       fullName: aiExtractedInfo.fullName || basicContactInfo.fullName || '',
       email: aiExtractedInfo.email || basicContactInfo.email || '',
       phone: aiExtractedInfo.phone || basicContactInfo.phone || '',
-      address: aiExtractedInfo.address || basicContactInfo.address || ''
+      address: aiExtractedInfo.address || basicContactInfo.address || '',
+      linkedin: aiExtractedInfo.linkedin || basicContactInfo.linkedin || ''
     };
   } catch (error) {
     console.error("Error using AI to extract contact info:", error);

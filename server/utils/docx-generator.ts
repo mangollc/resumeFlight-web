@@ -11,7 +11,8 @@ export function generateResumeDOCX(
     fullName: string; 
     email: string; 
     phone: string; 
-    address?: string; 
+    address?: string;
+    linkedin?: string;
   },
   jobDetails?: {
     title?: string;
@@ -92,7 +93,8 @@ export function generateResumeDOCX(
                 text: [
                   contactInfo.email,
                   contactInfo.phone,
-                  contactInfo.address
+                  contactInfo.address,
+                  contactInfo.linkedin
                 ].filter(Boolean).join(' | '),
                 size: 24,
               }),
