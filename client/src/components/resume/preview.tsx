@@ -17,13 +17,16 @@ const getMetricsColor = (value: number) => {
 };
 
 export default function Preview({ resume, className, showMetrics = true }: PreviewProps) {
+  // Get the content from optimisedResume field
+  const content = resume.optimisedResume || '';
+
   return (
     <div className={cn("space-y-4", className)}>
       <Card className="p-6">
         <div className="prose max-w-none dark:prose-invert">
-          <pre className="whitespace-pre-wrap font-serif text-base">
-            {resume.content}
-          </pre>
+          <div className="whitespace-pre-wrap font-serif text-base">
+            {content}
+          </div>
         </div>
       </Card>
 
