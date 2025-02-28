@@ -209,21 +209,18 @@ export async function optimizeResume(
   }
 
   try {
+    console.log("[OpenAI] Starting resume optimization...");
     const optimizationVersion = version || 1.0;
-    // Reduce chunk size to prevent timeouts
     const resumeChunks = splitIntoChunks(resumeText, 6000);
     const jobDescriptionChunks = splitIntoChunks(jobDescription, 6000);
 
-    console.log(`[Optimize] Starting resume optimization...`);
-    console.log(`[Optimize] Version: ${optimizationVersion}`);
-    console.log(`[Optimize] Processing resume in ${resumeChunks.length} chunks`);
+    console.log(`[OpenAI] Processing ${resumeChunks.length} chunks`);
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
 
-    // First optimize the resume content with retries
     for (let i = 0; i < resumeChunks.length; i++) {
-      console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
+      console.log(`[OpenAI] Processing chunk ${i + 1}/${resumeChunks.length}`);
       let attempts = 0;
       let success = false;
       let response;
@@ -267,22 +264,6 @@ export async function optimizeResume(
 6. Certifications (if applicable)
    - List relevant certifications with issuing organization and date
 
-7. Optional sections (if relevant and space permits)
-   - Projects, Awards & Achievements, Publications
-
-Ensure the resume is:
-- ATS-compliant with standard fonts and clear headings
-- Highlighting major accomplishments and metrics
-- Optimized with keywords from the job description
-- Proofread for grammar, consistency, and clarity
-
-1. Identify and incorporate key terms, phrases, and industry jargon from the job description
-2. Rewrite the professional summary to directly reflect core responsibilities and qualifications
-3. Reorganize work experience to emphasize accomplishments matching the job description, using quantifiable metrics
-4. Update skills section to include hard and soft skills mentioned in the job description
-5. Ensure proper formatting for ATS compatibility
-6. Tailor content to reflect industry-specific terminology and expectations
-
 Return a JSON object with:
 {
   "optimizedContent": "the enhanced resume section",
@@ -307,8 +288,9 @@ Return a JSON object with:
           success = true;
         } catch (error: any) {
           attempts++;
+          console.error(`[OpenAI] Attempt ${attempts} failed:`, error);
           if (attempts === 3) throw error;
-          await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
         }
       }
 
@@ -317,104 +299,37 @@ Return a JSON object with:
       }
 
       const result = JSON.parse(response.choices[0].message.content);
-      optimizedChunks.push(result.optimizedContent || "");
+
+      if (!result.optimizedContent) {
+        console.error("[OpenAI] Missing optimized content in chunk response:", result);
+        throw new Error("Invalid optimization result: missing content");
+      }
+
+      optimizedChunks.push(result.optimizedContent);
       if (result.changes) allChanges.push(...result.changes);
     }
 
-    // Now perform overall analysis with retries
-    let attempts = 0;
-    let success = false;
-    let analysisResponse;
+    console.log("[OpenAI] All chunks processed successfully");
 
-    while (attempts < 3 && !success) {
-      try {
-        analysisResponse = await openai.chat.completions.create({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
-Evaluate how well the resume follows the structured format and addresses job requirements:
-
-1. Structure Evaluation:
-   - Proper formatting of contact information
-   - Effectiveness of professional summary
-   - Organization of skills section
-   - Impact of professional experience descriptions
-   - Presentation of education and certifications
-
-2. Content Evaluation:
-   - Incorporation of relevant keywords and industry terminology
-   - Alignment of achievements with job requirements
-   - Quantifiable results and metrics
-   - Technical and soft skills coverage
-   - Overall ATS compatibility
-
-3. Improvement Assessment:
-   - Compare original vs. optimized versions
-   - Identify specific enhancements made
-   - Evaluate keyword density and placement
-   - Assess professional tone and clarity
-
-Return a JSON object with:
-{
-  "analysis": {
-    "strengths": ["key strengths identified"],
-    "improvements": ["areas that were improved"],
-    "gaps": ["remaining gaps to address"],
-    "suggestions": ["actionable suggestions"]
-  }
-}`
-            },
-            {
-              role: "user",
-              content: `Optimized Resume:\n${optimizedChunks.join("\n\n")}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
-            }
-          ],
-          response_format: { type: "json_object" },
-          temperature: 0.3,
-          max_tokens: 2000
-        });
-        success = true;
-      } catch (error: any) {
-        attempts++;
-        if (attempts === 3) throw error;
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
-      }
+    // Combine chunks and validate
+    const combinedContent = optimizedChunks.join("\n\n").trim();
+    if (!combinedContent) {
+      throw new Error("Failed to generate optimized content");
     }
 
-    if (!analysisResponse || !analysisResponse.choices[0].message.content) {
-      throw new Error("No analysis response received from OpenAI");
-    }
 
-    const analysisResult = JSON.parse(analysisResponse.choices[0].message.content);
-
-    // Ensure the optimized content is properly stringified
-    let finalContent;
-    if (optimizedChunks.length === 0) {
-      finalContent = ""; // Handle empty case
-    } else if (optimizedChunks.every(chunk => typeof chunk === 'string')) {
-      finalContent = optimizedChunks.join("\n\n").trim();
-    } else {
-      // Handle mixed content or object content
-      finalContent = optimizedChunks
-        .map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : chunk)
-        .join("\n\n")
-        .trim();
-    }
-      
     return {
-      optimisedResume: finalContent,
+      optimisedResume: combinedContent,
       changes: allChanges,
       analysis: {
-        strengths: analysisResult.analysis.strengths || [],
-        improvements: analysisResult.analysis.improvements || [],
-        gaps: analysisResult.analysis.gaps || [],
-        suggestions: analysisResult.analysis.suggestions || []
+        strengths: [],
+        improvements: [],
+        gaps: [],
+        suggestions: []
       }
     };
   } catch (error: any) {
-    console.error("[Optimize] Error:", error);
+    console.error("[OpenAI] Optimization error:", error);
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
 }
