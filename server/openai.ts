@@ -390,9 +390,18 @@ Return a JSON object with:
     const analysisResult = JSON.parse(analysisResponse.choices[0].message.content);
 
     // Ensure the optimized content is properly stringified
-    const finalContent = typeof optimizedChunks[0] === 'object' 
-      ? JSON.stringify(optimizedChunks.map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : chunk)) 
-      : optimizedChunks.join("\n\n").trim();
+    let finalContent;
+    if (optimizedChunks.length === 0) {
+      finalContent = ""; // Handle empty case
+    } else if (optimizedChunks.every(chunk => typeof chunk === 'string')) {
+      finalContent = optimizedChunks.join("\n\n").trim();
+    } else {
+      // Handle mixed content or object content
+      finalContent = optimizedChunks
+        .map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : chunk)
+        .join("\n\n")
+        .trim();
+    }
       
     return {
       optimizedContent: finalContent,

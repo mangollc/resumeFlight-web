@@ -20,12 +20,32 @@ const Preview = ({ resume, showMetrics = false }: PreviewProps) => {
   // Get the resume version
   const version = resume.metadata?.version || '1.0';
   
+  // Format content properly
+  let displayContent = content;
+  if (content.includes("[object Object]")) {
+    try {
+      // Attempt to parse and format JSON content
+      const parsedContent = JSON.parse(content.replace(/\[object Object\]/g, '""'));
+      if (typeof parsedContent === 'string') {
+        displayContent = parsedContent;
+      } else if (Array.isArray(parsedContent)) {
+        displayContent = parsedContent.join("\n\n");
+      } else {
+        displayContent = JSON.stringify(parsedContent, null, 2);
+      }
+    } catch (e) {
+      console.error("Could not parse resume content:", e);
+      // Remove [object Object] occurrences
+      displayContent = content.replace(/\[object Object\]/g, "");
+    }
+  }
+  
   return (
     <div>
       {resume.metadata && (
         <h2 className="text-xl font-semibold mb-4">Optimized Resume v{version}</h2>
       )}
-      <div dangerouslySetInnerHTML={{ __html: content }} />
+      <div dangerouslySetInnerHTML={{ __html: displayContent }} />
       {showMetrics && (
         <div>
           {/* ... (rest of the component remains unchanged) */}
