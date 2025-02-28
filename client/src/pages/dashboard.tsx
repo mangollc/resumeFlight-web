@@ -404,22 +404,52 @@ export default function Dashboard() {
   const handleDownload = async (resumeId: string) => {
     try {
       setIsDownloading(true);
-      const response = await fetch(`/api/optimized-resume/${resumeId}/download`);
+      
+      // Request document in DOCX format specifically
+      const response = await fetch(`/api/optimized-resume/${resumeId}/download`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to download resume');
       }
+      
+      // Get proper filename from content-disposition header if available
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'resume.docx';
+      
+      if (contentDisposition) {
+        const filenameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      } else if (optimizedResume?.contactInfo?.fullName && optimizedResume?.jobDetails?.title) {
+        // Create a clean filename based on content if header not available
+        const name = optimizedResume.contactInfo.fullName.replace(/[^a-zA-Z0-9]/g, '_');
+        const position = optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const version = optimizedResumeVersion || optimizedResume.metadata.version;
+        filename = `${name}_${position}_Resume_v${version}.docx`;
+      } else {
+        // Fallback to the metadata filename
+        filename = optimizedResume?.metadata.filename || 'resume.docx';
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = optimizedResume?.metadata.filename || 'resume.pdf';
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
       toast({
         title: "Success",
-        description: "Resume downloaded successfully",
+        description: "Resume downloaded successfully as DOCX",
         duration: 2000
       });
     } catch (error) {
@@ -447,16 +477,39 @@ export default function Dashboard() {
         throw new Error('Cover letter not found');
       }
 
-      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/cover-letter/${selectedLetter.id}/download`);
+      // Request document in DOCX format specifically
+      const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/cover-letter/${selectedLetter.id}/download`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        }
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to download cover letter');
+      }
+
+      // Get proper filename from content-disposition header if available
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `cover_letter_v${version}.docx`;
+      
+      if (contentDisposition) {
+        const filenameMatch = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (filenameMatch && filenameMatch[1]) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      } else if (optimizedResume?.contactInfo?.fullName && optimizedResume?.jobDetails?.title) {
+        // Create a clean filename based on content if header not available
+        const name = optimizedResume.contactInfo.fullName.replace(/[^a-zA-Z0-9]/g, '_');
+        const position = optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_');
+        filename = `${name}_${position}_CoverLetter_v${version}.docx`;
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `cover_letter_v${version}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -464,7 +517,7 @@ export default function Dashboard() {
 
       toast({
         title: "Success",
-        description: "Cover letter downloaded successfully",
+        description: "Cover letter downloaded successfully as DOCX",
         duration: 2000
       });
     } catch (error) {
@@ -493,6 +546,11 @@ export default function Dashboard() {
       if (coverLetter) {
         formData.append('coverLetterId', coverLetter.id.toString());
       }
+      
+      // Specify that we prefer DOCX format documents in the package
+      formData.append('format', 'docx');
+      formData.append('selectedResumeVersion', optimizedResumeVersion);
+      formData.append('selectedCoverLetterVersion', selectedCoverLetterVersion);
 
       const response = await fetch(`/api/optimized-resume/${optimizedResume.id}/package/download`, {
         method: 'POST',
@@ -506,13 +564,21 @@ export default function Dashboard() {
         throw new Error('Failed to download package');
       }
 
+      // Get proper filename from content-disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = `resume-package-${Date.now()}.zip`;
+      
       if (contentDisposition) {
         const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
         if (matches != null && matches[1]) {
           filename = matches[1].replace(/['"]/g, '');
         }
+      } else if (optimizedResume?.contactInfo?.fullName && optimizedResume?.jobDetails?.title) {
+        // Create a clean filename based on content if header not available
+        const name = optimizedResume.contactInfo.fullName.replace(/[^a-zA-Z0-9]/g, '_');
+        const position = optimizedResume.jobDetails.title.replace(/[^a-zA-Z0-9]/g, '_');
+        const date = new Date().toISOString().split('T')[0];
+        filename = `${name}_${position}_Application_Package_${date}.zip`;
       }
 
       const blob = await response.blob();
@@ -527,8 +593,8 @@ export default function Dashboard() {
 
       toast({
         title: "Success",
-        description: "Package downloaded successfully",
-        duration: 2000, // Set to 2 seconds
+        description: "Package downloaded successfully with DOCX documents",
+        duration: 2000,
       });
     } catch (error) {
       console.error('Download error:', error);
