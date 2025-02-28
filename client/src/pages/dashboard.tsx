@@ -810,7 +810,7 @@ export default function Dashboard() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handleDownload(optimizedResume.id)}
+                onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
                 disabled={isDownloading}
               >
                 {isDownloading ? (
@@ -818,7 +818,7 @@ export default function Dashboard() {
                 ) : (
                   <Download className="mr-2 h-4 w-4" />
                 )}
-                Download Package
+                Download
               </Button>
             </div>
             <CoverLetterComponent coverLetter={coverLetter} />
@@ -1075,6 +1075,19 @@ export default function Dashboard() {
                 <div id="optimized-preview" className="space-y-8">
                   <div className="flex justify-between items-center">
                     <h3 className="text-xl font-semibold text-foreground/90">Resume Analysis</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(optimizedResume.id)}
+                      disabled={isDownloading}
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Download className="mr-2 h-4 w-4" />
+                      )}
+                      Download
+                    </Button>
                   </div>
                   <ResumeMetricsComparison
                     metrics={optimizedResume.metrics}
@@ -1102,6 +1115,19 @@ export default function Dashboard() {
               <CardContent className="p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-xl font-semibold text-foreground/90">Cover Letter Generator</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadCoverLetter(selectedCoverLetterVersion)}
+                    disabled={isDownloading}
+                  >
+                    {isDownloading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="mr-2 h-4 w-4" />
+                    )}
+                    Download
+                  </Button>
                   {!coverLetter && (
                     <Button
                       variant="outline"
