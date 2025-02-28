@@ -1301,7 +1301,7 @@ export default function Dashboard() {
                 <div className="mt-8 flex justify-between">
                   <Button 
                     variant="outline" 
-                    onClick={handlePrevious}
+                    onClick={handleBack}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Previous
