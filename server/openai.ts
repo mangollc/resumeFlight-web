@@ -389,8 +389,13 @@ Return a JSON object with:
 
     const analysisResult = JSON.parse(analysisResponse.choices[0].message.content);
 
+    // Ensure the optimized content is properly stringified
+    const finalContent = typeof optimizedChunks[0] === 'object' 
+      ? JSON.stringify(optimizedChunks.map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : chunk)) 
+      : optimizedChunks.join("\n\n").trim();
+      
     return {
-      optimizedContent: optimizedChunks.join("\n\n").trim(),
+      optimizedContent: finalContent,
       changes: allChanges,
       analysis: {
         strengths: analysisResult.analysis.strengths || [],
