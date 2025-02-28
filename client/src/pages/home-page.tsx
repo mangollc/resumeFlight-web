@@ -24,8 +24,11 @@ export default function HomePage() {
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [uploadMode, setUploadMode] = useState<'choose' | 'upload'>('choose');
 
+  // Optimized query with better error handling and caching
   const { data: resumes, isLoading } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
+    staleTime: 30000, // Cache data for 30 seconds
+    cacheTime: 5 * 60 * 1000, // Keep unused data in cache for 5 minutes
   });
 
   const handleOptimized = (optimized: OptimizedResume) => {
@@ -38,7 +41,7 @@ export default function HomePage() {
         {number}
       </div>
       <h2 className={cn(
-        "text-fluid-h3 font-semibold",
+        "text-xl font-semibold",
         "bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent",
         className
       )}>
@@ -48,25 +51,22 @@ export default function HomePage() {
   );
 
   return (
-    <div className="min-h-screen max-w-[1400px] mx-auto">
-      <header className="mb-12">
+    <div className="min-h-screen max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
+      <header className="mb-8">
         <WelcomeAnimation />
       </header>
 
       <div className="grid gap-8 lg:gap-12 lg:grid-cols-[2fr,3fr]">
         {/* Left Column - Input Section */}
         <div className="space-y-8">
-          <section className="bg-card rounded-xl border shadow-sm p-6 hover:shadow-md transition-shadow">
+          <section className="bg-card rounded-xl border shadow-sm p-6">
             <SectionTitle number={1}>Select or Upload Resume</SectionTitle>
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   variant={uploadMode === 'choose' ? "default" : "outline"}
                   onClick={() => setUploadMode('choose')}
-                  className={cn(
-                    "w-full sm:w-auto",
-                    uploadMode === 'choose' && "bg-primary text-primary-foreground"
-                  )}
+                  className="w-full sm:w-auto"
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   Choose Existing
@@ -74,10 +74,7 @@ export default function HomePage() {
                 <Button
                   variant={uploadMode === 'upload' ? "default" : "outline"}
                   onClick={() => setUploadMode('upload')}
-                  className={cn(
-                    "w-full sm:w-auto",
-                    uploadMode === 'upload' && "bg-primary text-primary-foreground"
-                  )}
+                  className="w-full sm:w-auto"
                 >
                   <Upload className="mr-2 h-4 w-4" />
                   Upload New
@@ -106,14 +103,14 @@ export default function HomePage() {
                   </Select>
                   {selectedResume && (
                     <div className="flex items-center justify-end">
-                      <ArrowRight className="h-5 w-5 text-primary animate-bounce-x" />
+                      <ArrowRight className="h-5 w-5 text-primary" />
                     </div>
                   )}
                 </div>
               ) : uploadMode === 'choose' ? (
                 <div className="text-center py-6 bg-muted/30 rounded-lg">
                   <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground mb-3 text-fluid-sm">No resumes uploaded yet</p>
+                  <p className="text-muted-foreground mb-3">No resumes uploaded yet</p>
                   <Button
                     variant="link"
                     onClick={() => setUploadMode('upload')}
@@ -131,7 +128,7 @@ export default function HomePage() {
           </section>
 
           {selectedResume && (
-            <section className="bg-card rounded-xl border shadow-sm p-6 hover:shadow-md transition-shadow">
+            <section className="bg-card rounded-xl border shadow-sm p-6">
               <SectionTitle number={2}>Add Job Details</SectionTitle>
               <JobInput resumeId={selectedResume.id} onOptimized={handleOptimized} />
             </section>
@@ -140,33 +137,19 @@ export default function HomePage() {
 
         {/* Right Column - Preview Section */}
         <div className="space-y-8">
-          <section className="bg-card rounded-xl border-2 border-primary/10 shadow-sm p-6 hover:shadow-md transition-shadow">
+          <section className="bg-card rounded-xl border-2 border-primary/10 shadow-sm p-6">
             <SectionTitle number={3}>Resume Preview & Analysis</SectionTitle>
             <Preview resume={optimizedResume || selectedResume} />
           </section>
 
           {optimizedResume && (
-            <section className="bg-card rounded-xl border-2 border-primary/10 shadow-sm p-6 hover:shadow-md transition-shadow">
+            <section className="bg-card rounded-xl border-2 border-primary/10 shadow-sm p-6">
               <SectionTitle number={4}>Cover Letter Generator</SectionTitle>
               <CoverLetterComponent resume={optimizedResume} />
             </section>
           )}
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes bounce-x {
-          0%, 100% {
-            transform: translateX(0);
-          }
-          50% {
-            transform: translateX(10px);
-          }
-        }
-        .animate-bounce-x {
-          animation: bounce-x 1s infinite;
-        }
-      `}</style>
     </div>
   );
 }

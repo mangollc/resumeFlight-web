@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -9,40 +8,32 @@ interface WelcomeAnimationProps {
 
 export function WelcomeAnimation({ className }: WelcomeAnimationProps) {
   const { user } = useAuth();
-  const [show, setShow] = useState(false); // Start as false and check localStorage
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
     if (user) {
-      // Check if we've already shown the welcome message this session
       const hasShownWelcome = localStorage.getItem('hasShownWelcome');
       if (!hasShownWelcome) {
         setShow(true);
         localStorage.setItem('hasShownWelcome', 'true');
 
-        // Hide animation after 5 seconds
         const timer = setTimeout(() => {
           setShow(false);
-        }, 5000);
+        }, 3000); 
         return () => clearTimeout(timer);
       }
     }
   }, [user]);
 
-  // Don't show welcome animation on review pages or if already shown
   const isReviewPage = window.location.pathname.includes('/review') || window.location.search.includes('optimizedId');
   if (!show || !user || isReviewPage) return null;
 
+  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className={cn("space-y-4 text-center lg:text-left", className)}
-    >
-      <h1 className="text-fluid-h1 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+    <div className={cn("space-y-2 text-center lg:text-left mb-4", className)}>
+      <h1 className="text-2xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
         Welcome back{user?.name ? `, ${user.name}` : ''}!
       </h1>
-    </motion.div>
+    </div>
   );
 }
