@@ -96,6 +96,10 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
         const sendEvent = (data: any) => {
             try {
+                // Log the event type for debugging
+                if (data.status) {
+                    console.log(`Sending SSE event: ${data.status}`);
+                }
                 res.write(`data: ${JSON.stringify(data)}\n\n`);
             } catch (error) {
                 console.error('Error sending SSE event:', error);

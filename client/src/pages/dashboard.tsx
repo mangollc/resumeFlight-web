@@ -1386,14 +1386,19 @@ export default function Dashboard() {
                               </SelectTrigger>
                               <SelectContent>
                                 {/* Use Set to eliminate duplicate versions */}
-                                {Array.from(new Set(optimizedResumes.map(resume => resume.metadata.version.toString()))).map((version) => (
-                                  <SelectItem 
-                                    key={version} 
-                                    value={version}
-                                  >
-                                    Version {version}
-                                  </SelectItem>
-                                ))}
+                                {Array.from(new Set(optimizedResumes.map(resume => resume.metadata.version.toString())))
+                                  .sort((a, b) => parseFloat(b) - parseFloat(a))
+                                  .map((version) => (
+                                    <SelectItem 
+                                      key={version} 
+                                      value={version}
+                                    >
+                                      Version {version} ({new Date(
+                                        optimizedResumes.find(r => r.metadata.version.toString() === version)?.metadata.optimizedAt || ''
+                                      ).toLocaleDateString()})
+                                    </SelectItem>
+                                  ))
+                                }
                               </SelectContent>
                             </Select>
                           </div>

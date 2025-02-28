@@ -235,7 +235,14 @@ export async function optimizeResume(
             messages: [
               {
                 role: "system",
-                content: `You are an expert resume optimizer specializing in ATS optimization and professional resume enhancement. Optimize this section of the resume while maintaining complete accuracy.
+                content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description to ensure perfect alignment with role requirements, keywords, and industry standards.
+
+1. Identify and incorporate key terms, phrases, and industry jargon from the job description
+2. Rewrite the professional summary to directly reflect core responsibilities and qualifications
+3. Reorganize work experience to emphasize accomplishments matching the job description, using quantifiable metrics
+4. Update skills section to include hard and soft skills mentioned in the job description
+5. Ensure proper formatting for ATS compatibility
+6. Tailor content to reflect industry-specific terminology and expectations
 
 Return a JSON object with:
 {
@@ -288,6 +295,14 @@ Return a JSON object with:
             {
               role: "system",
               content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
+Ensure the resume:
+1. Incorporates all relevant keywords and industry terminology
+2. Highlights achievements that align with job requirements
+3. Organizes information in an ATS-friendly format
+4. Properly emphasizes technical and soft skills mentioned in the job description
+5. Includes appropriate education and certifications
+6. Presents a professional, industry-specific style
+
 Return a JSON object with:
 {
   "analysis": {

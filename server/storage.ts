@@ -328,7 +328,36 @@ export class DatabaseStorage implements IStorage {
         }
       };
 
-      // Rest of the existing code remains the same
+      // Determine version number - find the latest version for this resume/job combination
+      let versionNumber = '1.0';
+      
+      try {
+        // Check for existing optimizations for this resume and job description
+        const existingOptimizations = await db
+          .select()
+          .from(optimizedResumes)
+          .where(and(
+            eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId),
+            eq(optimizedResumes.jobDescription, resume.jobDescription)
+          ));
+
+        if (existingOptimizations.length > 0) {
+          // Find the highest version number
+          const versions = existingOptimizations.map(opt => 
+            parseFloat(opt.version || '1.0')
+          );
+          const highestVersion = Math.max(...versions);
+          // Increment by 0.1
+          versionNumber = (highestVersion + 0.1).toFixed(1);
+        }
+      } catch (versionError) {
+        console.error('Error determining version number:', versionError);
+        // Default to 1.0 if there's an error
+      }
+
+      console.log(`Creating optimized resume version ${versionNumber}`);
+
+      // Insert the new optimized resume with proper version
       const [result] = await db
         .insert(optimizedResumes)
         .values({
@@ -343,7 +372,7 @@ export class DatabaseStorage implements IStorage {
           metadata: {
             filename: resume.metadata?.filename || '',
             optimizedAt: new Date().toISOString(),
-            version: '1.0'
+            version: versionNumber
           },
           metrics,
           analysis: {
@@ -352,7 +381,7 @@ export class DatabaseStorage implements IStorage {
             gaps: resume.analysis?.gaps || [],
             suggestions: resume.analysis?.suggestions || []
           },
-          version: '1.0',
+          version: versionNumber,
           createdAt: await getCurrentESTTimestamp(),
           contactInfo
         })
