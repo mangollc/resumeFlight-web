@@ -14,11 +14,14 @@ export class DatabaseStorage implements IStorage {
   readonly sessionStore: session.Store;
 
   constructor() {
-    // Create a new neon client for the session store
-    const sessionSql = neon(process.env.DATABASE_URL!);
-
+    // Create a session store with proper SSL configuration
     this.sessionStore = new PostgresSessionStore({
-      conObject: sessionSql,
+      conObject: {
+        connectionString: process.env.DATABASE_URL!,
+        ssl: {
+          rejectUnauthorized: false
+        }
+      },
       tableName: 'session',
       schemaName: 'public',
       createTableIfMissing: true,
@@ -33,11 +36,11 @@ export class DatabaseStorage implements IStorage {
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
-      return user;
+      const results = await db.select().from(users).where(eq(users.id, id));
+      return results[0];
     } catch (error) {
       console.error('Error getting user:', error);
-      throw new Error('Failed to get user');
+      throw new Error(`Failed to get user: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
