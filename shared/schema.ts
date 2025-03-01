@@ -3,14 +3,6 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export type OptionalSection = {
-  projects?: { title: string; description: string; date: string }[];
-  awardsAndAchievements?: { title: string; organization: string; date: string }[];
-  volunteerWork?: { role: string; organization: string; location: string; dates: string }[];
-  languages?: { language: string; proficiency: string }[];
-  publications?: { title: string; journal: string; date: string }[];
-};
-
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
@@ -42,28 +34,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
   jobDetails: jsonb("job_details").notNull().default({}),
   metadata: jsonb("metadata").notNull().default({}),
   version: text("version").notNull().default('1.0'),
-  contactInfo: jsonb("contact_info").notNull().default({
-    fullName: "",
-    email: "",
-    phone: "",
-    linkedin: "",
-    location: ""
-  }),
-  professionalSummary: text("professional_summary").notNull().default(''),
-  skills: jsonb("skills").notNull().default({
-    technical: [],
-    soft: []
-  }),
-  experience: jsonb("experience").notNull().default([]),
-  education: jsonb("education").notNull().default([]),
-  certifications: jsonb("certifications").notNull().default([]),
-  optionalSections: jsonb("optional_sections").notNull().default({
-    projects: [],
-    awardsAndAchievements: [],
-    volunteerWork: [],
-    languages: [],
-    publications: []
-  }),
   metrics: jsonb("metrics").notNull().default({
     before: {
       overall: 0,
@@ -92,7 +62,14 @@ export const optimizedResumes = pgTable("optimized_resumes", {
     gaps: [],
     suggestions: []
   }),
-  createdAt: timestamp("created_at").notNull().defaultNow()
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  contactInfo: jsonb("contact_info").notNull().default({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    linkedin: ''
+  })
 });
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
@@ -209,16 +186,9 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     jobUrl: true,
     jobDetails: true,
     metadata: true,
-    contactInfo: true,
-    professionalSummary: true,
-    skills: true,
-    experience: true,
-    education: true,
-    certifications: true,
     metrics: true,
     uploadedResumeId: true,
     analysis: true,
-    optionalSections: true
   });
 
 export const insertOptimizationSessionSchema = createInsertSchema(optimizationSessions)
@@ -260,40 +230,8 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     title: string;
     company: string;
     location: string;
-    description: string;
-    requirements: string[];
+    description?: string;
   };
-  contactInfo: {
-    fullName: string;
-    email: string;
-    phone: string;
-    linkedin: string;
-    location: string;
-  };
-  professionalSummary: string;
-  skills: {
-    technical: string[];
-    soft: string[];
-  };
-  experience: Array<{
-    title: string;
-    company: string;
-    location: string;
-    dates: string;
-    achievements: string[];
-  }>;
-  education: Array<{
-    degree: string;
-    institution: string;
-    graduationDate: string;
-    honors?: string;
-  }>;
-  certifications: Array<{
-    name: string;
-    issuer: string;
-    dateReceived: string;
-  }>;
-  optionalSections: OptionalSection;
   metrics: {
     before: {
       overall: number;
@@ -321,6 +259,13 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     improvements: string[];
     gaps: string[];
     suggestions: string[];
+  };
+  contactInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address?: string;
+    linkedin?: string;
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;

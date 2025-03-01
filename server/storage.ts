@@ -230,12 +230,8 @@ export class DatabaseStorage implements IStorage {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-        skills: result.skills as OptimizedResume['skills'],
-        experience: result.experience as OptimizedResume['experience'],
-        education: result.education as OptimizedResume['education'],
-        certifications: result.certifications as OptimizedResume['certifications'],
         metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
         analysis: result.analysis as OptimizedResume['analysis']
       };
     } catch (error) {
@@ -246,94 +242,169 @@ export class DatabaseStorage implements IStorage {
 
   async createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume> {
     try {
-      console.log('[Storage] Creating optimized resume with data:', {
-        userId: resume.userId,
-        sessionId: resume.sessionId,
-        uploadedResumeId: resume.uploadedResumeId,
-        hasOptimisedResume: !!resume.optimisedResume,
-        hasJobDetails: !!resume.jobDetails
-      });
+      // Enhanced contact information extraction for structured format
+      const contactInfo = {
+        fullName: '',
+        email: '',
+        phone: '',
+        address: '',
+        linkedin: ''
+      };
 
+      // Improved regex patterns for contact info extraction
+      const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/gi;
+      const phoneRegex = /(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([0-9]{ 3 })\s*\)|([0-9]{ 3 }))\s*(?:[.-]\s*)?)?([0-9]{ 3 })\s*(?:[.-]\s*)?([0-9]{ 4 })/g;
+      const addressRegex = /(\d{1,}) [a-zA-Z0-9\s]+(Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)[,\s]+[a-zA-Z]+[,\s]+[A-Z]{2}[,\s]+\d{5}/gi;
+
+      const lines = resume.content.split('\n');
+      let headerSection = lines.slice(0, Math.min(15, lines.length)).join('\n');
+
+      // Extract email
+      const emailMatches = headerSection.match(emailRegex);
+      if (emailMatches && emailMatches.length > 0) {
+        contactInfo.email = emailMatches[0].toLowerCase();
+      }
+
+      // Extract phone
+      const phoneMatches = headerSection.match(phoneRegex);
+      if (phoneMatches && phoneMatches.length > 0) {
+        contactInfo.phone = phoneMatches[0].replace(/[^\d]/g, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+      }
+
+      // Extract address
+      const addressMatches = headerSection.match(addressRegex);
+      if (addressMatches && addressMatches.length > 0) {
+        contactInfo.address = addressMatches[0].trim();
+      }
+
+      // Extract LinkedIn profile
+      const linkedinRegex = /linkedin\.com\/in\/[a-zA-Z0-9-]+/gi;
+      const linkedinMatches = headerSection.match(linkedinRegex);
+      if (linkedinMatches && linkedinMatches.length > 0) {
+        contactInfo.linkedin = linkedinMatches[0].trim();
+      }
+
+      // Extract full name (usually the first non-empty line that's not email/phone/address)
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && 
+            !trimmedLine.match(emailRegex) && 
+            !trimmedLine.match(phoneRegex) && 
+            !trimmedLine.match(addressRegex) &&
+            trimmedLine.length > 1 && 
+            trimmedLine.split(' ').length <= 4) {
+          contactInfo.fullName = trimmedLine;
+          break;
+        }
+      }
+
+      // If name wasn't found in the simple search, try to find it in the first 3 lines
+      if (!contactInfo.fullName) {
+        const firstThreeLines = lines.slice(0, 3);
+        for (const line of firstThreeLines) {
+          const trimmedLine = line.trim();
+          if (trimmedLine && trimmedLine.length > 1 && trimmedLine.split(' ').length <= 4) {
+            contactInfo.fullName = trimmedLine;
+            break;
+          }
+        }
+      }
+
+      // Ensure proper structure for metrics
+      const metrics = {
+        before: {
+          overall: 0,
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          confidence: 0,
+          ...resume.metrics?.before
+        },
+        after: {
+          overall: 0,
+          keywords: 0,
+          skills: 0,
+          experience: 0,
+          education: 0,
+          personalization: 0,
+          aiReadiness: 0,
+          confidence: 0,
+          ...resume.metrics?.after
+        }
+      };
+
+      // Determine version number - find the latest version for this resume/job combination
+      let versionNumber = '1.0';
+
+      try {
+        // Check for existing optimizations for this resume and job description
+        const existingOptimizations = await db
+          .select()
+          .from(optimizedResumes)
+          .where(and(
+            eq(optimizedResumes.uploadedResumeId, resume.uploadedResumeId),
+            eq(optimizedResumes.jobDescription, resume.jobDescription)
+          ));
+
+        if (existingOptimizations.length > 0) {
+          // Find the highest version number
+          const versions = existingOptimizations.map(opt => 
+            parseFloat(opt.version || '1.0')
+          );
+          const highestVersion = Math.max(...versions);
+          // Increment by 0.1
+          versionNumber = (highestVersion + 0.1).toFixed(1);
+        }
+      } catch (versionError) {
+        console.error('Error determining version number:', versionError);
+        // Default to 1.0 if there's an error
+      }
+
+      console.log(`Creating optimized resume version ${versionNumber}`);
+
+      // Insert the new optimized resume with proper version
       const [result] = await db
         .insert(optimizedResumes)
         .values({
           userId: resume.userId,
           sessionId: resume.sessionId,
           uploadedResumeId: resume.uploadedResumeId,
-          optimisedResume: resume.optimisedResume,
+          optimisedResume: resume.optimisedResume || resume.content,
           originalContent: resume.originalContent,
           jobDescription: resume.jobDescription,
           jobUrl: resume.jobUrl || null,
           jobDetails: resume.jobDetails || {},
-          metadata: resume.metadata || {
-            filename: 'optimized_resume.txt',
+          metadata: {
+            filename: resume.metadata?.filename || '',
             optimizedAt: new Date().toISOString(),
-            version: '1.0'
+            version: versionNumber
           },
-          contactInfo: resume.contactInfo || {
-            fullName: '',
-            email: '',
-            phone: '',
-            linkedin: '',
-            location: ''
+          metrics,
+          analysis: {
+            strengths: resume.analysis?.strengths || [],
+            improvements: resume.analysis?.improvements || [],
+            gaps: resume.analysis?.gaps || [],
+            suggestions: resume.analysis?.suggestions || []
           },
-          professionalSummary: resume.professionalSummary || '',
-          skills: resume.skills || {
-            technical: [],
-            soft: []
-          },
-          experience: resume.experience || [],
-          education: resume.education || [],
-          certifications: resume.certifications || [],
-          metrics: resume.metrics || {
-            before: {
-              overall: 0,
-              keywords: 0,
-              skills: 0,
-              experience: 0,
-              education: 0,
-              personalization: 0,
-              aiReadiness: 0,
-              confidence: 0
-            },
-            after: {
-              overall: 0,
-              keywords: 0,
-              skills: 0,
-              experience: 0,
-              education: 0,
-              personalization: 0,
-              aiReadiness: 0,
-              confidence: 0
-            }
-          },
-          analysis: resume.analysis || {
-            strengths: [],
-            improvements: [],
-            gaps: [],
-            suggestions: []
-          },
-          version: '1.0',
-          createdAt: await getCurrentESTTimestamp()
+          version: versionNumber,
+          createdAt: await getCurrentESTTimestamp(),
+          contactInfo
         })
         .returning();
-
-      console.log('[Storage] Successfully created optimized resume:', result.id);
 
       return {
         ...result,
         metadata: result.metadata as OptimizedResume['metadata'],
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
-        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-        skills: result.skills as OptimizedResume['skills'],
-        experience: result.experience as OptimizedResume['experience'],
-        education: result.education as OptimizedResume['education'],
-        certifications: result.certifications as OptimizedResume['certifications'],
         metrics: result.metrics as OptimizedResume['metrics'],
+        contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
         analysis: result.analysis as OptimizedResume['analysis']
       };
     } catch (error) {
-      console.error('[Storage] Error creating optimized resume:', error);
+      console.error('Error creating optimized resume:', error);
       throw new Error('Failed to create optimized resume');
     }
   }
@@ -386,37 +457,24 @@ export class DatabaseStorage implements IStorage {
         analysis: optimizedResumes.analysis,
         version: optimizedResumes.version,
         createdAt: optimizedResumes.createdAt,
-        contactInfo: optimizedResumes.contactInfo,
-        professionalSummary: optimizedResumes.professionalSummary,
-        skills: optimizedResumes.skills,
-        experience: optimizedResumes.experience,
-        education: optimizedResumes.education,
-        certifications: optimizedResumes.certifications
+        contactInfo: optimizedResumes.contactInfo
       })
-        .from(optimizedResumes)
-        .where(eq(optimizedResumes.userId, userId));
+      .from(optimizedResumes)
+      .where(eq(optimizedResumes.userId, userId));
 
-      const transformedResults = results.map(result => {
+      return results.map(result => {
         return {
           ...result,
           metadata: result.metadata as OptimizedResume['metadata'],
           jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
           metrics: result.metrics as OptimizedResume['metrics'],
           contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-          analysis: result.analysis as OptimizedResume['analysis'],
-          skills: result.skills as OptimizedResume['skills'],
-          experience: result.experience as OptimizedResume['experience'],
-          education: result.education as OptimizedResume['education'],
-          certifications: result.certifications as OptimizedResume['certifications'],
-          professionalSummary: result.professionalSummary as OptimizedResume['professionalSummary']
+          analysis: result.analysis as OptimizedResume['analysis']
         };
       });
-
-      return transformedResults;
     } catch (error) {
       console.error('Error getting optimized resumes by user:', error);
-      // Return empty array instead of throwing, to prevent frontend crashes
-      return [];
+      throw new Error('Failed to get optimized resumes');
     }
   }
 
@@ -485,12 +543,7 @@ export class DatabaseStorage implements IStorage {
         metrics: optimizedResumes.metrics,
         analysis: optimizedResumes.analysis,
         createdAt: optimizedResumes.createdAt,
-        contactInfo: optimizedResumes.contactInfo,
-        professionalSummary: optimizedResumes.professionalSummary,
-        skills: optimizedResumes.skills,
-        experience: optimizedResumes.experience,
-        education: optimizedResumes.education,
-        certifications: optimizedResumes.certifications
+        contactInfo: optimizedResumes.contactInfo
       })
         .from(optimizedResumes)
         .where(and(
@@ -520,12 +573,7 @@ export class DatabaseStorage implements IStorage {
             personalization: 0,
             aiReadiness: 0,
             overall: 0
-          },
-          skills: result.skills as OptimizedResume['skills'],
-          experience: result.experience as OptimizedResume['experience'],
-          education: result.education as OptimizedResume['education'],
-          certifications: result.certifications as OptimizedResume['certifications'],
-          professionalSummary: result.professionalSummary as OptimizedResume['professionalSummary']
+          }
         };
       });
 

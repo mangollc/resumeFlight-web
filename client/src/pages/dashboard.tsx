@@ -225,7 +225,6 @@ export default function Dashboard() {
 
   const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false); // Added isDownloading state
 
 
   // Fetch optimized resume data when in review mode
@@ -622,6 +621,7 @@ export default function Dashboard() {
       setIsDownloading(true);
 
       const formData = new FormData();
+      formData.append('sessionId', sessionId);
       if (jobDetails) {
         formData.append('jobDetails', JSON.stringify(jobDetails));
       }
@@ -682,7 +682,7 @@ export default function Dashboard() {
       console.error('Download error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to download package",
+        description: "Failed to download package",
         variant: "destructive",
       });
     } finally {
@@ -1514,7 +1514,7 @@ export default function Dashboard() {
   }, [isReviewMode]);
 
   const [sessionId] = useState(() => Math.floor(Math.random() * 1000000).toString());
-
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleCancel = () => {
     setIsOptimizing(false);
@@ -1542,66 +1542,12 @@ export default function Dashboard() {
     );
   }
 
-  const { data: resumes = [] } = useQuery<UploadedResume[]>({
+  const { data: resumes } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/uploaded-resumes', {
-          headers: {
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          console.error('Failed to fetch uploaded resumes:', response.status);
-          return [];
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Expected JSON response but got:', contentType);
-          return [];
-        }
-        
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('Error fetching uploaded resumes:', error);
-        return [];
-      }
-    }
   });
 
-  const { data: optimizedResumes = [] } = useQuery<OptimizedResume[]>({
+  const { data: optimizedResumes } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/optimized-resumes', {
-          headers: {
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          console.error('Failed to fetch optimized resumes:', response.status);
-          return [];
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Expected JSON response but got:', contentType);
-          return [];
-        }
-        
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error('Error fetching optimized resumes:', error);
-        return [];
-      }
-    }
   });
 
   return (

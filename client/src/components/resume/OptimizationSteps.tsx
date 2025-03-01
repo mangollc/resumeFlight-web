@@ -205,17 +205,11 @@ export function OptimizationSteps({ steps, optimizedResume, onNext, onBack }: Op
                       </div>
                       <div className="px-4 pb-3">
                         <ul className="space-y-1 text-sm">
-                          {optimizedResume.analysis?.suggestions?.length ? (
-                            optimizedResume.analysis.suggestions.map((item: string, idx: number) => (
-                              <li key={idx} className="flex items-start gap-2">
-                                <span className="text-muted-foreground">{item}</span>
-                              </li>
-                            ))
-                          ) : (
-                            <li>
-                              <span className="text-muted-foreground">No suggestions available</span>
+                          {optimizedResume.analysis?.suggestions?.map((item: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-muted-foreground">{item}</span>
                             </li>
-                          )}
+                          ))}
                         </ul>
                       </div>
                     </div>

@@ -182,104 +182,12 @@ Ensure each score is calculated based on:
       allChanges.push(...(result.changes || []));
     }
 
-    return { changes: allChanges, overallScore: 0, scores: {} };
+    return { changes: allChanges, overallScore: result.overallScore, scores: result.scores };
   } catch (err) {
     const error = err as Error;
     console.error("[Differences] Analysis error:", error);
     throw new Error(`Failed to analyze resume differences: ${error.message}`);
   }
-}
-
-function formatResumeToText(resume: any): string {
-  const sections: string[] = [];
-
-  // Contact Information
-  const contact = resume.contactInfo;
-  sections.push(`${contact.fullName}
-${contact.email} | ${contact.phone}
-${contact.location}${contact.linkedin ? ` | ${contact.linkedin}` : ''}\n`);
-
-  // Professional Summary
-  sections.push(`PROFESSIONAL SUMMARY\n${resume.professionalSummary}\n`);
-
-  // Skills
-  sections.push(`SKILLS
-Technical: ${resume.skills.technical.join(', ')}
-Soft Skills: ${resume.skills.soft.join(', ')}\n`);
-
-  // Experience
-  sections.push(`PROFESSIONAL EXPERIENCE
-${resume.experience.map(exp => 
-    `${exp.title} - ${exp.company}
-${exp.location} | ${exp.dates}
-${exp.achievements.map(achievement => `• ${achievement}`).join('\n')}`
-  ).join('\n\n')}\n`);
-
-  // Education
-  sections.push(`EDUCATION
-${resume.education.map(edu =>
-    `${edu.degree}
-${edu.institution} | ${edu.graduationDate}
-${edu.honors ? `\nHonors: ${edu.honors}` : ''}`
-  ).join('\n\n')}\n`);
-
-  // Certifications (if available)
-  if (resume.certifications && resume.certifications.length > 0) {
-    sections.push(`CERTIFICATIONS
-${resume.certifications.map(cert =>
-      `${cert.name} - ${cert.issuer} (${cert.dateReceived})`
-    ).join('\n')}`);
-  }
-
-  // Optional Sections - only add if they exist and have content
-  const optionalSections = resume.optionalSections || {};
-
-  // Projects
-  if (optionalSections.projects?.length > 0) {
-    sections.push(`\nPROJECTS
-${optionalSections.projects.map(proj =>
-      `${proj.title}
-${proj.description}
-Date: ${proj.date}`
-    ).join('\n\n')}`);
-  }
-
-  // Awards and Achievements
-  if (optionalSections.awardsAndAchievements?.length > 0) {
-    sections.push(`\nAWARDS AND ACHIEVEMENTS
-${optionalSections.awardsAndAchievements.map(award =>
-      `${award.title} - ${award.organization}
-Date: ${award.date}`
-    ).join('\n\n')}`);
-  }
-
-  // Volunteer Work
-  if (optionalSections.volunteerWork?.length > 0) {
-    sections.push(`\nVOLUNTEER WORK
-${optionalSections.volunteerWork.map(work =>
-      `${work.role} - ${work.organization}
-${work.location} | ${work.dates}`
-    ).join('\n\n')}`);
-  }
-
-  // Languages
-  if (optionalSections.languages?.length > 0) {
-    sections.push(`\nLANGUAGES
-${optionalSections.languages.map(lang =>
-      `${lang.language} - ${lang.proficiency}`
-    ).join('\n')}`);
-  }
-
-  // Publications
-  if (optionalSections.publications?.length > 0) {
-    sections.push(`\nPUBLICATIONS
-${optionalSections.publications.map(pub =>
-      `${pub.title}
-${pub.journal} (${pub.date})`
-    ).join('\n\n')}`);
-  }
-
-  return sections.join('\n\n').trim();
 }
 
 export async function optimizeResume(
@@ -301,24 +209,21 @@ export async function optimizeResume(
   }
 
   try {
-    console.log("[OpenAI] Starting resume optimization...");
     const optimizationVersion = version || 1.0;
+    // Reduce chunk size to prevent timeouts
     const resumeChunks = splitIntoChunks(resumeText, 6000);
     const jobDescriptionChunks = splitIntoChunks(jobDescription, 6000);
 
-    console.log(`[OpenAI] Processing ${resumeChunks.length} chunks`);
+    console.log(`[Optimize] Starting resume optimization...`);
+    console.log(`[Optimize] Version: ${optimizationVersion}`);
+    console.log(`[Optimize] Processing resume in ${resumeChunks.length} chunks`);
 
-    let optimizedChunks: any[] = [];
+    let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
-    let combinedAnalysis = {
-      strengths: [] as string[],
-      improvements: [] as string[],
-      gaps: [] as string[],
-      suggestions: [] as string[]
-    };
 
+    // First optimize the resume content with retries
     for (let i = 0; i < resumeChunks.length; i++) {
-      console.log(`[OpenAI] Processing chunk ${i + 1}/${resumeChunks.length}`);
+      console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
       let attempts = 0;
       let success = false;
       let response;
@@ -330,83 +235,65 @@ export async function optimizeResume(
             messages: [
               {
                 role: "system",
-                content: `You are an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). 
-Optimize this section of the resume based on the job description and return a JSON response with the following structure:
+                content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description using the following structured format:
 
+1. Contact Information
+   - Full Name (prominently displayed)
+   - Phone Number
+   - Email Address
+   - LinkedIn Profile (if provided)
+   - Location (City/State)
+
+2. Professional Summary (2-4 sentences)
+   - Overview of professional background, key skills, and career goals
+   - Tailored to job description with relevant keywords
+   - Focus on most relevant expertise and achievements
+
+3. Skills
+   - Highlight both technical and soft skills relevant to the target role
+   - Organize in bullet points or a clean table format
+   - Categorize into sections if appropriate (Technical/Soft Skills)
+
+4. Professional Experience
+   - List in reverse chronological order
+   - Include job title, company name, location, and dates
+   - Focus on achievements with quantifiable results
+   - Use strong action verbs and emphasize metrics (%, $, time saved)
+
+5. Education
+   - Include degree, institution name, graduation date
+   - Mention honors or relevant coursework if applicable
+
+6. Certifications (if applicable)
+   - List relevant certifications with issuing organization and date
+
+7. Optional sections (if relevant and space permits)
+   - Projects, Awards & Achievements, Publications
+
+Ensure the resume is:
+- ATS-compliant with standard fonts and clear headings
+- Highlighting major accomplishments and metrics
+- Optimized with keywords from the job description
+- Proofread for grammar, consistency, and clarity
+
+1. Identify and incorporate key terms, phrases, and industry jargon from the job description
+2. Rewrite the professional summary to directly reflect core responsibilities and qualifications
+3. Reorganize work experience to emphasize accomplishments matching the job description, using quantifiable metrics
+4. Update skills section to include hard and soft skills mentioned in the job description
+5. Ensure proper formatting for ATS compatibility
+6. Tailor content to reflect industry-specific terminology and expectations
+
+Return a JSON object with:
 {
-  "optimizedContent": {
-    "contactInfo": {
-      "fullName": "string",
-      "phone": "string",
-      "email": "string",
-      "linkedin": "string",
-      "location": "string"
-    },
-    "professionalSummary": "string (2-4 sentences)",
-    "skills": {
-      "technical": ["string"],
-      "soft": ["string"]
-    },
-    "experience": [{
-      "title": "string",
-      "company": "string",
-      "location": "string",
-      "dates": "string",
-      "achievements": ["string"]
-    }],
-    "education": [{
-      "degree": "string",
-      "institution": "string",
-      "graduationDate": "string",
-      "honors": "string"
-    }],
-    "certifications": [{
-      "name": "string",
-      "issuer": "string",
-      "dateReceived": "string"
-    }],
-    "optionalSections": {
-      "projects": [{
-        "title": "string",
-        "description": "string",
-        "date": "string"
-      }],
-      "awardsAndAchievements": [{
-        "title": "string",
-        "organization": "string",
-        "date": "string"
-      }],
-      "volunteerWork": [{
-        "role": "string",
-        "organization": "string",
-        "location": "string",
-        "dates": "string"
-      }],
-      "languages": [{
-        "language": "string",
-        "proficiency": "string"
-      }],
-      "publications": [{
-        "title": "string",
-        "journal": "string",
-        "date": "string"
-      }]
-    }
-  },
-  "changes": ["string"],
-  "analysis": {
-    "strengths": ["string"],
-    "improvements": ["string"],
-    "gaps": ["string"],
-    "suggestions": ["string"]
+  "optimizedContent": "the enhanced resume section",
+  "changes": ["list specific improvements made"],
+  "sectionAnalysis": {
+    "strengths": ["identified strengths"],
+    "improvements": ["areas improved"],
+    "gaps": ["identified gaps"],
+    "suggestions": ["specific suggestions"]
   }
-}
-
-IMPORTANT: For optional sections (projects, awards, volunteer work, languages, publications):
-1. Only include sections that are explicitly present in the original resume
-2. Do not fabricate or add sections that don't exist
-3. If a section exists but is irrelevant to the job, you may exclude it
-4. Maintain the exact structure and format of the original content within these sections`
+}`
               },
               {
                 role: "user",
@@ -420,9 +307,8 @@ IMPORTANT: For optional sections (projects, awards, volunteer work, languages, p
           success = true;
         } catch (error: any) {
           attempts++;
-          console.error(`[OpenAI] Attempt ${attempts} failed:`, error);
           if (attempts === 3) throw error;
-          await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
         }
       }
 
@@ -431,54 +317,104 @@ IMPORTANT: For optional sections (projects, awards, volunteer work, languages, p
       }
 
       const result = JSON.parse(response.choices[0].message.content);
-
-      if (!result.optimizedContent) {
-        console.error("[OpenAI] Missing optimized content in chunk response:", result);
-        throw new Error("Invalid optimization result: missing content");
-      }
-
-      optimizedChunks.push(result.optimizedContent);
+      optimizedChunks.push(result.optimizedContent || "");
       if (result.changes) allChanges.push(...result.changes);
-      if (result.analysis) {
-        combinedAnalysis.strengths.push(...(result.analysis.strengths || []));
-        combinedAnalysis.improvements.push(...(result.analysis.improvements || []));
-        combinedAnalysis.gaps.push(...(result.analysis.gaps || []));
-        combinedAnalysis.suggestions.push(...(result.analysis.suggestions || []));
+    }
+
+    // Now perform overall analysis with retries
+    let attempts = 0;
+    let success = false;
+    let analysisResponse;
+
+    while (attempts < 3 && !success) {
+      try {
+        analysisResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `Analyze the optimized resume against the job description and provide comprehensive feedback.
+Evaluate how well the resume follows the structured format and addresses job requirements:
+
+1. Structure Evaluation:
+   - Proper formatting of contact information
+   - Effectiveness of professional summary
+   - Organization of skills section
+   - Impact of professional experience descriptions
+   - Presentation of education and certifications
+
+2. Content Evaluation:
+   - Incorporation of relevant keywords and industry terminology
+   - Alignment of achievements with job requirements
+   - Quantifiable results and metrics
+   - Technical and soft skills coverage
+   - Overall ATS compatibility
+
+3. Improvement Assessment:
+   - Compare original vs. optimized versions
+   - Identify specific enhancements made
+   - Evaluate keyword density and placement
+   - Assess professional tone and clarity
+
+Return a JSON object with:
+{
+  "analysis": {
+    "strengths": ["key strengths identified"],
+    "improvements": ["areas that were improved"],
+    "gaps": ["remaining gaps to address"],
+    "suggestions": ["actionable suggestions"]
+  }
+}`
+            },
+            {
+              role: "user",
+              content: `Optimized Resume:\n${optimizedChunks.join("\n\n")}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}`
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+          max_tokens: 2000
+        });
+        success = true;
+      } catch (error: any) {
+        attempts++;
+        if (attempts === 3) throw error;
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
       }
     }
 
-    console.log("[OpenAI] All chunks processed successfully");
+    if (!analysisResponse || !analysisResponse.choices[0].message.content) {
+      throw new Error("No analysis response received from OpenAI");
+    }
 
-    // Combine chunks into a properly formatted resume
-    const finalResume = {
-      contactInfo: optimizedChunks[0].contactInfo,
-      professionalSummary: optimizedChunks[0].professionalSummary,
-      skills: {
-        technical: [...new Set(optimizedChunks.flatMap(chunk => chunk.skills?.technical || []))],
-        soft: [...new Set(optimizedChunks.flatMap(chunk => chunk.skills?.soft || []))]
-      },
-      experience: optimizedChunks.flatMap(chunk => chunk.experience || []),
-      education: optimizedChunks.flatMap(chunk => chunk.education || []),
-      certifications: optimizedChunks.flatMap(chunk => chunk.certifications || []),
-      optionalSections: {
-        projects: optimizedChunks.flatMap(chunk => chunk.optionalSections?.projects || []),
-        awardsAndAchievements: optimizedChunks.flatMap(chunk => chunk.optionalSections?.awardsAndAchievements || []),
-        volunteerWork: optimizedChunks.flatMap(chunk => chunk.optionalSections?.volunteerWork || []),
-        languages: optimizedChunks.flatMap(chunk => chunk.optionalSections?.languages || []),
-        publications: optimizedChunks.flatMap(chunk => chunk.optionalSections?.publications || [])
+    const analysisResult = JSON.parse(analysisResponse.choices[0].message.content);
+
+    // Ensure the optimized content is properly stringified
+    let finalContent;
+    if (optimizedChunks.length === 0) {
+      finalContent = ""; // Handle empty case
+    } else if (optimizedChunks.every(chunk => typeof chunk === 'string')) {
+      finalContent = optimizedChunks.join("\n\n").trim();
+    } else {
+      // Handle mixed content or object content
+      finalContent = optimizedChunks
+        .map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : chunk)
+        .join("\n\n")
+        .trim();
+    }
+      
+    return {
+      optimisedResume: finalContent,
+      changes: allChanges,
+      analysis: {
+        strengths: analysisResult.analysis.strengths || [],
+        improvements: analysisResult.analysis.improvements || [],
+        gaps: analysisResult.analysis.gaps || [],
+        suggestions: analysisResult.analysis.suggestions || []
       }
     };
-
-    // Convert the structured resume back to formatted text
-    const formattedResume = formatResumeToText(finalResume);
-
-    return {
-      optimisedResume: formattedResume,
-      changes: allChanges,
-      analysis: combinedAnalysis
-    };
   } catch (error: any) {
-    console.error("[OpenAI] Optimization error:", error);
+    console.error("[Optimize] Error:", error);
     throw new Error(`Failed to optimize resume: ${error.message}`);
   }
 }
@@ -498,14 +434,6 @@ export async function generateCoverLetter(
     const coverLetterVersion = parseFloat(version?.toString() || '1.0');
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
-    
-    // Default contact info if not provided
-    contactInfo = {
-      fullName: contactInfo.fullName || "Applicant Name",
-      email: contactInfo.email || "applicant@example.com",
-      phone: contactInfo.phone || "555-555-5555",
-      address: contactInfo.address || ""
-    };
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
