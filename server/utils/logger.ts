@@ -1,4 +1,3 @@
-
 /**
  * Enhanced logging utility for the server
  */
@@ -34,28 +33,31 @@ export const logger = {
 
 // Express middleware for request logging
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-  const start = Date.now();
-  
-  // Log request details
-  logger.info(`${req.method} ${req.originalUrl}`, {
-    headers: req.headers,
-    query: req.query,
-    body: req.body
-  });
-  
-  // Log response on finish
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const message = `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`;
-    
-    if (res.statusCode >= 500) {
-      logger.error(message);
-    } else if (res.statusCode >= 400) {
-      logger.warn(message);
-    } else {
-      logger.info(message);
-    }
-  });
-  
+  // Skip logging for static assets and API requests that don't need detailed logging
+  if (req.path.match(/\.(js|css|map|jpg|png|svg|ico|ttf|woff|woff2)$/) || 
+      req.path.match(/^\/src\//) ||
+      req.path.match(/^\/_/) ||
+      req.path === '/api/user') {
+    return next();
+  }
+
+  // Log only essential information for API requests
+  if (req.path.startsWith('/api/')) {
+    // Log the request details without headers
+    console.log(`[${new Date().toISOString()}] [INFO] ${req.method} ${req.path}`);
+
+    // Log the response status when the response is sent
+    const originalEnd = res.end;
+    res.end = function (chunk?: any, encoding?: any, callback?: any) {
+      console.log(`[${new Date().toISOString()}] [INFO] ${req.method} ${req.path} ${res.statusCode}`);
+      return originalEnd.call(this, chunk, encoding, callback);
+    };
+  } else {
+    // For non-API routes, just log the path
+    console.log(`[${new Date().toISOString()}] [INFO] ${req.method} ${req.path}`);
+  }
+
+  // Track request start time
+  req.startTime = Date.now();
   next();
 };

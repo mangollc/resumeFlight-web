@@ -1,4 +1,3 @@
-
 import * as docx from 'docx';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 
@@ -6,7 +5,7 @@ import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle 
  * Generate a DOCX resume from optimized resume content
  */
 export function generateResumeDOCX(
-  resumeContent: string, 
+  content: string, 
   contactInfo: { 
     fullName: string; 
     email: string; 
@@ -20,103 +19,127 @@ export function generateResumeDOCX(
   }
 ): Buffer {
   // Safety check - if resumeContent is an object instead of string, stringify it
-  if (typeof resumeContent !== 'string') {
-    console.error('Resume content is not a string:', resumeContent);
-    resumeContent = JSON.stringify(resumeContent, null, 2);
+  if (typeof content !== 'string') {
+    console.error('Resume content is not a string:', content);
+    content = JSON.stringify(content, null, 2);
   }
-  // Split content into sections
-  const sections = resumeContent.split('\n\n').filter(s => s.trim());
-  
-  // Create document with proper styling
-  const doc = new Document({
-    styles: {
-      paragraphStyles: [
-        {
-          id: 'Normal',
-          name: 'Normal',
-          run: {
-            font: 'Calibri',
-            size: 24,
-          },
-          paragraph: {
-            spacing: {
-              line: 360,
+  if (!content) {
+    throw new Error('Cannot generate DOCX: Resume content is missing');
+  }
+
+  // Ensure we have contact info and job details
+  contactInfo = contactInfo || {
+    fullName: '',
+    email: '',
+    phone: '',
+    linkedin: '',
+    location: ''
+  };
+
+  jobDetails = jobDetails || {
+    title: '',
+    company: '',
+    location: '',
+    description: '',
+    requirements: []
+  };
+
+  try {
+    const doc = new Document({
+      styles: {
+        paragraphStyles: [
+          {
+            id: 'Normal',
+            name: 'Normal',
+            run: {
+              font: 'Calibri',
+              size: 24,
+            },
+            paragraph: {
+              spacing: {
+                line: 360,
+              },
             },
           },
-        },
-        {
-          id: 'Heading1',
-          name: 'Heading 1',
-          run: {
-            font: 'Calibri',
-            size: 32,
-            bold: true,
-          },
-          paragraph: {
-            spacing: {
-              before: 240,
-              after: 120,
+          {
+            id: 'Heading1',
+            name: 'Heading 1',
+            run: {
+              font: 'Calibri',
+              size: 32,
+              bold: true,
+            },
+            paragraph: {
+              spacing: {
+                before: 240,
+                after: 120,
+              },
             },
           },
-        },
-        {
-          id: 'Heading2',
-          name: 'Heading 2',
-          run: {
-            font: 'Calibri',
-            size: 28,
-            bold: true,
-          },
-          paragraph: {
-            spacing: {
-              before: 240,
-              after: 120,
+          {
+            id: 'Heading2',
+            name: 'Heading 2',
+            run: {
+              font: 'Calibri',
+              size: 28,
+              bold: true,
+            },
+            paragraph: {
+              spacing: {
+                before: 240,
+                after: 120,
+              },
             },
           },
-        },
-      ],
-    },
-    sections: [
-      {
-        properties: {},
-        children: [
-          // Header with contact information
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: contactInfo.fullName || 'Resume',
-                bold: true,
-                size: 36,
-              }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            children: [
-              new TextRun({
-                text: [
-                  contactInfo.email,
-                  contactInfo.phone,
-                  contactInfo.address,
-                  contactInfo.linkedin
-                ].filter(Boolean).join(' | '),
-                size: 24,
-              }),
-            ],
-            spacing: {
-              after: 400,
-            },
-          }),
-          
-          // Main content - convert plain text to structured document
-          ...processResumeContent(sections),
         ],
       },
-    ],
-  });
+      sections: [
+        {
+          properties: {},
+          children: [
+            // Header with contact information
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun({
+                  text: contactInfo.fullName || 'Resume',
+                  bold: true,
+                  size: 36,
+                }),
+              ],
+            }),
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun({
+                  text: [
+                    contactInfo.email,
+                    contactInfo.phone,
+                    contactInfo.address,
+                    contactInfo.linkedin
+                  ].filter(Boolean).join(' | '),
+                  size: 24,
+                }),
+              ],
+              spacing: {
+                after: 400,
+              },
+            }),
 
-  return docx.Packer.toBuffer(doc);
+            // Main content - convert plain text to structured document
+            ...processResumeContent(content.split('\n\n').filter(s => s.trim())),
+          ],
+        },
+      ],
+    });
+
+    const docPacker = new docx.Packer();
+    const buffer = docPacker.toBuffer(doc);
+    return buffer;
+  } catch (error) {
+    console.error('Failed to generate DOCX file:', error);
+    throw new Error('Failed to generate resume document');
+  }
 }
 
 /**
@@ -195,7 +218,7 @@ export function generateCoverLetterDOCX(
               after: 400,
             },
           }) : new Paragraph({}),
-          
+
           // Date
           new Paragraph({
             children: [
@@ -212,7 +235,7 @@ export function generateCoverLetterDOCX(
               after: 400,
             },
           }),
-          
+
           // Salutation and content
           ...processCoverLetterContent(content),
         ],
@@ -228,17 +251,17 @@ export function generateCoverLetterDOCX(
  */
 function processResumeContent(sections: string[]): Paragraph[] {
   const result: Paragraph[] = [];
-  
+
   sections.forEach((section, index) => {
     const lines = section.split('\n').filter(line => line.trim());
-    
+
     // First line of each section is often a heading
     if (lines.length > 0) {
       // Check if this looks like a section heading
       const firstLine = lines[0].trim();
       const isHeading = firstLine === firstLine.toUpperCase() || 
                        (firstLine.length < 50 && !firstLine.endsWith('.'));
-      
+
       if (isHeading) {
         result.push(
           new Paragraph({
@@ -258,7 +281,7 @@ function processResumeContent(sections: string[]): Paragraph[] {
             },
           })
         );
-        
+
         // Process remaining lines in this section
         lines.slice(1).forEach(line => {
           result.push(
@@ -287,7 +310,7 @@ function processResumeContent(sections: string[]): Paragraph[] {
       }
     }
   });
-  
+
   return result;
 }
 
@@ -297,9 +320,9 @@ function processResumeContent(sections: string[]): Paragraph[] {
 function processCoverLetterContent(content: string): Paragraph[] {
   const lines = content.split('\n').filter(line => line.trim());
   const result: Paragraph[] = [];
-  
+
   let inSignature = false;
-  
+
   lines.forEach(line => {
     // Check for salutation
     if (line.startsWith('Dear ')) {
@@ -342,6 +365,6 @@ function processCoverLetterContent(content: string): Paragraph[] {
       );
     }
   });
-  
+
   return result;
 }

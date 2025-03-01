@@ -106,18 +106,20 @@ function ResumeRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
-  
-  // Ensure analysis data is never undefined
-  const analysisData = resume?.analysis || {
-    strengths: [],
-    improvements: [],
-    gaps: [],
-    suggestions: []
+
+  // Ensure analysis data is never undefined and has arrays
+  const analysisData = {
+    strengths: resume?.analysis?.strengths || [],
+    improvements: resume?.analysis?.improvements || [],
+    gaps: resume?.analysis?.gaps || [], 
+    suggestions: resume?.analysis?.suggestions || []
   };
-  
+
   // Ensure other needed properties exist
   const metadata = resume?.metadata || {};
   const jobDetails = resume?.jobDetails || {};
+  const jobTitle = jobDetails?.title || 'Position';
+  const company = jobDetails?.company || 'Company';
 
   return (
     <>
@@ -146,8 +148,8 @@ function ResumeRow({
         </TableCell>
         <TableCell>
           <div className="flex flex-col gap-1">
-            <div className="text-sm">{resume.jobDetails?.title || "N/A"}</div>
-            <div className="text-xs text-muted-foreground">{resume.jobDetails?.company || "N/A"}</div>
+            <div className="text-sm">{jobTitle}</div>
+            <div className="text-xs text-muted-foreground">{company}</div>
           </div>
         </TableCell>
         <TableCell className="hidden lg:table-cell text-right">
@@ -185,15 +187,6 @@ function ResumeRow({
                 <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {/* <DropdownMenuItem onClick={() => downloadResumeDocx(resume.id)}>
-                <FileDown className="mr-2 h-4 w-4" />
-                <span>Download Resume (DOCX)</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => downloadCoverLetterDocx(resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>Generate & Download Cover Letter</span>
-              </DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -310,7 +303,7 @@ function ResumeRow({
                               <span>{strength}</span>
                             </div>
                           ))}
-                          {(!analysisData.strengths || analysisData.strengths.length === 0) && (
+                          {analysisData.strengths.length === 0 && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No strengths identified yet</span>
@@ -342,7 +335,7 @@ function ResumeRow({
                               <span>{improvement}</span>
                             </div>
                           ))}
-                          {(!analysisData.improvements || analysisData.improvements.length === 0) && (
+                          {analysisData.improvements.length === 0 && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No improvements identified yet</span>
@@ -373,7 +366,7 @@ function ResumeRow({
                               <span>{gap}</span>
                             </div>
                           ))}
-                          {(!analysisData.gaps || analysisData.gaps.length === 0) && (
+                          {analysisData.gaps.length === 0 && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No gaps identified</span>
@@ -405,7 +398,7 @@ function ResumeRow({
                               <span>{suggestion}</span>
                             </div>
                           ))}
-                          {(!analysisData.suggestions || analysisData.suggestions.length === 0) && (
+                          {analysisData.suggestions.length === 0 && (
                             <div className="text-sm text-muted-foreground flex gap-2 items-center">
                               <Info className="h-4 w-4" />
                               <span>No suggestions available</span>
@@ -478,7 +471,7 @@ export default function OptimizedResumesPage() {
       });
     },
   });
-  
+
   // Handle loading and empty states
   if (isLoading) {
     return (
@@ -521,13 +514,11 @@ export default function OptimizedResumesPage() {
     );
   }
 
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => {
     try {
-      toast({
-        title: "Processing",
-        description: `Preparing your ${type} for download...`,
-      });
-
+      setIsDownloading(true);
       const endpoint = `/api/documents/${type}/${resumeId}/download?format=${format}`;
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -537,30 +528,46 @@ export default function OptimizedResumesPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to download ${type}`);
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `Failed to download ${type}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        // Handle case where server returned JSON error instead of file
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to download ${type}`);
       }
 
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      if (blob.size === 0) {
+        throw new Error('Downloaded file is empty');
+      }
+
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${type}-${resumeId}.${format}`;
       document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast({
         title: "Success",
         description: `${type.charAt(0).toUpperCase() + type.slice(1)} downloaded successfully`,
+        duration: 3000,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error downloading ${type}:`, error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : `Failed to download ${type}`,
+        description: error.message || `Failed to download ${type}. Try again.`,
         variant: "destructive",
+        duration: 5000,
       });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
