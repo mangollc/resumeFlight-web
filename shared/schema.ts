@@ -43,7 +43,10 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       education: 0,
       personalization: 0,
       aiReadiness: 0,
-      confidence: 0
+      confidence: 0,
+      relevance: 0,
+      clarity: 0,
+      impact: 0
     },
     after: {
       overall: 0,
@@ -53,23 +56,51 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       education: 0,
       personalization: 0,
       aiReadiness: 0,
-      confidence: 0
+      confidence: 0,
+      relevance: 0,
+      clarity: 0,
+      impact: 0
     }
   }),
   analysis: jsonb("analysis").notNull().default({
     strengths: [],
     improvements: [],
     gaps: [],
-    suggestions: []
+    suggestions: [],
+    keywordMatches: [],
+    skillGaps: [],
+    experienceAlignment: [],
+    impactMetrics: []
   }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resumeContent: jsonb("resume_content").notNull().default({
+    professionalSummary: "",
+    skills: {
+      technical: [],
+      soft: [],
+      certifications: []
+    },
+    experience: [],
+    education: [],
+    projects: [],
+    awards: [],
+    volunteerWork: [],
+    languages: [],
+    publications: []
+  }),
   contactInfo: jsonb("contact_info").notNull().default({
     fullName: '',
     email: '',
     phone: '',
-    address: '',
-    linkedin: ''
-  })
+    location: {
+      city: '',
+      state: '',
+      country: ''
+    },
+    linkedin: '',
+    portfolio: '',
+    github: ''
+  }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const resumeVersionScores = pgTable("resume_version_scores", {
@@ -187,8 +218,10 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     jobDetails: true,
     metadata: true,
     metrics: true,
-    uploadedResumeId: true,
     analysis: true,
+    resumeContent: true,
+    contactInfo: true,
+    uploadedResumeId: true,
   });
 
 export const insertOptimizationSessionSchema = createInsertSchema(optimizationSessions)
@@ -230,7 +263,8 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     title: string;
     company: string;
     location: string;
-    description?: string;
+    description: string;
+    requirements: string[];
   };
   metrics: {
     before: {
@@ -242,6 +276,9 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       personalization: number;
       aiReadiness: number;
       confidence: number;
+      relevance: number;
+      clarity: number;
+      impact: number;
     };
     after: {
       overall: number;
@@ -252,6 +289,9 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       personalization: number;
       aiReadiness: number;
       confidence: number;
+      relevance: number;
+      clarity: number;
+      impact: number;
     };
   };
   analysis: {
@@ -259,13 +299,75 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     improvements: string[];
     gaps: string[];
     suggestions: string[];
+    keywordMatches: string[];
+    skillGaps: string[];
+    experienceAlignment: string[];
+    impactMetrics: string[];
+  };
+  resumeContent: {
+    professionalSummary: string;
+    skills: {
+      technical: string[];
+      soft: string[];
+      certifications: string[];
+    };
+    experience: Array<{
+      title: string;
+      company: string;
+      location: string;
+      startDate: string;
+      endDate: string;
+      achievements: string[];
+    }>;
+    education: Array<{
+      degree: string;
+      institution: string;
+      location: string;
+      graduationDate: string;
+      gpa?: string;
+      honors?: string[];
+    }>;
+    projects?: Array<{
+      name: string;
+      description: string;
+      technologies: string[];
+      url?: string;
+    }>;
+    awards?: Array<{
+      title: string;
+      issuer: string;
+      date: string;
+      description: string;
+    }>;
+    volunteerWork?: Array<{
+      organization: string;
+      role: string;
+      duration: string;
+      description: string;
+    }>;
+    languages?: Array<{
+      language: string;
+      proficiency: string;
+    }>;
+    publications?: Array<{
+      title: string;
+      publisher: string;
+      date: string;
+      url?: string;
+    }>;
   };
   contactInfo: {
     fullName: string;
     email: string;
     phone: string;
-    address?: string;
-    linkedin?: string;
+    location: {
+      city: string;
+      state: string;
+      country: string;
+    };
+    linkedin: string;
+    portfolio?: string;
+    github?: string;
   };
 };
 export type InsertOptimizedResume = z.infer<typeof insertOptimizedResumeSchema>;

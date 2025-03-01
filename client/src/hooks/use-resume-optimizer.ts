@@ -1,9 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import { useToast } from '@/components/ui/use-toast';
+import { OptimizedResume } from '@shared/schema';
 
-// Increase timeout and add retry mechanism
 const EVENT_SOURCE_TIMEOUT = 180000; // 3 minutes
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000; // 3 seconds
@@ -11,13 +9,16 @@ const RETRY_DELAY = 3000; // 3 seconds
 interface OptimizeResumeOptions {
   resumeId: number;
   jobDescription: string;
+  jobUrl?: string;
 }
 
 interface OptimizationStatus {
   status: 'idle' | 'started' | 'extracting_details' | 'analyzing_description' | 'optimizing_resume' | 'completed' | 'error';
   error?: string;
-  optimizedResume?: any;
-  changes?: any[];
+  code?: string;
+  optimizedResume?: OptimizedResume;
+  resumeContent?: OptimizedResume['resumeContent'];
+  analysis?: OptimizedResume['analysis'];
 }
 
 export function useResumeOptimizer() {
@@ -45,43 +46,47 @@ export function useResumeOptimizer() {
     };
   }, [eventSource]);
 
-  const optimizeResume = useCallback(async ({ resumeId, jobDescription }: OptimizeResumeOptions) => {
+  const optimizeResume = useCallback(async ({ resumeId, jobDescription, jobUrl }: OptimizeResumeOptions) => {
     // Clear any previous optimization
     if (eventSource) {
       eventSource.close();
     }
-    
+
     setStatus({ status: 'idle' });
     setRetryCount(0);
-    
+
     try {
       // Create URL with params
       const url = new URL(`/api/uploaded-resumes/${resumeId}/optimize`, window.location.origin);
       if (jobDescription) {
         url.searchParams.append('jobDescription', jobDescription);
       }
-      
+      if (jobUrl) {
+        url.searchParams.append('jobUrl', jobUrl);
+      }
+
       console.log('Creating EventSource with URL:', url.toString());
-      
+
       // Create new EventSource
       const newEventSource = new EventSource(url.toString());
       setEventSource(newEventSource);
-      
+
       // Set up timeout
       const timeoutId = setTimeout(() => {
         console.log('Request timed out');
         newEventSource.close();
-        
+
         if (retryCount < MAX_RETRIES) {
           console.log(`Retrying (${retryCount + 1}/${MAX_RETRIES})...`);
           setRetryCount(prev => prev + 1);
           setTimeout(() => {
-            optimizeResume({ resumeId, jobDescription });
+            optimizeResume({ resumeId, jobDescription, jobUrl });
           }, RETRY_DELAY);
         } else {
           setStatus({ 
             status: 'error', 
-            error: 'Optimization timed out after multiple attempts. Please try again later.' 
+            error: 'Optimization timed out after multiple attempts. Please try again later.',
+            code: 'TIMEOUT_ERROR'
           });
           toast({
             title: 'Optimization Failed',
@@ -90,43 +95,44 @@ export function useResumeOptimizer() {
           });
         }
       }, EVENT_SOURCE_TIMEOUT);
-      
+
       // Event handlers
       newEventSource.onopen = () => {
         console.log('EventSource connection opened');
       };
-      
+
       newEventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
         console.log('Received event:', data);
-        
+
         if (data.status === 'completed') {
           clearTimeout(timeoutId);
           newEventSource.close();
           setEventSource(null);
         }
-        
+
         setStatus(data);
       };
-      
+
       newEventSource.onerror = (error) => {
-        console.log('EventSource error:', error);
+        console.error('EventSource error:', error);
         clearTimeout(timeoutId);
-        
+
         if (retryCount < MAX_RETRIES) {
           console.log(`Retrying after error (${retryCount + 1}/${MAX_RETRIES})...`);
           newEventSource.close();
           setRetryCount(prev => prev + 1);
-          
+
           setTimeout(() => {
-            optimizeResume({ resumeId, jobDescription });
+            optimizeResume({ resumeId, jobDescription, jobUrl });
           }, RETRY_DELAY);
         } else {
           newEventSource.close();
           setEventSource(null);
           setStatus({ 
             status: 'error', 
-            error: 'Connection failed after multiple attempts. Please try again later.' 
+            error: 'Connection failed after multiple attempts. Please try again later.',
+            code: 'CONNECTION_ERROR'
           });
           toast({
             title: 'Connection Error',
@@ -135,16 +141,17 @@ export function useResumeOptimizer() {
           });
         }
       };
-      
+
       return () => {
         clearTimeout(timeoutId);
         newEventSource.close();
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error setting up EventSource:', error);
       setStatus({ 
         status: 'error', 
-        error: 'Failed to start optimization process' 
+        error: 'Failed to start optimization process',
+        code: 'SETUP_ERROR'
       });
       toast({
         title: 'Error',

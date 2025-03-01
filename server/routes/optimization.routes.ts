@@ -31,17 +31,12 @@ async function processJobDetails(jobDescription?: string, jobUrl?: string): Prom
       throw new Error("Either job description or URL is required");
     }
 
-    // Ensure consistent structure
     return {
       title: details.title || '',
       company: details.company || '',
       location: details.location || '',
       description: details.description,
-      requirements: details.requirements || [],
-      skillsAndTools: details.skillsAndTools || [],
-      experience: details.experience || '',
-      type: details.type || '',
-      url: jobUrl || ''
+      requirements: details.requirements || []
     };
   } catch (error: any) {
     console.error('Error processing job details:', error);
@@ -67,7 +62,7 @@ router.get('/optimized-resumes', async (req, res) => {
     }
 });
 
-// Optimize resume
+// Optimize resume with SSE updates
 router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
     try {
         if (!req.isAuthenticated()) {
@@ -96,10 +91,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
 
         const sendEvent = (data: any) => {
             try {
-                // Log the event type for debugging
-                if (data.status) {
-                    console.log(`Sending SSE event: ${data.status}`);
-                }
+                console.log(`Sending SSE event: ${data.status}`);
                 res.write(`data: ${JSON.stringify(data)}\n\n`);
             } catch (error) {
                 console.error('Error sending SSE event:', error);
@@ -121,7 +113,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
         try {
             sendEvent({ status: "started" });
 
-            // Extract job details using unified processing
+            // Extract job details
             sendEvent({ status: "extracting_details" });
             const jobDetails = await processJobDetails(jobDescription, jobUrl);
 
@@ -136,9 +128,9 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 optimizationResult = await Promise.race([
                     optimizeResume(resume.content, jobDetails.description),
                     new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Optimization timed out')), 110000)
+                        setTimeout(() => reject(new Error('Optimization timed out')), 180000)
                     )
-                ]) as Awaited<ReturnType<typeof optimizeResume>>;
+                ]);
             } catch (error: any) {
                 if (error.message.includes('timed out')) {
                     sendEvent({ 
@@ -151,6 +143,16 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 throw error;
             }
 
+            // Validate optimization result
+            if (!optimizationResult?.resumeContent) {
+                sendEvent({ 
+                    status: "error",
+                    message: "Failed to generate optimized content",
+                    code: "OPTIMIZATION_ERROR"
+                });
+                return res.end();
+            }
+
             // Calculate optimized scores
             const optimizedScores = await calculateMatchScores(
                 optimizationResult.optimisedResume,
@@ -158,36 +160,16 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 true
             );
 
-            // Ensure content exists before processing
-if (!optimizationResult?.optimisedResume) {
-    const error = new Error('Optimization failed: No content received');
-    error.code = 'OPTIMIZATION_ERROR';
-    error.status = 422;
-    throw error;
-}
-
-// Ensure we have content to work with
-            const optimizedContent = optimizationResult.optimizedContent || optimizationResult.optimisedResume;
-            
-            if (!optimizedContent) {
-                sendEvent({ 
-                    status: "error",
-                    message: "No optimized content was generated. Please try again.",
-                    code: "CONTENT_ERROR"
-                });
-                return res.end();
-            }
-            
+            // Create optimized resume record
             const optimizedResume = await storage.createOptimizedResume({
                 userId: req.user!.id,
-                sessionId: req.session.id,
-                uploadedResumeId: resume.id,
-                content: optimizedContent,
-                optimisedResume: optimizedContent,
-                originalContent: resume.content || '',
-                jobDescription: jobDetails?.description || '',
+                sessionId: req.session!.id,
+                uploadedResumeId: resumeId,
+                optimisedResume: optimizationResult.optimisedResume,
+                originalContent: resume.content,
+                jobDescription: jobDetails.description,
                 jobUrl: jobUrl || null,
-                jobDetails: jobDetails || {},
+                jobDetails,
                 metadata: {
                     filename: resume.metadata?.filename || 'resume.txt',
                     optimizedAt: new Date().toISOString(),
@@ -197,22 +179,21 @@ if (!optimizationResult?.optimisedResume) {
                     before: originalScores,
                     after: optimizedScores
                 },
-                analysis: {
-                    strengths: optimizationResult.analysis.strengths,
-                    improvements: optimizationResult.analysis.improvements,
-                    gaps: optimizationResult.analysis.gaps,
-                    suggestions: optimizationResult.analysis.suggestions
-                }
+                analysis: optimizationResult.analysis,
+                resumeContent: optimizationResult.resumeContent,
+                contactInfo: optimizationResult.contactInfo
             });
 
-            // Send completion status with results
+            // Send completion status
             sendEvent({ 
                 status: "completed",
                 optimizedResume,
-                changes: optimizationResult.changes
+                resumeContent: optimizationResult.resumeContent,
+                analysis: optimizationResult.analysis
             });
 
             return res.end();
+
         } catch (error: any) {
             console.error("Optimization process error:", error);
             sendEvent({ 
