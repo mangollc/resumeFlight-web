@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -24,61 +23,45 @@ export default function OptimizedResumesPage() {
   const [activeSection, setActiveSection] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const { data: optimizedResumes = [], isLoading, error, refetch } = useQuery<OptimizedResume[]>({
-    queryKey: ["/api/optimized-resumes"],
+  const { data: optimizedResumes = [], isLoading, error, isError } = useQuery<OptimizedResume[]>({
+    queryKey: ['/api/optimized-resumes'],
     queryFn: async () => {
-      console.log('Fetching optimized resumes...');
       try {
-        const response = await fetch('/api/optimized-resumes', {
-          headers: {
-            'Accept': 'application/json'
-          },
-          credentials: 'include'
-        });
-        
+        console.log('Fetching optimized resumes...');
+        const response = await fetch('/api/optimized-resumes');
+
         console.log('Response status:', response.status);
-        const contentType = response.headers.get('content-type');
-        console.log('Content-Type:', contentType);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
           console.error('Failed to fetch optimized resumes:', response.status);
           return [];
         }
 
+        const contentType = response.headers.get('content-type');
+        console.log('Content-Type:', contentType);
+
         if (!contentType || !contentType.includes('application/json')) {
-          console.error('Expected JSON response but got:', contentType);
+          // Handle HTML response - log more details
           const text = await response.text();
-          console.error('HTML response received instead of JSON:', text.substring(0, 100));
-          throw new Error('Server returned HTML instead of JSON. You may need to log in again.');
+          console.error('Expected JSON response but got:', contentType?.slice(0, 100));
+          return [];
         }
 
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        if (!Array.isArray(data)) {
+          console.error('Response is not an array:', typeof data);
+          return [];
+        }
+
+        return data;
       } catch (err) {
-        console.error('Response processing error:', err);
-        toast({
-          title: "Error loading resumes",
-          description: err instanceof Error ? err.message : "Unexpected error occurred",
-          variant: "destructive"
-        });
+        console.error('Error fetching resumes:', err);
         return [];
       }
     },
     retry: 1,
-    select: (data) => {
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        return [];
-      }
-      return [...data].sort((a, b) => {
-        if (!a.metadata?.optimizedAt || !b.metadata?.optimizedAt) {
-          return 0;
-        }
-        return (
-          new Date(b.metadata.optimizedAt).getTime() -
-          new Date(a.metadata.optimizedAt).getTime()
-        );
-      });
-    },
+    retryDelay: 1000
   });
 
   if (isLoading) {
@@ -150,10 +133,10 @@ export default function OptimizedResumesPage() {
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      
+
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Success",
         description: "Resume downloaded successfully",
