@@ -18,7 +18,9 @@ router.get('/api/test-json', (req, res) => {
 // Get all optimized resumes
 router.get('/optimized-resumes', requireAuth, async (req, res) => {
   try {
-    // Query the database for optimized resumes
+    // Set the content type header to ensure proper JSON response
+    res.setHeader('Content-Type', 'application/json');
+
     const resumes = await db.select().from(optimizedResumes).orderBy(desc(optimizedResumes.createdAt));
 
     // Map to safe data format
@@ -26,28 +28,26 @@ router.get('/optimized-resumes', requireAuth, async (req, res) => {
       id: resume.id,
       title: resume.title || "Untitled Resume",
       jobTitle: resume.jobTitle || "Unknown Position",
-      createdAt: resume.createdAt.toISOString(),
-      updatedAt: resume.updatedAt.toISOString(),
       company: resume.company || "Unknown Company",
       // Don't include the full content in the list view
-      resumeId: resume.resumeId
+      resumeId: resume.resumeId,
+      createdAt: resume.createdAt ? new Date(resume.createdAt).toISOString() : new Date().toISOString()
     })) : [];
 
     // Log what we're about to return 
-    console.log("Returning optimized resumes:", 
-      `${safeResumes.length} resumes found`);
+    console.log("Returning optimized resumes:",
+      safeResumes.length);
 
-    // Explicitly set content type header
-    res.setHeader('Content-Type', 'application/json');
-
-    // Send the JSON response directly with res.json
-    return res.json(safeResumes);
+    // Return with created timestamp already processed above
+    res.json({
+      resumes: safeResumes
+    });
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
-    return res.status(500).json({ 
-      error: true,
-      message: "Failed to fetch optimized resumes", 
-      details: error instanceof Error ? error.message : "Unknown error" 
+    // Always send JSON response even in error cases
+    res.status(500).json({ 
+      error: "Error fetching optimized resumes",
+      resumes: [] 
     });
   }
 });
