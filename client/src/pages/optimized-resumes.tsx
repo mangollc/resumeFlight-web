@@ -29,8 +29,30 @@ export default function OptimizedResumesPage() {
 
   const { data: optimizedResumes = [], isLoading, error } = useQuery<OptimizedResume[]>({
     queryKey: ['/api/optimized-resumes'],
+    queryFn: async () => {
+      try {
+        console.log('Fetching optimized resumes...');
+        const response = await fetch('/api/optimized-resumes');
+
+        if (!response.ok) {
+          console.error('Error response status:', response.status);
+          throw new Error('Failed to fetch optimized resumes');
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('HTML response received instead of JSON:', contentType);
+          return [];
+        }
+
+        return await response.json();
+      } catch (err) {
+        console.error('Response processing error:', err);
+        return [];
+      }
+    },
     retry: 2,
-    staleTime: 30000,
+    retryDelay: 1000
   });
 
   // Function to download a resume
@@ -153,7 +175,8 @@ export default function OptimizedResumesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {optimizedResumes.map((resume) => (
+              {Array.isArray(optimizedResumes) && optimizedResumes.length > 0 ? (
+                optimizedResumes.map((resume) => (
                   <TableRow key={resume.id}>
                     <TableCell>{resume.jobDetails?.title || "Untitled Position"}</TableCell>
                     <TableCell>{resume.jobDetails?.company || "Unknown Company"}</TableCell>
@@ -187,8 +210,15 @@ export default function OptimizedResumesPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-4">
+                    No optimized resumes available
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
             </Table>
           </CardContent>
         </Card>
