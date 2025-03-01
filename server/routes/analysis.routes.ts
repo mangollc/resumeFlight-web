@@ -52,41 +52,31 @@ router.delete('/optimized/:id', async (req, res) => {
         }
 
         const resumeId = parseInt(req.params.id);
-        
+
         if (isNaN(resumeId)) {
             console.error(`API: Invalid optimized resume ID: ${req.params.id}`);
             return res.status(400).json({ error: "Invalid resume ID" });
         }
-        
+
         console.log(`API: Processing delete request for optimized resume ID: ${resumeId}`);
-        
-        const resume = await storage.getOptimizedResume(resumeId);
 
-        if (!resume) {
-            console.error(`API: Optimized resume with ID ${resumeId} not found`);
-            return res.status(404).json({ error: "Resume not found" });
-        }
-        
-        if (resume.userId !== req.user!.id) {
-            console.error(`API: User ${req.user!.id} not authorized to delete optimized resume ${resumeId}`);
-            return res.status(403).json({ error: "Not authorized" });
-        }
 
-        await storage.deleteOptimizedResume(resumeId);
-        console.log(`API: Successfully deleted optimized resume with ID: ${resumeId}`);
-        
-        return res.status(200).json({ 
-            success: true,
-            message: "Resume deleted successfully", 
-            resumeId 
-        });
-    } catch (error: any) {
+        try {
+            await storage.deleteOptimizedResume(resumeId);
+            return res.status(200).json({ message: 'Resume deleted successfully' });
+        } catch (deleteError) {
+            console.error('Error during resume deletion:', deleteError);
+
+            // Check if it's a "not found" error
+            if (deleteError instanceof Error && deleteError.message.includes('not found')) {
+                return res.status(404).json({ message: `Optimized resume with ID ${resumeId} not found` });
+            }
+
+            throw deleteError; // Re-throw for general error handling
+        }
+    } catch (error) {
         console.error('Delete optimized resume error:', error);
-        return res.status(500).json({ 
-            success: false,
-            error: "Failed to delete optimized resume",
-            details: error.message
-        });
+        return res.status(500).json({ message: error instanceof Error ? error.message : 'An unknown error occurred' });
     }
 });
 

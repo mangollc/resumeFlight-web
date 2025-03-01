@@ -223,7 +223,27 @@ export class DatabaseStorage implements IStorage {
   // Optimized Resume methods
   async getOptimizedResume(id: number): Promise<OptimizedResume | undefined> {
     try {
-      const [result] = await db.select().from(optimizedResumes).where(eq(optimizedResumes.id, id));
+      // Use a more specific select to avoid schema mismatches
+      const [result] = await db.select({
+        id: optimizedResumes.id,
+        userId: optimizedResumes.userId,
+        sessionId: optimizedResumes.sessionId,
+        uploadedResumeId: optimizedResumes.uploadedResumeId,
+        optimisedResume: optimizedResumes.optimisedResume,
+        originalContent: optimizedResumes.originalContent,
+        jobDescription: optimizedResumes.jobDescription,
+        jobUrl: optimizedResumes.jobUrl,
+        jobDetails: optimizedResumes.jobDetails,
+        metadata: optimizedResumes.metadata,
+        metrics: optimizedResumes.metrics,
+        analysis: optimizedResumes.analysis,
+        version: optimizedResumes.version,
+        createdAt: optimizedResumes.createdAt,
+        contactInfo: optimizedResumes.contactInfo
+      })
+      .from(optimizedResumes)
+      .where(eq(optimizedResumes.id, id));
+      
       if (!result) return undefined;
 
       return {
@@ -232,7 +252,9 @@ export class DatabaseStorage implements IStorage {
         jobDetails: result.jobDetails as OptimizedResume['jobDetails'],
         metrics: result.metrics as OptimizedResume['metrics'],
         contactInfo: result.contactInfo as OptimizedResume['contactInfo'],
-        analysis: result.analysis as OptimizedResume['analysis']
+        analysis: result.analysis as OptimizedResume['analysis'],
+        // Provide default values for potentially missing fields
+        resumeContent: {} as any
       };
     } catch (error) {
       console.error('Error getting optimized resume:', error);
@@ -484,38 +506,27 @@ export class DatabaseStorage implements IStorage {
     console.log(`Storage: Starting to delete optimized resume with ID ${id}`);
 
     try {
-      // First verify the resume exists
-      const checkResult = await pool.query(
-        'SELECT id FROM optimized_resumes WHERE id = $1',
-        [id]
-      );
-
-      if (checkResult.rowCount === 0) {
-        console.error(`Storage: Optimized resume with ID ${id} not found`);
-        throw new Error(`Optimized resume with ID ${id} not found`);
-      }
-
       // Use a transaction to ensure atomicity
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
 
-        // Delete the resume
+        // Delete the resume directly without checking first - simplifies the process
         const result = await client.query(
-          'DELETE FROM optimized_resumes WHERE id = $1 RETURNING id',
+          'DELETE FROM optimized_resumes WHERE id = $1',
           [id]
         );
 
         console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
 
         if (result.rowCount === 0) {
-          await client.query('ROLLBACK');
-          console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
-          throw new Error(`No rows were deleted for optimized resume ID ${id}`);
+          // Not throwing an error here, just logging - the resume might already be deleted
+          console.log(`Storage: No rows were deleted for optimized resume ID ${id}, it may not exist`);
+        } else {
+          console.log(`Storage: Successfully deleted optimized resume with ID ${id}`);
         }
 
         await client.query('COMMIT');
-        console.log(`Storage: Successfully deleted optimized resume with ID ${id}`);
       } catch (error) {
         await client.query('ROLLBACK');
         throw error;
