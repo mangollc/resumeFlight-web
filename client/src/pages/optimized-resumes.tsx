@@ -105,19 +105,49 @@ export default function OptimizedResumesPage() {
       setError(null);
       
       try {
-        const response = await fetch('/api/optimized-resumes');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch('/api/optimized-resumes', {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        clearTimeout(timeoutId);
         
         if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+          const errorText = await response.text();
+          let errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+          try {
+            // Try to parse error as JSON
+            const errorJson = JSON.parse(errorText);
+            if (errorJson.message) {
+              errorMessage = errorJson.message;
+            }
+          } catch (e) {
+            // If not valid JSON, use the text as is but truncated
+            if (errorText.length > 100) {
+              errorMessage += ` - ${errorText.substring(0, 100)}...`;
+            } else if (errorText) {
+              errorMessage += ` - ${errorText}`;
+            }
+          }
+          throw new Error(errorMessage);
         }
         
-        // Check content type to ensure we're getting JSON
+        // Validate the JSON content type
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Server returned a non-JSON response');
+          throw new Error('Server returned a non-JSON response. Please contact support.');
         }
         
         const data = await response.json();
+        if (!Array.isArray(data)) {
+          throw new Error('Server returned an invalid response format');
+        }
+        
         setOptimizedResumes(data);
       } catch (err) {
         console.error('Error fetching resumes:', err);
