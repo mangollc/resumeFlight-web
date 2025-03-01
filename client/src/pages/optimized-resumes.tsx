@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -29,11 +29,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast"; // Added missing import
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OptimizedResume } from "../../shared/schema";
-import { MoreVertical, ChevronDown as OrigChevronDown, ChevronRight as OrigChevronRight, Trash2 as OrigTrash2, Info, ChartBar, LucideIcon, Star, ArrowUpRight, Gauge, CheckCircle, XCircle, AlertTriangle, CircleAlert as OrigCircleAlert, Lightbulb, GraduationCap, Briefcase, Award, Brain, User, Mail, Phone, MapPin, Calendar, FileText as OrigFileText, Code, ArrowUpCircle, HelpCircle, FileDown, BarChart2 } from "lucide-react";
+import { MoreVertical, ChevronDown as OrigChevronDown, ChevronRight as OrigChevronRight, Trash2 as OrigTrash2, Info, ChartBar, LucideIcon, Star, ArrowUpRight, Gauge, CheckCircle, XCircle, AlertTriangle, CircleAlert as OrigCircleAlert, Lightbulb, GraduationCap, Briefcase, Award, Brain, User, Mail, Phone, MapPin, Calendar, FileText as OrigFileText, Code, ArrowUpCircle, HelpCircle, FileDown, BarChart2, Loader2 } from "lucide-react";
 import { apiRequest, queryClient as origQueryClient } from "@/lib/queryClient";
 import { Progress } from "@/components/ui/progress";
 
@@ -66,8 +66,8 @@ function MetricRow({ label, score }: { label: string; score: number }) {
 
 const queryClient = useQueryClient();
 
-function ResumeRow({ resume, onDelete, onDownload }: { 
-  resume: OptimizedResume; 
+function ResumeRow({ resume, onDelete, onDownload }: {
+  resume: OptimizedResume;
   onDelete: (id: number) => void;
   onDownload: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => void;
 }) {
@@ -179,7 +179,7 @@ function ResumeRow({ resume, onDelete, onDownload }: {
                 <CardContent className="p-4">
                   <h3 className="text-lg font-medium mb-2">Resume Analysis</h3>
                   <div className="space-y-4">
-                    <div 
+                    <div
                       className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'strengths' ? 'border-green-500 bg-muted/50' : 'border-muted'}`}
                       onClick={() => setActiveSection(activeSection === 'strengths' ? '' : 'strengths')}
                     >
@@ -196,7 +196,7 @@ function ResumeRow({ resume, onDelete, onDownload }: {
                       )}
                     </div>
 
-                    <div 
+                    <div
                       className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'improvements' ? 'border-amber-500 bg-muted/50' : 'border-muted'}`}
                       onClick={() => setActiveSection(activeSection === 'improvements' ? '' : 'improvements')}
                     >
@@ -213,7 +213,7 @@ function ResumeRow({ resume, onDelete, onDownload }: {
                       )}
                     </div>
 
-                    <div 
+                    <div
                       className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'gaps' ? 'border-red-500 bg-muted/50' : 'border-muted'}`}
                       onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
                     >
@@ -230,7 +230,7 @@ function ResumeRow({ resume, onDelete, onDownload }: {
                       )}
                     </div>
 
-                    <div 
+                    <div
                       className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'suggestions' ? 'border-blue-500 bg-muted/50' : 'border-muted'}`}
                       onClick={() => setActiveSection(activeSection === 'suggestions' ? '' : 'suggestions')}
                     >
@@ -437,6 +437,100 @@ export default function OptimizedResumesPage() {
     },
   });
 
+  // Separate component for resume details
+  function ResumeDetails({ resume }: { resume: OptimizedResume }) {
+    const [activeSection, setActiveSection] = useState('');
+
+    if (!resume) {
+      return null;
+    }
+
+    // Ensure analysis data is never undefined
+    const analysisData = resume.analysis || {
+      strengths: [],
+      improvements: [],
+      gaps: [],
+      suggestions: []
+    };
+
+    // Ensure other needed properties exist
+    const metadata = resume.metadata || {};
+    const jobDetails = resume.jobDetails || {};
+
+    return (
+      <>
+        <div className="p-4 space-y-4 border-t">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-medium mb-2">Job Details</h3>
+              <p>
+                <span className="font-medium">Title:</span>{" "}
+                {jobDetails.title || "N/A"}
+              </p>
+              <p>
+                <span className="font-medium">Company:</span>{" "}
+                {jobDetails.company || "N/A"}
+              </p>
+              <p>
+                <span className="font-medium">Location:</span>{" "}
+                {jobDetails.location || "N/A"}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-medium mb-2">Resume Analysis</h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setActiveSection(activeSection === 'strengths' ? '' : 'strengths')}
+                  className="w-full text-left p-2 hover:bg-muted rounded flex justify-between items-center"
+                >
+                  <span>Strengths ({analysisData.strengths.length})</span>
+                  <span>{activeSection === 'strengths' ? '▼' : '▶'}</span>
+                </button>
+                {activeSection === 'strengths' && (
+                  <ul className="list-disc pl-6 space-y-1">
+                    {analysisData.strengths.map((strength, idx) => (
+                      <li key={idx}>{strength}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <button
+                  onClick={() => setActiveSection(activeSection === 'improvements' ? '' : 'improvements')}
+                  className="w-full text-left p-2 hover:bg-muted rounded flex justify-between items-center"
+                >
+                  <span>Improvements ({analysisData.improvements.length})</span>
+                  <span>{activeSection === 'improvements' ? '▼' : '▶'}</span>
+                </button>
+                {activeSection === 'improvements' && (
+                  <ul className="list-disc pl-6 space-y-1">
+                    {analysisData.improvements.map((item, idx) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+
+                <button
+                  onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
+                  className="w-full text-left p-2 hover:bg-muted rounded flex justify-between items-center"
+                >
+                  <span>Gaps ({analysisData.gaps.length})</span>
+                  <span>{activeSection === 'gaps' ? '▼' : '▶'}</span>
+                </button>
+                {activeSection === 'gaps' && (
+                  <ul className="list-disc pl-6 space-y-1">
+                    {analysisData.gaps.map((gap, idx) => (
+                      <li key={idx}>{gap}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
@@ -463,9 +557,9 @@ export default function OptimizedResumesPage() {
         </TableHeader>
         <TableBody>
           {resumes.map((resume) => (
-            <ResumeRow 
-              key={resume.id} 
-              resume={resume} 
+            <ResumeRow
+              key={resume.id}
+              resume={resume}
               onDelete={(id) => deleteMutation.mutate(id)}
               onDownload={downloadDocument}
             />
