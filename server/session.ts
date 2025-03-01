@@ -12,11 +12,16 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
 
-// Create session store with enhanced error handling
+// Create session store with enhanced error handling and SSL
 const sessionSql = neon(process.env.DATABASE_URL);
 
 export const sessionStore = new PostgresSessionStore({
-  conObject: sessionSql,
+  conObject: {
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  },
   tableName: 'session',
   createTableIfMissing: true,
   pruneSessionInterval: STORE_CLEANUP_PERIOD,

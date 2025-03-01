@@ -10,9 +10,15 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set. Did you forget to provision a database?');
 }
 
-// Create SQL client with debug logging
-const sql = neon(process.env.DATABASE_URL);
-console.log('Neon SQL client created');
+// Force SSL mode in the connection string if not already present
+let dbUrl = process.env.DATABASE_URL;
+if (!dbUrl.includes('sslmode=')) {
+  dbUrl += dbUrl.includes('?') ? '&sslmode=require' : '?sslmode=require';
+}
+
+// Create SQL client with debug logging and SSL
+const sql = neon(dbUrl);
+console.log('Neon SQL client created with SSL enabled');
 
 // Create Drizzle instance with debug logging
 export const db = drizzle(sql, { schema });
