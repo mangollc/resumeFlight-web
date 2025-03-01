@@ -19,6 +19,11 @@ export function generateResumeDOCX(
     company?: string;
   }
 ): Buffer {
+  // Safety check - if resumeContent is an object instead of string, stringify it
+  if (typeof resumeContent !== 'string') {
+    console.error('Resume content is not a string:', resumeContent);
+    resumeContent = JSON.stringify(resumeContent, null, 2);
+  }
   // Split content into sections
   const sections = resumeContent.split('\n\n').filter(s => s.trim());
   

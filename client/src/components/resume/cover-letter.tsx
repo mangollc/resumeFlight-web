@@ -20,22 +20,27 @@ export default function CoverLetterComponent({ resume }: CoverLetterProps) {
       setIsGenerating(true);
       const version = isRegenerate ? (parseFloat(resume.version || '0') + 0.1).toFixed(1) : 0.1;
 
+      // Get contact info for cover letter generation.  Handles missing contact info gracefully.
+      const contactInfo = resume.contactInfo || {
+        fullName: "Applicant",
+        email: "email@example.com",
+        phone: "555-555-5555",
+        linkedin: "",
+        location: ""
+      };
+
       const response = await apiRequest('/api/optimized-resume/' + resume.id + '/cover-letter', {
         method: 'POST',
         body: {
           version: parseFloat(version),
-          contactInfo: resume.contactInfo || {
-            email: '',
-            phone: '',
-            fullName: '',
-            linkedin: '',
-            location: ''
-          }
+          contactInfo: contactInfo
         }
       });
 
       if (!response.ok) {
-        throw new Error("Failed to generate cover letter");
+        const errorData = await response.json().catch(() => ({ message: "Unknown error" })); //More robust error handling
+        const errorMessage = errorData.message || "Failed to generate cover letter";
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

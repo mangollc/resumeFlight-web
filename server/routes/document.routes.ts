@@ -34,7 +34,7 @@ router.get("/resume/:id/download", requireAuth, async (req, res) => {
     
     // Generate DOCX file
     const buffer = generateResumeDOCX(
-      resume.content, 
+      resume.optimisedResume || resume.content, 
       resume.contactInfo,
       resume.jobDetails
     );
