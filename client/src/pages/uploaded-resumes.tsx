@@ -277,7 +277,7 @@ export default function UploadedResumesPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-4">
-                      No resumes available
+                      No uploaded resumes available
                     </TableCell>
                   </TableRow>
                 )}

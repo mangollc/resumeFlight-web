@@ -30,24 +30,25 @@ export default function OptimizedResumesPage() {
   const { data: optimizedResumes = [], isLoading, error } = useQuery<OptimizedResume[]>({
     queryKey: ['/api/optimized-resumes'],
     queryFn: async () => {
+      console.log('Fetching optimized resumes...');
+      const response = await fetch('/api/optimized-resumes');
+
+      if (!response.ok) {
+        console.error('Failed to fetch optimized resumes:', response.status);
+        return [];
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Expected JSON response but got:', contentType);
+        return [];
+      }
+
       try {
-        console.log('Fetching optimized resumes...');
-        const response = await fetch('/api/optimized-resumes');
-
-        if (!response.ok) {
-          console.error('Error response status:', response.status);
-          throw new Error('Failed to fetch optimized resumes');
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('HTML response received instead of JSON:', contentType);
-          return [];
-        }
-
-        return await response.json();
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
       } catch (err) {
-        console.error('Response processing error:', err);
+        console.error('Error parsing JSON response:', err);
         return [];
       }
     },
