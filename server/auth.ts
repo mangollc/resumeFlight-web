@@ -96,5 +96,13 @@ export function setupAuth(app: Express) {
   });
 }
 
+// Middleware to require authentication
+export const requireAuth = (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+};
+
 // Export utility functions for use in auth.routes.ts
 export { hashPassword, comparePasswords };

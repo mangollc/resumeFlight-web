@@ -40,11 +40,63 @@ const server = registerRoutes(app);
 
 // API middleware
 app.use('/api', (req, res, next) => {
-  if (req.originalUrl.startsWith('/api')) {
+    // Set content type early and ensure it doesn't get overridden
     res.setHeader('Content-Type', 'application/json');
-  }
-  next();
+
+    // Store the original methods
+    const originalSend = res.send;
+    const originalJson = res.json;
+    const originalEnd = res.end;
+
+    // Override json method to ensure content type
+    res.json = function(body) {
+        this.setHeader('Content-Type', 'application/json');
+        return originalJson.call(this, body);
+    };
+
+    // Override send method to force JSON format
+    res.send = function(body) {
+        // Always ensure content type is JSON for API routes
+        this.setHeader('Content-Type', 'application/json');
+
+        // If body is not a string, stringify it
+        if (typeof body !== 'string') {
+            return originalJson.call(this, body);
+        }
+
+        // If it's a string that doesn't look like JSON, wrap it
+        if (!body.startsWith('{') && !body.startsWith('[')) {
+            try {
+                // Try to parse it first in case it's valid JSON with whitespace
+                const parsed = JSON.parse(body);
+                return originalJson.call(this, parsed);
+            } catch (e) {
+                // If parsing fails, wrap it as an object
+                return originalJson.call(this, { data: body });
+            }
+        }
+
+        // Ensure we're sending properly formatted JSON
+        try {
+            const parsed = JSON.parse(body);
+            return originalJson.call(this, parsed);
+        } catch (e) {
+            console.error("Invalid JSON in response:", e);
+            return originalJson.call(this, { error: "Invalid JSON response", data: body });
+        }
+    };
+
+    // Override end to catch empty responses
+    res.end = function(chunk) {
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'application/json');
+        }
+        return originalEnd.call(this, chunk);
+    };
+
+    next();
 });
+
 
 // Health check endpoint
 app.get("/api/health", async (_req, res) => {

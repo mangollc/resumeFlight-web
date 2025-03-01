@@ -12,63 +12,29 @@ const router = Router();
 // Get all optimized resumes
 router.get('/optimized-resumes', requireAuth, async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+    // Query the database for optimized resumes
+    const resumes = await db.select().from(optimizedResumes).orderBy(desc(optimizedResumes.createdAt));
 
-    const results = await db.query.optimizedResumes.findMany({
-      where: eq(optimizedResumes.userId, userId),
-      orderBy: [desc(optimizedResumes.updatedAt)],
-    });
-
-    // Ensure we're not sending undefined or null values
-    const safeResumes = results.map(resume => ({
-      id: resume.id || 0,
-      userId: resume.userId || 0,
-      uploadedResumeId: resume.uploadedResumeId || 0,
-      createdAt: resume.createdAt || new Date(),
-      optimisedResume: resume.optimisedResume || "",
-      analysis: resume.analysis || { 
-        strengths: [], 
-        improvements: [],
-        gaps: [], 
-        suggestions: [] 
-      },
-      metadata: resume.metadata || {
-        version: "1.0",
-        optimizedAt: new Date().toISOString(),
-        filename: "resume.docx"
-      },
-      jobDetails: resume.jobDetails || {
-        title: "Untitled Position",
-        company: "Unknown Company",
-        location: "Not specified",
-        description: ""
-      },
-      contactInfo: resume.contactInfo || {
-        fullName: "",
-        email: "",
-        phone: "",
-        linkedin: "",
-        location: ""
-      },
-      skills: resume.skills || {
-        technical: [],
-        soft: []
-      },
-      experience: resume.experience || [],
-      education: resume.education || [],
-      certifications: resume.certifications || [],
-      optionalSections: resume.optionalSections || {
-        projects: [],
-        awardsAndAchievements: [],
-        volunteerWork: [],
-        languages: [],
-        publications: []
-      }
+    // Map to safe data format
+    const safeResumes = resumes.map(resume => ({
+      id: resume.id,
+      title: resume.title || "Untitled Resume",
+      jobTitle: resume.jobTitle || "Unknown Position",
+      createdAt: resume.createdAt.toISOString(),
+      updatedAt: resume.updatedAt.toISOString(),
+      company: resume.company || "Unknown Company",
+      // Don't include the full content in the list view
+      resumeId: resume.resumeId
     }));
 
+    // Log what we're about to return 
+    console.log("Returning optimized resumes:", 
+      `${safeResumes.length} resumes found`);
+
+    // Explicitly set content type header
+    res.setHeader('Content-Type', 'application/json');
+
+    // Send the JSON response directly with res.json
     return res.json(safeResumes);
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
