@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,30 +9,20 @@ import {
   Trash2,
   Info,
   ChartBar,
-  LucideIcon,
   Star,
   ArrowUpRight,
-  Gauge,
   CheckCircle,
   XCircle,
   AlertTriangle,
   CircleAlert,
   Lightbulb,
-  GraduationCap,
-  Briefcase,
-  Award,
-  Brain,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
   FileText,
   Code,
   ArrowUpCircle,
   HelpCircle,
   FileDown,
   BarChart2,
+  LucideIcon,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +56,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+
 
 
 const getScoreColor = (score: number) => {
@@ -107,6 +98,25 @@ function ResumeRow({
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
   const analysisData = resume.analysis || {};
+
+  // New function to render key-value pairs
+  const renderKeyValueSection = (items: string[], icon: LucideIcon, color: string) => (
+    <div className="px-4 pb-3">
+      <ul className="space-y-1 text-sm">
+        {items?.map((item, idx) => (
+          <li key={idx} className={`flex items-start gap-2 ${color}`}>
+            <span className="text-muted-foreground">{item}</span>
+          </li>
+        ))}
+        {(!items || items.length === 0) && (
+          <div className="text-sm text-muted-foreground flex gap-2 items-center">
+            <Info className="h-4 w-4" />
+            <span>No items available</span>
+          </div>
+        )}
+      </ul>
+    </div>
+  );
 
   return (
     <>
@@ -174,15 +184,6 @@ function ResumeRow({
                 <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {/* <DropdownMenuItem onClick={() => downloadResumeDocx(resume.id)}>
-                <FileDown className="mr-2 h-4 w-4" />
-                <span>Download Resume (DOCX)</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => downloadCoverLetterDocx(resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                <span>Generate & Download Cover Letter</span>
-              </DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -260,20 +261,21 @@ function ResumeRow({
                         score={resume.metrics.after.experience}
                       />
                       <MetricRow
-                        label="AI Readiness"
-                        score={resume.metrics.after.aiReadiness}
+                        label="Relevance"
+                        score={resume.metrics.after.relevance}
                       />
                       <MetricRow
-                        label="Personalization"
-                        score={resume.metrics.after.personalization}
+                        label="Clarity"
+                        score={resume.metrics.after.clarity}
                       />
                       <MetricRow
-                        label="Confidence"
-                        score={resume.metrics.after.confidence}
+                        label="Impact"
+                        score={resume.metrics.after.impact}
                       />
                     </div>
                   </div>
                 </div>
+
                 <div>
                   <h3 className="text-lg font-medium mb-4">Analysis</h3>
                   <div className="space-y-3">
@@ -291,22 +293,75 @@ function ResumeRow({
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'strengths' ? 'rotate-180' : ''}`} />
                       </button>
-                      {activeSection === 'strengths' && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisData.strengths?.map((strength, idx) => (
-                            <div key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
-                              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{strength}</span>
-                            </div>
-                          ))}
-                          {(!analysisData.strengths || analysisData.strengths.length === 0) && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No strengths identified yet</span>
-                            </div>
-                          )}
+                      {activeSection === 'strengths' && renderKeyValueSection(analysisData.strengths, CheckCircle, 'text-emerald-600')}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'keywordMatches' ? '' : 'keywordMatches')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Star className="h-4 w-4 text-yellow-500" />
+                          <span className="font-medium text-sm">Keyword Matches</span>
+                          <span className="text-xs text-muted-foreground">
+                            {analysisData.keywordMatches?.length || 0}
+                          </span>
                         </div>
-                      )}
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'keywordMatches' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'keywordMatches' && renderKeyValueSection(analysisData.keywordMatches, Star, 'text-yellow-600')}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'skillGaps' ? '' : 'skillGaps')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          <span className="font-medium text-sm">Skill Gaps</span>
+                          <span className="text-xs text-muted-foreground">
+                            {analysisData.skillGaps?.length || 0}
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'skillGaps' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'skillGaps' && renderKeyValueSection(analysisData.skillGaps, AlertTriangle, 'text-red-600')}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'experienceAlignment' ? '' : 'experienceAlignment')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <ArrowUpRight className="h-4 w-4 text-blue-500" />
+                          <span className="font-medium text-sm">Experience Alignment</span>
+                          <span className="text-xs text-muted-foreground">
+                            {analysisData.experienceAlignment?.length || 0}
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'experienceAlignment' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'experienceAlignment' && renderKeyValueSection(analysisData.experienceAlignment, ArrowUpRight, 'text-blue-600')}
+                    </div>
+
+                    <div className="rounded-lg border">
+                      <button
+                        onClick={() => setActiveSection(activeSection === 'impactMetrics' ? '' : 'impactMetrics')}
+                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <BarChart2 className="h-4 w-4 text-purple-500" />
+                          <span className="font-medium text-sm">Impact Metrics</span>
+                          <span className="text-xs text-muted-foreground">
+                            {analysisData.impactMetrics?.length || 0}
+                          </span>
+                        </div>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'impactMetrics' ? 'rotate-180' : ''}`} />
+                      </button>
+                      {activeSection === 'impactMetrics' && renderKeyValueSection(analysisData.impactMetrics, BarChart2, 'text-purple-600')}
                     </div>
 
                     <div className="rounded-lg border">
@@ -323,23 +378,9 @@ function ResumeRow({
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'improvements' ? 'rotate-180' : ''}`} />
                       </button>
-                      {activeSection === 'improvements' && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisData.improvements?.map((improvement, idx) => (
-                            <div key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
-                              <ArrowUpCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{improvement}</span>
-                            </div>
-                          ))}
-                          {(!analysisData.improvements || analysisData.improvements.length === 0) && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No improvements identified yet</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {activeSection === 'improvements' && renderKeyValueSection(analysisData.improvements, ArrowUpCircle, 'text-amber-600')}
                     </div>
+
                     <div className="rounded-lg border">
                       <button
                         onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
@@ -354,22 +395,7 @@ function ResumeRow({
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
                       </button>
-                      {activeSection === 'gaps' && (
-                        <div className="px-4 pb-3 space-y-2 max-h-60 overflow-y-auto">
-                          {analysisData.gaps?.map((gap, idx) => (
-                            <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
-                              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{gap}</span>
-                            </div>
-                          ))}
-                          {(!analysisData.gaps || analysisData.gaps.length === 0) && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No gaps identified</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {activeSection === 'gaps' && renderKeyValueSection(analysisData.gaps, AlertTriangle, 'text-red-600')}
                     </div>
 
                     <div className="rounded-lg border">
@@ -386,22 +412,7 @@ function ResumeRow({
                         </div>
                         <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'suggestions' ? 'rotate-180' : ''}`} />
                       </button>
-                      {activeSection === 'suggestions' && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisData.suggestions?.map((suggestion, idx) => (
-                            <div key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
-                              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{suggestion}</span>
-                            </div>
-                          ))}
-                          {(!analysisData.suggestions || analysisData.suggestions.length === 0) && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No suggestions available</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {activeSection === 'suggestions' && renderKeyValueSection(analysisData.suggestions, Lightbulb, 'text-blue-600')}
                     </div>
                   </div>
                 </div>
