@@ -148,23 +148,18 @@ router.get("/cover-letter/:resumeId/download", requireAuth, async (req, res) => 
 
 router.get('/api/optimized-resumes', async (req, res) => {
   try {
-    // Always set the proper content type for JSON responses
+    // Set the content type explicitly to JSON
     res.setHeader('Content-Type', 'application/json');
 
     const userId = req.session?.user?.id;
     if (!userId) {
-      console.log("User not authenticated");
-      return res.status(401).json({ error: "Unauthorized", message: "Please log in to access this resource" });
+      return res.status(401).json({ error: "Unauthorized" });
     }
-
-    console.log(`Fetching optimized resumes for user ${userId}`);
 
     const results = await db.query.optimizedResumes.findMany({
       where: eq(optimizedResumes.userId, userId),
       orderBy: [desc(optimizedResumes.updatedAt)],
     });
-
-    console.log(`Found ${results.length} optimized resumes`);
 
     // Ensure we're not sending undefined or null values
     const safeResumes = results.map(resume => ({
@@ -193,13 +188,16 @@ router.get('/api/optimized-resumes', async (req, res) => {
       }
     }));
 
-    return res.json(safeResumes);
+    // Convert to a properly formatted JSON string and send
+    return res.send(JSON.stringify(safeResumes));
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
-    return res.status(500).json({ 
+    // Ensure we're still returning JSON even in error case
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).send(JSON.stringify({ 
       error: "Failed to fetch optimized resumes", 
       message: error instanceof Error ? error.message : "Unknown error" 
-    });
+    }));
   }
 });
 
@@ -234,6 +232,12 @@ router.get('/api/optimized-resumes/:id/download', async (req, res) => {
     console.error("Error downloading resume:", error);
     res.status(500).json({ error: "Failed to download resume" });
   }
+});
+
+// Test endpoint to verify JSON responses are working
+router.get('/api/test-json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify({ success: true, message: "JSON endpoint working correctly" }));
 });
 
 export default router;

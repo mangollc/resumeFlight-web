@@ -106,20 +106,28 @@ export default function OptimizedResumesPage() {
       
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
         
+        console.log('Fetching optimized resumes...');
         const response = await fetch('/api/optimized-resumes', {
           signal: controller.signal,
           headers: {
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache' // Prevent caching issues
           }
         });
         
         clearTimeout(timeoutId);
         
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
+        
         if (!response.ok) {
           const errorText = await response.text();
           let errorMessage = `Server returned ${response.status}: ${response.statusText}`;
+          
+          console.error('Error response body:', errorText);
+          
           try {
             // Try to parse error as JSON
             const errorJson = JSON.parse(errorText);
@@ -137,18 +145,33 @@ export default function OptimizedResumesPage() {
           throw new Error(errorMessage);
         }
         
-        // Validate the JSON content type
+        // Check content type more thoroughly
         const contentType = response.headers.get('content-type');
+        console.log('Content-Type:', contentType);
+        
         if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Server returned a non-JSON response. Please contact support.');
+          const responseText = await response.text();
+          console.error('Non-JSON response received:', responseText.substring(0, 200) + '...');
+          throw new Error('Server returned a non-JSON response. Content type: ' + (contentType || 'not set'));
         }
         
-        const data = await response.json();
-        if (!Array.isArray(data)) {
-          throw new Error('Server returned an invalid response format');
+        // Try to parse the response with extra validation
+        let responseText;
+        try {
+          responseText = await response.text();
+          console.log('Response text (first 100 chars):', responseText.substring(0, 100));
+          const data = JSON.parse(responseText);
+          
+          if (!Array.isArray(data)) {
+            console.error('Invalid data format:', data);
+            throw new Error('Server returned an invalid response format - expected array');
+          }
+          
+          setOptimizedResumes(data);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError, 'Response text:', responseText);
+          throw new Error(`Failed to parse JSON response: ${parseError.message}`);
         }
-        
-        setOptimizedResumes(data);
       } catch (err) {
         console.error('Error fetching resumes:', err);
         setError(err instanceof Error ? err.message : 'Failed to load resumes');

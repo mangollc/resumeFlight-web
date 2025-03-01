@@ -33,16 +33,29 @@ import { requestLogger } from './utils/logger';
 // Request logging middleware with enhanced details
 app.use(requestLogger);
 
-// Add CSP headers
+// Add security and CORS headers
 app.use((req, res, next) => {
+    // Set CSP headers
     res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' * https://*.replit.dev https://*.repl.co;"
     );
+    
     // Add CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Set default content type for API responses
+    if (req.path.startsWith('/api')) {
+        res.setHeader('Content-Type', 'application/json');
+    }
+    
+    // Handle OPTIONS requests
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+    
     next();
 });
 
