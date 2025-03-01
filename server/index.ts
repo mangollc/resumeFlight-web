@@ -3,39 +3,48 @@ process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite";
 import { checkDatabaseConnection } from "./db";
+import { logger, requestLogger, setupGlobalErrorLogging } from './utils/logger';
 
-// Global error handlers
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error.message);
-    process.exit(1);
-});
+// Set up global error handlers
+setupGlobalErrorLogging();
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection:', typeof reason === 'object' ? (reason as Error).message : reason);
-    process.exit(1);
-});
-
-// Only log startup in development
-if (process.env.NODE_ENV === 'development') {
-    console.log('Starting server initialization...');
-}
+// Log startup information
+logger.info(`Starting server in ${process.env.NODE_ENV} mode`);
 
 const app = express();
 
-// Basic middleware setup
-app.use(express.json({ limit: '50mb' }));
+// Basic middleware setup with error handling
+app.use(express.json({ 
+  limit: '50mb',
+  verify: (req: any, res, buf, encoding) => {
+    try {
+      if (buf && buf.length) {
+        JSON.parse(buf.toString(encoding || 'utf8'));
+      }
+    } catch (e) {
+      logger.warn('Invalid JSON received in request body', { 
+        path: req.originalUrl, 
+        error: (e as Error).message 
+      });
+      res.status(400).json({ 
+        error: true, 
+        message: 'Invalid JSON in request body',
+        code: 'INVALID_JSON'
+      });
+      throw e;
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-
-// Import enhanced logger
-import { requestLogger } from './utils/logger';
 
 // Request logging middleware with enhanced details
 app.use(requestLogger);
 
-// Add CSP headers
+// Add security headers
 app.use((req, res, next) => {
+    // Add CSP headers
     res.setHeader(
         'Content-Security-Policy',
         "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' * https://*.replit.dev https://*.repl.co;"
@@ -44,6 +53,12 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+        return res.status(204).end();
+    }
+    
     next();
 });
 
@@ -52,12 +67,14 @@ app.get("/api/health", async (_req, res) => {
     try {
         const dbConnected = await checkDatabaseConnection();
         if (dbConnected) {
+            logger.debug('Health check: database connected');
             res.status(200).json({
                 status: "healthy",
                 database: "connected",
                 timestamp: new Date().toISOString()
             });
         } else {
+            logger.warn('Health check: database disconnected');
             res.status(503).json({
                 status: "unhealthy",
                 database: "disconnected",
@@ -65,7 +82,7 @@ app.get("/api/health", async (_req, res) => {
             });
         }
     } catch (error) {
-        console.error('Health check error:', error);
+        logger.error('Health check failed', error);
         res.status(500).json({
             status: "error",
             message: "Health check failed",
@@ -74,35 +91,71 @@ app.get("/api/health", async (_req, res) => {
     }
 });
 
+// API response type validation middleware
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+    // Store the original json method
+    const originalJson = res.json;
+    
+    // Override the json method to ensure we're always sending valid json
+    res.json = function(body: any): any {
+        // Check if body is defined and can be serialized
+        if (body === undefined) {
+            logger.warn('Attempt to send undefined as JSON response', {
+                path: req.path,
+                method: req.method
+            });
+            
+            return originalJson.call(this, {
+                error: true,
+                message: 'Internal Server Error - Invalid Response',
+                code: 'INVALID_RESPONSE'
+            });
+        }
+        
+        // Restore original method and continue
+        return originalJson.call(this, body);
+    };
+    
+    next();
+});
+
 // Register routes
 const server = registerRoutes(app);
 
 // Enhanced error handling middleware
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    // Generate a unique error ID for tracking
+    const errorId = Math.random().toString(36).substring(7);
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    
+    // Log the error with context
+    logger.error(`Request error (${errorId})`, err, {
+        method: req.method,
+        path: req.path,
+        query: req.query,
+        ip: req.ip,
+        userId: req.user?.id,
+        statusCode: status
+    });
+
+    // Only send detailed errors in development mode
     if (req.path.startsWith('/api')) {
-        const status = err.status || err.statusCode || 500;
-        const message = err.message || "Internal Server Error";
-        const errorId = Math.random().toString(36).substring(7);
-
-        console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
-            error: err,
-            stack: err.stack,
-            body: req.body,
-            query: req.query,
-            user: req.user?.id
-        });
-
         res.status(status).json({
             error: true,
             message: process.env.NODE_ENV === "production"
                 ? `An unexpected error occurred (ID: ${errorId})`
                 : message,
+            code: err.code || 'SERVER_ERROR',
             errorId,
             ...(process.env.NODE_ENV !== "production" && {
                 stack: err.stack,
                 details: err.details || err.response?.data
             })
         });
+    } else {
+        // For non-API routes, let the client side error handler manage it
+        next(err);
     }
 });
 

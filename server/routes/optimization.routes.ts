@@ -159,8 +159,11 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             );
 
             // Ensure content exists before processing
-if (!optimizationResult?.optimizedContent) {
-    throw new Error('Optimization failed: No content received');
+if (!optimizationResult?.optimisedResume) {
+    const error = new Error('Optimization failed: No content received');
+    error.code = 'OPTIMIZATION_ERROR';
+    error.status = 422;
+    throw error;
 }
 
 const optimizedResume = await storage.createOptimizedResume({

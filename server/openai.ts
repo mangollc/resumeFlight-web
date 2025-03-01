@@ -90,30 +90,58 @@ function splitIntoChunks(text: string | undefined, maxChunkSize: number = 8000):
 }
 
 // OpenAI error handler with retries and better error classification
+import { logger } from './utils/logger';
+
 const handleOpenAIError = (error: any, context: string) => {
+  // Extract and standardize error details
   const errorDetails = {
-    message: error.message,
-    status: error.status,
-    code: error.code,
-    type: error.type,
-    param: error.param
+    message: error.message || 'Unknown OpenAI error',
+    status: error.status || error.response?.status,
+    code: error.code || error.response?.data?.error?.code || 'OPENAI_ERROR',
+    type: error.type || error.response?.data?.error?.type,
+    param: error.param || error.response?.data?.error?.param
   };
 
-  console.error(`[${context}] Error:`, errorDetails);
+  // Log the detailed error
+  logger.error(`OpenAI API error in ${context}`, error, errorDetails);
 
-  if (error.code === 'rate_limit_exceeded') {
-    throw new Error('Rate limit exceeded. Please try again in a few moments.');
+  // Create a custom error object with status and code
+  const customError = new Error(getOpenAIErrorMessage(errorDetails));
+  customError.code = errorDetails.code;
+  customError.status = errorDetails.status || 500;
+  
+  throw customError;
+};
+
+// Helper to generate user-friendly error messages based on error code
+const getOpenAIErrorMessage = (errorDetails: any) => {
+  const { code } = errorDetails;
+  
+  switch (code) {
+    case 'rate_limit_exceeded':
+      return 'Our AI service is currently experiencing high demand. Please try again in a few moments.';
+    
+    case 'context_length_exceeded':
+      return 'The resume or job description is too long. Please reduce the text length and try again.';
+    
+    case 'invalid_api_key':
+      return 'Authentication error with our AI service. Please contact support if this persists.';
+    
+    case 'tokens_exceeded':
+      return 'The content is too large to process. Please reduce the text and try again.';
+    
+    case 'content_filter':
+      return 'Your content contains inappropriate material that cannot be processed.';
+      
+    case 'server_error':
+      return 'Our AI service is experiencing temporary issues. Please try again shortly.';
+      
+    case 'insufficient_quota':
+      return 'Service usage limit reached. Please try again later or contact support.';
+      
+    default:
+      return `AI optimization error: ${errorDetails.message || 'Unknown error occurred'}`;
   }
-
-  if (error.code === 'context_length_exceeded') {
-    throw new Error('Input text is too long. Please reduce the content length.');
-  }
-
-  if (error.code === 'invalid_api_key') {
-    throw new Error('OpenAI API key is invalid or expired.');
-  }
-
-  throw new Error(`Failed in ${context}: ${error.message || 'Unknown error occurred'}`);
 };
 
 // Analysis functions
@@ -392,18 +420,28 @@ Return a JSON object with:
     // Ensure the optimized content is properly stringified
     let finalContent;
     if (optimizedChunks.length === 0) {
-      finalContent = ""; // Handle empty case
+      logger.warn("[Optimize] No content chunks received");
+      throw new Error('No optimized content generated');
     } else if (optimizedChunks.every(chunk => typeof chunk === 'string')) {
       finalContent = optimizedChunks.join("\n\n").trim();
     } else {
       // Handle mixed content or object content
       finalContent = optimizedChunks
-        .map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : chunk)
+        .map(chunk => typeof chunk === 'object' ? JSON.stringify(chunk) : String(chunk))
         .join("\n\n")
         .trim();
     }
+    
+    // Validate final content
+    if (!finalContent || finalContent.length < 50) {
+      logger.warn("[Optimize] Insufficient optimized content", { 
+        contentLength: finalContent?.length || 0,
+        sample: finalContent?.substring(0, 100) 
+      });
+      throw new Error('Optimization produced insufficient content');
+    }
       
-    return {
+    const result = {
       optimisedResume: finalContent,
       changes: allChanges,
       analysis: {
@@ -413,9 +451,22 @@ Return a JSON object with:
         suggestions: analysisResult.analysis.suggestions || []
       }
     };
+    
+    logger.success("[Optimize] Resume optimization completed successfully", {
+      contentLength: finalContent.length,
+      changesCount: allChanges.length
+    });
+    
+    return result;
   } catch (error: any) {
-    console.error("[Optimize] Error:", error);
-    throw new Error(`Failed to optimize resume: ${error.message}`);
+    logger.error("[Optimize] Failed to optimize resume", error);
+    
+    // Create a structured error with status code
+    const enhancedError = new Error(`Failed to optimize resume: ${error.message}`);
+    enhancedError.code = error.code || 'OPTIMIZATION_ERROR';
+    enhancedError.status = error.status || 422;
+    
+    throw enhancedError;
   }
 }
 
