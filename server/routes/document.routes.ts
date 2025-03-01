@@ -145,10 +145,13 @@ router.get("/cover-letter/:resumeId/download", requireAuth, async (req, res) => 
 
 router.get('/api/optimized-resumes', async (req, res) => {
   try {
+    // Set content type explicitly to ensure proper JSON handling
+    res.setHeader('Content-Type', 'application/json');
+    
     const userId = req.session?.user?.id;
     if (!userId) {
-      console.log("Unauthorized access attempt to optimized-resumes");
-      return res.status(401).json({ error: "Unauthorized" });
+      console.error("Unauthorized access attempt to optimized-resumes");
+      return res.status(401).json({ error: "Unauthorized", message: "You must be logged in to view optimized resumes" });
     }
 
     console.log(`Fetching optimized resumes for user ${userId}`);
@@ -178,7 +181,7 @@ router.get('/api/optimized-resumes', async (req, res) => {
     return res.json(sanitizedResumes);
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
-    return res.status(500).json({ error: "Failed to fetch optimized resumes" });
+    return res.status(500).json({ error: "Failed to fetch optimized resumes", message: error instanceof Error ? error.message : "Unknown error" });
   }
 });
 

@@ -92,6 +92,9 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
             user: req.user?.id
         });
 
+        // Ensure proper content type for API responses
+        res.setHeader('Content-Type', 'application/json');
+        
         res.status(status).json({
             error: true,
             message: process.env.NODE_ENV === "production"
@@ -103,6 +106,8 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
                 details: err.details || err.response?.data
             })
         });
+    } else {
+        _next(err); // Pass non-API errors to next handler
     }
 });
 
