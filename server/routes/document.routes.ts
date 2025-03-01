@@ -3,55 +3,87 @@ import { eq, desc } from 'drizzle-orm';
 import { optimizedResumes } from '../db/schema';
 import { db } from '../db';
 import { generateDocx } from '../utils/docx-generator';
-import fs from 'fs';
-import path from 'path';
 import { storage } from "../storage";
 import { generateResumeDOCX, generateCoverLetterDOCX } from "../utils/docx-generator";
 import { generateCoverLetter } from "../openai";
 import { requireAuth } from "../auth";
 
-
 const router = Router();
 
-// Get optimized resume as DOCX
-router.get("/resume/:id/download", requireAuth, async (req, res) => {
+// Get all optimized resumes
+router.get('/api/optimized-resumes', requireAuth, async (req, res) => {
   try {
-    const resumeId = parseInt(req.params.id);
-    const userId = req.user?.id;
+    // Set JSON content type explicitly
+    res.setHeader('Content-Type', 'application/json');
 
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const resume = await storage.getOptimizedResume(resumeId);
-    if (!resume) {
-      return res.status(404).json({ error: "Resume not found" });
-    }
+    const results = await db.query.optimizedResumes.findMany({
+      where: eq(optimizedResumes.userId, userId),
+      orderBy: [desc(optimizedResumes.updatedAt)],
+    });
 
-    if (resume.userId !== userId) {
-      return res.status(403).json({ error: "Forbidden" });
-    }
+    // Ensure we're not sending undefined or null values
+    const safeResumes = results.map(resume => ({
+      id: resume.id || 0,
+      userId: resume.userId || 0,
+      uploadedResumeId: resume.uploadedResumeId || 0,
+      createdAt: resume.createdAt || new Date(),
+      updatedAt: resume.updatedAt || new Date(),
+      optimisedResume: resume.optimisedResume || "",
+      analysis: resume.analysis || { 
+        strengths: [], 
+        improvements: [],
+        gaps: [], 
+        suggestions: [] 
+      },
+      metadata: resume.metadata || {
+        version: "1.0",
+        optimizedAt: new Date().toISOString(),
+        filename: "resume.docx"
+      },
+      jobDetails: resume.jobDetails || {
+        title: "Untitled Position",
+        company: "Unknown Company",
+        location: "Not specified",
+        description: ""
+      },
+      contactInfo: resume.contactInfo || {
+        fullName: "",
+        email: "",
+        phone: "",
+        linkedin: "",
+        location: ""
+      },
+      skills: resume.skills || {
+        technical: [],
+        soft: []
+      },
+      experience: resume.experience || [],
+      education: resume.education || [],
+      certifications: resume.certifications || [],
+      optionalSections: resume.optionalSections || {
+        projects: [],
+        awardsAndAchievements: [],
+        volunteerWork: [],
+        languages: [],
+        publications: []
+      }
+    }));
 
-    // Generate filename with position and company
-    const position = resume.jobDetails?.title || "Resume";
-    const company = resume.jobDetails?.company || "";
-    const name = resume.contactInfo?.fullName?.replace(/\s+/g, "_") || "resume";
-    const filename = `${name}_${position}${company ? "_" + company : ""}_v${resume.metadata.version}.docx`;
-
-    // Generate DOCX file using optimisedResume field
-    const buffer = generateResumeDOCX(
-      resume.optimisedResume, 
-      resume.contactInfo || {},
-      resume.jobDetails || {}
-    );
-
-    // Send file to client
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.send(buffer);
+    // Return the JSON response
+    return res.json(safeResumes);
   } catch (error) {
-    console.error("Error downloading resume:", error);
-    res.status(500).json({ error: "Failed to download resume" });
+    console.error("Error fetching optimized resumes:", error);
+    // Return JSON error response
+    return res.status(500).json({ 
+      error: true,
+      message: "Failed to fetch optimized resumes", 
+      details: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 });
 
@@ -146,76 +178,11 @@ router.get("/cover-letter/:resumeId/download", requireAuth, async (req, res) => 
   }
 });
 
-router.get('/api/optimized-resumes', async (req, res) => {
-  try {
-    // Set the content type explicitly to JSON
-    res.setHeader('Content-Type', 'application/json');
-
-    const userId = req.session?.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-
-    const results = await db.query.optimizedResumes.findMany({
-      where: eq(optimizedResumes.userId, userId),
-      orderBy: [desc(optimizedResumes.updatedAt)],
-    });
-
-    // Ensure we're not sending undefined or null values
-    const safeResumes = results.map(resume => ({
-      id: resume.id || 0,
-      userId: resume.userId || 0,
-      uploadedResumeId: resume.uploadedResumeId || 0,
-      createdAt: resume.createdAt || new Date(),
-      updatedAt: resume.updatedAt || new Date(),
-      optimisedResume: resume.optimisedResume || "",
-      analysis: resume.analysis || { 
-        strengths: [], 
-        improvements: [],
-        gaps: [], 
-        suggestions: [] 
-      },
-      metadata: resume.metadata || {
-        version: "1.0",
-        optimizedAt: new Date().toISOString(),
-        filename: "resume.docx"
-      },
-      jobDetails: resume.jobDetails || {
-        title: "Untitled Position",
-        company: "Unknown Company",
-        location: "Not specified",
-        description: ""
-      }
-    }));
-
-    // Log what we're about to return 
-    console.log("Returning optimized resumes:", Array.isArray(safeResumes) ? 
-      `${safeResumes.length} resumes found` : "Invalid resume format");
-
-    // Make sure we're returning an array even if something went wrong
-    if (!Array.isArray(safeResumes)) {
-      console.error("Invalid resumes data format:", safeResumes);
-      safeResumes = [];
-    }
-    
-    // Send the JSON response directly with res.json
-    return res.json(safeResumes);
-  } catch (error) {
-    console.error("Error fetching optimized resumes:", error);
-    // Return a proper error response
-    return res.status(500).json({ 
-      error: true,
-      message: "Failed to fetch optimized resumes", 
-      details: error instanceof Error ? error.message : "Unknown error" 
-    });
-  }
-});
-
 // Download endpoint for optimized resume
-router.get('/api/optimized-resumes/:id/download', async (req, res) => {
+router.get('/api/optimized-resumes/:id/download', requireAuth, async (req, res) => {
   try {
     const resumeId = Number(req.params.id);
-    const userId = req.session?.user?.id;
+    const userId = req.user?.id;
 
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -243,6 +210,7 @@ router.get('/api/optimized-resumes/:id/download', async (req, res) => {
     res.status(500).json({ error: "Failed to download resume" });
   }
 });
+
 
 // Test endpoint to verify JSON responses are working
 router.get('/api/test-json', (req, res) => {

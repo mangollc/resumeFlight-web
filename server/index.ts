@@ -56,36 +56,36 @@ app.use((req, res, next) => {
 
 // Special middleware for API routes to ensure JSON content type
 app.use('/api', (req, res, next) => {
-    // Set content type early and ensure it doesn't get overridden
-    res.type('application/json');
-    
-    // Store the original send/json methods
-    const originalSend = res.send;
-    const originalJson = res.json;
-    
-    // Override send method to ensure it maintains JSON format
-    res.send = function(body) {
-        // If body is not already a string, convert it to JSON
-        if (typeof body !== 'string') {
-            return originalJson.call(this, body);
-        }
-        
-        // If it's a string that doesn't look like JSON, convert it
-        if (!body.startsWith('{') && !body.startsWith('[')) {
-            try {
-                return originalJson.call(this, JSON.parse(body));
-            } catch (e) {
-                // If parsing fails, wrap it as an error object
-                return originalJson.call(this, { error: body });
-            }
-        }
-        
-        // Ensure content type is application/json
-        this.type('application/json');
-        return originalSend.call(this, body);
-    };
-    
-    next();
+  // Set content type early and ensure it doesn't get overridden
+  res.type('application/json');
+
+  // Store the original send/json methods
+  const originalSend = res.send;
+  const originalJson = res.json;
+
+  // Override send method to ensure it maintains JSON format
+  res.send = function(body) {
+    // If body is not already a string, convert it to JSON
+    if (typeof body !== 'string') {
+      return originalJson.call(this, body);
+    }
+
+    // If it's a string that doesn't look like JSON, convert it
+    if (!body.startsWith('{') && !body.startsWith('[')) {
+      try {
+        return originalJson.call(this, JSON.parse(body));
+      } catch (e) {
+        // If parsing fails, wrap it as an error object
+        return originalJson.call(this, { error: body });
+      }
+    }
+
+    // Ensure content type is application/json
+    this.type('application/json');
+    return originalSend.call(this, body);
+  };
+
+  next();
 });
 
 // Health check endpoint
@@ -121,36 +121,36 @@ const server = registerRoutes(app);
 
 // Enhanced error handling middleware
 app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    if (req.path.startsWith('/api')) {
-        const status = err.status || err.statusCode || 500;
-        const message = err.message || "Internal Server Error";
-        const errorId = Math.random().toString(36).substring(7);
+  if (req.path.startsWith('/api')) {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    const errorId = Math.random().toString(36).substring(7);
 
-        console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
-            error: err,
-            stack: err.stack,
-            body: req.body,
-            query: req.query,
-            user: req.user?.id
-        });
+    console.error(`[Error ${errorId}] ${status} - ${message} - ${req.method} ${req.path}`, {
+      error: err,
+      stack: err.stack,
+      body: req.body,
+      query: req.query,
+      user: req.user?.id
+    });
 
-        // Ensure proper content type for API responses
-        res.setHeader('Content-Type', 'application/json');
-        
-        res.status(status).json({
-            error: true,
-            message: process.env.NODE_ENV === "production"
-                ? `An unexpected error occurred (ID: ${errorId})`
-                : message,
-            errorId,
-            ...(process.env.NODE_ENV !== "production" && {
-                stack: err.stack,
-                details: err.details || err.response?.data
-            })
-        });
-    } else {
-        _next(err); // Pass non-API errors to next handler
-    }
+    // Ensure proper content type for API responses
+    res.setHeader('Content-Type', 'application/json');
+
+    res.status(status).json({
+      error: true,
+      message: process.env.NODE_ENV === "production"
+        ? `An unexpected error occurred (ID: ${errorId})`
+        : message,
+      errorId,
+      ...(process.env.NODE_ENV !== "production" && {
+        stack: err.stack,
+        details: err.details || err.response?.data
+      })
+    });
+  } else {
+    _next(err); // Pass non-API errors to next handler
+  }
 });
 
 // Setup environment-specific middleware
