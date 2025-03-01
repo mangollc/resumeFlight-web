@@ -8,53 +8,35 @@ import { authRoutes } from "./auth.routes";
 import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
-import documentRoutes from "./document.routes";
 import { setupAuth } from "../auth";
 import { corsMiddleware } from "../utils/cors";
 
 export function registerRoutes(app: Express): Server {
-    // Set up authentication first
+    // Set up authentication
     setupAuth(app);
 
     // Apply CORS middleware globally
     app.use(corsMiddleware);
-
-    // Strict JSON content-type enforcement for API routes
-    app.use('/api', (req, res, next) => {
-        res.setHeader('Content-Type', 'application/json');
-
-        // Override send to ensure JSON
-        const originalSend = res.send;
-        res.send = function(body) {
-            res.setHeader('Content-Type', 'application/json');
-            if (typeof body === 'string' && (!body.startsWith('{') && !body.startsWith('['))) {
-                try {
-                    body = JSON.parse(body);
-                } catch (e) {
-                    body = { data: body };
-                }
-            }
-            return originalSend.call(this, JSON.stringify(body));
-        };
-
+    
+    // Global middleware
+    app.use((req, res, next) => {
+        res.setHeader("Content-Type", "application/json");
         next();
     });
 
-    // Register API routes with proper prefixes
-    app.use('/api', authRoutes);
-    app.use('/api', resumeRoutes);
-    app.use('/api', documentRoutes);
-    app.use('/api', optimizationRoutes);
-    app.use('/api/analysis', analysisRoutes);
-
-    // Error handler specifically for API routes
-    app.use('/api', (err: any, req: any, res: any, next: any) => {
-        console.error('API Error:', err);
-        res.status(err.status || 500).json({
-            error: true,
-            message: err.message || 'Internal Server Error'
+    // Health check endpoint
+    app.get("/api/health", (_req, res) => {
+        res.json({
+            status: "healthy",
+            timestamp: new Date().toISOString()
         });
     });
+
+    // Register route modules with proper prefixes
+    app.use('/api', authRoutes);
+    app.use('/api', resumeRoutes);  // This handles /api/resume routes including optimized
+    app.use('/api', optimizationRoutes);
+    app.use('/api/analysis', analysisRoutes);
 
     return createServer(app);
 }

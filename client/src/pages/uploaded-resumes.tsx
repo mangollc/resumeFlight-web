@@ -202,85 +202,77 @@ export default function UploadedResumesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.isArray(resumes) && resumes.length > 0 ? (
-                  resumes.map((resume) => (
-                    <TableRow key={resume.id} className="hover:bg-muted/50">
-                      <TableCell className="py-2 pl-4">
-                        <div className="flex items-center space-x-2">
-                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="font-medium truncate max-w-[200px] sm:max-w-[250px]">
-                            {resume.metadata.filename}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 text-sm text-muted-foreground">
-                        {new Date(resume.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="py-2 pr-2 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              disabled={deleteMutation.isPending}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[160px]">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem
-                              onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
-                              className="flex items-center cursor-pointer"
-                              disabled={deleteMutation.isPending}
-                            >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Optimize
-                            </DropdownMenuItem>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                  onSelect={(e) => e.preventDefault()}
-                                  className="text-destructive focus:text-destructive cursor-pointer"
+                {resumes.map((resume) => (
+                  <TableRow key={resume.id} className="hover:bg-muted/50">
+                    <TableCell className="py-2 pl-4">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium truncate max-w-[200px] sm:max-w-[250px]">
+                          {resume.metadata.filename}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-2 text-sm text-muted-foreground">
+                      {new Date(resume.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="py-2 pr-2 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            disabled={deleteMutation.isPending}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[160px]">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => setLocation(`/dashboard?resume=${resume.id}`)}
+                            className="flex items-center cursor-pointer"
+                            disabled={deleteMutation.isPending}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            Optimize
+                          </DropdownMenuItem>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem
+                                onSelect={(e) => e.preventDefault()}
+                                className="text-destructive focus:text-destructive cursor-pointer"
+                                disabled={deleteMutation.isPending}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Resume</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this resume? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(resume.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   disabled={deleteMutation.isPending}
                                 >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Resume</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this resume? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteMutation.mutate(resume.id)}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    disabled={deleteMutation.isPending}
-                                  >
-                                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-4">
-                      No uploaded resumes available
+                                  {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )}
+                ))}
               </TableBody>
             </Table>
           </div>

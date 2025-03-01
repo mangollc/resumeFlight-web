@@ -1,65 +1,101 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { format } from "date-fns";
+import { Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader,
-  CardTitle,
-  CardDescription
-} from "@/components/ui/card";
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, AlertCircle } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { type OptimizedResume } from "@shared/schema";
-import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import type { OptimizedResume } from "../../shared/schema";
+
 
 export default function OptimizedResumesPage() {
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
-
-  const { data: optimizedResumes = [], isLoading, error } = useQuery<OptimizedResume[]>({
-    queryKey: ['/api/optimized-resumes'],
-    queryFn: async () => {
-      console.log('Fetching optimized resumes...');
-      const response = await fetch('/api/optimized-resumes');
-
-      if (!response.ok) {
-        console.error('Failed to fetch optimized resumes:', response.status);
+  const { data: resumes = [], isLoading, error, refetch } = useQuery<OptimizedResume[]>({
+    queryKey: ["/api/optimized-resumes"],
+    select: (data) => {
+      if (!data || !Array.isArray(data) || data.length === 0) {
         return [];
       }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('Expected JSON response but got:', contentType);
-        return [];
-      }
-
-      try {
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (err) {
-        console.error('Error parsing JSON response:', err);
-        return [];
-      }
+      return [...data].sort((a, b) => {
+        if (!a.metadata?.optimizedAt || !b.metadata?.optimizedAt) {
+          return 0;
+        }
+        return (
+          new Date(b.metadata.optimizedAt).getTime() -
+          new Date(a.metadata.optimizedAt).getTime()
+        );
+      });
     },
-    retry: 2,
-    retryDelay: 1000
   });
 
-  // Function to download a resume
-  const handleDownload = async (resumeId: number) => {
+  const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState('');
+
+  // Handle loading and empty states
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground">Loading optimized resumes...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-md">
+          <h2 className="text-lg font-semibold mb-2">Error loading resumes</h2>
+          <p>{error instanceof Error ? error.message : "Unknown error"}</p>
+          <Button 
+            variant="outline" 
+            className="mt-4" 
+            onClick={() => refetch()}
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!resumes || resumes.length === 0) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-center space-y-4 p-8 border rounded-lg">
+          <h2 className="text-xl font-semibold">No optimized resumes found</h2>
+          <p className="text-muted-foreground">
+            You haven't optimized any resumes yet. Start by uploading a resume and job description.
+          </p>
+          <Button asChild>
+            <Link href="/dashboard">Go to Dashboard</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleResumeView = (resumeId: number) => {
+    window.location.href = `/dashboard?optimizedId=${resumeId}`;
+  };
+
+  const handleResumeDownload = async (resumeId: number) => {
     try {
-      const response = await fetch(`/api/optimized-resumes/${resumeId}/download`);
+      const response = await fetch(`/api/optimized-resume/${resumeId}/download`);
       if (!response.ok) {
         throw new Error('Failed to download resume');
       }
@@ -68,162 +104,93 @@ export default function OptimizedResumesPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `optimized-resume-${resumeId}.docx`;
+
+      // Get filename from the response headers if possible
+      const contentDisposition = response.headers.get('content-disposition');
+      const filenameMatch = contentDisposition && contentDisposition.match(/filename="?([^"]*)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : `optimized-resume-${resumeId}.docx`;
+
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast({
-        title: "Download started",
-        description: "Your resume is being downloaded",
+        title: "Resume Downloaded",
+        description: "Your optimized resume has been downloaded successfully.",
       });
-    } catch (err) {
-      console.error("Download error:", err);
+    } catch (error) {
+      console.error("Error downloading resume:", error);
       toast({
-        title: "Download failed",
-        description: err instanceof Error ? err.message : "Failed to download resume",
+        title: "Download Failed",
+        description: "There was an error downloading your resume. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  // Function to view resume details
-  const handleView = (resumeId: number) => {
-    navigate(`/optimized-resume/${resumeId}`);
-  };
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="container mx-auto mt-8 px-4">
-        <h1 className="text-2xl font-bold mb-6">Optimized Resumes</h1>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 mb-4"></div>
-              <p>Loading your optimized resumes...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="container mx-auto mt-8 px-4">
-        <h1 className="text-2xl font-bold mb-6">Optimized Resumes</h1>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="rounded-full bg-red-100 p-3 text-red-600 mb-4">
-                <AlertCircle className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">Error Loading Resumes</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                {error instanceof Error ? error.message : "Failed to load resumes"}
-              </p>
-              <Button onClick={() => window.location.reload()}>
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto mt-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Optimized Resumes</h1>
+    <div className="container mx-auto py-8">
+      <h1 className="text-2xl font-bold mb-6">Your Optimized Resumes</h1>
 
-      {optimizedResumes.length === 0 ? (
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center p-6 text-center">
-              <div className="rounded-full bg-gray-100 p-3 text-gray-600 mb-4">
-                <FileText className="h-6 w-6" />
-              </div>
-              <h3 className="font-semibold text-lg mb-2">No Optimized Resumes Yet</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                You haven't optimized any resumes yet. Go to the dashboard to get started.
-              </p>
-              <Button onClick={() => navigate("/")}>
-                Go to Dashboard
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Optimized Resumes</CardTitle>
-            <CardDescription>
-              View and download your AI-optimized resumes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Job Title</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-              {Array.isArray(optimizedResumes) && optimizedResumes.length > 0 ? (
-                optimizedResumes.map((resume) => (
-                  <TableRow key={resume.id}>
-                    <TableCell>{resume.jobDetails?.title || "Untitled Position"}</TableCell>
-                    <TableCell>{resume.jobDetails?.company || "Unknown Company"}</TableCell>
-                    <TableCell>
-                      {resume.createdAt 
-                        ? formatDistanceToNow(new Date(resume.createdAt), { addSuffix: true })
-                        : "Unknown"
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                        Completed
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleView(resume.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" /> View
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDownload(resume.id)}
-                        >
-                          <Download className="h-4 w-4 mr-1" /> Download
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
-                    No optimized resumes available
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+      <Table>
+        <TableCaption>A list of your optimized resumes.</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[180px]">Date</TableHead>
+            <TableHead>Job Title</TableHead>
+            <TableHead>Company</TableHead>
+            <TableHead className="w-[180px]">Version</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {resumes.map((resume) => (
+            <TableRow key={resume.id}>
+              <TableCell className="font-medium">
+                {resume.metadata?.optimizedAt 
+                  ? format(new Date(resume.metadata.optimizedAt), 'MMM d, yyyy')
+                  : 'Unknown date'}
+              </TableCell>
+              <TableCell>
+                <div className="font-medium">
+                  {resume.jobDetails?.title || "Unknown Job"}
+                </div>
+                {resume.jobDetails?.location && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {resume.jobDetails.location}
+                  </div>
+                )}
+              </TableCell>
+              <TableCell>{resume.jobDetails?.company || "Unknown Company"}</TableCell>
+              <TableCell>
+                <Badge variant="outline">
+                  v{resume.metadata?.version || "1.0"}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleResumeView(resume.id)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleResumeDownload(resume.id)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
