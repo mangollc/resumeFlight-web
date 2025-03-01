@@ -933,7 +933,7 @@ export default function Dashboard() {
               {/* Gaps Section */}
               <div className="rounded-lg border p-4">
                 <h4 className="font-medium text-lg flex items-center mb-3">
-                  <span className="mr-2 bg-red-100 text-red-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                  <span className="mr-2 bg-red-100 text-red-800rounded-full h-6 w-6 flex items-center justify-center text-sm">
                     {optimizedResume.analysis.gaps.length}
                   </span>
                   Gaps
@@ -1068,11 +1068,17 @@ export default function Dashboard() {
                           <SelectValue placeholder="Select a resume" />
                         </SelectTrigger>
                         <SelectContent>
-                          {resumes.map((resume) => (
-                            <SelectItem key={resume.id} value={resume.id.toString()}>
-                              {resume.metadata.filename}
+                          {Array.isArray(resumes) && resumes.length > 0 ? (
+                            resumes.map((resume) => (
+                              <SelectItem key={resume.id} value={resume.id.toString()}>
+                                {resume.metadata.filename}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="no-resumes" disabled>
+                              No resumes available
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1548,9 +1554,34 @@ export default function Dashboard() {
 
   const { data: optimizedResumes = [] } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
-    onError: (error) => {
-      console.error("Error fetching resumes:", error);
-    }
+    queryFn: async () => {
+      console.log('Fetching optimized resumes...');
+      const response = await fetch('/api/optimized-resumes');
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch optimized resumes');
+      }
+
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('Expected JSON response but got:', contentType);
+        // Return empty array instead of throwing to prevent UI crashes
+        return [];
+      }
+
+      try {
+        return await response.json();
+      } catch (err) {
+        console.error('Error parsing JSON response:', err);
+        return [];
+      }
+    },
+    retry: 2,
+    retryDelay: 1000
   });
 
   return (
