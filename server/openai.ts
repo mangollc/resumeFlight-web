@@ -182,7 +182,7 @@ Ensure each score is calculated based on:
       allChanges.push(...(result.changes || []));
     }
 
-    return { changes: allChanges, overallScore: result.overallScore, scores: result.scores };
+    return { changes: allChanges, overallScore: 0, scores: {} };
   } catch (err) {
     const error = err as Error;
     console.error("[Differences] Analysis error:", error);
@@ -498,6 +498,14 @@ export async function generateCoverLetter(
     const coverLetterVersion = parseFloat(version?.toString() || '1.0');
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
+    
+    // Default contact info if not provided
+    contactInfo = {
+      fullName: contactInfo.fullName || "Applicant Name",
+      email: contactInfo.email || "applicant@example.com",
+      phone: contactInfo.phone || "555-555-5555",
+      address: contactInfo.address || ""
+    };
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",

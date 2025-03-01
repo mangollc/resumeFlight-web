@@ -109,6 +109,7 @@ export default function CoverLetterComponent({ resume }: CoverLetterProps) {
           >
             {isGenerating ? "Generating..." : "Generate Cover Letter"}
           </Button>
+          {isGenerating && <p className="mt-2 text-sm text-muted-foreground">This may take a minute or two...</p>}
         </div>
       ) : (
         <>
