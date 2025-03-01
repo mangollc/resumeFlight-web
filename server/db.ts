@@ -1,3 +1,4 @@
+
 import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
@@ -35,7 +36,7 @@ export const getCurrentESTTimestamp = async () => {
   }
 };
 
-//Cleanup function for graceful shutdown
+// Cleanup function for graceful shutdown
 const cleanup = () => {
   console.log('Cleanup: Releasing SQL connection');
   sql.end().catch(err => {

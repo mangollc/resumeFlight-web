@@ -1,3 +1,4 @@
+
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { neon } from "@neondatabase/serverless";
@@ -13,8 +14,6 @@ if (!process.env.DATABASE_URL) {
 }
 
 // Create session store with enhanced error handling and SSL
-const sessionSql = neon(process.env.DATABASE_URL);
-
 export const sessionStore = new PostgresSessionStore({
   conObject: {
     connectionString: process.env.DATABASE_URL,
