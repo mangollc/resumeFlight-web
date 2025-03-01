@@ -7,7 +7,16 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
+  Info,
+  ChartBar,
+  Star,
+  ArrowUpRight,
+  CheckCircle,
+  AlertTriangle,
+  Lightbulb,
   FileText,
+  ArrowUpCircle,
+  BarChart2,
   LucideIcon,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -40,9 +49,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
-
 
 const getScoreColor = (score: number) => {
   if (score >= 80) return "bg-emerald-500";
@@ -161,16 +168,6 @@ function ResumeRow({
                 PDF Format
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx", resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                DOCX Format
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf", resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                PDF Format
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx", resume.id)}>
                 <FileText className="mr-2 h-4 w-4" />
                 DOCX Format
               </DropdownMenuItem>
