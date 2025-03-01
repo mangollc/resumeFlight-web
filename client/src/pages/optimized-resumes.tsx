@@ -415,10 +415,16 @@ function ResumeRow({
 }
 
 export default function OptimizedResumesPage() {
-  const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
+  const { data: resumes, isLoading, error } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return [];
+      }
       return [...data].sort((a, b) => {
+        if (!a.metadata?.optimizedAt || !b.metadata?.optimizedAt) {
+          return 0;
+        }
         return (
           new Date(b.metadata.optimizedAt).getTime() -
           new Date(a.metadata.optimizedAt).getTime()

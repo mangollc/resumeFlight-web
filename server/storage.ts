@@ -396,7 +396,7 @@ export class DatabaseStorage implements IStorage {
         .from(optimizedResumes)
         .where(eq(optimizedResumes.userId, userId));
 
-      return results.map(result => {
+      const transformedResults = results.map(result => {
         return {
           ...result,
           metadata: result.metadata as OptimizedResume['metadata'],
@@ -411,9 +411,12 @@ export class DatabaseStorage implements IStorage {
           professionalSummary: result.professionalSummary as OptimizedResume['professionalSummary']
         };
       });
+
+      return transformedResults;
     } catch (error) {
       console.error('Error getting optimized resumes by user:', error);
-      throw new Error('Failed to get optimized resumes');
+      // Return empty array instead of throwing, to prevent frontend crashes
+      return [];
     }
   }
 
