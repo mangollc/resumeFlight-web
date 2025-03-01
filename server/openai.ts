@@ -283,10 +283,33 @@ export async function optimizeResume(
    - Categorize into sections if appropriate (Technical/Soft Skills)
 
 4. Professional Experience
-   - List in reverse chronological order
-   - Include job title, company name, location, and dates
-   - Focus on achievements with quantifiable results
-   - Use strong action verbs and emphasize metrics (%, $, time saved)
+
+   Reverse Chronological Order:
+   - List your most recent position first, followed by previous roles.
+
+   Essential Details:
+   - Include official job title, company name, location (city/state), and employment dates for each position.
+
+   Focused Bullet Points:
+   - Aim for 3–6 bullet points to showcase impactful achievements and responsibilities.
+
+   Achievement-Focused:
+   - Demonstrate value added with quantifiable metrics (e.g., percentages, dollars, time saved).
+
+   Powerful Action Verbs:
+   - Use strong, precise verbs for each bullet (e.g., Spearheaded, Improved, Drove).
+
+   Relevant Metrics:
+   - Highlight outcomes like time saved, costs reduced, revenue generated, or efficiency increases.
+
+   Concise & Targeted:
+   - Keep bullet points one or two lines, focusing on key achievements matching the targeted job.
+
+   Tailored Keywords:
+   - Integrate industry-specific terms or keywords from the job description for ATS compatibility.
+
+   Context & Impact:
+   - Provide scope of role (e.g., team size, budget managed) to help understand responsibilities.
 
 5. Education
    - Include degree, institution name, graduation date
