@@ -1,48 +1,82 @@
 // Stream the optimization process using SSE
-import { Router } from 'express';
-import { storage } from '../storage';
-import { requireAuth } from '../auth';  // Add this import
-
-const router = Router();
-
-// Delete optimized resume
-router.delete('/optimized-resumes/:id', requireAuth, async (req, res) => {
+app.get('/api/uploaded-resumes/:id/optimize', requireAuth, async (req, res) => {
   const { id } = req.params;
-  console.log(`Delete request received for resume ID: ${id}`);
+  const { jobDescription } = req.query;
+
+  if (!jobDescription) {
+    return res.status(400).json({ error: true, message: 'Job description is required' });
+  }
+
+  // Set up SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no' // Disable buffering for proxies
+  });
+
+  // Keep connection alive with a ping every 30 seconds
+  const keepAliveInterval = setInterval(() => {
+    res.write(': ping\n\n');
+  }, 30000);
+
+  // Handle client disconnect
+  req.on('close', () => {
+    clearInterval(keepAliveInterval);
+    console.log('Client closed connection');
+  });
+
+  // Helper function to send events
+  const sendEvent = (data: any) => {
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
+  };
 
   try {
-    if (!req.user || !req.user.id) {
-      console.log('Delete request rejected: User not authenticated');
-      return res.status(401).json({ error: true, message: 'Unauthorized' });
-    }
+    // ... existing code to process resume optimization ...
 
-    const userId = req.user.id;
-    console.log(`Authenticated user ID: ${userId}`);
+  } catch (error) {
+    console.error('Error during resume optimization:', error);
+    sendEvent({ 
+      status: 'error', 
+      error: 'Failed to optimize resume' 
+    });
+
+    // Clean up resources
+    clearInterval(keepAliveInterval);
+
+    // Make sure we properly end the response
+    if (!res.writableEnded) {
+      res.end();
+    }
+  } finally {
+    // Ensure interval is cleared even if no error
+    req.on('end', () => {
+      clearInterval(keepAliveInterval);
+    });
+  }
+});
+
+// Delete optimized resume
+app.delete('/api/optimized-resumes/:id', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
 
     // Verify the resume exists and belongs to the user
     const resume = await storage.getOptimizedResume(parseInt(id));
-    console.log('Found resume:', resume ? `ID: ${resume.id}, UserID: ${resume.userId}` : 'Not found');
-
-    if (!resume) {
+    if (!resume || resume.userId !== userId) {
       return res.status(404).json({ error: true, message: 'Resume not found' });
     }
 
-    if (resume.userId !== userId) {
-      console.log(`Access denied: Resume belongs to user ${resume.userId}, request from user ${userId}`);
-      return res.status(403).json({ error: true, message: 'Access denied' });
-    }
-
     // Delete the resume
-    console.log(`Attempting to delete resume ID: ${id}`);
     await storage.deleteOptimizedResume(parseInt(id));
-    console.log(`Successfully deleted resume ID: ${id}`);
 
     // Return success response
     return res.json({ success: true, message: 'Resume deleted successfully' });
   } catch (error) {
-    console.error('Error in delete resume route:', error);
+    console.error('Error deleting resume:', error);
     return res.status(500).json({ error: true, message: 'Failed to delete resume' });
   }
 });
-
-export default router;

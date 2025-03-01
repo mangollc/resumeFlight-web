@@ -5,10 +5,9 @@
 import { Express } from "express";
 import { createServer, type Server } from "http";
 import { authRoutes } from "./auth.routes";
-import resumeRoutes from "./resumes";  // Updated import
+import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
-import documentRoutes from "./document.routes";  // Added import
 import { setupAuth } from "../auth";
 import { corsMiddleware } from "../utils/cors";
 
@@ -18,7 +17,7 @@ export function registerRoutes(app: Express): Server {
 
     // Apply CORS middleware globally
     app.use(corsMiddleware);
-
+    
     // Global middleware
     app.use((req, res, next) => {
         res.setHeader("Content-Type", "application/json");
@@ -35,8 +34,8 @@ export function registerRoutes(app: Express): Server {
 
     // Register route modules with proper prefixes
     app.use('/api', authRoutes);
-    app.use('/api', resumeRoutes);  // Handle resume operations
-    app.use('/api', documentRoutes); // Handle document operations
+    app.use('/api', resumeRoutes);  // This handles /api/resume routes including optimized
+    app.use('/api', optimizationRoutes);
     app.use('/api/analysis', analysisRoutes);
 
     return createServer(app);
