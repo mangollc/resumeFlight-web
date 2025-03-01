@@ -256,7 +256,9 @@ export class DatabaseStorage implements IStorage {
       const phoneRegex = /(?:(?:\+?1\s*(?:[.-]\s*)?)?(?:\(\s*([0-9]{ 3 })\s*\)|([0-9]{ 3 }))\s*(?:[.-]\s*)?)?([0-9]{ 3 })\s*(?:[.-]\s*)?([0-9]{ 4 })/g;
       const addressRegex = /(\d{1,}) [a-zA-Z0-9\s]+(Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr)[,\s]+[a-zA-Z]+[,\s]+[A-Z]{2}[,\s]+\d{5}/gi;
 
-      const lines = resume.content.split('\n');
+      // Ensure content is a string before splitting
+      const contentStr = resume.content || resume.optimisedResume || resume.originalContent || '';
+      const lines = contentStr.split('\n');
       let headerSection = lines.slice(0, Math.min(15, lines.length)).join('\n');
 
       // Extract email

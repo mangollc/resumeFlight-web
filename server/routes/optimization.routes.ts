@@ -166,11 +166,24 @@ if (!optimizationResult?.optimisedResume) {
     throw error;
 }
 
-const optimizedResume = await storage.createOptimizedResume({
+// Ensure we have content to work with
+            const optimizedContent = optimizationResult.optimizedContent || optimizationResult.optimisedResume;
+            
+            if (!optimizedContent) {
+                sendEvent({ 
+                    status: "error",
+                    message: "No optimized content was generated. Please try again.",
+                    code: "CONTENT_ERROR"
+                });
+                return res.end();
+            }
+            
+            const optimizedResume = await storage.createOptimizedResume({
                 userId: req.user!.id,
                 sessionId: req.session.id,
                 uploadedResumeId: resume.id,
-                content: optimizationResult.optimizedContent,
+                content: optimizedContent,
+                optimisedResume: optimizedContent,
                 originalContent: resume.content || '',
                 jobDescription: jobDetails?.description || '',
                 jobUrl: jobUrl || null,
