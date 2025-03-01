@@ -13,19 +13,26 @@ export enum LogLevel {
   ERROR = 'ERROR'
 }
 
+// Environment-aware logging
+const isDev = process.env.NODE_ENV === 'development';
+
 // Log with timestamp and level
 export const logger = {
   debug: (message: string, data?: any) => {
-    console.log(`[${new Date().toISOString()}] [DEBUG] ${message}`, data ? data : '');
+    if (isDev) {
+      console.log(`[${new Date().toISOString()}] [DEBUG] ${message}`);
+    }
   },
   info: (message: string, data?: any) => {
-    console.log(`[${new Date().toISOString()}] [INFO] ${message}`, data ? data : '');
+    if (isDev || process.env.LOG_LEVEL === 'info') {
+      console.log(`[${new Date().toISOString()}] [INFO] ${message}`);
+    }
   },
   warn: (message: string, data?: any) => {
-    console.warn(`[${new Date().toISOString()}] [WARN] ${message}`, data ? data : '');
+    console.warn(`[${new Date().toISOString()}] [WARN] ${message}`, data ? '' : '');
   },
   error: (message: string, error?: any) => {
-    console.error(`[${new Date().toISOString()}] [ERROR] ${message}`, error ? error : '');
+    console.error(`[${new Date().toISOString()}] [ERROR] ${message}`);
     if (error && error.stack) {
       console.error(error.stack);
     }
@@ -36,15 +43,22 @@ export const logger = {
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   
-  // Log request details
-  logger.info(`${req.method} ${req.originalUrl}`, {
-    headers: req.headers,
-    query: req.query,
-    body: req.body
-  });
+  // Only log API requests with minimal info
+  if (req.originalUrl.startsWith('/api') && process.env.NODE_ENV === 'development') {
+    logger.debug(`${req.method} ${req.originalUrl}`);
+  }
   
-  // Log response on finish
+  // Log response on finish - only for non-static content
   res.on('finish', () => {
+    // Skip logging for static assets, health checks, and successful standard requests
+    const isStatic = req.originalUrl.includes('.') && !req.originalUrl.startsWith('/api');
+    const isHealthCheck = req.originalUrl === '/api/health';
+    const isSuccessful = res.statusCode >= 200 && res.statusCode < 300;
+    
+    if (isStatic || (isHealthCheck && isSuccessful)) {
+      return;
+    }
+    
     const duration = Date.now() - start;
     const message = `${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`;
     

@@ -8,18 +8,19 @@ import { checkDatabaseConnection } from "./db";
 
 // Global error handlers
 process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-    console.error(error.stack);
+    console.error('Uncaught Exception:', error.message);
     process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise);
-    console.error('Reason:', reason);
+    console.error('Unhandled Rejection:', typeof reason === 'object' ? (reason as Error).message : reason);
     process.exit(1);
 });
 
-console.log('Starting server initialization...');
+// Only log startup in development
+if (process.env.NODE_ENV === 'development') {
+    console.log('Starting server initialization...');
+}
 
 const app = express();
 
@@ -73,7 +74,6 @@ app.get("/api/health", async (_req, res) => {
     }
 });
 
-console.log('Registering routes...');
 // Register routes
 const server = registerRoutes(app);
 
@@ -108,13 +108,11 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
 // Setup environment-specific middleware
 if (process.env.NODE_ENV === "development") {
-    log("Setting up development environment with Vite...");
     setupVite(app, server).catch(err => {
-        console.error('Failed to setup Vite:', err);
+        console.error('Failed to setup Vite:', err.message);
         process.exit(1);
     });
 } else {
-    log("Setting up production environment...");
     serveStatic(app);
 }
 
@@ -123,13 +121,12 @@ const startServer = async (port: number) => {
   try {
     await new Promise((resolve, reject) => {
       const srv = server.listen(port, '0.0.0.0', () => {
-        log(`Server successfully started on port ${port}`);
-        log(`Server accessible at http://0.0.0.0:${port} and via Replit domains`);
+        console.log(`Server running on port ${port}`);
         resolve(srv);
       });
       srv.once('error', (err) => {
         if (err.code === 'EADDRINUSE') {
-          log(`Port ${port} is in use, trying ${port + 1}`);
+          console.log(`Port ${port} in use, trying ${port + 1}`);
           srv.close();
           startServer(port + 1).then(resolve).catch(reject);
         } else {
@@ -138,12 +135,11 @@ const startServer = async (port: number) => {
       });
     });
   } catch (err: any) {
-    log('Server error:', err);
-    // Wait 3 seconds and try to restart instead of throwing
-    log('Attempting to restart server in 3 seconds...');
+    console.error('Server error:', err.message);
+    // Wait 3 seconds and try to restart
     setTimeout(() => {
       startServer(port).catch(restartErr => {
-        log('Failed to restart server:', restartErr);
+        console.error('Failed to restart server');
         process.exit(1);
       });
     }, 3000);
@@ -162,31 +158,21 @@ startServer(5000).catch(err => {
   }, 3000);
 });
 
-process.on('SIGTERM', () => {
-    log('Received SIGTERM. Attempting graceful shutdown...');
-    server.close((err) => {
-        if (err) {
-            console.error('Error during shutdown:', err);
-            process.exit(1);
-        }
-        log('Server closed successfully.');
-        process.exit(0);
-    });
+// Handle shutdown signals
+['SIGTERM', 'SIGINT'].forEach(signal => {
+    process.on(signal, () => {
+        console.log(`Shutting down due to ${signal}`);
+        server.close((err) => {
+            if (err) {
+                console.error('Error during shutdown');
+                process.exit(1);
+            }
+            process.exit(0);
+        });
 
-    // Force shutdown as a fallback
-    setTimeout(() => {
-        console.error('Force shutting down after timeout');
-        process.exit(1);
-    }, 5000);
-});
-
-process.on('SIGINT', () => {
-    log('Received SIGINT. Attempting graceful shutdown...');
-    server.close((err) => {
-        if (err) {
-            console.error('Error during shutdown:', err);
+        // Force shutdown after timeout
+        setTimeout(() => {
             process.exit(1);
-        }
-        process.exit(0);
+        }, 5000);
     });
 });
