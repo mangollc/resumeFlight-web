@@ -9,6 +9,12 @@ import { requireAuth } from "../auth";
 
 const router = Router();
 
+// Test endpoint to verify JSON responses are working
+router.get('/api/test-json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify({ success: true, message: "JSON endpoint working correctly" }));
+});
+
 // Get all optimized resumes
 router.get('/optimized-resumes', requireAuth, async (req, res) => {
   try {
@@ -171,10 +177,8 @@ router.get('/api/optimized-resumes/:id/download', requireAuth, async (req, res) 
 });
 
 
-// Test endpoint to verify JSON responses are working
-router.get('/api/test-json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(JSON.stringify({ success: true, message: "JSON endpoint working correctly" }));
-});
+// Export as named export
+export const documentRoutes = router;
 
+// Also keep default export for backward compatibility
 export default router;
