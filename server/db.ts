@@ -28,6 +28,9 @@ console.log('Drizzle ORM initialized');
 // Export sql client for direct queries if needed
 export const sqlClient = sql;
 
+// Make SQL client available as module.exports for CommonJS require()
+module.exports = { sqlClient, db, getCurrentESTTimestamp };
+
 // Get current timestamp in EST
 export const getCurrentESTTimestamp = async () => {
   try {

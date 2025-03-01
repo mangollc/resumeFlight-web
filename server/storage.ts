@@ -702,7 +702,9 @@ export const storage = new DatabaseStorage();
 
 export const getCurrentESTTimestamp = async () => {
   try {
-    const result = await db.sqlClient`SELECT NOW() AT TIME ZONE 'America/New_York' as now`;
+    // Import the SQL client from db.ts
+    const { sqlClient } = require('./db');
+    const result = await sqlClient`SELECT NOW() AT TIME ZONE 'America/New_York' as now`;
     return result[0].now;
   } catch (error) {
     console.error('Error getting current timestamp:', error);
