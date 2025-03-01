@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast"; // Added missing import
+import { useToast } from "@/hooks/use-toast"; // Added missing import
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OptimizedResume } from "../../shared/schema";
