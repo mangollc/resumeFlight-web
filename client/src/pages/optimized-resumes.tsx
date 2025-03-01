@@ -1,42 +1,26 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
-import { OptimizedResume } from "@shared/schema";
+import { useState } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { format } from "date-fns";
+import {
+  CircleAlert,
+  Download,
+  FileText,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  MoreVertical,
-  ChevronDown,
-  ChevronRight,
-  Trash2,
-  Info,
-  ChartBar,
-  LucideIcon,
-  Star,
-  ArrowUpRight,
-  Gauge,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  CircleAlert,
-  Lightbulb,
-  GraduationCap,
-  Briefcase,
-  Award,
-  Brain,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  FileText,
-  Code,
-  ArrowUpCircle,
-  HelpCircle,
-  FileDown,
-  BarChart2,
-} from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Progress } from "@/components/ui/progress";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -45,27 +29,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import type { OptimizedResume } from "../../shared/schema";
+import { MoreVertical, ChevronDown as OrigChevronDown, ChevronRight as OrigChevronRight, Trash2 as OrigTrash2, Info, ChartBar, LucideIcon, Star, ArrowUpRight, Gauge, CheckCircle, XCircle, AlertTriangle, CircleAlert as OrigCircleAlert, Lightbulb, GraduationCap, Briefcase, Award, Brain, User, Mail, Phone, MapPin, Calendar, FileText as OrigFileText, Code, ArrowUpCircle, HelpCircle, FileDown, BarChart2 } from "lucide-react";
+import { apiRequest, queryClient as origQueryClient } from "@/lib/queryClient";
+import { Progress } from "@/components/ui/progress";
 
 
 const getScoreColor = (score: number) => {
@@ -94,322 +64,219 @@ function MetricRow({ label, score }: { label: string; score: number }) {
   );
 }
 
-function ResumeRow({
-  resume,
-  deleteMutation,
-  downloadDocument
-}: {
-  resume: OptimizedResume;
-  deleteMutation: UseMutationResult;
-  downloadDocument: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => Promise<void>;
+const queryClient = useQueryClient();
+
+function ResumeRow({ resume, onDelete, onDownload }: { 
+  resume: OptimizedResume; 
+  onDelete: (id: number) => void;
+  onDownload: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
 
-  // Ensure analysis data is never undefined and has arrays
-  const analysisData = {
-    strengths: resume?.analysis?.strengths || [],
-    improvements: resume?.analysis?.improvements || [],
-    gaps: resume?.analysis?.gaps || [], 
-    suggestions: resume?.analysis?.suggestions || []
+  // Ensure analysis data is never undefined
+  const analysisData = resume?.analysis || {
+    strengths: [],
+    improvements: [],
+    gaps: [],
+    suggestions: []
   };
 
   // Ensure other needed properties exist
   const metadata = resume?.metadata || {};
   const jobDetails = resume?.jobDetails || {};
-  const jobTitle = jobDetails?.title || 'Position';
-  const company = jobDetails?.company || 'Company';
 
   return (
     <>
       <TableRow
-        className={`group transition-colors ${isExpanded ? "bg-muted/50" : "hover:bg-muted/30"}`}
+        key={resume.id}
         onClick={() => setIsExpanded(!isExpanded)}
+        className="cursor-pointer hover:bg-muted/50"
       >
-        <TableCell className="w-4">
+        <TableCell>
+          <div className="font-medium">{jobDetails?.title || "Untitled Position"}</div>
+          <div className="text-sm text-muted-foreground">
+            {jobDetails?.company || "Unknown Company"}
+          </div>
+        </TableCell>
+        <TableCell>{metadata.version || "1.0"}</TableCell>
+        <TableCell>
+          {metadata?.optimizedAt
+            ? format(new Date(metadata.optimizedAt), "MMM d, yyyy")
+            : "N/A"}
+        </TableCell>
+        <TableCell className="flex justify-end items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload("resume", "docx", resume.id);
+            }}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            DOCX
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload("resume", "pdf", resume.id);
+            }}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            PDF
+          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Resume</DialogTitle>
+                <DialogDescription>
+                  Are you sure you want to delete this optimized resume? This
+                  action cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    onDelete(resume.id);
+                  }}
+                >
+                  Delete
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           {isExpanded ? (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronUp className="h-4 w-4" />
           ) : (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4" />
           )}
         </TableCell>
-        <TableCell>
-          <div className="text-sm">#{resume.id}</div>
-        </TableCell>
-        <TableCell>
-          <div className="flex flex-col gap-0.5">
-            <div className="text-sm">{new Date(resume.metadata.optimizedAt).toLocaleDateString()}</div>
-            <div className="text-xs text-muted-foreground">{new Date(resume.metadata.optimizedAt).toLocaleTimeString()}</div>
-          </div>
-        </TableCell>
-        <TableCell>
-          <div className="text-sm font-medium">{resume.metadata.version}</div>
-        </TableCell>
-        <TableCell>
-          <div className="flex flex-col gap-1">
-            <div className="text-sm">{jobTitle}</div>
-            <div className="text-xs text-muted-foreground">{company}</div>
-          </div>
-        </TableCell>
-        <TableCell className="hidden lg:table-cell text-right">
-          <div className="flex items-center justify-end gap-2">
-            <span className={`text-sm ${getScoreTextColor(resume.metrics.after.overall)}`}>
-              {resume.metrics.after.overall.toFixed(1)}%
-            </span>
-          </div>
-        </TableCell>
-        <TableCell className="w-8">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">Actions</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuLabel>Download Resume</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument("resume", "pdf", resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                PDF Format
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument("resume", "docx", resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                DOCX Format
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Download Cover Letter</DropdownMenuLabel>
-              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "pdf", resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                PDF Format
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => downloadDocument("cover-letter", "docx", resume.id)}>
-                <FileText className="mr-2 h-4 w-4" />
-                DOCX Format
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Optimized Resume</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete the optimized resume and its
-                      corresponding cover letter. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteMutation.mutate(resume.id);
-                      }}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
       </TableRow>
-
       {isExpanded && (
-        <TableRow>
-          <TableCell colSpan={8} className="bg-muted/30 border-t border-muted">
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-card rounded-lg border p-6">
-                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <ChartBar className="h-5 w-5 text-primary" />
-                    Resume Metrics
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-6">
-                      <div className="bg-primary/5 rounded-lg p-4">
-                        <MetricRow
-                          label="Overall Score"
-                          score={resume.metrics.after.overall}
-                        />
-                      </div>
-                      <MetricRow
-                        label="Skills"
-                        score={resume.metrics.after.skills}
-                      />
-                      <MetricRow
-                        label="Keywords"
-                        score={resume.metrics.after.keywords}
-                      />
-                      <MetricRow
-                        label="Education"
-                        score={resume.metrics.after.education}
-                      />
-                    </div>
-                    <div className="space-y-6">
-                      <MetricRow
-                        label="Experience"
-                        score={resume.metrics.after.experience}
-                      />
-                      <MetricRow
-                        label="AI Readiness"
-                        score={resume.metrics.after.aiReadiness}
-                      />
-                      <MetricRow
-                        label="Personalization"
-                        score={resume.metrics.after.personalization}
-                      />
-                      <MetricRow
-                        label="Confidence"
-                        score={resume.metrics.after.confidence}
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium mb-4">Analysis</h3>
-                  <div className="space-y-3">
-                    <div className="rounded-lg border">
-                      <button
-                        onClick={() => setActiveSection(activeSection === 'strengths' ? '' : 'strengths')}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-emerald-500" />
-                          <span className="font-medium text-sm">Strengths</span>
-                          <span className="text-xs text-muted-foreground">
-                            {analysisData.strengths?.length || 0}
-                          </span>
-                        </div>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'strengths' ? 'rotate-180' : ''}`} />
-                      </button>
-                      {activeSection === 'strengths' && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisData.strengths?.map((strength, idx) => (
-                            <div key={idx} className="text-sm text-emerald-600 flex gap-2 items-start">
-                              <CheckCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{strength}</span>
-                            </div>
+        <TableRow className="bg-muted/20">
+          <TableCell colSpan={4} className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-medium mb-2">Resume Analysis</h3>
+                  <div className="space-y-4">
+                    <div 
+                      className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'strengths' ? 'border-green-500 bg-muted/50' : 'border-muted'}`}
+                      onClick={() => setActiveSection(activeSection === 'strengths' ? '' : 'strengths')}
+                    >
+                      <h4 className="font-medium flex items-center justify-between">
+                        Strengths
+                        {activeSection === 'strengths' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </h4>
+                      {activeSection === 'strengths' && analysisData.strengths && analysisData.strengths.length > 0 && (
+                        <ul className="mt-2 pl-4 list-disc space-y-1">
+                          {analysisData.strengths.map((strength, idx) => (
+                            <li key={idx} className="text-sm">{strength}</li>
                           ))}
-                          {analysisData.strengths.length === 0 && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No strengths identified yet</span>
-                            </div>
-                          )}
-                        </div>
+                        </ul>
                       )}
                     </div>
 
-                    <div className="rounded-lg border">
-                      <button
-                        onClick={() => setActiveSection(activeSection === 'improvements' ? '' : 'improvements')}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <ArrowUpCircle className="h-4 w-4 text-amber-500" />
-                          <span className="font-medium text-sm">Improvements</span>
-                          <span className="text-xs text-muted-foreground">
-                            {analysisData.improvements?.length || 0}
-                          </span>
-                        </div>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'improvements' ? 'rotate-180' : ''}`} />
-                      </button>
-                      {activeSection === 'improvements' && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisData.improvements?.map((improvement, idx) => (
-                            <div key={idx} className="text-sm text-amber-600 flex gap-2 items-start">
-                              <ArrowUpCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{improvement}</span>
-                            </div>
+                    <div 
+                      className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'improvements' ? 'border-amber-500 bg-muted/50' : 'border-muted'}`}
+                      onClick={() => setActiveSection(activeSection === 'improvements' ? '' : 'improvements')}
+                    >
+                      <h4 className="font-medium flex items-center justify-between">
+                        Areas for Improvement
+                        {activeSection === 'improvements' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </h4>
+                      {activeSection === 'improvements' && analysisData.improvements && analysisData.improvements.length > 0 && (
+                        <ul className="mt-2 pl-4 list-disc space-y-1">
+                          {analysisData.improvements.map((item, idx) => (
+                            <li key={idx} className="text-sm">{item}</li>
                           ))}
-                          {analysisData.improvements.length === 0 && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No improvements identified yet</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="rounded-lg border">
-                      <button
-                        onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                          <span className="font-medium text-sm">Gaps</span>
-                          <span className="text-xs text-muted-foreground">
-                            {analysisData.gaps?.length || 0}
-                          </span>
-                        </div>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'gaps' ? 'rotate-180' : ''}`} />
-                      </button>
-                      {activeSection === 'gaps' && (
-                        <div className="px-4 pb-3 space-y-2 max-h-60 overflow-y-auto">
-                          {analysisData.gaps?.map((gap, idx) => (
-                            <div key={idx} className="text-sm text-red-600 flex gap-2 items-start">
-                              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{gap}</span>
-                            </div>
-                          ))}
-                          {analysisData.gaps.length === 0 && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No gaps identified</span>
-                            </div>
-                          )}
-                        </div>
+                        </ul>
                       )}
                     </div>
 
-                    <div className="rounded-lg border">
-                      <button
-                        onClick={() => setActiveSection(activeSection === 'suggestions' ? '' : 'suggestions')}
-                        className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Lightbulb className="h-4 w-4 text-blue-500" />
-                          <span className="font-medium text-sm">Suggestions</span>
-                          <span className="text-xs text-muted-foreground">
-                            {analysisData.suggestions?.length || 0}
-                          </span>
-                        </div>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${activeSection === 'suggestions' ? 'rotate-180' : ''}`} />
-                      </button>
-                      {activeSection === 'suggestions' && (
-                        <div className="px-4 pb-3 space-y-2">
-                          {analysisData.suggestions?.map((suggestion, idx) => (
-                            <div key={idx} className="text-sm text-blue-600 flex gap-2 items-start">
-                              <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span>{suggestion}</span>
-                            </div>
+                    <div 
+                      className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'gaps' ? 'border-red-500 bg-muted/50' : 'border-muted'}`}
+                      onClick={() => setActiveSection(activeSection === 'gaps' ? '' : 'gaps')}
+                    >
+                      <h4 className="font-medium flex items-center justify-between">
+                        Skills Gaps
+                        {activeSection === 'gaps' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </h4>
+                      {activeSection === 'gaps' && analysisData.gaps && analysisData.gaps.length > 0 && (
+                        <ul className="mt-2 pl-4 list-disc space-y-1">
+                          {analysisData.gaps.map((gap, idx) => (
+                            <li key={idx} className="text-sm">{gap}</li>
                           ))}
-                          {analysisData.suggestions.length === 0 && (
-                            <div className="text-sm text-muted-foreground flex gap-2 items-center">
-                              <Info className="h-4 w-4" />
-                              <span>No suggestions available</span>
-                            </div>
-                          )}
-                        </div>
+                        </ul>
+                      )}
+                    </div>
+
+                    <div 
+                      className={`border-l-4 px-3 py-2 rounded-sm cursor-pointer hover:bg-muted/50 ${activeSection === 'suggestions' ? 'border-blue-500 bg-muted/50' : 'border-muted'}`}
+                      onClick={() => setActiveSection(activeSection === 'suggestions' ? '' : 'suggestions')}
+                    >
+                      <h4 className="font-medium flex items-center justify-between">
+                        Suggestions
+                        {activeSection === 'suggestions' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </h4>
+                      {activeSection === 'suggestions' && analysisData.suggestions && analysisData.suggestions.length > 0 && (
+                        <ul className="mt-2 pl-4 list-disc space-y-1">
+                          {analysisData.suggestions.map((suggestion, idx) => (
+                            <li key={idx} className="text-sm">{suggestion}</li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-medium mb-2">Job Details</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <h4 className="text-sm font-medium">Position</h4>
+                      <p>{jobDetails?.title || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Company</h4>
+                      <p>{jobDetails?.company || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Location</h4>
+                      <p>{jobDetails?.location || "Not specified"}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium">Requirements</h4>
+                      {jobDetails?.requirements && jobDetails.requirements.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {jobDetails.requirements.map((req, idx) => (
+                            <Badge key={idx} variant="outline">{req}</Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">No specific requirements listed</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TableCell>
         </TableRow>
@@ -419,7 +286,7 @@ function ResumeRow({
 }
 
 export default function OptimizedResumesPage() {
-  const { data: resumes = [], isLoading, error } = useQuery<OptimizedResume[]>({
+  const { data: resumes = [], isLoading, error, refetch } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       if (!data || !Array.isArray(data) || data.length === 0) {
@@ -436,6 +303,100 @@ export default function OptimizedResumesPage() {
       });
     },
   });
+
+  const { toast } = useToast();
+
+  // Handle loading and empty states
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground">Loading optimized resumes...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <CircleAlert className="h-8 w-8 mx-auto text-destructive" />
+            <p className="text-muted-foreground">Failed to load resumes</p>
+            <Button onClick={() => refetch()}>Try Again</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!resumes || resumes.length === 0) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground">No optimized resumes found</p>
+            <Button onClick={() => window.location.href = '/dashboard'}>Go to Dashboard</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => {
+    try {
+      toast({
+        title: "Downloading...",
+        description: `Preparing your ${type} for download`,
+      });
+
+      const response = await fetch(`/api/download/${type}/${resumeId}?format=${format}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download document: ${response.statusText}`);
+      }
+
+      // Get filename from Content-Disposition header or use default
+      let filename = `${type}-${resumeId}.${format}`;
+      const contentDisposition = response.headers.get('Content-Disposition');
+      if (contentDisposition) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      }
+
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download Complete",
+        description: `Your ${type} has been downloaded`,
+      });
+    } catch (err) {
+      console.error('Download error:', err);
+      toast({
+        title: "Download Failed",
+        description: err instanceof Error ? err.message : "Failed to download document",
+        variant: "destructive",
+      });
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -472,184 +433,41 @@ export default function OptimizedResumesPage() {
     },
   });
 
-  // Handle loading and empty states
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center space-y-4">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
-            <p className="text-muted-foreground">Loading optimized resumes...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center space-y-4">
-            <CircleAlert className="h-8 w-8 mx-auto text-destructive" />
-            <p className="text-muted-foreground">Failed to load resumes</p>
-            <Button onClick={() => window.location.reload()}>Try Again</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!resumes || resumes.length === 0) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center space-y-4">
-            <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
-            <p className="text-muted-foreground">No optimized resumes found</p>
-            <Button onClick={() => window.location.href = '/dashboard'}>Go to Dashboard</Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => {
-    try {
-      setIsDownloading(true);
-      const endpoint = `/api/documents/${type}/${resumeId}/download?format=${format}`;
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Accept': format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || `Failed to download ${type}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        // Handle case where server returned JSON error instead of file
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to download ${type}`);
-      }
-
-      const blob = await response.blob();
-      if (blob.size === 0) {
-        throw new Error('Downloaded file is empty');
-      }
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}-${resumeId}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Success",
-        description: `${type.charAt(0).toUpperCase() + type.slice(1)} downloaded successfully`,
-        duration: 3000,
-      });
-    } catch (error: any) {
-      console.error(`Error downloading ${type}:`, error);
-      toast({
-        title: "Error",
-        description: error.message || `Failed to download ${type}. Try again.`,
-        variant: "destructive",
-        duration: 5000,
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex-1 h-full">
-        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-muted rounded w-1/4"></div>
-            <div className="space-y-2">
-              <div className="h-12 bg-muted rounded"></div>
-              <div className="h-12 bg-muted rounded"></div>
-              <div className="h-12 bg-muted rounded"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-1 h-full bg-gradient-to-b from-background to-muted/20">
-      <div className="container mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-4 sm:space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent">
-            Optimized Resumes
-          </h1>
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Optimized Resumes</h2>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard">Create New</Link>
+          </Button>
         </div>
-
-        {resumes && resumes.length > 0 ? (
-          <div className="border rounded-lg overflow-hidden bg-card shadow-sm">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-4"></TableHead>
-                  <TableHead className="w-20">
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      ID
-                    </span>
-                  </TableHead>
-                  <TableHead>
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Date/Time
-                    </span>
-                  </TableHead>
-                  <TableHead>
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Version
-                    </span>
-                  </TableHead>
-                  <TableHead>
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Job Details
-                    </span>
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell text-right">
-                    <span className="text-xs uppercase tracking-wider font-medium text-muted-foreground">
-                      Match Score
-                    </span>
-                  </TableHead>
-                  <TableHead className="w-8"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {resumes?.map((resume) => (
-                  <ResumeRow key={resume.id} resume={resume} deleteMutation={deleteMutation} downloadDocument={downloadDocument} />
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-gradient-to-b from-background to-muted/20 rounded-lg border-2 border-dashed">
-            <FileText className="mx-auto h-16 w-16 text-primary/60 animate-heartbeat" />
-            <h3 className="mt-6 text-xl font-semibold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent animate-typing">
-              Ready to Enhance Your Resume?
-            </h3>
-            <p className="text-muted-foreground mt-2 max-w-sm mx-auto opacity-0 animate-[fadeIn_1s_ease-in_forwards_0.5s]">
-              Transform your resume with AI-powered optimization to stand out from the crowd
-            </p>
-          </div>
-        )}
       </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Job Position</TableHead>
+            <TableHead>Version</TableHead>
+            <TableHead>Created On</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {resumes.map((resume) => (
+            <ResumeRow 
+              key={resume.id} 
+              resume={resume} 
+              onDelete={(id) => deleteMutation.mutate(id)}
+              onDownload={downloadDocument}
+            />
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
