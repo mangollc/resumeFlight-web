@@ -52,19 +52,41 @@ router.delete('/optimized/:id', async (req, res) => {
         }
 
         const resumeId = parseInt(req.params.id);
+        
+        if (isNaN(resumeId)) {
+            console.error(`API: Invalid optimized resume ID: ${req.params.id}`);
+            return res.status(400).json({ error: "Invalid resume ID" });
+        }
+        
+        console.log(`API: Processing delete request for optimized resume ID: ${resumeId}`);
+        
         const resume = await storage.getOptimizedResume(resumeId);
 
         if (!resume) {
+            console.error(`API: Optimized resume with ID ${resumeId} not found`);
             return res.status(404).json({ error: "Resume not found" });
         }
+        
         if (resume.userId !== req.user!.id) {
+            console.error(`API: User ${req.user!.id} not authorized to delete optimized resume ${resumeId}`);
             return res.status(403).json({ error: "Not authorized" });
         }
 
         await storage.deleteOptimizedResume(resumeId);
-        return res.json({ message: "Resume deleted successfully" });
+        console.log(`API: Successfully deleted optimized resume with ID: ${resumeId}`);
+        
+        return res.status(200).json({ 
+            success: true,
+            message: "Resume deleted successfully", 
+            resumeId 
+        });
     } catch (error: any) {
-        return res.status(500).json({ error: error.message });
+        console.error('Delete optimized resume error:', error);
+        return res.status(500).json({ 
+            success: false,
+            error: "Failed to delete optimized resume",
+            details: error.message
+        });
     }
 });
 

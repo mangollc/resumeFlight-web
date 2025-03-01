@@ -429,7 +429,8 @@ export default function OptimizedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/optimized-resumes/${id}`, {
+      console.log(`Deleting optimized resume with ID: ${id}`);
+      const response = await fetch(`/api/analysis/optimized/${id}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
@@ -455,7 +456,7 @@ export default function OptimizedResumesPage() {
         return await response.json();
       } catch (parseError) {
         // If no JSON but response was ok, return success
-        return { success: true };
+        return { success: true, id };
       }
     },
     onSuccess: () => {
