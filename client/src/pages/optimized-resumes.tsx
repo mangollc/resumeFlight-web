@@ -106,7 +106,18 @@ function ResumeRow({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
-  const analysisData = resume.analysis || {};
+  
+  // Ensure analysis data is never undefined
+  const analysisData = resume?.analysis || {
+    strengths: [],
+    improvements: [],
+    gaps: [],
+    suggestions: []
+  };
+  
+  // Ensure other needed properties exist
+  const metadata = resume?.metadata || {};
+  const jobDetails = resume?.jobDetails || {};
 
   return (
     <>
@@ -415,7 +426,7 @@ function ResumeRow({
 }
 
 export default function OptimizedResumesPage() {
-  const { data: resumes, isLoading, error } = useQuery<OptimizedResume[]>({
+  const { data: resumes = [], isLoading, error } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
       if (!data || !Array.isArray(data) || data.length === 0) {
@@ -467,6 +478,48 @@ export default function OptimizedResumesPage() {
       });
     },
   });
+  
+  // Handle loading and empty states
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground">Loading optimized resumes...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <CircleAlert className="h-8 w-8 mx-auto text-destructive" />
+            <p className="text-muted-foreground">Failed to load resumes</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!resumes || resumes.length === 0) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center space-y-4">
+            <FileText className="h-8 w-8 mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground">No optimized resumes found</p>
+            <Button onClick={() => window.location.href = '/dashboard'}>Go to Dashboard</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const downloadDocument = async (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => {
     try {

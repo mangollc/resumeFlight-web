@@ -32,11 +32,11 @@ router.get("/resume/:id/download", requireAuth, async (req, res) => {
     const name = resume.contactInfo?.fullName?.replace(/\s+/g, "_") || "resume";
     const filename = `${name}_${position}${company ? "_" + company : ""}_v${resume.metadata.version}.docx`;
     
-    // Generate DOCX file
+    // Generate DOCX file using optimisedResume field
     const buffer = generateResumeDOCX(
-      resume.optimisedResume || resume.content, 
-      resume.contactInfo,
-      resume.jobDetails
+      resume.optimisedResume, 
+      resume.contactInfo || {},
+      resume.jobDetails || {}
     );
     
     // Send file to client
