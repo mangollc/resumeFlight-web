@@ -1,27 +1,13 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { OptimizedResume } from "@shared/schema";
+import { useState } from "react";
+import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
+import type { OptimizedResume } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   MoreVertical,
   ChevronDown,
   ChevronRight,
   Trash2,
-  Info,
-  ChartBar,
-  Star,
-  ArrowUpRight,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  CircleAlert,
-  Lightbulb,
   FileText,
-  Code,
-  ArrowUpCircle,
-  HelpCircle,
-  FileDown,
-  BarChart2,
   LucideIcon,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -87,15 +73,17 @@ function MetricRow({ label, score }: { label: string; score: number }) {
   );
 }
 
+interface ResumeRowProps {
+  resume: OptimizedResume;
+  deleteMutation: UseMutationResult<any, Error, number>;
+  downloadDocument: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => Promise<void>;
+}
+
 function ResumeRow({
   resume,
   deleteMutation,
   downloadDocument
-}: {
-  resume: OptimizedResume;
-  deleteMutation: UseMutationResult;
-  downloadDocument: (type: 'resume' | 'cover-letter', format: 'pdf' | 'docx', resumeId: number) => Promise<void>;
-}) {
+}: ResumeRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
@@ -428,6 +416,8 @@ function ResumeRow({
 }
 
 export default function OptimizedResumesPage() {
+  const { toast } = useToast();
+
   const { data: resumes, isLoading } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
     select: (data) => {
@@ -442,7 +432,7 @@ export default function OptimizedResumesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/resume/optimized/${id}`, {
+      const response = await fetch(`/api/optimized-resumes/${id}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {
