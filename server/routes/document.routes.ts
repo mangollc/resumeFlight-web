@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import { eq, desc } from 'drizzle-orm';
-import { optimizedResumes } from '../db/schema';
+import { optimizedResumes } from '@shared/schema';
 import { db } from '../db';
 import { storage } from "../storage";
 import { generateResumeDOCX, generateCoverLetterDOCX } from "../utils/docx-generator";
