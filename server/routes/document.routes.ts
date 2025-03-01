@@ -22,7 +22,7 @@ router.get('/optimized-resumes', requireAuth, async (req, res) => {
     const resumes = await db.select().from(optimizedResumes).orderBy(desc(optimizedResumes.createdAt));
 
     // Map to safe data format
-    const safeResumes = resumes.map(resume => ({
+    const safeResumes = Array.isArray(resumes) ? resumes.map(resume => ({
       id: resume.id,
       title: resume.title || "Untitled Resume",
       jobTitle: resume.jobTitle || "Unknown Position",
@@ -31,7 +31,7 @@ router.get('/optimized-resumes', requireAuth, async (req, res) => {
       company: resume.company || "Unknown Company",
       // Don't include the full content in the list view
       resumeId: resume.resumeId
-    }));
+    })) : [];
 
     // Log what we're about to return 
     console.log("Returning optimized resumes:", 
