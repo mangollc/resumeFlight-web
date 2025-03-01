@@ -2,7 +2,6 @@ import express, { Router } from 'express';
 import { eq, desc } from 'drizzle-orm';
 import { optimizedResumes } from '../db/schema';
 import { db } from '../db';
-import { generateDocx } from '../utils/docx-generator';
 import { storage } from "../storage";
 import { generateResumeDOCX, generateCoverLetterDOCX } from "../utils/docx-generator";
 import { generateCoverLetter } from "../openai";
@@ -11,11 +10,8 @@ import { requireAuth } from "../auth";
 const router = Router();
 
 // Get all optimized resumes
-router.get('/api/optimized-resumes', requireAuth, async (req, res) => {
+router.get('/optimized-resumes', requireAuth, async (req, res) => {
   try {
-    // Set JSON content type explicitly
-    res.setHeader('Content-Type', 'application/json');
-
     const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -32,7 +28,6 @@ router.get('/api/optimized-resumes', requireAuth, async (req, res) => {
       userId: resume.userId || 0,
       uploadedResumeId: resume.uploadedResumeId || 0,
       createdAt: resume.createdAt || new Date(),
-      updatedAt: resume.updatedAt || new Date(),
       optimisedResume: resume.optimisedResume || "",
       analysis: resume.analysis || { 
         strengths: [], 
@@ -74,11 +69,9 @@ router.get('/api/optimized-resumes', requireAuth, async (req, res) => {
       }
     }));
 
-    // Return the JSON response
     return res.json(safeResumes);
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
-    // Return JSON error response
     return res.status(500).json({ 
       error: true,
       message: "Failed to fetch optimized resumes", 

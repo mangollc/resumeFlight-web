@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -21,43 +20,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { FileText, Download, Eye, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-
-interface OptimizedResume {
-  id: number;
-  userId: number;
-  uploadedResumeId: number;
-  createdAt: string;
-  updatedAt: string;
-  optimisedResume: string;
-  analysis: {
-    strengths: string[];
-    improvements: string[];
-    gaps: string[];
-    suggestions: string[];
-  };
-  metadata: {
-    version?: string | number;
-    optimizedAt?: string;
-    filename?: string;
-    [key: string]: any;
-  };
-  jobDetails: {
-    title?: string;
-    company?: string;
-    location?: string;
-    description?: string;
-    requirements?: string[];
-    [key: string]: any;
-  };
-}
+import { type OptimizedResume } from "@shared/schema";
+import { useQuery } from "@tanstack/react-query";
 
 export default function OptimizedResumesPage() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [optimizedResumes, setOptimizedResumes] = useState<OptimizedResume[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
+
+  const { data: optimizedResumes = [], isLoading, error } = useQuery<OptimizedResume[]>({
+    queryKey: ['/api/optimized-resumes'],
+    retry: 2,
+    staleTime: 30000,
+  });
+
   // Function to download a resume
   const handleDownload = async (resumeId: number) => {
     try {
@@ -65,12 +40,9 @@ export default function OptimizedResumesPage() {
       if (!response.ok) {
         throw new Error('Failed to download resume');
       }
-      
-      // Create a blob from the response
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      
-      // Create a temporary link and trigger download
       const a = document.createElement('a');
       a.href = url;
       a.download = `optimized-resume-${resumeId}.docx`;
@@ -78,7 +50,7 @@ export default function OptimizedResumesPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       toast({
         title: "Download started",
         description: "Your resume is being downloaded",
@@ -92,116 +64,12 @@ export default function OptimizedResumesPage() {
       });
     }
   };
-  
+
   // Function to view resume details
   const handleView = (resumeId: number) => {
     navigate(`/optimized-resume/${resumeId}`);
   };
-  
-  // Fetch optimized resumes
-  useEffect(() => {
-    const fetchResumes = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout to 15 seconds
-        
-        console.log('Fetching optimized resumes...');
-        const response = await fetch('/api/optimized-resumes', {
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache' // Prevent caching issues
-          }
-        });
-        
-        clearTimeout(timeoutId);
-        
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries([...response.headers.entries()]));
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorMessage = `Server returned ${response.status}: ${response.statusText}`;
-          
-          console.error('Error response body:', errorText);
-          
-          try {
-            // Try to parse error as JSON
-            const errorJson = JSON.parse(errorText);
-            if (errorJson.message) {
-              errorMessage = errorJson.message;
-            }
-          } catch (e) {
-            // If not valid JSON, use the text as is but truncated
-            if (errorText.length > 100) {
-              errorMessage += ` - ${errorText.substring(0, 100)}...`;
-            } else if (errorText) {
-              errorMessage += ` - ${errorText}`;
-            }
-          }
-          throw new Error(errorMessage);
-        }
-        
-        // Check content type
-        const contentType = response.headers.get('content-type');
-        console.log('Content-Type:', contentType);
-        
-        // Handle the response
-        try {
-          // Get the response as text first
-          const responseText = await response.text();
-          
-          // Check if it looks like HTML
-          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
-            console.error('HTML response received instead of JSON:', responseText.substring(0, 200) + '...');
-            throw new Error('Server returned a non-JSON response. Please contact support.');
-          }
-          
-          // Try to parse as JSON
-          let data;
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error('JSON parse error:', parseError, 'Response text:', responseText.substring(0, 200));
-            throw new Error('Failed to parse server response as JSON');
-          }
-          
-          // Validate the data structure
-          if (!Array.isArray(data)) {
-            console.error('Invalid data format:', data);
-            throw new Error('Invalid response format - expected an array of resumes');
-          }
-          
-          // Set the data
-          setOptimizedResumes(data);
-        } catch (processingError) {
-          console.error('Response processing error:', processingError);
-          throw processingError;
-        }
-      } catch (err) {
-        console.error('Error fetching resumes:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load resumes');
-        toast({
-          title: "Error loading resumes",
-          description: err instanceof Error ? err.message : "Failed to load your optimized resumes",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchResumes();
-  }, [toast]);
-  
-  // Function to retry fetching
-  const handleRetry = () => {
-    window.location.reload();
-  };
-  
+
   // Show loading state
   if (isLoading) {
     return (
@@ -218,7 +86,7 @@ export default function OptimizedResumesPage() {
       </div>
     );
   }
-  
+
   // Show error state
   if (error) {
     return (
@@ -232,9 +100,9 @@ export default function OptimizedResumesPage() {
               </div>
               <h3 className="font-semibold text-lg mb-2">Error Loading Resumes</h3>
               <p className="text-sm text-gray-500 mb-4">
-                {error}
+                {error instanceof Error ? error.message : "Failed to load resumes"}
               </p>
-              <Button onClick={handleRetry}>
+              <Button onClick={() => window.location.reload()}>
                 Try Again
               </Button>
             </div>
@@ -243,11 +111,11 @@ export default function OptimizedResumesPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto mt-8 px-4">
       <h1 className="text-2xl font-bold mb-6">Optimized Resumes</h1>
-      
+
       {optimizedResumes.length === 0 ? (
         <Card className="mb-6">
           <CardContent className="pt-6">
