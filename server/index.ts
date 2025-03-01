@@ -46,15 +46,44 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
-    // Set default content type for API responses
-    if (req.path.startsWith('/api')) {
-        res.setHeader('Content-Type', 'application/json');
-    }
-    
     // Handle OPTIONS requests
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
+    
+    next();
+});
+
+// Special middleware for API routes to ensure JSON content type
+app.use('/api', (req, res, next) => {
+    // Set content type early and ensure it doesn't get overridden
+    res.type('application/json');
+    
+    // Store the original send/json methods
+    const originalSend = res.send;
+    const originalJson = res.json;
+    
+    // Override send method to ensure it maintains JSON format
+    res.send = function(body) {
+        // If body is not already a string, convert it to JSON
+        if (typeof body !== 'string') {
+            return originalJson.call(this, body);
+        }
+        
+        // If it's a string that doesn't look like JSON, convert it
+        if (!body.startsWith('{') && !body.startsWith('[')) {
+            try {
+                return originalJson.call(this, JSON.parse(body));
+            } catch (e) {
+                // If parsing fails, wrap it as an error object
+                return originalJson.call(this, { error: body });
+            }
+        }
+        
+        // Ensure content type is application/json
+        this.type('application/json');
+        return originalSend.call(this, body);
+    };
     
     next();
 });
