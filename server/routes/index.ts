@@ -8,7 +8,7 @@ import { authRoutes } from "./auth.routes";
 import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
-import { documentRoutes } from "./document.routes";
+import documentRoutes from "./document.routes";
 import { setupAuth } from "../auth";
 import { corsMiddleware } from "../utils/cors";
 

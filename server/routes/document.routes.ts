@@ -6,6 +6,15 @@ import { storage } from "../storage";
 import { generateResumeDOCX, generateCoverLetterDOCX } from "../utils/docx-generator";
 import { generateCoverLetter } from "../openai";
 import { requireAuth } from "../auth";
+import { Router as Router2 } from "express";
+import { z } from "zod";
+import { uploadedResumes } from "../../migrations/schema";
+import { uploadFile, getSignedUrl, deleteFile } from "../storage";
+import fs from "fs";
+import path from "path";
+import { v4 as uuid } from "uuid";
+import { DocxGenerator } from "../utils/docx-generator";
+import { optimizeResume, analyzeJobPosting, analyzeResumeDifferences } from "../openai";
 
 const router = Router();
 
@@ -21,32 +30,35 @@ router.get('/optimized-resumes', requireAuth, async (req, res) => {
     // Set the content type header to ensure proper JSON response
     res.setHeader('Content-Type', 'application/json');
 
-    const resumes = await db.select().from(optimizedResumes).orderBy(desc(optimizedResumes.createdAt));
+    console.log("Fetching optimized resumes...");
+    const results = await db.select().from(optimizedResumes).orderBy(desc(optimizedResumes.createdAt));
 
-    // Map to safe data format
-    const safeResumes = Array.isArray(resumes) ? resumes.map(resume => ({
+    // Ensure we have valid array data
+    if (!Array.isArray(results)) {
+      console.log("Results not an array, returning empty array");
+      return res.json([]);
+    }
+
+    // Process each resume safely
+    const safeResumes = results.map(resume => ({
       id: resume.id,
       title: resume.title || "Untitled Resume",
       jobTitle: resume.jobTitle || "Unknown Position",
       company: resume.company || "Unknown Company",
-      // Don't include the full content in the list view
       resumeId: resume.resumeId,
       createdAt: resume.createdAt ? new Date(resume.createdAt).toISOString() : new Date().toISOString()
-    })) : [];
+    }));
 
-    // Log what we're about to return 
-    console.log("Returning optimized resumes:",
-      safeResumes.length);
+    console.log("Returning optimized resumes:", safeResumes.length);
 
-    // Return with created timestamp already processed above
-    res.json({
-      resumes: safeResumes
-    });
+    // Return JSON response
+    return res.json(safeResumes);
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
-    // Always send JSON response even in error cases
-    res.status(500).json({ 
-      error: "Error fetching optimized resumes",
+    // Always return a valid JSON response, even in error cases
+    return res.status(500).json({ 
+      error: "Error fetching optimized resumes", 
+      message: error instanceof Error ? error.message : "Unknown error",
       resumes: [] 
     });
   }

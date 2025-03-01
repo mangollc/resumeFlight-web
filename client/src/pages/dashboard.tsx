@@ -1546,8 +1546,11 @@ export default function Dashboard() {
     queryKey: ["/api/uploaded-resumes"],
   });
 
-  const { data: optimizedResumes } = useQuery<OptimizedResume[]>({
+  const { data: optimizedResumes = [] } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
+    onError: (error) => {
+      console.error("Error fetching resumes:", error);
+    }
   });
 
   return (
