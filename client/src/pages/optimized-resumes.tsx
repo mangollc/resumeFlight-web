@@ -145,32 +145,41 @@ export default function OptimizedResumesPage() {
           throw new Error(errorMessage);
         }
         
-        // Check content type more thoroughly
+        // Check content type
         const contentType = response.headers.get('content-type');
         console.log('Content-Type:', contentType);
         
-        if (!contentType || !contentType.includes('application/json')) {
-          const responseText = await response.text();
-          console.error('Non-JSON response received:', responseText.substring(0, 200) + '...');
-          throw new Error('Server returned a non-JSON response. Content type: ' + (contentType || 'not set'));
-        }
-        
-        // Try to parse the response with extra validation
-        let responseText;
+        // Handle the response
         try {
-          responseText = await response.text();
-          console.log('Response text (first 100 chars):', responseText.substring(0, 100));
-          const data = JSON.parse(responseText);
+          // Get the response as text first
+          const responseText = await response.text();
           
-          if (!Array.isArray(data)) {
-            console.error('Invalid data format:', data);
-            throw new Error('Server returned an invalid response format - expected array');
+          // Check if it looks like HTML
+          if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+            console.error('HTML response received instead of JSON:', responseText.substring(0, 200) + '...');
+            throw new Error('Server returned a non-JSON response. Please contact support.');
           }
           
+          // Try to parse as JSON
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (parseError) {
+            console.error('JSON parse error:', parseError, 'Response text:', responseText.substring(0, 200));
+            throw new Error('Failed to parse server response as JSON');
+          }
+          
+          // Validate the data structure
+          if (!Array.isArray(data)) {
+            console.error('Invalid data format:', data);
+            throw new Error('Invalid response format - expected an array of resumes');
+          }
+          
+          // Set the data
           setOptimizedResumes(data);
-        } catch (parseError) {
-          console.error('JSON parse error:', parseError, 'Response text:', responseText);
-          throw new Error(`Failed to parse JSON response: ${parseError.message}`);
+        } catch (processingError) {
+          console.error('Response processing error:', processingError);
+          throw processingError;
         }
       } catch (err) {
         console.error('Error fetching resumes:', err);

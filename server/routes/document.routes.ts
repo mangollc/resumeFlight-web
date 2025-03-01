@@ -188,16 +188,19 @@ router.get('/api/optimized-resumes', async (req, res) => {
       }
     }));
 
-    // Convert to a properly formatted JSON string and send
-    return res.send(JSON.stringify(safeResumes));
+    // Always set content type header before sending response
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Send the JSON response
+    return res.json(safeResumes); // Use res.json() instead of res.send(JSON.stringify())
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
     // Ensure we're still returning JSON even in error case
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).send(JSON.stringify({ 
+    return res.status(500).json({ 
       error: "Failed to fetch optimized resumes", 
       message: error instanceof Error ? error.message : "Unknown error" 
-    }));
+    });
   }
 });
 
