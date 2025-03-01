@@ -58,7 +58,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 
 
-
 const getScoreColor = (score: number) => {
   if (score >= 80) return "bg-emerald-500";
   if (score >= 60) return "bg-yellow-500";
@@ -72,15 +71,18 @@ const getScoreTextColor = (score: number) => {
 };
 
 function MetricRow({ label, score }: { label: string; score: number }) {
+  // If score is undefined/null, default to 0
+  const safeScore = typeof score === 'number' ? score : 0;
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium capitalize">{label}</span>
-        <span className={`text-sm font-medium ${getScoreTextColor(score)}`}>
-          {score.toFixed(1)}%
+        <span className={`text-sm font-medium ${getScoreTextColor(safeScore)}`}>
+          {safeScore.toFixed(1)}%
         </span>
       </div>
-      <Progress value={score} className={`h-2 ${getScoreColor(score)}`} />
+      <Progress value={safeScore} className={`h-2 ${getScoreColor(safeScore)}`} />
     </div>
   );
 }
