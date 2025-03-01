@@ -1542,12 +1542,66 @@ export default function Dashboard() {
     );
   }
 
-  const { data: resumes } = useQuery<UploadedResume[]>({
+  const { data: resumes = [] } = useQuery<UploadedResume[]>({
     queryKey: ["/api/uploaded-resumes"],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/uploaded-resumes', {
+          headers: {
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to fetch uploaded resumes:', response.status);
+          return [];
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Expected JSON response but got:', contentType);
+          return [];
+        }
+        
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching uploaded resumes:', error);
+        return [];
+      }
+    }
   });
 
-  const { data: optimizedResumes } = useQuery<OptimizedResume[]>({
+  const { data: optimizedResumes = [] } = useQuery<OptimizedResume[]>({
     queryKey: ["/api/optimized-resumes"],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/optimized-resumes', {
+          headers: {
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to fetch optimized resumes:', response.status);
+          return [];
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Expected JSON response but got:', contentType);
+          return [];
+        }
+        
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error('Error fetching optimized resumes:', error);
+        return [];
+      }
+    }
   });
 
   return (
