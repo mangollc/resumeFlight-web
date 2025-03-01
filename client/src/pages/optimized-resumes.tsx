@@ -438,12 +438,25 @@ export default function OptimizedResumesPage() {
         }
       });
 
+      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete resume');
+        // Try to get error message from response if possible
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to delete resume');
+        } catch (parseError) {
+          // If we can't parse JSON, use status text
+          throw new Error(`Failed to delete resume: ${response.statusText}`);
+        }
       }
 
-      return await response.json();
+      // Only try to parse JSON if response was ok
+      try {
+        return await response.json();
+      } catch (parseError) {
+        // If no JSON but response was ok, return success
+        return { success: true };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
