@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast"; // Added missing import
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { OptimizedResume } from "../../shared/schema";
@@ -75,8 +75,12 @@ function ResumeRow({ resume, onDelete, onDownload }: {
   const [activeSection, setActiveSection] = useState('');
   const { toast } = useToast();
 
+  if (!resume) {
+    return null;
+  }
+
   // Ensure analysis data is never undefined
-  const analysisData = resume?.analysis || {
+  const analysisData = resume.analysis || {
     strengths: [],
     improvements: [],
     gaps: [],
@@ -84,8 +88,8 @@ function ResumeRow({ resume, onDelete, onDownload }: {
   };
 
   // Ensure other needed properties exist
-  const metadata = resume?.metadata || {};
-  const jobDetails = resume?.jobDetails || {};
+  const metadata = resume.metadata || {};
+  const jobDetails = resume.jobDetails || {};
 
   return (
     <>

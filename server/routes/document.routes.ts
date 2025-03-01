@@ -145,44 +145,37 @@ router.get("/cover-letter/:resumeId/download", requireAuth, async (req, res) => 
 
 router.get('/api/optimized-resumes', async (req, res) => {
   try {
-    const userId = req.user?.id;
-
-    // If no user, return only public resumes (none for now)
+    const userId = req.session?.user?.id;
     if (!userId) {
-      return res.json([]);
+      console.log("Unauthorized access attempt to optimized-resumes");
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const resumes = await db.query.optimizedResumes.findMany({
+    console.log(`Fetching optimized resumes for user ${userId}`);
+    const optimizedResumes = await db.query.optimizedResumes.findMany({
       where: eq(optimizedResumes.userId, userId),
-      orderBy: [desc(optimizedResumes.createdAt)],
+      orderBy: [desc(optimizedResumes.updatedAt)],
+      with: {
+        uploadedResume: true,
+      },
     });
 
-    // Transform data to ensure all required fields exist
-    const processedResumes = resumes.map(resume => {
-      return {
-        ...resume,
-        metadata: resume.metadata || {
-          version: "1.0",
-          optimizedAt: resume.createdAt?.toISOString(),
-          filename: "resume.docx"
-        },
-        jobDetails: resume.jobDetails || {
-          title: "Untitled Position",
-          company: "Unknown Company",
-          location: "Not specified",
-          description: "",
-          requirements: []
-        },
-        analysis: resume.analysis || {
-          strengths: [],
-          improvements: [],
-          gaps: [],
-          suggestions: []
-        }
-      };
-    });
+    console.log(`Found ${optimizedResumes.length} optimized resumes`);
 
-    return res.json(processedResumes);
+    // Ensure we're not sending undefined or null values
+    const sanitizedResumes = optimizedResumes.map(resume => ({
+      ...resume,
+      analysis: resume.analysis || { 
+        strengths: [], 
+        improvements: [], 
+        gaps: [], 
+        suggestions: [] 
+      },
+      metadata: resume.metadata || {},
+      jobDetails: resume.jobDetails || {}
+    }));
+
+    return res.json(sanitizedResumes);
   } catch (error) {
     console.error("Error fetching optimized resumes:", error);
     return res.status(500).json({ error: "Failed to fetch optimized resumes" });
