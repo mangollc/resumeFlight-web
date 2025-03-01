@@ -21,9 +21,12 @@ if (!dbUrl.includes('sslmode=')) {
 const sql = neon(dbUrl);
 console.log('Neon SQL client created with SSL enabled');
 
-// Create Drizzle instance with debug logging
+// Create Drizzle instance with schema
 export const db = drizzle(sql, { schema });
 console.log('Drizzle ORM initialized');
+
+// Export sql client for direct queries if needed
+export const sqlClient = sql;
 
 // Get current timestamp in EST
 export const getCurrentESTTimestamp = async () => {
@@ -32,7 +35,8 @@ export const getCurrentESTTimestamp = async () => {
     return result[0].now;
   } catch (error) {
     console.error('Error getting current timestamp:', error);
-    throw error;
+    // Return current time as fallback
+    return new Date().toISOString();
   }
 };
 

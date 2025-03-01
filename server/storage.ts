@@ -699,3 +699,14 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+export const getCurrentESTTimestamp = async () => {
+  try {
+    const result = await db.sqlClient`SELECT NOW() AT TIME ZONE 'America/New_York' as now`;
+    return result[0].now;
+  } catch (error) {
+    console.error('Error getting current timestamp:', error);
+    // Return current time as fallback
+    return new Date().toISOString();
+  }
+};
