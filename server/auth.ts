@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
@@ -26,6 +26,14 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Add requireAuth middleware
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
 }
 
 export function setupAuth(app: Express) {
@@ -71,7 +79,6 @@ export function setupAuth(app: Express) {
       done(error);
     }
   });
-
   // Remove duplicate routes as they are handled in auth.routes.ts
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {

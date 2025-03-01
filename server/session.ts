@@ -1,6 +1,6 @@
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { pool } from "./db";
+import { neon } from "@neondatabase/serverless";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -8,9 +8,15 @@ const PostgresSessionStore = connectPg(session);
 const SESSION_TIMEOUT = 3600000; // 1 hour
 const STORE_CLEANUP_PERIOD = 900000; // 15 minutes
 
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not set");
+}
+
 // Create session store with enhanced error handling
+const sessionSql = neon(process.env.DATABASE_URL);
+
 export const sessionStore = new PostgresSessionStore({
-  pool,
+  conObject: sessionSql,
   tableName: 'session',
   createTableIfMissing: true,
   pruneSessionInterval: STORE_CLEANUP_PERIOD,
@@ -39,7 +45,7 @@ export const sessionConfig = session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: STORE_CLEANUP_PERIOD
+    maxAge: SESSION_TIMEOUT
   },
   name: 'sid',
   rolling: true

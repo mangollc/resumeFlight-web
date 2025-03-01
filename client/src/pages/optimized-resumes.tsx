@@ -427,8 +427,10 @@ export default function OptimizedResumesPage() {
     },
   });
 
+  // Update the mutation implementation
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      console.log(`Attempting to delete resume with ID: ${id}`);
       const response = await fetch(`/api/optimized-resumes/${id}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -438,27 +440,15 @@ export default function OptimizedResumesPage() {
         }
       });
 
-      // Check if response is ok before trying to parse JSON
       if (!response.ok) {
-        // Try to get error message from response if possible
-        try {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to delete resume');
-        } catch (parseError) {
-          // If we can't parse JSON, use status text
-          throw new Error(`Failed to delete resume: ${response.statusText}`);
-        }
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete resume' }));
+        throw new Error(errorData.message || `Failed to delete resume: ${response.statusText}`);
       }
 
-      // Only try to parse JSON if response was ok
-      try {
-        return await response.json();
-      } catch (parseError) {
-        // If no JSON but response was ok, return success
-        return { success: true };
-      }
+      return response.json();
     },
     onSuccess: () => {
+      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
       toast({
         title: "Success",

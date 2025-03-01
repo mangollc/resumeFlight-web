@@ -1,9 +1,8 @@
 import { neon, neonConfig } from '@neondatabase/serverless';
-import pg from 'pg';
-const { Pool } = pg;
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from 'ws';
 import * as schema from '@shared/schema';
+
 // Configure WebSocket for Neon database
 neonConfig.webSocketConstructor = ws;
 
@@ -11,50 +10,40 @@ if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL must be set. Did you forget to provision a database?');
 }
 
-// Constants for timeouts (in milliseconds)
-const MAX_32_BIT = Math.pow(2, 31) - 1;
-const TIMEOUT_30_SEC = 30000;
-const TIMEOUT_5_MIN = 300000;
+// Create SQL client with debug logging
+const sql = neon(process.env.DATABASE_URL);
+console.log('Neon SQL client created');
 
-// Initialize connection pool with more resilient timeout values
-const DEFAULT_POOL_CONFIG = {
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  statement_timeout: 30000,
-  query_timeout: 30000,
-  allowExitOnIdle: false,
-  keepAlive: true,
-  keepAliveInitialDelayMillis: 10000
+// Create Drizzle instance with debug logging
+export const db = drizzle(sql, { schema });
+console.log('Drizzle ORM initialized');
+
+// Get current timestamp in EST
+export const getCurrentESTTimestamp = async () => {
+  try {
+    const result = await sql`SELECT NOW() AT TIME ZONE 'America/New_York' as now`;
+    return result[0].now;
+  } catch (error) {
+    console.error('Error getting current timestamp:', error);
+    throw error;
+  }
 };
 
-export const pool = new Pool({
-  ...DEFAULT_POOL_CONFIG,
-  connectionString: process.env.DATABASE_URL,
-  max: 10
-});
+//Cleanup function for graceful shutdown
+const cleanup = () => {
+  console.log('Cleanup: Releasing SQL connection');
+  sql.end().catch(err => {
+    console.error('Error during sql connection release:', err);
+  });
+};
 
-// Initialize Drizzle with the pool
-export const db = drizzle(pool, { schema });
-
-let connectionCount = 0;
-
-pool.on('connect', async (client) => {
-  connectionCount++;
-  console.log(`Database connection ${connectionCount} established`);
-  try {
-    await pool.query("SET timezone = 'America/New_York'");
-  } catch (err) {
-    console.error('Error setting timezone:', err);
-  }
-});
-
-pool.on('error', (err) => {
-  console.error('Unexpected pool error:', err);
-});
+process.on('exit', cleanup);
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
 
 export async function checkDatabaseConnection() {
   try {
+    console.log('Checking database connection...');
     await db.select().from(schema.users).limit(1);
     console.log('Database connection established');
     return true;
@@ -62,6 +51,7 @@ export async function checkDatabaseConnection() {
     console.error('Database connection error:', error);
     // Try to reconnect
     try {
+      console.log('Attempting database reconnection...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       await db.select().from(schema.users).limit(1);
       console.log('Database reconnection successful');
@@ -72,25 +62,3 @@ export async function checkDatabaseConnection() {
     }
   }
 }
-
-// Get current timestamp in EST
-export const getCurrentESTTimestamp = async () => {
-  try {
-    const result = await pool.query("SELECT NOW() AT TIME ZONE 'America/New_York' as now");
-    return result.rows[0].now;
-  } catch (error) {
-    console.error('Error getting current timestamp:', error);
-    throw error;
-  }
-};
-
-// Cleanup function for graceful shutdown
-const cleanup = () => {
-  pool.end().catch(err => {
-    console.error('Error during pool shutdown:', err);
-  });
-};
-
-process.on('exit', cleanup);
-process.on('SIGTERM', cleanup);
-process.on('SIGINT', cleanup);

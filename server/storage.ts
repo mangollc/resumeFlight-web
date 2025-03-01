@@ -2,49 +2,23 @@ import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
-import { db, pool, getCurrentESTTimestamp } from "./db";
+import { db, getCurrentESTTimestamp } from "./db";
+import { neon } from '@neondatabase/serverless';
 
 const PostgresSessionStore = connectPg(session);
 
 // Constants for session configuration
 const ONE_DAY = 86400; // 24 hours in seconds
 
-export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, data: { name: string }): Promise<User>;
-  // Uploaded Resume operations
-  getUploadedResume(id: number): Promise<UploadedResume | undefined>;
-  createUploadedResume(resume: InsertUploadedResume & { userId: number }): Promise<UploadedResume>;
-  getUploadedResumesByUser(userId: number): Promise<UploadedResume[]>;
-  deleteUploadedResume(id: number): Promise<void>;
-  // Optimized Resume operations
-  getOptimizedResume(id: number): Promise<OptimizedResume | undefined>;
-  createOptimizedResume(resume: InsertOptimizedResume & { userId: number }): Promise<OptimizedResume>;
-  updateOptimizedResume(id: number, data: Partial<OptimizedResume>): Promise<OptimizedResume>;
-  getOptimizedResumesByUser(userId: number): Promise<OptimizedResume[]>;
-  deleteOptimizedResume(id: number): Promise<void>;
-  getOptimizedResumesByJobDescription(jobDescription: string, uploadedResumeId: number): Promise<OptimizedResume[]>;
-  // Cover Letter operations
-  createCoverLetter(coverLetter: InsertCoverLetter & { userId: number }): Promise<CoverLetter>;
-  getCoverLetterByResumeId(resumeId: number): Promise<CoverLetter | undefined>;
-  // Other operations
-  sessionStore: session.Store;
-  getOptimizationSession(sessionId: string): Promise<OptimizationSession | undefined>;
-  createOptimizationSession(session: InsertOptimizationSession & { userId: number }): Promise<OptimizationSession>;
-  updateOptimizationSession(sessionId: string, data: Partial<InsertOptimizationSession>): Promise<OptimizationSession>;
-  getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]>;
-  getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined>;
-  createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore>;
-}
-
 export class DatabaseStorage implements IStorage {
   readonly sessionStore: session.Store;
 
   constructor() {
+    // Create a new neon client for the session store
+    const sessionSql = neon(process.env.DATABASE_URL!);
+
     this.sessionStore = new PostgresSessionStore({
-      pool,
+      conObject: sessionSql,
       tableName: 'session',
       schemaName: 'public',
       createTableIfMissing: true,
@@ -52,16 +26,7 @@ export class DatabaseStorage implements IStorage {
       ttl: 86400,
       errorLog: (err: Error) => {
         console.error('Session store error:', err);
-      },
-      disableTouch: true
-    });
-
-    this.sessionStore.on('error', (error: Error) => {
-      console.error('Session store error:', error);
-    });
-
-    this.sessionStore.on('connect', () => {
-      console.log('Session store connected successfully');
+      }
     });
   }
 
@@ -177,43 +142,17 @@ export class DatabaseStorage implements IStorage {
 
     try {
       // First verify the resume exists
-      const checkResult = await pool.query(
-        'SELECT id FROM uploaded_resumes WHERE id = $1',
-        [id]
-      );
+      const checkResult = await db.select().from(uploadedResumes).where(eq(uploadedResumes.id, id));
 
-      if (checkResult.rowCount === 0) {
+      if (!checkResult || checkResult.length === 0) {
         console.error(`Storage: Resume with ID ${id} not found`);
         throw new Error(`Resume with ID ${id} not found`);
       }
 
-      // Use a transaction to ensure atomicity
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
+      // Use drizzle-orm for deletion
+      await db.delete(uploadedResumes).where(eq(uploadedResumes.id, id));
 
-        // Delete the resume
-        const result = await client.query(
-          'DELETE FROM uploaded_resumes WHERE id = $1 RETURNING id',
-          [id]
-        );
-
-        console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
-
-        if (result.rowCount === 0) {
-          await client.query('ROLLBACK');
-          console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
-          throw new Error(`No rows were deleted for resume ID ${id}`);
-        }
-
-        await client.query('COMMIT');
-        console.log(`Storage: Successfully deleted resume with ID ${id}`);
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
-      }
+      console.log(`Storage: Successfully deleted resume with ID ${id}`);
     } catch (error) {
       console.error('Error deleting uploaded resume from database:', error);
       throw new Error(`Failed to delete uploaded resume: ${error instanceof Error ? error.message : String(error)}`);
@@ -289,11 +228,11 @@ export class DatabaseStorage implements IStorage {
       // Extract full name (usually the first non-empty line that's not email/phone/address)
       for (const line of lines) {
         const trimmedLine = line.trim();
-        if (trimmedLine && 
-            !trimmedLine.match(emailRegex) && 
-            !trimmedLine.match(phoneRegex) && 
+        if (trimmedLine &&
+            !trimmedLine.match(emailRegex) &&
+            !trimmedLine.match(phoneRegex) &&
             !trimmedLine.match(addressRegex) &&
-            trimmedLine.length > 1 && 
+            trimmedLine.length > 1 &&
             trimmedLine.split(' ').length <= 4) {
           contactInfo.fullName = trimmedLine;
           break;
@@ -353,7 +292,7 @@ export class DatabaseStorage implements IStorage {
 
         if (existingOptimizations.length > 0) {
           // Find the highest version number
-          const versions = existingOptimizations.map(opt => 
+          const versions = existingOptimizations.map(opt =>
             parseFloat(opt.version || '1.0')
           );
           const highestVersion = Math.max(...versions);
@@ -461,8 +400,8 @@ export class DatabaseStorage implements IStorage {
         createdAt: optimizedResumes.createdAt,
         contactInfo: optimizedResumes.contactInfo
       })
-      .from(optimizedResumes)
-      .where(eq(optimizedResumes.userId, userId));
+        .from(optimizedResumes)
+        .where(eq(optimizedResumes.userId, userId));
 
       return results.map(result => {
         return {
@@ -481,50 +420,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteOptimizedResume(id: number): Promise<void> {
-    console.log(`Storage: Starting to delete optimized resume with ID ${id}`);
+    console.log(`[Storage] Starting deletion of optimized resume with ID: ${id}`);
 
     try {
       // First verify the resume exists
-      const checkResult = await pool.query(
-        'SELECT id FROM optimized_resumes WHERE id = $1',
-        [id]
-      );
+      const [existingResume] = await db
+        .select()
+        .from(optimizedResumes)
+        .where(eq(optimizedResumes.id, id));
 
-      if (checkResult.rowCount === 0) {
-        console.error(`Storage: Optimized resume with ID ${id} not found`);
-        throw new Error(`Optimized resume with ID ${id} not found`);
+      if (!existingResume) {
+        console.log(`[Storage] Resume with ID ${id} not found`);
+        throw new Error(`Resume with ID ${id} not found`);
       }
 
-      // Use a transaction to ensure atomicity
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
+      console.log(`[Storage] Found resume to delete:`, existingResume);
 
-        // Delete the resume
-        const result = await client.query(
-          'DELETE FROM optimized_resumes WHERE id = $1 RETURNING id',
-          [id]
-        );
+      // Perform the deletion
+      const result = await db
+        .delete(optimizedResumes)
+        .where(eq(optimizedResumes.id, id))
+        .returning();
 
-        console.log(`Storage: Delete SQL executed, affected rows: ${result.rowCount}`);
+      console.log(`[Storage] Delete query result:`, result);
 
-        if (result.rowCount === 0) {
-          await client.query('ROLLBACK');
-          console.error(`Storage: Delete operation failed - no rows affected for ID ${id}`);
-          throw new Error(`No rows were deleted for optimized resume ID ${id}`);
-        }
-
-        await client.query('COMMIT');
-        console.log(`Storage: Successfully deleted optimized resume with ID ${id}`);
-      } catch (error) {
-        await client.query('ROLLBACK');
-        throw error;
-      } finally {
-        client.release();
+      if (result.length === 0) {
+        console.error(`[Storage] Delete operation returned no results for ID ${id}`);
+        throw new Error(`Failed to delete resume with ID ${id}`);
       }
+
+      console.log(`[Storage] Successfully deleted resume with ID ${id}`);
     } catch (error) {
-      console.error('Error deleting optimized resume from database:', error);
-      throw new Error(`Failed to delete optimized resume: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('[Storage] Error in deleteOptimizedResume:', error);
+      throw error;
     }
   }
 

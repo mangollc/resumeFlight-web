@@ -6,6 +6,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { checkDatabaseConnection } from "./db";
 import { logger, requestLogger, setupGlobalErrorLogging } from './utils/logger';
+import { sessionConfig } from './session';
 
 // Set up global error handlers
 setupGlobalErrorLogging();
@@ -39,6 +40,9 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Add session middleware
+app.use(sessionConfig);
+
 // Request logging middleware with enhanced details
 app.use(requestLogger);
 
@@ -53,12 +57,12 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
+
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
         return res.status(204).end();
     }
-    
+
     next();
 });
 
@@ -95,7 +99,7 @@ app.get("/api/health", async (_req, res) => {
 app.use('/api', (req: Request, res: Response, next: NextFunction) => {
     // Store the original json method
     const originalJson = res.json;
-    
+
     // Override the json method to ensure we're always sending valid json
     res.json = function(body: any): any {
         // Check if body is defined and can be serialized
@@ -104,22 +108,23 @@ app.use('/api', (req: Request, res: Response, next: NextFunction) => {
                 path: req.path,
                 method: req.method
             });
-            
+
             return originalJson.call(this, {
                 error: true,
                 message: 'Internal Server Error - Invalid Response',
                 code: 'INVALID_RESPONSE'
             });
         }
-        
+
         // Restore original method and continue
         return originalJson.call(this, body);
     };
-    
+
     next();
 });
 
 // Register routes
+console.log('Registering API routes...');
 const server = registerRoutes(app);
 
 // Enhanced error handling middleware
@@ -128,15 +133,18 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const errorId = Math.random().toString(36).substring(7);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    
+
     // Log the error with context
-    logger.error(`Request error (${errorId})`, err, {
+    logger.error('Request error', { 
+        errorId,
         method: req.method,
         path: req.path,
         query: req.query,
         ip: req.ip,
         userId: req.user?.id,
-        statusCode: status
+        statusCode: status,
+        error: err.message,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 
     // Only send detailed errors in development mode
@@ -155,7 +163,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
         });
     } else {
         // For non-API routes, let the client side error handler manage it
-        next(err);
+        _next(err);
     }
 });
 
@@ -173,11 +181,12 @@ const port = process.env.PORT || 5000;
 const startServer = async (port: number) => {
   try {
     await new Promise((resolve, reject) => {
+      console.log('Starting server on port', port);
       const srv = server.listen(port, '0.0.0.0', () => {
         console.log(`Server running on port ${port}`);
         resolve(srv);
       });
-      srv.once('error', (err) => {
+      srv.once('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {
           console.log(`Port ${port} in use, trying ${port + 1}`);
           srv.close();
@@ -200,12 +209,12 @@ const startServer = async (port: number) => {
 };
 
 startServer(5000).catch(err => {
-  log('Failed to start server:', err);
+  console.error('Failed to start server:', err);
   // Wait 3 seconds and try to restart instead of exiting
-  log('Attempting to restart server in 3 seconds...');
+  console.log('Attempting to restart server in 3 seconds...');
   setTimeout(() => {
     startServer(5000).catch(restartErr => {
-      log('Failed to restart server after retry:', restartErr);
+      console.error('Failed to restart server after retry:', restartErr);
       process.exit(1);
     });
   }, 3000);
