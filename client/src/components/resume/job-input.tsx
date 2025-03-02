@@ -151,13 +151,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
       });
 
       setIsProcessing(false);
-
-      // Call onComplete to enable next step navigation
-      if (onComplete) {
-        setTimeout(() => {
-          onComplete();
-        }, 500);
-      }
     },
     onError: (error: Error) => {
       console.error("Job details extraction error:", error);
@@ -217,6 +210,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
       );
     } catch (error) {
       console.error("Form submission error:", error);
+    }
+  };
+
+  const handleNext = () => {
+    if (onComplete && extractedDetails) {
+      onComplete();
     }
   };
 
@@ -355,6 +354,16 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
               </div>
             </div>
           )}
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleNext}
+              disabled={!extractedDetails || progressSteps.some(step => step.status !== 'completed')}
+              className="w-full md:w-auto"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
