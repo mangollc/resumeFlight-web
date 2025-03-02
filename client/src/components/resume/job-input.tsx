@@ -1,12 +1,6 @@
-interface ProgressStep {
-  id: string;
-  label: string;
-  status: 'pending' | 'loading' | 'completed' | 'error';
-}
-
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +12,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ResumeMetricsComparison } from "./ResumeMetricsComparison";
+
+interface ProgressStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'loading' | 'completed' | 'error';
+}
 
 interface JobDetails {
   title: string;
@@ -33,9 +32,8 @@ interface JobDetails {
 }
 
 const INITIAL_STEPS = [
-  { id: "extract", label: "Extracting job details", status: "pending" },
-  { id: "analyze", label: "Analyzing requirements", status: "pending" },
-  // { id: "optimize", label: "Optimizing resume", status: "pending" }, // Removed optimization step
+  { id: "extract", label: "Extracting job details", status: "pending" as const },
+  { id: "analyze", label: "Analyzing requirements", status: "pending" as const },
 ];
 
 const UNSUPPORTED_JOB_SITES = [
@@ -57,12 +55,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
-  const [uploadedResume, setUploadedResume] = useState({ id: resumeId });
-
-
-  useEffect(() => {
-    //No changes needed here
-  }, []);
 
   const updateStepStatus = (stepId: string, status: ProgressStep["status"]) => {
     setProgressSteps((prev) =>
@@ -70,56 +62,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     );
   };
 
-  const handleCancel = () => {
-    setProgressSteps(INITIAL_STEPS);
-    setIsProcessing(false);
-    fetchJobMutation.reset();
-    optimizeResumeMutation.reset(); //added reset for the new mutation
-  };
-
-  const handleReset = () => {
-    setJobUrl("");
-    setJobDescription("");
-    setExtractedDetails(null);
-    setActiveTab("url");
-    handleCancel();
-  };
-
-  const getSkillBadgeVariant = (skill: string) => {
-    //No changes needed here
-  };
-
-  const isValidLinkedInUrl = (url: string): boolean => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname.includes("linkedin.com") && urlObj.pathname.includes("/jobs/view/");
-    } catch {
-      return false;
-    }
-  };
-
-  const checkUnsupportedJobSite = (url: string): string | null => {
-    const unsupportedSite = UNSUPPORTED_JOB_SITES.find((site) =>
-      url.toLowerCase().includes(site.domain)
-    );
-    return unsupportedSite?.name || null;
-  };
-
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    //No changes needed here
-  };
-
   // Fetch job details mutation
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      if (!resumeId) {
-        throw new Error("Resume ID is required");
-      }
-
-      const params = new URLSearchParams();
-      if (data.jobUrl) params.append("jobUrl", data.jobUrl);
-      if (data.jobDescription) params.append("jobDescription", data.jobDescription);
-
       const response = await apiRequest(
         'POST',
         `/api/job-details/extract`,
@@ -127,10 +72,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       );
 
       if (!response.ok) {
-        throw new Error('Failed to extract job details');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to extract job details');
       }
 
       return response.json();
+    },
+    onMutate: () => {
+      setIsProcessing(true);
+      updateStepStatus("extract", "loading");
     },
     onSuccess: (data) => {
       const details: JobDetails = {
@@ -147,11 +97,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       setExtractedDetails(details);
       updateStepStatus("extract", "completed");
-      // updateStepStatus("analyze", "completed"); //this line is moved to optimizeResumeMutation.onSuccess
+      updateStepStatus("analyze", "completed");
+
       toast({
         title: "Success",
-        description: "Job details extracted successfully",
-        duration: 2000,
+        description: "Job details extracted successfully"
       });
 
       setIsProcessing(false);
@@ -160,7 +110,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       console.error("Job details extraction error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to extract job details. Please try again.",
+        description: error.message || "Failed to extract job details",
         variant: "destructive",
       });
 
@@ -168,96 +118,81 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       setProgressSteps((prev) =>
         prev.map((step) => ({
           ...step,
-          status: step.status === "pending" || step.status === "loading" ? "error" : step.status,
+          status: step.status === "loading" ? "error" : step.status,
         }))
       );
-    },
+    }
   });
 
-  // Optimization mutation (added)
+  // Optimization mutation
   const optimizeResumeMutation = useMutation({
     mutationFn: async (details: JobDetails) => {
-      if (!resumeId || !details) {
-        throw new Error("Resume ID and job details are required");
-      }
       const response = await apiRequest(
         'POST',
         `/api/uploaded-resumes/${resumeId}/optimize`,
-        {details}
+        { details }
       );
+
       if (!response.ok) {
-        throw new Error("Failed to optimize resume");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to optimize resume");
       }
+
       return response.json();
     },
     onSuccess: (data) => {
       onOptimized(data, extractedDetails!);
-      updateStepStatus("analyze", "completed"); //Moved from fetchJobMutation.onSuccess
       toast({
         title: "Success",
-        description: "Resume optimization completed",
-        duration: 2000,
+        description: "Resume optimization completed"
       });
-      setIsProcessing(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Resume optimization error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to optimize resume. Please try again.",
+        description: error.message || "Failed to optimize resume",
         variant: "destructive",
       });
-      setIsProcessing(false);
-      updateStepStatus("analyze", "error");
-    },
+    }
   });
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      if (!jobUrl && !jobDescription) {
-        toast({
-          title: "Error",
-          description: "Please enter either a job URL or description",
-          variant: "destructive",
-        });
-        return;
-      }
 
-      if (jobDescription && jobDescription.length < 50) {
-        toast({
-          title: "Warning",
-          description: "Job description seems too short for effective analysis",
-          variant: "warning",
-        });
-        return;
-      }
-
-      if (jobUrl && !jobUrl.startsWith("http")) {
-        toast({
-          title: "Error",
-          description: "Please enter a valid URL starting with http:// or https://",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsProcessing(true);
-      setProgressSteps(INITIAL_STEPS);
-      updateStepStatus("extract", "loading");
-
-      fetchJobMutation.mutate(
-        activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
-      );
-    } catch (error) {
-      console.error("Error during form submission:", error);
+    if (!jobUrl && !jobDescription) {
       toast({
         title: "Error",
-        description: "An unexpected error occurred during submission. Please try again later.",
+        description: "Please enter either a job URL or description",
         variant: "destructive",
       });
-      setIsProcessing(false);
+      return;
+    }
+
+    if (jobDescription && jobDescription.length < 50) {
+      toast({
+        title: "Warning",
+        description: "Job description seems too short for effective analysis",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (jobUrl && !jobUrl.startsWith("http")) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      fetchJobMutation.mutate(
+        activeTab === "url" ? { jobUrl } : { jobDescription }
+      );
+    } catch (error) {
+      console.error("Form submission error:", error);
     }
   };
 
@@ -290,7 +225,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               <Alert variant="destructive" className="py-2">
                 <AlertTriangle className="h-3 w-3" />
                 <AlertDescription className="text-[11px]">
-                  Only LinkedIn job URLs are supported (e.g. https://linkedin.com/jobs/view/123456). Many job sites use bot protection - for those, please copy-paste all job details in the manual input tab.
+                  Only LinkedIn job URLs are supported. For other job sites, please copy-paste the job details manually.
                 </AlertDescription>
               </Alert>
               <Input
@@ -320,7 +255,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         <div className="flex gap-3">
           <Button
             type="submit"
-            disabled={(!jobUrl && !jobDescription.trim()) || isProcessing}
+            disabled={(!jobUrl && !jobDescription) || isProcessing}
             className="w-full md:w-auto"
           >
             {isProcessing ? (
@@ -332,32 +267,17 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               "Analyze Job"
             )}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleReset}
-            disabled={isProcessing}
-            className="w-full md:w-auto"
-          >
-            Reset
-          </Button>
         </div>
       </form>
 
       {extractedDetails && !isProcessing && (
         <div className="space-y-6">
           <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
+            {/* Job Details Display */}
             {extractedDetails.title && (
               <div>
                 <p className="font-medium mb-1">Title</p>
                 <p className="text-sm text-muted-foreground">{extractedDetails.title}</p>
-              </div>
-            )}
-
-            {extractedDetails.positionLevel && (
-              <div>
-                <p className="font-medium mb-1">Position Level</p>
-                <p className="text-sm text-muted-foreground">{extractedDetails.positionLevel}</p>
               </div>
             )}
 
@@ -402,15 +322,25 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             </div>
           )}
-          <Button onClick={()=> {
-            setIsProcessing(true);
-            updateStepStatus("analyze", "loading");
-            optimizeResumeMutation.mutate(extractedDetails);
-          }} disabled={!extractedDetails || isProcessing}>Optimize Resume</Button>
+
+          <Button
+            onClick={() => {
+              optimizeResumeMutation.mutate(extractedDetails);
+            }}
+            disabled={optimizeResumeMutation.isPending}
+            className="w-full md:w-auto"
+          >
+            {optimizeResumeMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Optimizing...
+              </>
+            ) : (
+              "Optimize Resume"
+            )}
+          </Button>
         </div>
       )}
-
-
 
       <LoadingDialog
         open={isProcessing}
@@ -419,7 +349,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
         steps={progressSteps}
         onOpenChange={(open) => {
           if (!open && isProcessing) {
-            handleCancel();
+            setIsProcessing(false);
           }
         }}
       />

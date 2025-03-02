@@ -14,11 +14,14 @@ const jobDetailsSchema = z.object({
 
 jobDetailsRouter.post('/extract', async (req, res) => {
   try {
+    // Set JSON content type
+    res.setHeader('Content-Type', 'application/json');
+
     const { jobUrl, jobDescription } = jobDetailsSchema.parse(req.body);
-    
+
     // Extract job details
     const jobDetails = await extractJobDetails(jobUrl || jobDescription || '');
-    
+
     res.json(jobDetails);
   } catch (error: any) {
     logger.error('Error extracting job details:', error);
