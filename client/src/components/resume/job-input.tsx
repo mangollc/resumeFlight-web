@@ -200,10 +200,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
     }
   };
 
-  const handleNext = () => {
-    onComplete?.();
-  };
-
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -338,16 +334,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
               </div>
             </div>
           )}
-
-          <div className="flex justify-end">
-            <Button
-              onClick={handleNext}
-              disabled={!extractedDetails || isProcessing}
-              className="w-full md:w-auto"
-            >
-              Next
-            </Button>
-          </div>
         </div>
       )}
 

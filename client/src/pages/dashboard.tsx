@@ -869,6 +869,11 @@ export default function Dashboard() {
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Optimizing...
               </>
+            ) : jobDetails ? (
+              <>
+                Next
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
             ) : (
               <>
                 <RefreshCw className="mr-2 h-4 w-4" />
@@ -1257,14 +1262,16 @@ export default function Dashboard() {
         );
       case 2:
         if (isReviewMode) return null; // Skip rendering step 2 in review mode
-        return uploadedResume ? (          <div className="fade-in">
+        return uploadedResume ? (
+          <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
                 <JobInput
                   resumeId={uploadedResume.id}
                   onOptimized={handleOptimizationComplete}
                   initialJobDetails={jobDetails}
-                />                {renderNavigation()}
+                />
+                {renderNavigation()}
               </CardContent>
             </Card>
           </div>
