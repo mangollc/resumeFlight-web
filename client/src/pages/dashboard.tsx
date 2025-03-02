@@ -871,8 +871,8 @@ export default function Dashboard() {
               </>
             ) : (
               <>
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Next
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Optimize
               </>
             )
           ) : (
