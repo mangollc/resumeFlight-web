@@ -1319,8 +1319,11 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-        ) : null;
-
+        ) : (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Button onClick={handleReoptimize} >Optimize Resume</Button> {/* Added Optimize Resume Button */}
+          </div>
+        );
       case 4:
         if (isReviewMode) return null; // Skip rendering step 4 in review mode
         return optimizedResume ? (
