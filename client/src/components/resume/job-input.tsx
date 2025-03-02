@@ -117,8 +117,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
           throw new Error(errorData.message || 'Failed to extract job details');
         }
 
-        const jsonData = await response.json();
-        return jsonData;
+        return response.json();
       } catch (error: any) {
         console.error('Job details fetch error:', error);
         throw error;
@@ -147,14 +146,17 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
 
       toast({
         title: "Success",
-        description: "Job details extracted successfully"
+        description: "Job details extracted successfully",
+        duration: 2000,
       });
 
       setIsProcessing(false);
 
       // Call onComplete to enable next step navigation
       if (onComplete) {
-        onComplete();
+        setTimeout(() => {
+          onComplete();
+        }, 500);
       }
     },
     onError: (error: Error) => {
@@ -207,6 +209,9 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
 
     try {
       setProgressSteps(INITIAL_STEPS);
+      setIsProcessing(true);
+      updateStepStatus("extract", "loading");
+
       fetchJobMutation.mutate(
         activeTab === "url" ? { jobUrl } : { jobDescription }
       );
