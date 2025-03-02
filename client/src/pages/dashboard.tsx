@@ -9,7 +9,7 @@ import { Step } from "@/components/resume/step-tracker";
 import ResumeStepTracker from "@/components/resume/step-tracker";
 import { CoverLetterComponent } from "@/components/resume/CoverLetter";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download, CheckCircle, ArrowUpCircle, AlertCircle, LightbulbIcon } from "lucide-react";
+import { FileText, Upload, ArrowLeft, ArrowRight, RefreshCw, Loader2, AlertTriangle, Download, CheckCircle, ArrowUpCircle, AlertCircle, LightbulbIcon, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingDialog } from "@/components/ui/loading-dialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -754,7 +754,13 @@ export default function Dashboard() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to reoptimize resume');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to optimize resume');
+        } else {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
       }
 
       // Mark steps as completed after successful response
@@ -778,7 +784,7 @@ export default function Dashboard() {
       console.error('Optimization error:', error);
       toast({
         title: "Error",
-        description: "Failed to reoptimize resume. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to reoptimize resume. Please try again.",
         variant: "destructive",
       });
 
@@ -871,7 +877,7 @@ export default function Dashboard() {
         >
           {currentStep === 2 && !jobDetails ? (
             <>
-              <RefreshCw className="mr-2 h-4 w-4" />
+              <Wand2 className="mr-2 h-4 w-4" />
               Optimize
             </>
           ) : isOptimizing ? (
@@ -939,7 +945,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Strengths Section */}
               <div className="rounded-lg border p-4">
-                <h4 className="font-medium text-lg flex items-center mb-3">
+                <h4<h4 className="font-medium text-lg flex items-center mb-3">
                   <span className="mr-2 bg-green-100 text-green-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
                     {optimizedResume.analysis.strengths.length}
                   </span>
