@@ -128,9 +128,10 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const errorId = Math.random().toString(36).substring(7);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    
+
     // Log the error with context
-    logger.error(`Request error (${errorId})`, err, {
+    logger.error('Request error (' + errorId + ')', {
+        error: err,
         method: req.method,
         path: req.path,
         query: req.query,
@@ -155,7 +156,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
         });
     } else {
         // For non-API routes, let the client side error handler manage it
-        next(err);
+        _next(err);
     }
 });
 
