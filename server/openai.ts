@@ -238,9 +238,13 @@ export async function optimizeResume(
 
   try {
     const optimizationVersion = version || 1.0;
-    // Reduce chunk size even further to prevent timeouts
-    const resumeChunks = splitIntoChunks(resumeText, 3000);
-    const jobDescriptionChunks = splitIntoChunks(jobDescription, 3000);
+    // Use much smaller chunks to prevent timeouts
+    const resumeChunks = splitIntoChunks(resumeText, 2000);
+    const jobDescriptionChunks = splitIntoChunks(jobDescription, 2000);
+    
+    // Log diagnostic info
+    logger.info(`[Optimize] Resume length: ${resumeText.length} chars, ${resumeChunks.length} chunks`);
+    logger.info(`[Optimize] Job description length: ${jobDescription.length} chars, ${jobDescriptionChunks.length} chunks`);
 
     console.log(`[Optimize] Starting resume optimization...`);
     console.log(`[Optimize] Version: ${optimizationVersion}`);
@@ -249,13 +253,19 @@ export async function optimizeResume(
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
     
-    // Set a global timeout for the entire operation
-    const globalTimeout = setTimeout(() => {
-      const timeoutError = new Error('Resume optimization timed out');
-      timeoutError.code = 'TIMEOUT_ERROR';
-      timeoutError.status = 408;
-      throw timeoutError;
-    }, 60000); // 60 second global timeout
+    // Use a reference we can clear later
+    let globalTimeoutId: NodeJS.Timeout | null = null;
+    
+    // Create a promise that will reject after the timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      globalTimeoutId = setTimeout(() => {
+        reject({
+          message: 'Resume optimization timed out',
+          code: 'TIMEOUT_ERROR',
+          status: 408
+        });
+      }, 90000); // 90 second global timeout
+    });
 
     // First optimize the resume content with retries and timeout
     for (let i = 0; i < resumeChunks.length; i++) {
@@ -266,7 +276,9 @@ export async function optimizeResume(
 
       while (attempts < 3 && !success) {
         try {
-          response = await openai.chat.completions.create({
+          // Race the OpenAI call against our timeout
+          response = await Promise.race([
+            openai.chat.completions.create({
             model: "gpt-4o",
             messages: [
               {
@@ -363,15 +375,24 @@ Return a JSON object with:
             temperature: 0.3,
             max_tokens: 4000
           });
+          }),
+            timeoutPromise
+          ]);
           success = true;
         } catch (error: any) {
-          if (error.message.includes("timeout")) {
-            logger.warn(`[Optimize] Timeout error processing chunk ${i+1}`, error);
-            throw new Error(`OpenAI request timed out for chunk ${i + 1}`); // Explicit timeout error
-          }
+          logger.warn(`[Optimize] Error processing chunk ${i+1} (attempt ${attempts+1}/3):`, error);
           attempts++;
-          if (attempts === 3) throw error;
-          await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
+          
+          // If we've exhausted all retries, rethrow
+          if (attempts === 3) {
+            logger.error(`[Optimize] Failed after all retries for chunk ${i+1}`, error);
+            throw error;
+          }
+          
+          // Exponential backoff with jitter
+          const backoffTime = Math.floor(2000 * attempts * (0.9 + Math.random() * 0.2));
+          logger.info(`[Optimize] Retrying in ${backoffTime}ms (attempt ${attempts+1}/3)`);
+          await new Promise(resolve => setTimeout(resolve, backoffTime));
         }
       }
 
@@ -502,8 +523,9 @@ Return a JSON object with:
     }
 
     // Clear the global timeout
-    if (typeof globalTimeout !== 'undefined') {
-      clearTimeout(globalTimeout);
+    if (globalTimeoutId) {
+      clearTimeout(globalTimeoutId);
+      globalTimeoutId = null;
     }
     
     const result = {
@@ -520,8 +542,9 @@ Return a JSON object with:
     return result;
   } catch (error: any) {
     // Clear the global timeout if it exists
-    if (typeof globalTimeout !== 'undefined') {
-      clearTimeout(globalTimeout);
+    if (globalTimeoutId) {
+      clearTimeout(globalTimeoutId);
+      globalTimeoutId = null;
     }
     
     logger.error("[Optimize] Failed to optimize resume", error);
