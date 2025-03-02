@@ -47,15 +47,16 @@ app.get("/api/uploaded-resumes/:id/optimize", async (req, res) => {
     res.end();
   } catch (error) {
     console.error("Error in resume optimization:", error);
-    try {
-      res.write(`data: ${JSON.stringify({ 
-        step: "error", 
-        status: "error", 
-        error: error.message || "Unknown error occurred" 
-      })}\n\n`);
-    } catch (err) {
-      console.error("Error sending error message:", err);
-    }
+    // Format error response
+    const errorMessage = error.message || "Unknown error occurred";
+    const errorCode = error.code || "OPTIMIZATION_ERROR";
+
+    res.write(`data: ${JSON.stringify({ 
+      step: "error", 
+      status: "error", 
+      message: errorMessage,
+      code: errorCode
+    })}\n\n`);
     res.end();
   }
 });

@@ -464,15 +464,27 @@ Return a JSON object with:
       throw new Error('Optimization produced insufficient content');
     }
       
-    const result = {
-      optimisedResume: finalContent,
-      changes: allChanges,
-      analysis: {
+    // Ensure we have a valid analysis result before accessing it
+    let analysis = {
+      strengths: [],
+      improvements: [],
+      gaps: [],
+      suggestions: []
+    };
+    
+    if (analysisResult && analysisResult.analysis) {
+      analysis = {
         strengths: analysisResult.analysis.strengths || [],
         improvements: analysisResult.analysis.improvements || [],
         gaps: analysisResult.analysis.gaps || [],
         suggestions: analysisResult.analysis.suggestions || []
-      }
+      };
+    }
+    
+    const result = {
+      optimisedResume: finalContent,
+      changes: allChanges,
+      analysis
     };
     
     logger.success("[Optimize] Resume optimization completed successfully", {
