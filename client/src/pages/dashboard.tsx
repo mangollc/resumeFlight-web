@@ -798,7 +798,7 @@ export default function Dashboard() {
   const canGoBack = currentStep > 1;
   const canGoNext = currentStep < 5 && (
     (currentStep === 1 && !!uploadedResume) ||
-    (currentStep === 2 && !!jobDetails) ||
+    (currentStep === 2 && (!!jobDetails || !!extractedDetails)) ||
     (currentStep === 3 && !!optimizedResume) ||
     (currentStep === 4)
   );
@@ -827,7 +827,15 @@ export default function Dashboard() {
         return;
       }
 
-      // If we're on step 2 and need to optimize without extracted details
+      // If we're on step 2 and need to optimize with extracted details
+      if (currentStep === 2 && extractedDetails) {
+        // Use extracted details for optimization
+        setJobDetails(extractedDetails);
+        handleReoptimize();
+        return;
+      }
+
+      // If we're on step 2 and need to optimize without any details
       if (currentStep === 2) {
         handleReoptimize();
         return;
