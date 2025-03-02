@@ -103,12 +103,44 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
         (status) => sendEvent(status)
       );
       
-      // On successful completion
-      sendEvent({ 
-        status: "completed", 
-        message: "Resume optimization completed successfully",
-        timestamp: new Date().toISOString()
-      });
+      // Save the final optimized resume to the database
+      try {
+        const optimizedResume = await storage.createOptimizedResume({
+          userId: req.user!.id,
+          sessionId: result.sessionId,
+          uploadedResumeId: resumeId,
+          optimisedResume: result.optimisedResume,
+          originalContent: resume.content,
+          jobDescription: jobDescription || jobDetails?.description || "",
+          jobUrl: jobUrl || null,
+          jobDetails: result.jobDetails,
+          metadata: {
+            filename: resume.metadata?.filename || 'resume.txt',
+            optimizedAt: new Date().toISOString(),
+            version: '1.0'
+          },
+          metrics: result.metrics,
+          analysis: result.analysis,
+          resumeContent: result.resumeContent,
+          contactInfo: result.contactInfo
+        });
+        
+        // Send completion with the optimized resume
+        sendEvent({ 
+          status: "completed", 
+          message: "Resume optimization completed successfully",
+          optimizedResumeId: optimizedResume.id,
+          timestamp: new Date().toISOString()
+        });
+      } catch (saveError) {
+        console.error("Error saving optimized resume:", saveError);
+        sendEvent({ 
+          status: "error", 
+          message: "Resume was optimized but could not be saved",
+          code: "SAVE_ERROR",
+          timestamp: new Date().toISOString()
+        });
+      }
       
       // End the connection
       clearInterval(heartbeatInterval);

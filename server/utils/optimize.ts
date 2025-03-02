@@ -1,206 +1,14 @@
+
 import { openai } from '../openai';
+import { storage } from '../storage';
+import { OptimizedResume } from '@shared/schema';
 import { logger } from './logger';
 
-// Define step types for better tracking
-export type OptimizationStep = 
-  | 'started' 
-  | 'extracting_details'
-  | 'analyzing_description'
-  | 'optimizing_resume'
-  | 'generating_analysis'
-  | 'completed'
-  | 'error';
-
-// State for tracking optimization progress
-export interface OptimizationState {
-  resumeText: string;
-  jobDescription: string;
-  jobDetails?: any;
-  jobAnalysis?: any;
-  optimizedContent?: string;
-  changes?: string[];
-  analysis?: {
-    strengths: string[];
-    improvements: string[];
-    gaps: string[];
-    suggestions: string[];
-  };
-  currentStep: OptimizationStep;
-  error?: string;
-  errorCode?: string;
-}
-
-export async function optimizeResume(
-  resumeText: string, 
-  jobDescription: string, 
-  onStatusUpdate: (status: any) => void
-): Promise<any> {
-  // Initialize optimization state
-  const state: OptimizationState = {
-    resumeText,
-    jobDescription,
-    currentStep: 'started'
-  };
-
-  // Report initial status
-  onStatusUpdate({ status: state.currentStep });
-  logger.info('[Optimize] Starting resume optimization process');
-
-  try {
-    // Step 1: Extract job details
-    state.currentStep = 'extracting_details';
-    onStatusUpdate({ status: state.currentStep });
-    logger.info('[Optimize] Extracting job details');
-
-    // Use a timeout promise for each step
-    try {
-      state.jobDetails = await executeWithTimeout(
-        async () => {
-          // Simple job parsing logic
-          return {
-            title: jobDescription.match(/job title|position/i) 
-              ? jobDescription.match(/job title|position/i)[0] 
-              : 'Not specified',
-            company: jobDescription.match(/company|organization/i)
-              ? jobDescription.match(/company|organization/i)[0]
-              : 'Not specified',
-          };
-        },
-        30000, // 30 second timeout
-        'Job details extraction timed out'
-      );
-    } catch (error) {
-      logger.error('[Optimize] Error extracting job details:', error);
-      throw new StepError('Failed to extract job details', 'EXTRACTION_ERROR', state.currentStep);
-    }
-
-    // Step 2: Analyze job requirements
-    state.currentStep = 'analyzing_description';
-    onStatusUpdate({ status: state.currentStep });
-    logger.info('[Optimize] Analyzing job requirements');
-
-    try {
-      state.jobAnalysis = await executeWithTimeout(
-        async () => {
-          return await analyzeJobDescription(jobDescription);
-        },
-        60000, // 60 second timeout
-        'Job analysis timed out'
-      );
-    } catch (error) {
-      logger.error('[Optimize] Error analyzing job description:', error);
-      throw new StepError('Failed to analyze job description', 'ANALYSIS_ERROR', state.currentStep);
-    }
-
-    // Step 3: Optimize resume
-    state.currentStep = 'optimizing_resume';
-    onStatusUpdate({ status: state.currentStep });
-    logger.info('[Optimize] Optimizing resume content');
-
-    try {
-      const optimizationResult = await executeWithTimeout(
-        async () => {
-          return await performResumeOptimization(resumeText, jobDescription, state.jobAnalysis, onStatusUpdate);
-        },
-        120000, // 120 second timeout
-        'Resume optimization timed out'
-      );
-
-      state.optimizedContent = optimizationResult.optimizedContent;
-      state.changes = optimizationResult.changes;
-    } catch (error) {
-      logger.error('[Optimize] Error optimizing resume:', error);
-      throw new StepError('Failed to optimize resume content', 'OPTIMIZATION_ERROR', state.currentStep);
-    }
-
-    // Final step: Generate analysis
-    state.currentStep = 'generating_analysis';
-    onStatusUpdate({ status: state.currentStep });
-    logger.info('[Optimize] Generating final analysis');
-
-    try {
-      state.analysis = await executeWithTimeout(
-        async () => {
-          return await generateAnalysis(state.optimizedContent, jobDescription);
-        },
-        30000, // 30 second timeout
-        'Analysis generation timed out'
-      );
-    } catch (error) {
-      logger.error('[Optimize] Error generating analysis:', error);
-      // Continue even if analysis fails
-      state.analysis = {
-        strengths: ['Tailored to the job requirements'],
-        improvements: ['Resume structure optimized for ATS'],
-        gaps: [],
-        suggestions: ['Review the optimized content carefully']
-      };
-    }
-
-    // Mark as completed
-    state.currentStep = 'completed';
-    onStatusUpdate({ 
-      status: state.currentStep,
-      data: {
-        optimizedContent: state.optimizedContent,
-        changes: state.changes,
-        analysis: state.analysis
-      }
-    });
-
-    logger.success('[Optimize] Resume optimization completed successfully');
-
-    return {
-      optimisedResume: state.optimizedContent,
-      changes: state.changes,
-      analysis: state.analysis
-    };
-  } catch (error) {
-    const errorDetails = error instanceof StepError 
-      ? { step: error.step, code: error.code, message: error.message }
-      : { step: state.currentStep, code: 'UNKNOWN_ERROR', message: error.message || 'Unknown error occurred' };
-
-    // Send error status update
-    onStatusUpdate({ 
-      status: 'error', 
-      message: errorDetails.message,
-      code: errorDetails.code,
-      step: errorDetails.step
-    });
-
-    logger.error(`[Optimize] Error during ${errorDetails.step}:`, error);
-
-    // Re-throw with enhanced information
-    const enhancedError = new Error(errorDetails.message);
-    enhancedError.code = errorDetails.code;
-    enhancedError.step = errorDetails.step;
-    throw enhancedError;
-  }
-}
-
-// Helper to execute a function with a timeout
-async function executeWithTimeout<T>(
-  fn: () => Promise<T>,
-  timeoutMs: number,
-  timeoutMessage: string
-): Promise<T> {
-  return Promise.race([
-    fn(),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        const timeoutError = new Error(timeoutMessage);
-        timeoutError.code = 'TIMEOUT_ERROR';
-        reject(timeoutError);
-      }, timeoutMs);
-    })
-  ]);
-}
-
-// Custom error class for step-specific errors
+// Error class for specific steps
 class StepError extends Error {
   code: string;
   step: string;
-
+  
   constructor(message: string, code: string, step: string) {
     super(message);
     this.name = 'StepError';
@@ -209,205 +17,537 @@ class StepError extends Error {
   }
 }
 
-// Helper functions for each optimization step
-async function analyzeJobDescription(jobDescription: string) {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `Analyze the job posting and extract:
-1. Key requirements
-2. Required skills and technologies
-3. Experience level
-4. Brief analysis of the role
-
-Return JSON in this format:
-{
-  "requirements": ["req1", "req2"],
-  "skills": ["skill1", "skill2"],
-  "level": "entry|mid|senior|manager",
-  "analysis": "brief analysis"
-}`
-        },
-        {
-          role: "user",
-          content: jobDescription
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-      max_tokens: 1000
-    });
-
-    return JSON.parse(response.choices[0].message.content || "{}");
-  } catch (error) {
-    logger.error("[Job Analysis] Error:", error);
-    throw new Error(`Failed to analyze job description: ${error.message}`);
-  }
-}
-
-// Split text into chunks for processing
-function splitIntoChunks(text: string, maxChunkSize: number = 4000): string[] {
-  if (!text) return [];
-
-  const chunks: string[] = [];
-  const paragraphs = text.split("\n\n");
-  let currentChunk = "";
-
-  for (const paragraph of paragraphs) {
-    if ((currentChunk + paragraph).length > maxChunkSize && currentChunk) {
-      chunks.push(currentChunk.trim());
-      currentChunk = paragraph;
-    } else {
-      currentChunk = currentChunk ? `${currentChunk}\n\n${paragraph}` : paragraph;
-    }
-  }
-
-  if (currentChunk) {
-    chunks.push(currentChunk.trim());
-  }
-
-  return chunks;
-}
-
-async function performResumeOptimization(resumeText: string, jobDescription: string, jobAnalysis: any, sendStatus: (status: any) => void) {
-  try {
-    // Process resume in chunks to prevent timeouts
-    const resumeChunks = splitIntoChunks(resumeText);
-    const jobDescriptionChunks = splitIntoChunks(jobDescription);
-
-    logger.info(`[Resume Optimization] Processing resume in ${resumeChunks.length} chunks`);
-
-    let optimizedChunks: string[] = [];
-    let allChanges: string[] = [];
-
-    // Process each chunk with retries
+// Timeout utility for OpenAI calls
+const executeWithTimeout = async (
+  fn: () => Promise<any>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<any> => {
+  return new Promise(async (resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      const error = new Error(errorMessage);
+      error.code = 'TIMEOUT_ERROR';
+      reject(error);
+    }, timeoutMs);
+    
     try {
-      for (let i = 0; i < resumeChunks.length; i++) {
-        sendStatus({ 
-          status: "optimizing_resume", 
-          step: "resume_processing",
-          progress: Math.round(((i + 1) / resumeChunks.length) * 100),
-          message: `Processing section ${i + 1} of ${resumeChunks.length}`
-        });
-
-        let attempts = 0;
-        let success = false;
-        let response;
-
-        while (attempts < 3 && !success) {
-          try {
-            response = await openai.chat.completions.create({
-              model: "gpt-4o",
-              messages: [
-                {
-                  role: "system",
-                  content: `Act as an expert resume optimizer. Optimize this section of the resume based on the job requirements. Follow ATS best practices.
-
-Return a JSON object with:
-{
-  "optimizedContent": "the enhanced resume section",
-  "changes": ["list specific improvements made"]
-}`
-                },
-                {
-                  role: "user",
-                  content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}\n\nKey Skills Required: ${jobAnalysis?.skills?.join(", ") || ""}`
-                }
-              ],
-              response_format: { type: "json_object" },
-              temperature: 0.3,
-              max_tokens: 4000
-            });
-            success = true;
-          } catch (error) {
-            attempts++;
-            if (attempts === 3) throw error;
-            await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
-          }
-        }
-
-        if (!response || !response.choices[0].message.content) {
-          throw new Error("No response received from optimization service");
-        }
-
-        const result = JSON.parse(response.choices[0].message.content);
-        optimizedChunks.push(result.optimizedContent || "");
-        if (result.changes) allChanges.push(...result.changes);
-
-        // Add a small delay between chunks to prevent rate limiting
-        if (i < resumeChunks.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
+      const result = await fn();
+      clearTimeout(timeoutId);
+      resolve(result);
     } catch (error) {
-      console.error('Error processing resume chunks:', error);
-      throw new Error(`Resume chunk processing failed: ${error.message}`);
+      clearTimeout(timeoutId);
+      reject(error);
     }
+  });
+};
 
-
-    // Join the optimized chunks
-    const finalContent = optimizedChunks.join("\n\n").trim();
-
-    // Validate final content
-    if (!finalContent || finalContent.length < 50) {
-      throw new Error('Optimization produced insufficient content');
-    }
-
-    return {
-      optimizedContent: finalContent,
-      changes: allChanges
-    };
-  } catch (error) {
-    logger.error("[Resume Optimization] Error:", error);
-    throw error;
-  }
-}
-
-async function generateAnalysis(optimizedResume: string, jobDescription: string) {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: `Analyze the optimized resume against the job description and provide feedback.
-
-Return a JSON object with:
-{
-  "analysis": {
-    "strengths": ["key strengths identified"],
-    "improvements": ["areas that were improved"],
-    "gaps": ["remaining gaps to address"],
-    "suggestions": ["actionable suggestions"]
-  }
-}`
-        },
-        {
-          role: "user",
-          content: `Optimized Resume:\n${optimizedResume}\n\nJob Description:\n${jobDescription}`
-        }
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0.3,
-      max_tokens: 2000
-    });
-
-    if (!response || !response.choices[0].message.content) {
-      throw new Error("No analysis response received");
-    }
-
-    const result = JSON.parse(response.choices[0].message.content);
-    return result.analysis || {
+// Main optimization function that handles the entire workflow
+export async function optimizeResume(
+  resumeText: string,
+  jobDescription: string,
+  onStatusUpdate: (status: any) => void
+): Promise<any> {
+  // State object to track progress and store intermediate results
+  const state = {
+    currentStep: 'started',
+    sessionId: `session_${Date.now()}`,
+    resumeText,
+    jobDescription,
+    jobDetails: {},
+    parsedResume: {},
+    jobAnalysis: {},
+    optimizedContent: '',
+    changes: [],
+    metrics: {
+      before: {
+        overall: 0,
+        keywords: 0,
+        skills: 0,
+        experience: 0,
+        education: 0,
+        personalization: 0,
+        aiReadiness: 0,
+        confidence: 0,
+        relevance: 0,
+        clarity: 0,
+        impact: 0
+      },
+      after: {
+        overall: 0,
+        keywords: 0,
+        skills: 0,
+        experience: 0,
+        education: 0,
+        personalization: 0,
+        aiReadiness: 0,
+        confidence: 0,
+        relevance: 0,
+        clarity: 0,
+        impact: 0
+      }
+    },
+    analysis: {
       strengths: [],
       improvements: [],
       gaps: [],
       suggestions: []
+    },
+    resumeContent: {
+      professionalSummary: '',
+      skills: {
+        technical: [],
+        soft: [],
+        certifications: []
+      },
+      experience: [],
+      education: [],
+      projects: [],
+      awards: [],
+      volunteerWork: [],
+      languages: [],
+      publications: []
+    },
+    contactInfo: {
+      fullName: '',
+      email: '',
+      phone: '',
+      location: {
+        city: '',
+        state: '',
+        country: ''
+      },
+      linkedin: '',
+      portfolio: '',
+      github: ''
+    }
+  };
+
+  try {
+    // Step 1: Extract Job Details
+    state.currentStep = 'extracting_details';
+    onStatusUpdate({ status: state.currentStep });
+    logger.info('[Optimize] Extracting job details');
+    
+    try {
+      const jobDetailsResult = await executeWithTimeout(
+        async () => {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: `Extract key details from this job description and return them in a structured JSON format with the following fields:
+                {
+                  "title": "job title",
+                  "company": "company name",
+                  "location": "job location",
+                  "description": "concise description",
+                  "requirements": ["key requirement 1", "key requirement 2", ...],
+                  "skills": ["required skill 1", "required skill 2", ...],
+                  "level": "entry|mid|senior",
+                  "employmentType": "full-time|part-time|contract"
+                }`
+              },
+              {
+                role: "user",
+                content: jobDescription
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3
+          });
+          return JSON.parse(response.choices[0].message.content || "{}");
+        },
+        30000, // 30 second timeout
+        'Job details extraction timed out'
+      );
+      
+      state.jobDetails = jobDetailsResult;
+      
+      // Save job details to temporary storage
+      await storage.saveOptimizationStep({
+        sessionId: state.sessionId,
+        step: 'job_details',
+        data: state.jobDetails
+      });
+      
+    } catch (error) {
+      logger.error('[Optimize] Error extracting job details:', error);
+      throw new StepError('Failed to extract job details', 'EXTRACTION_ERROR', state.currentStep);
+    }
+
+    // Step 2: Parse Resume
+    state.currentStep = 'parsing_resume';
+    onStatusUpdate({ status: state.currentStep });
+    logger.info('[Optimize] Parsing resume content');
+    
+    try {
+      const parsedResumeResult = await executeWithTimeout(
+        async () => {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: `Parse the resume and extract structured information in JSON format with these fields:
+                {
+                  "contactInfo": {
+                    "fullName": "",
+                    "email": "",
+                    "phone": "",
+                    "location": {
+                      "city": "",
+                      "state": "",
+                      "country": ""
+                    },
+                    "linkedin": "",
+                    "portfolio": "",
+                    "github": ""
+                  },
+                  "professionalSummary": "",
+                  "skills": {
+                    "technical": [],
+                    "soft": [],
+                    "certifications": []
+                  },
+                  "experience": [
+                    {
+                      "title": "",
+                      "company": "",
+                      "location": "",
+                      "startDate": "",
+                      "endDate": "",
+                      "achievements": []
+                    }
+                  ],
+                  "education": [
+                    {
+                      "degree": "",
+                      "institution": "",
+                      "location": "",
+                      "graduationDate": "",
+                      "gpa": "",
+                      "honors": []
+                    }
+                  ],
+                  "projects": [
+                    {
+                      "name": "",
+                      "description": "",
+                      "technologies": [],
+                      "url": ""
+                    }
+                  ],
+                  "awards": [],
+                  "volunteerWork": [],
+                  "languages": [],
+                  "publications": []
+                }`
+              },
+              {
+                role: "user",
+                content: resumeText
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3
+          });
+          return JSON.parse(response.choices[0].message.content || "{}");
+        },
+        60000, // 60 second timeout
+        'Resume parsing timed out'
+      );
+      
+      state.parsedResume = parsedResumeResult;
+      state.resumeContent = parsedResumeResult; // Store parsed content in resumeContent
+      state.contactInfo = parsedResumeResult.contactInfo || state.contactInfo;
+      
+      // Save parsed resume to temporary storage
+      await storage.saveOptimizationStep({
+        sessionId: state.sessionId,
+        step: 'parsed_resume',
+        data: state.parsedResume
+      });
+      
+    } catch (error) {
+      logger.error('[Optimize] Error parsing resume:', error);
+      throw new StepError('Failed to parse resume', 'PARSING_ERROR', state.currentStep);
+    }
+
+    // Step 3: Analyze Job Requirements
+    state.currentStep = 'analyzing_description';
+    onStatusUpdate({ status: state.currentStep });
+    logger.info('[Optimize] Analyzing job requirements');
+    
+    try {
+      const jobAnalysisResult = await executeWithTimeout(
+        async () => {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: `Analyze this job description and extract:
+                1. Required skills and competencies
+                2. Required experience level
+                3. Key responsibilities
+                4. Primary and secondary requirements
+                5. Industry-specific terminology
+
+                Return as JSON:
+                {
+                  "skills": ["skill1", "skill2"],
+                  "experienceLevel": "entry|mid|senior",
+                  "responsibilities": ["resp1", "resp2"],
+                  "primaryRequirements": ["req1", "req2"],
+                  "secondaryRequirements": ["req1", "req2"],
+                  "keyTerminology": ["term1", "term2"]
+                }`
+              },
+              {
+                role: "user",
+                content: jobDescription
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3
+          });
+          return JSON.parse(response.choices[0].message.content || "{}");
+        },
+        30000, // 30 second timeout
+        'Job analysis timed out'
+      );
+      
+      state.jobAnalysis = jobAnalysisResult;
+      
+      // Save job analysis to temporary storage
+      await storage.saveOptimizationStep({
+        sessionId: state.sessionId,
+        step: 'job_analysis',
+        data: state.jobAnalysis
+      });
+      
+    } catch (error) {
+      logger.error('[Optimize] Error analyzing job:', error);
+      throw new StepError('Failed to analyze job requirements', 'ANALYSIS_ERROR', state.currentStep);
+    }
+
+    // Step 4: Perform resume optimization using separate function
+    state.currentStep = 'optimizing_resume';
+    onStatusUpdate({ status: state.currentStep });
+    logger.info('[Optimize] Optimizing resume content');
+
+    try {
+      const optimizationResult = await executeWithTimeout(
+        async () => {
+          return await performResumeOptimization(
+            resumeText, 
+            jobDescription, 
+            state.jobAnalysis, 
+            onStatusUpdate
+          );
+        },
+        120000, // 120 second timeout
+        'Resume optimization timed out'
+      );
+
+      state.optimizedContent = optimizationResult.optimizedContent;
+      state.changes = optimizationResult.changes;
+      state.resumeContent = optimizationResult.resumeContent || state.resumeContent;
+      state.analysis = optimizationResult.analysis || state.analysis;
+      
+      // Save optimized content to temporary storage
+      await storage.saveOptimizationStep({
+        sessionId: state.sessionId,
+        step: 'optimized_content',
+        data: {
+          content: state.optimizedContent,
+          changes: state.changes,
+          resumeContent: state.resumeContent,
+          analysis: state.analysis
+        }
+      });
+      
+    } catch (error) {
+      logger.error('[Optimize] Error optimizing resume:', error);
+      throw new StepError('Failed to optimize resume content', 'OPTIMIZATION_ERROR', state.currentStep);
+    }
+
+    // Step 5: Generate metrics
+    state.currentStep = 'calculating_metrics';
+    onStatusUpdate({ status: state.currentStep });
+    logger.info('[Optimize] Calculating metrics');
+    
+    try {
+      const metricsResult = await executeWithTimeout(
+        async () => {
+          const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+              {
+                role: "system",
+                content: `Compare the original resume against the job description, then compare the optimized resume against the job description.
+                Score both on a scale of 0-100 for these metrics:
+                - overall: Overall match with job requirements
+                - keywords: Presence of job-specific keywords
+                - skills: Match of skills with requirements
+                - experience: Relevance of experience to the role
+                - education: Relevance of education to requirements
+                - personalization: How tailored the resume is to this role
+                - aiReadiness: ATS compatibility
+                - confidence: Quality and professionalism
+                - relevance: Overall relevance to the position
+                - clarity: Clarity and readability
+                - impact: Impact of achievements
+
+                Return as JSON:
+                {
+                  "before": {
+                    "overall": 0,
+                    "keywords": 0,
+                    ... all metrics
+                  },
+                  "after": {
+                    "overall": 0,
+                    "keywords": 0,
+                    ... all metrics
+                  }
+                }`
+              },
+              {
+                role: "user",
+                content: `Original Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}\n\nOptimized Resume:\n${state.optimizedContent}`
+              }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.3
+          });
+          return JSON.parse(response.choices[0].message.content || "{}");
+        },
+        30000, // 30 second timeout
+        'Metrics calculation timed out'
+      );
+      
+      state.metrics = metricsResult;
+      
+      // Save metrics to temporary storage
+      await storage.saveOptimizationStep({
+        sessionId: state.sessionId,
+        step: 'metrics',
+        data: state.metrics
+      });
+      
+    } catch (error) {
+      // Non-fatal - continue with default metrics
+      logger.warn('[Optimize] Error calculating metrics:', error);
+      // We'll continue with default metrics
+    }
+
+    // Final step: Return complete result
+    logger.info('[Optimize] Optimization process completed successfully');
+    
+    return {
+      sessionId: state.sessionId,
+      optimisedResume: state.optimizedContent,
+      jobDetails: state.jobDetails,
+      resumeContent: state.resumeContent,
+      contactInfo: state.contactInfo,
+      metrics: state.metrics,
+      analysis: state.analysis,
+      changes: state.changes
     };
+    
+  } catch (error: any) {
+    // Handle step-specific errors
+    if (error instanceof StepError) {
+      logger.error(`[Optimize] Error in step ${error.step}: ${error.message}`);
+      throw new Error(`Failed to ${error.step.replace('_', ' ')}: ${error.message}`);
+    }
+    
+    // Handle general errors
+    logger.error('[Optimize] Optimization process failed:', error);
+    throw new Error(error.message || 'Failed to generate optimized content');
+  }
+}
+
+// Helper function for resume optimization
+async function performResumeOptimization(
+  resumeText: string,
+  jobDescription: string,
+  jobAnalysis: any,
+  onStatusUpdate: (status: any) => void
+): Promise<any> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this resume based on the job description using the following structured format:
+
+1. Contact Information: maintain original contact details but format them professionally
+2. Professional Summary: create a compelling summary that highlights skills and experience relevant to the job
+3. Skills: reorganize skills to prioritize those matching job requirements
+4. Professional Experience: reformat work history emphasizing achievements relevant to the job
+5. Education: maintain but format according to industry standards
+
+Tailor the resume by:
+- Incorporating key terminology from the job description
+- Restructuring content to highlight matching qualifications
+- Adding metrics and achievements that demonstrate required competencies
+- Ensuring ATS compatibility with standard headings and formatting
+
+Return a complete JSON response with:
+{
+  "optimizedContent": "complete optimized resume with proper formatting",
+  "changes": ["list of specific improvements made"],
+  "resumeContent": {
+    "professionalSummary": "",
+    "skills": {
+      "technical": [],
+      "soft": [],
+      "certifications": []
+    },
+    "experience": [...],
+    "education": [...],
+    "projects": [...],
+    "awards": [...],
+    "volunteerWork": [...],
+    "languages": [...],
+    "publications": [...]
+  },
+  "analysis": {
+    "strengths": ["key strengths identified"],
+    "improvements": ["areas improved"],
+    "gaps": ["identified gaps"],
+    "suggestions": ["specific suggestions"]
+  }
+}`
+        },
+        {
+          role: "user",
+          content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}\n\nJob Analysis:\n${JSON.stringify(jobAnalysis)}`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+      max_tokens: 4000
+    });
+
+    if (!response.choices[0].message.content) {
+      throw new Error("No content received from optimization request");
+    }
+
+    const result = JSON.parse(response.choices[0].message.content);
+    
+    // Validate result structure
+    if (!result.optimizedContent || result.optimizedContent.length < 100) {
+      throw new Error("Insufficient optimized content generated");
+    }
+    
+    return result;
   } catch (error) {
-    logger.error("[Analysis] Error:", error);
+    console.error("Resume optimization error:", error);
     throw error;
   }
 }

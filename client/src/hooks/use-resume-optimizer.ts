@@ -27,6 +27,10 @@ export function useResumeOptimizer() {
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
   const { toast } = useToast();
   const [retryCount, setRetryCount] = useState(0);
+  const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
+  const [resumeContent, setResumeContent] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<any | null>(null);
+
 
   const cancelOptimization = useCallback(() => {
     if (eventSource) {
@@ -55,6 +59,9 @@ export function useResumeOptimizer() {
 
     setStatus({ status: 'idle' });
     setRetryCount(0);
+    setOptimizedResume(null);
+    setResumeContent(null);
+    setAnalysis(null);
 
     try {
       // Create URL with params
@@ -306,10 +313,13 @@ export function useResumeOptimizer() {
         variant: 'destructive',
       });
     }
-  }, [toast, eventSource, retryCount]);
+  }, [toast, eventSource, retryCount, setOptimizedResume, setResumeContent, setAnalysis]);
 
   return {
     status,
+    optimizedResume,
+    resumeContent,
+    analysis,
     optimizeResume,
     cancelOptimization,
   };

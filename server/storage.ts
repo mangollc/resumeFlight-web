@@ -1,4 +1,4 @@
-import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, users, uploadedResumes, optimizedResumes, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore, CoverLetter, InsertCoverLetter, coverLetters } from "@shared/schema";
+import { User, InsertUser, UploadedResume, InsertUploadedResume, OptimizedResume, InsertOptimizedResume, users, uploadedResumes, optimizedResumes, OptimizationSession, InsertOptimizationSession, optimizationSessions, resumeMatchScores, InsertResumeMatchScore, ResumeMatchScore, CoverLetter, InsertCoverLetter, coverLetters, optimizationSteps } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and } from "drizzle-orm";
@@ -37,6 +37,7 @@ export interface IStorage {
   getOptimizationSessionsByUser(userId: number): Promise<OptimizationSession[]>;
   getResumeMatchScore(optimizedResumeId: number): Promise<ResumeMatchScore | undefined>;
   createResumeMatchScore(score: InsertResumeMatchScore & { userId: number }): Promise<ResumeMatchScore>;
+  saveOptimizationStep(params: {sessionId: string; step: string; data: any}): Promise<any | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -773,6 +774,56 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating resume match score:', error);
       throw new Error('Failed to create resume match score');
+    }
+  }
+
+  async saveOptimizationStep({
+    sessionId,
+    step,
+    data
+  }: {
+    sessionId: string;
+    step: string;
+    data: any;
+  }) {
+    try {
+      // Check if step already exists
+      const existing = await db.select()
+        .from(optimizationSteps)
+        .where(and(
+          eq(optimizationSteps.sessionId, sessionId),
+          eq(optimizationSteps.step, step)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        // Update existing step
+        await db.update(optimizationSteps)
+          .set({
+            data,
+            updatedAt: new Date()
+          })
+          .where(and(
+            eq(optimizationSteps.sessionId, sessionId),
+            eq(optimizationSteps.step, step)
+          ));
+        return existing[0];
+      } else {
+        // Create new step
+        const result = await db.insert(optimizationSteps).values({
+          sessionId,
+          step,
+          data,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }).returning();
+
+        return result[0];
+      }
+    } catch (error) {
+      console.error(`Error saving optimization step ${step}:`, error);
+      // Non-fatal - log error but don't throw
+      return null;
     }
   }
 }

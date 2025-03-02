@@ -72,3 +72,54 @@ export const setupGlobalErrorLogging = () => {
     // Do not exit for unhandled promises, as they may be non-critical
   });
 };
+interface LogMessage {
+  message: string;
+  level: 'info' | 'warn' | 'error' | 'debug' | 'success';
+  timestamp: string;
+  context?: any;
+}
+
+class Logger {
+  private logToConsole(message: string, level: string, context?: any) {
+    const timestamp = new Date().toISOString();
+    const prefix = `[${level.toUpperCase()}] ${timestamp}`;
+    
+    if (context) {
+      console.log(`${prefix} ${message}`, context);
+    } else {
+      console.log(`${prefix} ${message}`);
+    }
+    
+    return {
+      message,
+      level: level as LogMessage['level'],
+      timestamp,
+      context
+    };
+  }
+  
+  info(message: string, context?: any) {
+    return this.logToConsole(message, 'info', context);
+  }
+  
+  warn(message: string, context?: any) {
+    return this.logToConsole(message, 'warn', context);
+  }
+  
+  error(message: string, context?: any) {
+    return this.logToConsole(message, 'error', context);
+  }
+  
+  debug(message: string, context?: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      return this.logToConsole(message, 'debug', context);
+    }
+    return null;
+  }
+  
+  success(message: string, context?: any) {
+    return this.logToConsole(message, 'success', context);
+  }
+}
+
+export const logger = new Logger();

@@ -435,6 +435,19 @@ export const resumeMatchScores = pgTable("resume_match_scores", {
   userIdIdx: index("resume_match_scores_user_id_idx").on(table.userId),
 }));
 
+// Add a table to store intermediate optimization steps
+export const optimizationSteps = pgTable("optimization_steps", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  step: text("step").notNull(),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").notNull(),
+  updatedAt: timestamp("updated_at").notNull(),
+}, (table) => ({
+  sessionStepIdx: index("optimization_steps_session_step_idx").on(table.sessionId, table.step),
+  sessionIdIdx: index("optimization_steps_session_id_idx").on(table.sessionId),
+}));
+
 // Add relations for match scores
 export const resumeMatchScoresRelations = relations(resumeMatchScores, ({ one }) => ({
   optimizedResume: one(optimizedResumes, {

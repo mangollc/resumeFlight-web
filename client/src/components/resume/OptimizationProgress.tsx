@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
 
 interface OptimizationProgressProps {
-  status: string | { status: string; error?: string; step?: string; code?: string }; // Updated status type
+  status: string | { status: string; error?: string; step?: string; code?: string };
   error?: string;
   onRetry?: () => void;
   onCancel?: () => void;
@@ -19,17 +19,16 @@ type Step = {
 };
 
 export function OptimizationProgress({ status, error, onRetry, onCancel }: OptimizationProgressProps) {
-  // Define the optimization steps
   const steps: Step[] = [
     { id: 'started', label: 'Starting optimization', status: 'waiting' },
     { id: 'extracting_details', label: 'Extracting job details', status: 'waiting' },
+    { id: 'parsing_resume', label: 'Parsing resume', status: 'waiting' },
     { id: 'analyzing_description', label: 'Analyzing job requirements', status: 'waiting' },
     { id: 'optimizing_resume', label: 'Optimizing resume', status: 'waiting' },
     { id: 'generating_analysis', label: 'Generating analysis', status: 'waiting' },
     { id: 'completed', label: 'Optimization complete', status: 'waiting' },
   ];
 
-  // Update step statuses based on current status
   const currentStepIndex = steps.findIndex(step => step.id === (typeof status === 'string' ? status : status.status));
 
   steps.forEach((step, index) => {
@@ -40,9 +39,8 @@ export function OptimizationProgress({ status, error, onRetry, onCancel }: Optim
     }
   });
 
-  // Calculate progress percentage
   const completedSteps = steps.filter(step => step.status === 'completed').length;
-  const progress = Math.round((completedSteps / (steps.length - 1)) * 100);
+  const progress = Math.round((completedSteps / steps.length) * 100);
 
 
   let errorDisplay;
