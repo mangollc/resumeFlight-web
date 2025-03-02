@@ -1,0 +1,61 @@
+Warning: validateDOMNesting(...): <div> cannot appear as a descendant of &lt;p&gt;.
+    at div
+    at div
+    at p
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=3a26f28a:41:13
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBU7ZVYE.js?v=3a26f28a:280:13
+    at _c9 (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/components/ui/dialog.tsx:177:12)
+    at div
+    at DialogHeader (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/components/ui/dialog.tsx:108:3)
+    at div
+    at div
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=3a26f28a:41:13
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DPXLZWVB.js?v=3a26f28a:61:7
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=3a26f28a:52:11
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=3a26f28a:33:11
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=3a26f28a:41:13
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FVMGL6KI.js?v=3a26f28a:57:5
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBU7ZVYE.js?v=3a26f28a:232:13
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBU7ZVYE.js?v=3a26f28a:155:58
+    at Presence (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AZCBCMZO.js?v=3a26f28a:24:11)
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBU7ZVYE.js?v=3a26f28a:146:64
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=3a26f28a:52:11
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=3a26f28a:33:11
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=3a26f28a:41:13
+    at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-DPXLZWVB.js?v=3a26f28a:260:22
+    at Presence (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-AZCBCMZO.js?v=3a26f28a:24:11)
+    at Provider (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LSQNWB54.js?v=3a26f28a:38:15)
+    at DialogPortal (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBU7ZVYE.js?v=3a26f28a:109:11)
+    at _c3 (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/components/ui/dialog.tsx:49:12)
+    at Provider (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-LSQNWB54.js?v=3a26f28a:38:15)
+    at Dialog (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GBU7ZVYE.js?v=3a26f28a:50:5)
+    at LoadingDialog (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/components/ui/loading-dialog.tsx:27:3)
+    at div
+    at Dashboard (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/pages/dashboard.tsx:136:20)
+    at div
+    at main
+    at div
+    at div
+    at Layout (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/App.tsx?v=dlAqUtF4t2n5HNPCsx8ls:35:19)
+    at ProtectedLayout (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/App.tsx?v=dlAqUtF4t2n5HNPCsx8ls:76:39)
+    at component
+    at ProtectedRoute (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch…
+Optimization error: 
+SyntaxError {}
+message: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+stack: "SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+get stack: ƒ ()
+set stack: ƒ ()
+[[Prototype]]: Object
+constructor: ƒ SyntaxError()
+message: "Unexpected token '<', "<!DOCTYPE "... is not valid JSON"
+name: "SyntaxError"
+[[Prototype]]: Object
+
+
+
+
+
+
+
