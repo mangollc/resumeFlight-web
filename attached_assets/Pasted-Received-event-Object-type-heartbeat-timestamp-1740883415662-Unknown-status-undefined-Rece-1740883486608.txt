@@ -1,0 +1,38 @@
+Received event: 
+Object {type: "heartbeat", timestamp: 1740883415662}
+Unknown status: undefined
+Received event: 
+Object {type: "heartbeat", timestamp: 1740883430663}
+Unknown status: undefined
+Received event: 
+Object {status: "error", message: "Failed to generate optimized content", code: "OPTIMIZATION_ERROR"}
+Event parsing error: 
+Error {}
+message: "Failed to generate optimized content"
+stack: "Error: Failed to generate optimized content↵ at evtSource.onmessage (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/components/resume/job-input.tsx:165:25)"
+get stack: ƒ ()
+set stack: ƒ ()
+[[Prototype]]: Object
+
+at t.value (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Mutation error: 
+Error {}
+message: "Failed to generate optimized content"
+stack: "Error: Failed to generate optimized content↵ at evtSource.onmessage (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/src/components/resume/job-input.tsx:165:25)"
+get stack: ƒ ()
+set stack: ƒ ()
+[[Prototype]]: Object
+
+at t.value (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://e80d41d1-284b-4083-99c6-87b4d6e12cba-00-k1umincjexgu.kirk.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+
+
+
+
+
+
