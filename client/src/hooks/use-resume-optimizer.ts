@@ -118,6 +118,23 @@ export function useResumeOptimizer() {
         console.error('EventSource error:', error);
         clearTimeout(timeoutId);
 
+        // Check if we received a 401 Unauthorized response
+        if (error instanceof Event && error.target && (error.target as any).status === 401) {
+          newEventSource.close();
+          setEventSource(null);
+          setStatus({ 
+            status: 'error', 
+            error: 'Authentication required. Please log in again.',
+            code: 'AUTH_ERROR'
+          });
+          toast({
+            title: 'Authentication Error',
+            description: 'Your session may have expired. Please log in again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
         if (retryCount < MAX_RETRIES) {
           console.log(`Retrying after error (${retryCount + 1}/${MAX_RETRIES})...`);
           newEventSource.close();
@@ -125,7 +142,7 @@ export function useResumeOptimizer() {
 
           setTimeout(() => {
             optimizeResume({ resumeId, jobDescription, jobUrl });
-          }, RETRY_DELAY);
+          }, RETRY_DELAY * (retryCount + 1)); // Progressive backoff
         } else {
           newEventSource.close();
           setEventSource(null);

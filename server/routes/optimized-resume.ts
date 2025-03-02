@@ -51,12 +51,18 @@ app.get("/api/uploaded-resumes/:id/optimize", async (req, res) => {
     const errorMessage = error.message || "Unknown error occurred";
     const errorCode = error.code || "OPTIMIZATION_ERROR";
 
-    res.write(`data: ${JSON.stringify({ 
-      step: "error", 
-      status: "error", 
-      message: errorMessage,
-      code: errorCode
-    })}\n\n`);
+    // Send a more detailed error response
+    try {
+      res.write(`data: ${JSON.stringify({ 
+        step: "error", 
+        status: "error", 
+        message: errorMessage,
+        code: errorCode,
+        timestamp: new Date().toISOString()
+      })}\n\n`);
+    } catch (sendError) {
+      console.error("Failed to send error response:", sendError);
+    }
     res.end();
   }
 });

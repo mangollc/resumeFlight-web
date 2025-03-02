@@ -243,7 +243,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(optimizedResumes)
       .where(eq(optimizedResumes.id, id));
-      
+
       if (!result) return undefined;
 
       return {
