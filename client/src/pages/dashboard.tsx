@@ -325,8 +325,7 @@ export default function Dashboard() {
 
   const handleOptimizationComplete = async (resume: OptimizedResume, details: JobDetails) => {
     try {
-      setOptimizedResume(resume);
-      setJobDetails(details);
+      setJobDetails(details); // Ensure job details are set
       if (!completedSteps.includes(2)) {
         setCompletedSteps(prev => [...prev, 2]);
       }
@@ -813,37 +812,27 @@ export default function Dashboard() {
     if (canGoNext) {
       const nextStep = currentStep + 1;
 
-      // Special handling for Step 2 -> 3 transition (Optimization)
-      if (currentStep === 2) {
-        if (!optimizedResume) {
-          // Start optimization process
-          setIsOptimizing(true);
-          handleReoptimize().then(() => {
-            if (!completedSteps.includes(currentStep)) {
-              setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
-            }
-            setCurrentStep(nextStep);
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }).catch(error => {
-            console.error('Optimization error:', error);
-            toast({
-              title: "Error",
-              description: "Failed to optimize resume. Please try again.",
-              variant: "destructive",
-            });
-          }).finally(() => {
-            setIsOptimizing(false);
-          });
-          return;
-        }
-      } else if (currentStep === 4 && !coverLetter) {
-        setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
-      } else if (!completedSteps.includes(currentStep)) {
+      if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
       }
 
-      setCurrentStep(nextStep);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      // When moving from step 2 to 3, trigger optimization
+      if (currentStep === 2 && jobDetails) {
+        handleReoptimize().then(() => {
+          setCurrentStep(nextStep);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }).catch(error => {
+          console.error('Optimization error:', error);
+          toast({
+            title: "Error",
+            description: "Failed to optimize resume. Please try again.",
+            variant: "destructive",
+          });
+        });
+      } else {
+        setCurrentStep(nextStep);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
   };
 
@@ -863,23 +852,16 @@ export default function Dashboard() {
           disabled={!canGoNext || isOptimizing}
           variant="gradient"
         >
-          {currentStep === 2 ? (
-            isOptimizing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Optimizing...
-              </>
-            ) : jobDetails ? (
-              <>
-                Next
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Optimize
-              </>
-            )
+          {currentStep === 2 && !jobDetails ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Optimize
+            </>
+          ) : isOptimizing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Optimizing...
+            </>
           ) : (
             <>
               Next
@@ -959,7 +941,7 @@ export default function Dashboard() {
               {/* Improvements Section */}
               <div className="rounded-lg border p-4">
                 <h4 className="font-medium text-lg flex items-center mb-3">
-                  <span className="mr-2 bg-orange-100 text-orange-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
+                  <span className="mr-2 bg-orange-100 text-orange800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
                     {optimizedResume.analysis.improvements.length}
                   </span>
                   Improvements
