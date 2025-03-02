@@ -238,9 +238,9 @@ export async function optimizeResume(
 
   try {
     const optimizationVersion = version || 1.0;
-    // Use much smaller chunks to prevent timeouts
-    const resumeChunks = splitIntoChunks(resumeText, 2000);
-    const jobDescriptionChunks = splitIntoChunks(jobDescription, 2000);
+    // Use extremely small chunks to prevent timeouts
+    const resumeChunks = splitIntoChunks(resumeText, 1500);
+    const jobDescriptionChunks = splitIntoChunks(jobDescription, 1500);
     
     // Log diagnostic info
     logger.info(`[Optimize] Resume length: ${resumeText.length} chars, ${resumeChunks.length} chunks`);
@@ -268,14 +268,29 @@ export async function optimizeResume(
     });
 
     // First optimize the resume content with retries and timeout
-    for (let i = 0; i < resumeChunks.length; i++) {
-      console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
+    // Process chunks progressively, with a limit on how many to process at once
+    const maxChunksToProcess = Math.min(resumeChunks.length, 5); // Only process up to 5 chunks
+    logger.info(`[Optimize] Processing ${maxChunksToProcess} chunks out of ${resumeChunks.length}`);
+    
+    for (let i = 0; i < maxChunksToProcess; i++) {
+      console.log(`[Optimize] Processing chunk ${i + 1}/${maxChunksToProcess}`);
       let attempts = 0;
       let success = false;
       let response;
 
       while (attempts < 3 && !success) {
         try {
+          // Create a timeout for this specific chunk
+          const chunkTimeout = new Promise((_, reject) => {
+            setTimeout(() => {
+              reject({
+                message: `Chunk ${i+1} processing timed out`,
+                code: 'CHUNK_TIMEOUT',
+                status: 408
+              });
+            }, 25000); // 25 second timeout per chunk
+          });
+          
           // Race the OpenAI call against our timeout
           response = await Promise.race([
             openai.chat.completions.create({
@@ -283,7 +298,7 @@ export async function optimizeResume(
               messages: [
               {
                 role: "system",
-                content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description using the following structured format:
+                content: `Act as an expert resume optimizer focusing on ATS compatibility. Optimize this section of the resume based on the job description:
 
 1. Contact Information
    - Full Name (prominently displayed)
@@ -354,16 +369,10 @@ Ensure the resume is:
 5. Ensure proper formatting for ATS compatibility
 6. Tailor content to reflect industry-specific terminology and expectations
 
-Return a JSON object with:
+Return a simple JSON object with:
 {
   "optimizedContent": "the enhanced resume section",
-  "changes": ["list specific improvements made"],
-  "sectionAnalysis": {
-    "strengths": ["identified strengths"],
-    "improvements": ["areas improved"],
-    "gaps": ["identified gaps"],
-    "suggestions": ["specific suggestions"]
-  }
+  "changes": ["one or two key improvements made"]
 }`
               },
               {
@@ -405,6 +414,12 @@ Return a JSON object with:
       if (result.changes) allChanges.push(...result.changes);
     }
 
+    // If we processed fewer chunks than the total, warn the user
+    if (maxChunksToProcess < resumeChunks.length) {
+      logger.warn(`[Optimize] Only processed ${maxChunksToProcess} chunks out of ${resumeChunks.length} to avoid timeout`);
+      allChanges.push("Resume was too long - only the first portion was optimized. For best results, submit a shorter resume.");
+    }
+    
     // Now perform overall analysis with retries and timeout
     let attempts = 0;
     let success = false;
