@@ -3,6 +3,7 @@ import { z } from "zod";
 import { findUploadedResume } from "../storage";
 import { optimizeResume } from "../utils/optimize";
 import { logger } from "../utils/logger";
+import { v4 as uuid } from 'uuid';
 
 export const optimizedResumeRouter = Router();
 
@@ -13,7 +14,7 @@ const optimizationSchema = z.object({
   version: z.number().optional(),
 });
 
-// SSE route for resume optimization
+// Update the optimization endpoint
 optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
   // Set headers for SSE
   res.setHeader("Content-Type", "text/event-stream");
@@ -23,19 +24,33 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
 
   // Helper function to send SSE events
   const sendEvent = (data: any) => {
-    logger.info(`Sending SSE event: ${data.status}`);
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    }
   };
+
+  // Start heartbeat interval
+  const heartbeatInterval = setInterval(() => {
+    try {
+      sendEvent({ type: 'heartbeat', timestamp: Date.now() });
+    } catch (error) {
+      clearInterval(heartbeatInterval);
+    }
+  }, 15000);
 
   try {
     // Parse and validate input
     const { id } = req.params;
     const { jobDescription, jobUrl } = optimizationSchema.parse(req.query);
 
-    // Check authorization (user id from session should match resume owner)
+    // Check authorization
     if (!req.session.userId) {
-      res.status(401).end();
-      return;
+      sendEvent({ 
+        status: "error", 
+        message: "Authentication required", 
+        code: "AUTH_ERROR" 
+      });
+      return res.end();
     }
 
     // Fetch the uploaded resume
@@ -53,237 +68,78 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
     if (resume.userId !== req.session.userId) {
       sendEvent({ 
         status: "error", 
-        message: "You do not have permission to access this resume", 
+        message: "Unauthorized access", 
         code: "UNAUTHORIZED" 
       });
       return res.end();
     }
 
-    // Ensure we have either job description or URL
-    if (!jobDescription && !jobUrl) {
-      sendEvent({ 
-        status: "error", 
-        message: "Job description or URL is required", 
-        code: "MISSING_JOB_INFO" 
-      });
-      return res.end();
-    }
-
-    let jobDetails;
-    if (jobUrl && !jobDescription) {
-      sendEvent({ status: "fetching_job" });
-      try {
-        // If implemented: fetch job description from URL
-        jobDetails = { description: "Job description would be fetched here" };
-      } catch (error) {
-        sendEvent({ 
-          status: "error", 
-          message: "Failed to fetch job description from URL", 
-          code: "JOB_FETCH_ERROR" 
-        });
-        return res.end();
-      }
-    }
-
-    // Start heartbeat interval to keep connection alive
-    const heartbeatInterval = setInterval(() => {
-      try {
-        sendEvent({ type: 'heartbeat', timestamp: Date.now() });
-      } catch (error) {
-        clearInterval(heartbeatInterval);
-      }
-    }, 15000); // Send heartbeat every 15 seconds
-
     try {
-      // Start optimization process with status updates
+      // Start optimization process
       const result = await optimizeResume(
-        resume.content, 
-        jobDescription || jobDetails?.description || "", 
-        (status) => sendEvent(status)
+        resume.content,
+        jobDescription || "",
+        (status) => sendEvent({ status, ...status })
       );
 
-      // Save the final optimized resume to the database
-      try {
-        // Ensure optimized resume content is a string
-        let optimizedContent = result.optimisedResume;
-        if (typeof optimizedContent === 'object') {
-          optimizedContent = JSON.stringify(optimizedContent);
-        } else if (Array.isArray(optimizedContent)) {
-          optimizedContent = optimizedContent.join("\n\n");
-        }
-        
-        // Make sure content is valid
-        if (!optimizedContent || optimizedContent === 'undefined' || optimizedContent.includes('[object Object]')) {
-          throw new Error('Invalid optimized content format');
-        }
-        
-        // Ensure jobDetails is an object
-        const jobDetailsObj = typeof result.jobDetails === 'string' 
-          ? JSON.parse(result.jobDetails) 
-          : (result.jobDetails || {});
-          
-        // Prepare metrics with default values
-        const metricsData = {
-          before: {
-            overall: 0,
-            keywords: 0,
-            skills: 0,
-            experience: 0,
-            education: 0,
-            personalization: 0,
-            aiReadiness: 0,
-            ...result.metrics?.before
-          },
-          after: {
-            overall: 0,
-            keywords: 0,
-            skills: 0,
-            experience: 0,
-            education: 0,
-            personalization: 0,
-            aiReadiness: 0,
-            ...result.metrics?.after
-          }
-        };
-        
-        // Prepare analysis with default values
-        const analysisData = {
-          strengths: Array.isArray(result.analysis?.strengths) ? result.analysis.strengths : [],
-          improvements: Array.isArray(result.analysis?.improvements) ? result.analysis.improvements : [],
-          gaps: Array.isArray(result.analysis?.gaps) ? result.analysis.gaps : [],
-          suggestions: Array.isArray(result.analysis?.suggestions) ? result.analysis.suggestions : []
-        };
-        
-        // Log for debugging
-        console.log('[Optimize] Saving optimized resume to database', {
-          sessionId: result.sessionId,
-          contentLength: optimizedContent.length,
-          hasJobDetails: !!result.jobDetails,
-          hasAnalysis: !!result.analysis
-        });
-
-        const optimizedResume = await storage.createOptimizedResume({
-          userId: req.user!.id,
-          sessionId: result.sessionId,
-          uploadedResumeId: resumeId,
-          optimisedResume: optimizedContent,
-          originalContent: resume.content,
-          jobDescription: jobDescription || jobDetailsObj?.description || "",
-          jobUrl: jobUrl || null,
-          jobDetails: jobDetailsObj,
-          metadata: {
-            filename: resume.metadata?.filename || 'resume.txt',
-            optimizedAt: new Date().toISOString(),
-            version: '1.0'
-          },
-          metrics: metricsData,
-          analysis: analysisData,
-          resumeContent: result.resumeContent || {},
-          contactInfo: result.contactInfo || {}
-        });
-
-        // Send completion with the optimized resume
-        sendEvent({ 
-          status: "completed", 
-          optimizedResume: {
-            id: optimizedResume.id,
-            uploadedResumeId: resumeId,
-            optimisedResume: optimizedResume.optimisedResume,
-            resumeContent: optimizedResume.resumeContent,
-            jobDescription: optimizedResume.jobDescription,
-            changes: result.changes,
-            analysis: result.analysis,
-            metrics: result.metrics || {},
-            createdAt: optimizedResume.createdAt,
-            updatedAt: optimizedResume.updatedAt,
-            contactInfo: result.contactInfo
-          }
-        });
-      } catch (error: any) {
-        // Handle various error types
-        clearInterval(heartbeatInterval);
-        console.error("Error during resume optimization:", error);
-
-        // Check if we have result data - this could mean optimization was successful
-        // but there was an error saving to database
-        if (error.code === 'STORAGE_ERROR' && error._result) {
-          // Even if DB save failed, still send successful completion with the result
-          sendEvent({ 
-            status: "completed",
-            optimizedResume: {
-              uploadedResumeId: resumeId,
-              optimisedResume: error._result.optimisedResume,
-              resumeContent: error._result.resumeContent,
-              jobDescription: jobDescription || jobDetails?.description || "",
-              changes: error._result.changes,
-              analysis: error._result.analysis,
-              metrics: error._result.metrics || {},
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-              contactInfo: error._result.contactInfo
-            }
-          });
-        }
-        // Send appropriate error message based on error type
-        else if (error.code === 'TIMEOUT_ERROR' || error.message.includes('timed out')) {
-          sendEvent({ 
-            status: "error", 
-            message: "Resume optimization is taking longer than expected. Please try again with a shorter resume.",
-            code: "TIMEOUT_ERROR"
-          });
-        } else {
-          sendEvent({ 
-            status: "error", 
-            message: "Failed to generate optimized content", 
-            code: error.code || "OPTIMIZATION_ERROR" 
-          });
-        }
-      } finally {
-        res.end();
+      if (!result || !result.optimisedResume) {
+        throw new Error('Invalid optimization result');
       }
 
-      // End the connection
-      clearInterval(heartbeatInterval);
-      res.end();
+      // Save optimized resume
+      const optimizedResume = await storage.createOptimizedResume({
+        userId: req.session.userId,
+        sessionId: result.sessionId || uuid(),
+        uploadedResumeId: parseInt(id),
+        optimisedResume: result.optimisedResume,
+        originalContent: resume.content,
+        jobDescription,
+        jobUrl: jobUrl || null,
+        jobDetails: result.jobDetails || {},
+        metadata: {
+          filename: resume.metadata?.filename || 'resume.txt',
+          optimizedAt: new Date().toISOString(),
+          version: '1.0'
+        },
+        metrics: result.metrics || {
+          before: {},
+          after: {}
+        },
+        analysis: result.analysis || {
+          strengths: [],
+          improvements: [],
+          gaps: [],
+          suggestions: []
+        },
+        resumeContent: result.resumeContent || {}
+      });
+
+      // Send completion event
+      sendEvent({ 
+        status: "completed",
+        optimizedResume
+      });
+
     } catch (error: any) {
-      // Clear heartbeat on error
-      clearInterval(heartbeatInterval);
-
-      // Enhanced error reporting
-      const errorMessage = error.message || "Unknown error occurred";
-      const errorCode = error.code || "OPTIMIZATION_ERROR";
-      const errorStep = error.step || "unknown";
-
-      // Send structured error response
+      console.error('Optimization error:', error);
       sendEvent({ 
-        status: "error", 
-        message: errorMessage,
-        code: errorCode,
-        step: errorStep,
-        timestamp: new Date().toISOString(),
-        details: error.details || null
+        status: "error",
+        message: error.message || "Failed to optimize resume",
+        code: error.code || "OPTIMIZATION_ERROR"
       });
+    }
 
-      logger.error(`Optimization error in ${errorStep} step:`, error);
+  } catch (error: any) {
+    console.error('Fatal error:', error);
+    sendEvent({ 
+      status: "error",
+      message: error.message || "An unexpected error occurred",
+      code: "FATAL_ERROR"
+    });
+  } finally {
+    clearInterval(heartbeatInterval);
+    if (!res.writableEnded) {
       res.end();
     }
-  } catch (outer_error: any) {
-    // Catch any errors during the entire process
-    logger.error('Fatal optimization error:', outer_error);
-
-    try {
-      // Send final error response if not already sent
-      sendEvent({ 
-        status: "error", 
-        message: outer_error.message || "A critical error occurred",
-        code: "FATAL_ERROR",
-        timestamp: new Date().toISOString()
-      });
-    } catch (e) {
-      // Last resort error logging
-      console.error('Failed to send error event:', e);
-    }
-
-    res.end();
   }
 });

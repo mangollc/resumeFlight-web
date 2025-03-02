@@ -142,72 +142,61 @@ export function useResumeOptimizer() {
           console.log("Received event:", data);
 
           if (data.status === "completed" && data.optimizedResume) {
+            // Store the optimized resume data
             setOptimizedResume(data.optimizedResume);
             setResumeContent(data.optimizedResume.resumeContent);
             setAnalysis(data.optimizedResume.analysis);
             setStatus({ status: "success" });
+
+            // Close connection and clear timeout
             newEventSource.close();
             clearTimeout(timeoutId);
-          } else if (data.status === "error") {
-            let errorMessage = data.message || 'Failed to optimize resume';
-            let errorTitle = 'Optimization Error';
-            console.error('Optimization error details:', data);
 
-            // Customize error message based on error code
-            if (data.code === 'TIMEOUT_ERROR') {
-              errorTitle = 'Optimization Timeout';
-              errorMessage = data.message || 'The optimization process timed out. Try with a shorter resume or job description.';
-            } else if (data.code === 'CONTENT_GENERATION_ERROR') {
-              errorTitle = 'Content Generation Error';
-              errorMessage = 'Failed to generate optimized content. Please try again with a different resume or job description.';
-            } else if (data.code === 'OPTIMIZATION_ERROR') {
-              errorTitle = 'Database Save Error';
-              errorMessage = 'Your resume was optimized successfully, but we had trouble saving it. Please try again.';
-
-              // If this is a database error, let's retry the fetch directly
-              if (data.message && data.message.includes('save')) {
-                toast({
-                  title: 'Attempting Recovery',
-                  description: 'Trying to retrieve your optimized resume...',
-                });
-
-                // Wait 2 seconds then try to fetch optimized resumes
-                setTimeout(() => {
-                  window.location.href = '/optimized-resumes';
-                }, 2000);
-              }
-            } else if (data.code === 'INSUFFICIENT_CONTENT_ERROR') {
-              errorTitle = 'Content Error';
-              errorMessage = 'The resume or job description provided may not contain enough information. Please provide more details.';
-            }
-
+            // Show success toast
             toast({
-              title: errorTitle,
-              description: errorMessage,
-              variant: 'destructive',
+              title: "Resume Optimized",
+              description: "Your resume has been successfully optimized!",
+              variant: "default"
+            });
+          } else if (data.status === "error") {
+            const errorMessage = data.message || 'Failed to optimize resume';
+            console.error('Optimization error:', data);
+
+            setStatus({ 
+              status: 'error', 
+              error: errorMessage,
+              code: data.code 
             });
 
-            console.error('Optimization error:', { message: errorMessage, code: data.code, details: data });
-            setStatus({ status: 'error', error: errorMessage, code: data.code });
+            // Show error toast with specific message
+            toast({
+              title: 'Optimization Error',
+              description: errorMessage,
+              variant: 'destructive'
+            });
+
             newEventSource.close();
             clearTimeout(timeoutId);
-          } else if (data.status) {
+          } else if (data.status && data.status !== "heartbeat") {
+            // Update status for non-heartbeat events
             setStatus({ status: data.status });
-          } else if (data.type === "heartbeat") {
-            // Just a heartbeat to keep the connection alive, ignore
-          } else {
-            console.log("Unknown event type:", data);
           }
         } catch (err) {
-          console.log("Event parsing error:", err);
-          // Don't close the connection for parsing errors that might just be heartbeats
-          // Only set error state if we've had multiple parsing errors
+          console.error("Event parsing error:", err);
           if (++parsingErrorCount > 3) {
+            const errorMessage = "Failed to process server response";
             setStatus({ 
               status: "error", 
-              error: "Failed to parse server responses multiple times",
+              error: errorMessage,
               code: "PARSE_ERROR"
             });
+
+            toast({
+              title: 'Error',
+              description: errorMessage,
+              variant: 'destructive'
+            });
+
             newEventSource.close();
             clearTimeout(timeoutId);
           }
