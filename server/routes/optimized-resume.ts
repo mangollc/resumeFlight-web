@@ -104,24 +104,82 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
 
       // Save the final optimized resume to the database
       try {
+        // Ensure optimized resume content is a string
+        let optimizedContent = result.optimisedResume;
+        if (typeof optimizedContent === 'object') {
+          optimizedContent = JSON.stringify(optimizedContent);
+        } else if (Array.isArray(optimizedContent)) {
+          optimizedContent = optimizedContent.join("\n\n");
+        }
+        
+        // Make sure content is valid
+        if (!optimizedContent || optimizedContent === 'undefined' || optimizedContent.includes('[object Object]')) {
+          throw new Error('Invalid optimized content format');
+        }
+        
+        // Ensure jobDetails is an object
+        const jobDetailsObj = typeof result.jobDetails === 'string' 
+          ? JSON.parse(result.jobDetails) 
+          : (result.jobDetails || {});
+          
+        // Prepare metrics with default values
+        const metricsData = {
+          before: {
+            overall: 0,
+            keywords: 0,
+            skills: 0,
+            experience: 0,
+            education: 0,
+            personalization: 0,
+            aiReadiness: 0,
+            ...result.metrics?.before
+          },
+          after: {
+            overall: 0,
+            keywords: 0,
+            skills: 0,
+            experience: 0,
+            education: 0,
+            personalization: 0,
+            aiReadiness: 0,
+            ...result.metrics?.after
+          }
+        };
+        
+        // Prepare analysis with default values
+        const analysisData = {
+          strengths: Array.isArray(result.analysis?.strengths) ? result.analysis.strengths : [],
+          improvements: Array.isArray(result.analysis?.improvements) ? result.analysis.improvements : [],
+          gaps: Array.isArray(result.analysis?.gaps) ? result.analysis.gaps : [],
+          suggestions: Array.isArray(result.analysis?.suggestions) ? result.analysis.suggestions : []
+        };
+        
+        // Log for debugging
+        console.log('[Optimize] Saving optimized resume to database', {
+          sessionId: result.sessionId,
+          contentLength: optimizedContent.length,
+          hasJobDetails: !!result.jobDetails,
+          hasAnalysis: !!result.analysis
+        });
+
         const optimizedResume = await storage.createOptimizedResume({
           userId: req.user!.id,
           sessionId: result.sessionId,
           uploadedResumeId: resumeId,
-          optimisedResume: result.optimisedResume,
+          optimisedResume: optimizedContent,
           originalContent: resume.content,
-          jobDescription: jobDescription || jobDetails?.description || "",
+          jobDescription: jobDescription || jobDetailsObj?.description || "",
           jobUrl: jobUrl || null,
-          jobDetails: result.jobDetails,
+          jobDetails: jobDetailsObj,
           metadata: {
             filename: resume.metadata?.filename || 'resume.txt',
             optimizedAt: new Date().toISOString(),
             version: '1.0'
           },
-          metrics: result.metrics,
-          analysis: result.analysis,
-          resumeContent: result.resumeContent,
-          contactInfo: result.contactInfo
+          metrics: metricsData,
+          analysis: analysisData,
+          resumeContent: result.resumeContent || {},
+          contactInfo: result.contactInfo || {}
         });
 
         // Send completion with the optimized resume

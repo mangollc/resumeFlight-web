@@ -149,11 +149,46 @@ export function useResumeOptimizer() {
             newEventSource.close();
             clearTimeout(timeoutId);
           } else if (data.status === "error") {
-            setStatus({ 
-              status: "error", 
-              error: data.message || "Failed to optimize resume",
-              code: data.code || "UNKNOWN_ERROR"
+            let errorMessage = data.message || 'Failed to optimize resume';
+            let errorTitle = 'Optimization Error';
+            console.error('Optimization error details:', data);
+
+            // Customize error message based on error code
+            if (data.code === 'TIMEOUT_ERROR') {
+              errorTitle = 'Optimization Timeout';
+              errorMessage = data.message || 'The optimization process timed out. Try with a shorter resume or job description.';
+            } else if (data.code === 'CONTENT_GENERATION_ERROR') {
+              errorTitle = 'Content Generation Error';
+              errorMessage = 'Failed to generate optimized content. Please try again with a different resume or job description.';
+            } else if (data.code === 'OPTIMIZATION_ERROR') {
+              errorTitle = 'Database Save Error';
+              errorMessage = 'Your resume was optimized successfully, but we had trouble saving it. Please try again.';
+
+              // If this is a database error, let's retry the fetch directly
+              if (data.message && data.message.includes('save')) {
+                toast({
+                  title: 'Attempting Recovery',
+                  description: 'Trying to retrieve your optimized resume...',
+                });
+
+                // Wait 2 seconds then try to fetch optimized resumes
+                setTimeout(() => {
+                  window.location.href = '/optimized-resumes';
+                }, 2000);
+              }
+            } else if (data.code === 'INSUFFICIENT_CONTENT_ERROR') {
+              errorTitle = 'Content Error';
+              errorMessage = 'The resume or job description provided may not contain enough information. Please provide more details.';
+            }
+
+            toast({
+              title: errorTitle,
+              description: errorMessage,
+              variant: 'destructive',
             });
+
+            console.error('Optimization error:', { message: errorMessage, code: data.code, details: data });
+            setStatus({ status: 'error', error: errorMessage, code: data.code });
             newEventSource.close();
             clearTimeout(timeoutId);
           } else if (data.status) {
