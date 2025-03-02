@@ -1,13 +1,12 @@
-
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Loader2, CheckCircle, AlertCircle, Clock, XCircle } from 'lucide-react';
 
 interface OptimizationProgressProps {
-  status: string;
+  status: string | { status: string; error?: string; step?: string; code?: string }; // Updated status type
   error?: string;
   onRetry?: () => void;
   onCancel?: () => void;
@@ -31,13 +30,13 @@ export function OptimizationProgress({ status, error, onRetry, onCancel }: Optim
   ];
 
   // Update step statuses based on current status
-  const currentStepIndex = steps.findIndex(step => step.id === status);
-  
+  const currentStepIndex = steps.findIndex(step => step.id === (typeof status === 'string' ? status : status.status));
+
   steps.forEach((step, index) => {
     if (index < currentStepIndex) {
       step.status = 'completed';
     } else if (index === currentStepIndex) {
-      step.status = status === 'error' ? 'error' : 'loading';
+      step.status = (typeof status === 'string' && status === 'error') ? 'error' : 'loading';
     }
   });
 
@@ -45,28 +44,61 @@ export function OptimizationProgress({ status, error, onRetry, onCancel }: Optim
   const completedSteps = steps.filter(step => step.status === 'completed').length;
   const progress = Math.round((completedSteps / (steps.length - 1)) * 100);
 
+
+  let errorDisplay;
+  if (typeof status === 'object' && status.status === 'error') {
+    errorDisplay = (
+      <div className="text-center p-6 space-y-4">
+        <XCircle className="h-12 w-12 text-destructive mx-auto" />
+        <h3 className="text-lg font-medium text-destructive">Optimization Failed</h3>
+        <p className="text-muted-foreground">{status.error || 'An error occurred while optimizing your resume.'}</p>
+        {status.step && (
+          <p className="text-sm text-muted-foreground">
+            Error occurred during: <span className="font-medium">{status.step}</span>
+          </p>
+        )}
+        {status.code && (
+          <p className="text-xs text-muted-foreground">
+            Error code: {status.code}
+          </p>
+        )}
+        <div className="space-x-3">
+          <Button variant="outline" onClick={onRetry}>Try Again</Button>
+          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+        </div>
+      </div>
+    );
+  } else if (typeof status === 'string' && status === 'error'){
+    errorDisplay = (
+      <div className="mt-4 p-3 bg-red-50 text-red-800 rounded-md text-sm">
+        {error || 'An error occurred'}
+      </div>
+    );
+  }
+
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           Resume Optimization
-          {status === 'error' && (
+          {(typeof status === 'object' && status.status === 'error') && (
             <Badge variant="destructive">Error</Badge>
           )}
-          {status === 'success' && (
+          {(typeof status === 'string' && status === 'success') && (
             <Badge variant="success">Completed</Badge>
           )}
         </CardTitle>
         <CardDescription>
-          {status === 'error' 
-            ? 'There was an error optimizing your resume' 
+          {(typeof status === 'object' && status.status === 'error')
+            ? 'There was an error optimizing your resume'
             : 'Tailoring your resume to the job description'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <Progress value={progress} className="h-2" />
         <p className="text-sm text-muted-foreground text-right">{progress}% Complete</p>
-        
+
         <div className="space-y-3 mt-4">
           {steps.map((step, i) => (
             <div key={step.id} className="flex items-center justify-between">
@@ -88,22 +120,19 @@ export function OptimizationProgress({ status, error, onRetry, onCancel }: Optim
             </div>
           ))}
         </div>
-        
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 text-red-800 rounded-md text-sm">
-            {error}
-          </div>
-        )}
+
+        {errorDisplay}
+
       </CardContent>
       <CardFooter className="flex justify-end space-x-2">
-        {status === 'error' && onRetry && (
+        {(typeof status === 'object' && status.status === 'error') && onRetry && (
           <Button onClick={onRetry} variant="default">
             Retry
           </Button>
         )}
         {onCancel && (
           <Button onClick={onCancel} variant="outline">
-            {status === 'error' ? 'Close' : 'Cancel'}
+            {(typeof status === 'object' && status.status === 'error') ? 'Close' : 'Cancel'}
           </Button>
         )}
       </CardFooter>

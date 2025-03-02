@@ -109,36 +109,36 @@ const handleOpenAIError = (error: any, context: string) => {
   const customError = new Error(getOpenAIErrorMessage(errorDetails));
   customError.code = errorDetails.code;
   customError.status = errorDetails.status || 500;
-  
+
   throw customError;
 };
 
 // Helper to generate user-friendly error messages based on error code
 const getOpenAIErrorMessage = (errorDetails: any) => {
   const { code } = errorDetails;
-  
+
   switch (code) {
     case 'rate_limit_exceeded':
       return 'Our AI service is currently experiencing high demand. Please try again in a few moments.';
-    
+
     case 'context_length_exceeded':
       return 'The resume or job description is too long. Please reduce the text length and try again.';
-    
+
     case 'invalid_api_key':
       return 'Authentication error with our AI service. Please contact support if this persists.';
-    
+
     case 'tokens_exceeded':
       return 'The content is too large to process. Please reduce the text and try again.';
-    
+
     case 'content_filter':
       return 'Your content contains inappropriate material that cannot be processed.';
-      
+
     case 'server_error':
       return 'Our AI service is experiencing temporary issues. Please try again shortly.';
-      
+
     case 'insufficient_quota':
       return 'Service usage limit reached. Please try again later or contact support.';
-      
+
     default:
       return `AI optimization error: ${errorDetails.message || 'Unknown error occurred'}`;
   }
@@ -249,7 +249,7 @@ export async function optimizeResume(
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
 
-    // First optimize the resume content with retries
+    // First optimize the resume content with retries and timeout
     for (let i = 0; i < resumeChunks.length; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${resumeChunks.length}`);
       let attempts = 0;
@@ -353,10 +353,15 @@ Return a JSON object with:
             ],
             response_format: { type: "json_object" },
             temperature: 0.3,
-            max_tokens: 4000
+            max_tokens: 4000,
+            timeout: 30000 // 30-second timeout
           });
           success = true;
         } catch (error: any) {
+          if (error.message.includes("timeout")) {
+            logger.warn(`[Optimize] Timeout error processing chunk ${i+1}`, error);
+            throw new Error(`OpenAI request timed out for chunk ${i + 1}`); // Explicit timeout error
+          }
           attempts++;
           if (attempts === 3) throw error;
           await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
@@ -372,7 +377,7 @@ Return a JSON object with:
       if (result.changes) allChanges.push(...result.changes);
     }
 
-    // Now perform overall analysis with retries
+    // Now perform overall analysis with retries and timeout
     let attempts = 0;
     let success = false;
     let analysisResponse;
@@ -424,10 +429,15 @@ Return a JSON object with:
           ],
           response_format: { type: "json_object" },
           temperature: 0.3,
-          max_tokens: 2000
+          max_tokens: 2000,
+          timeout: 30000 // 30-second timeout
         });
         success = true;
       } catch (error: any) {
+        if (error.message.includes("timeout")) {
+          logger.warn("[Optimize] Timeout error during analysis", error);
+          throw new Error("OpenAI analysis request timed out"); //Explicit timeout error
+        }
         attempts++;
         if (attempts === 3) throw error;
         await new Promise(resolve => setTimeout(resolve, 2000 * attempts));
@@ -456,7 +466,7 @@ Return a JSON object with:
         .join("\n\n")
         .trim();
     }
-    
+
     // Validate final content
     if (!finalContent || finalContent.length < 50) {
       logger.warn("[Optimize] Insufficient optimized content", { 
@@ -467,7 +477,7 @@ Return a JSON object with:
       error.code = 'INSUFFICIENT_CONTENT_ERROR';
       throw error;
     }
-      
+
     // Ensure we have a valid analysis result before accessing it
     let analysis = {
       strengths: [],
@@ -475,7 +485,7 @@ Return a JSON object with:
       gaps: [],
       suggestions: []
     };
-    
+
     if (analysisResult && analysisResult.analysis) {
       analysis = {
         strengths: analysisResult.analysis.strengths || [],
@@ -484,27 +494,27 @@ Return a JSON object with:
         suggestions: analysisResult.analysis.suggestions || []
       };
     }
-    
+
     const result = {
       optimisedResume: finalContent,
       changes: allChanges,
       analysis
     };
-    
+
     logger.success("[Optimize] Resume optimization completed successfully", {
       contentLength: finalContent.length,
       changesCount: allChanges.length
     });
-    
+
     return result;
   } catch (error: any) {
     logger.error("[Optimize] Failed to optimize resume", error);
-    
+
     // Create a structured error with status code
     const enhancedError = new Error(`Failed to optimize resume: ${error.message}`);
     enhancedError.code = error.code || 'OPTIMIZATION_ERROR';
     enhancedError.status = error.status || 422;
-    
+
     throw enhancedError;
   }
 }
@@ -574,7 +584,8 @@ Return JSON in this format:
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
-      max_tokens: 4000
+      max_tokens: 4000,
+      timeout: 30000 // 30-second timeout
     });
 
     const content = response.choices[0].message.content;

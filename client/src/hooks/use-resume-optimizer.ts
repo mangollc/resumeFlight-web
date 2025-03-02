@@ -128,47 +128,82 @@ export function useResumeOptimizer() {
 
       newEventSource.onmessage = (event) => {
         try {
+          // Validate and parse the event data
+          if (!event.data) {
+            console.warn('Empty event received');
+            return;
+          }
+
           const data = JSON.parse(event.data);
           console.log('Received event:', data);
 
-          // Update the UI based on the current step
-          if (data.status === 'completed' || data.status === 'success') {
-            setStatus({ status: 'success', data });
-            newEventSource.close();
-            setEventSource(null);
+          // Handle heartbeat messages separately
+          if (data.type === 'heartbeat') {
+            console.log('Heartbeat received:', new Date(data.timestamp).toISOString());
+            // Clear and reset timeout on heartbeat
             clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+              console.log('Request timed out after heartbeat');
+              newEventSource.close();
+            }, EVENT_SOURCE_TIMEOUT);
+            return;
+          }
+
+          // Clear timeout on any message received
+          clearTimeout(timeoutId);
+
+          // Update timeoutId for next timeout
+          timeoutId = setTimeout(() => {
+            console.log('Request timed out');
+            newEventSource.close();
+          }, EVENT_SOURCE_TIMEOUT);
+
+
+          // Update status based on the received event
+          if (!data.status) {
+            console.warn('Unknown status:', data);
+            return;
+          }
+
+          // Handle completion states
+          if (data.status === 'completed' || data.status === 'success') {
+            setStatus({
+              status: 'success',
+              optimizedResume: data.optimizedResume,
+              resumeContent: data.content,
+              analysis: data.analysis
+            });
+
             toast({
-              title: "Success",
-              description: "Resume optimization completed successfully",
-              duration: 3000,
+              title: 'Optimization Complete',
+              description: 'Your resume has been optimized for the job!',
+              variant: 'default',
             });
           } else if (data.status === 'error') {
-            const errorMessage = data.message || 'An error occurred during optimization';
+            const errorMessage = data.message || 'An unknown error occurred';
             const errorCode = data.code || 'UNKNOWN_ERROR';
-            const errorStep = data.step || 'process';
 
             setStatus({ 
               status: 'error', 
               error: errorMessage,
               code: errorCode,
-              step: errorStep
+              step: data.step
             });
 
-            newEventSource.close();
-            setEventSource(null);
-            clearTimeout(timeoutId);
-
-            // Show a meaningful error based on the step and code
-            let toastMessage = errorMessage;
-            if (errorCode === 'TIMEOUT_ERROR') {
-              toastMessage = `The ${errorStep} step took too long. Try with a shorter resume or job description.`;
+            // Customize error messages based on error code
+            let description = errorMessage;
+            if (errorCode === 'CONTENT_TOO_LARGE') {
+              description = 'Your resume or job description is too long. Please try with a shorter version.';
+            } else if (errorCode === 'RATE_LIMIT') {
+              description = 'Service is busy. Please try again in a few minutes.';
+            } else if (errorCode === 'TIMEOUT_ERROR') {
+              description = 'The operation took too long. Try with a shorter resume or job description.';
             }
 
             toast({
-              title: `Error in ${errorStep}`,
-              description: toastMessage,
-              variant: "destructive",
-              duration: 5000,
+              title: 'Optimization Failed',
+              description: description,
+              variant: 'destructive',
             });
           } else {
             // Update status for in-progress steps

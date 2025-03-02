@@ -86,31 +86,72 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
       }
     }
 
-    // Start optimization process with status updates
-    await optimizeResume(
-      resume.content, 
-      jobDescription || jobDetails?.description || "", 
-      (status) => sendEvent(status)
-    );
-
-    // End the connection
-    res.end();
-  } catch (error: any) {
-    // Enhanced error reporting
-    const errorMessage = error.message || "Unknown error occurred";
-    const errorCode = error.code || "OPTIMIZATION_ERROR";
-    const errorStep = error.step || "unknown";
-
-    // Send structured error response
-    sendEvent({ 
-      status: "error", 
-      message: errorMessage,
-      code: errorCode,
-      step: errorStep,
-      timestamp: new Date().toISOString()
-    });
+    // Start heartbeat interval to keep connection alive
+    const heartbeatInterval = setInterval(() => {
+      try {
+        sendEvent({ type: 'heartbeat', timestamp: Date.now() });
+      } catch (error) {
+        clearInterval(heartbeatInterval);
+      }
+    }, 15000); // Send heartbeat every 15 seconds
     
-    logger.error(`Optimization error in ${errorStep} step:`, error);
+    try {
+      // Start optimization process with status updates
+      const result = await optimizeResume(
+        resume.content, 
+        jobDescription || jobDetails?.description || "", 
+        (status) => sendEvent(status)
+      );
+      
+      // On successful completion
+      sendEvent({ 
+        status: "completed", 
+        message: "Resume optimization completed successfully",
+        timestamp: new Date().toISOString()
+      });
+      
+      // End the connection
+      clearInterval(heartbeatInterval);
+      res.end();
+    } catch (error: any) {
+      // Clear heartbeat on error
+      clearInterval(heartbeatInterval);
+      
+      // Enhanced error reporting
+      const errorMessage = error.message || "Unknown error occurred";
+      const errorCode = error.code || "OPTIMIZATION_ERROR";
+      const errorStep = error.step || "unknown";
+
+      // Send structured error response
+      sendEvent({ 
+        status: "error", 
+        message: errorMessage,
+        code: errorCode,
+        step: errorStep,
+        timestamp: new Date().toISOString(),
+        details: error.details || null
+      });
+      
+      logger.error(`Optimization error in ${errorStep} step:`, error);
+      res.end();
+    }
+  } catch (outer_error: any) {
+    // Catch any errors during the entire process
+    logger.error('Fatal optimization error:', outer_error);
+    
+    try {
+      // Send final error response if not already sent
+      sendEvent({ 
+        status: "error", 
+        message: outer_error.message || "A critical error occurred",
+        code: "FATAL_ERROR",
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      // Last resort error logging
+      console.error('Failed to send error event:', e);
+    }
+    
     res.end();
   }
 });

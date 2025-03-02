@@ -1,4 +1,3 @@
-
 import { openai } from '../openai';
 import { logger } from './logger';
 
@@ -52,7 +51,7 @@ export async function optimizeResume(
     state.currentStep = 'extracting_details';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Extracting job details');
-    
+
     // Use a timeout promise for each step
     try {
       state.jobDetails = await executeWithTimeout(
@@ -79,7 +78,7 @@ export async function optimizeResume(
     state.currentStep = 'analyzing_description';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Analyzing job requirements');
-    
+
     try {
       state.jobAnalysis = await executeWithTimeout(
         async () => {
@@ -97,16 +96,16 @@ export async function optimizeResume(
     state.currentStep = 'optimizing_resume';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Optimizing resume content');
-    
+
     try {
       const optimizationResult = await executeWithTimeout(
         async () => {
-          return await performResumeOptimization(resumeText, jobDescription, state.jobAnalysis);
+          return await performResumeOptimization(resumeText, jobDescription, state.jobAnalysis, onStatusUpdate);
         },
         120000, // 120 second timeout
         'Resume optimization timed out'
       );
-      
+
       state.optimizedContent = optimizationResult.optimizedContent;
       state.changes = optimizationResult.changes;
     } catch (error) {
@@ -118,7 +117,7 @@ export async function optimizeResume(
     state.currentStep = 'generating_analysis';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Generating final analysis');
-    
+
     try {
       state.analysis = await executeWithTimeout(
         async () => {
@@ -148,9 +147,9 @@ export async function optimizeResume(
         analysis: state.analysis
       }
     });
-    
+
     logger.success('[Optimize] Resume optimization completed successfully');
-    
+
     return {
       optimisedResume: state.optimizedContent,
       changes: state.changes,
@@ -160,7 +159,7 @@ export async function optimizeResume(
     const errorDetails = error instanceof StepError 
       ? { step: error.step, code: error.code, message: error.message }
       : { step: state.currentStep, code: 'UNKNOWN_ERROR', message: error.message || 'Unknown error occurred' };
-    
+
     // Send error status update
     onStatusUpdate({ 
       status: 'error', 
@@ -168,9 +167,9 @@ export async function optimizeResume(
       code: errorDetails.code,
       step: errorDetails.step
     });
-    
+
     logger.error(`[Optimize] Error during ${errorDetails.step}:`, error);
-    
+
     // Re-throw with enhanced information
     const enhancedError = new Error(errorDetails.message);
     enhancedError.code = errorDetails.code;
@@ -201,7 +200,7 @@ async function executeWithTimeout<T>(
 class StepError extends Error {
   code: string;
   step: string;
-  
+
   constructor(message: string, code: string, step: string) {
     super(message);
     this.name = 'StepError';
@@ -273,74 +272,90 @@ function splitIntoChunks(text: string, maxChunkSize: number = 4000): string[] {
   return chunks;
 }
 
-async function performResumeOptimization(resumeText: string, jobDescription: string, jobAnalysis: any) {
+async function performResumeOptimization(resumeText: string, jobDescription: string, jobAnalysis: any, sendStatus: (status: any) => void) {
   try {
     // Process resume in chunks to prevent timeouts
     const resumeChunks = splitIntoChunks(resumeText);
     const jobDescriptionChunks = splitIntoChunks(jobDescription);
-    
+
     logger.info(`[Resume Optimization] Processing resume in ${resumeChunks.length} chunks`);
-    
+
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
-    
+
     // Process each chunk with retries
-    for (let i = 0; i < resumeChunks.length; i++) {
-      logger.info(`[Resume Optimization] Processing chunk ${i + 1}/${resumeChunks.length}`);
-      
-      let attempts = 0;
-      let success = false;
-      let response;
-      
-      while (attempts < 3 && !success) {
-        try {
-          response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content: `Act as an expert resume optimizer. Optimize this section of the resume based on the job requirements. Follow ATS best practices.
-                
+    try {
+      for (let i = 0; i < resumeChunks.length; i++) {
+        sendStatus({ 
+          status: "optimizing_resume", 
+          step: "resume_processing",
+          progress: Math.round(((i + 1) / resumeChunks.length) * 100),
+          message: `Processing section ${i + 1} of ${resumeChunks.length}`
+        });
+
+        let attempts = 0;
+        let success = false;
+        let response;
+
+        while (attempts < 3 && !success) {
+          try {
+            response = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [
+                {
+                  role: "system",
+                  content: `Act as an expert resume optimizer. Optimize this section of the resume based on the job requirements. Follow ATS best practices.
+
 Return a JSON object with:
 {
   "optimizedContent": "the enhanced resume section",
   "changes": ["list specific improvements made"]
 }`
-              },
-              {
-                role: "user",
-                content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}\n\nKey Skills Required: ${jobAnalysis?.skills?.join(", ") || ""}`
-              }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.3,
-            max_tokens: 4000
-          });
-          success = true;
-        } catch (error) {
-          attempts++;
-          if (attempts === 3) throw error;
-          await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
+                },
+                {
+                  role: "user",
+                  content: `Resume Section ${i + 1}/${resumeChunks.length}:\n${resumeChunks[i]}\n\nJob Description:\n${jobDescriptionChunks.join("\n\n")}\n\nKey Skills Required: ${jobAnalysis?.skills?.join(", ") || ""}`
+                }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.3,
+              max_tokens: 4000
+            });
+            success = true;
+          } catch (error) {
+            attempts++;
+            if (attempts === 3) throw error;
+            await new Promise(resolve => setTimeout(resolve, 2000 * attempts)); // Exponential backoff
+          }
+        }
+
+        if (!response || !response.choices[0].message.content) {
+          throw new Error("No response received from optimization service");
+        }
+
+        const result = JSON.parse(response.choices[0].message.content);
+        optimizedChunks.push(result.optimizedContent || "");
+        if (result.changes) allChanges.push(...result.changes);
+
+        // Add a small delay between chunks to prevent rate limiting
+        if (i < resumeChunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
-      
-      if (!response || !response.choices[0].message.content) {
-        throw new Error("No response received from optimization service");
-      }
-      
-      const result = JSON.parse(response.choices[0].message.content);
-      optimizedChunks.push(result.optimizedContent || "");
-      if (result.changes) allChanges.push(...result.changes);
+    } catch (error) {
+      console.error('Error processing resume chunks:', error);
+      throw new Error(`Resume chunk processing failed: ${error.message}`);
     }
-    
+
+
     // Join the optimized chunks
     const finalContent = optimizedChunks.join("\n\n").trim();
-    
+
     // Validate final content
     if (!finalContent || finalContent.length < 50) {
       throw new Error('Optimization produced insufficient content');
     }
-    
+
     return {
       optimizedContent: finalContent,
       changes: allChanges
@@ -379,11 +394,11 @@ Return a JSON object with:
       temperature: 0.3,
       max_tokens: 2000
     });
-    
+
     if (!response || !response.choices[0].message.content) {
       throw new Error("No analysis response received");
     }
-    
+
     const result = JSON.parse(response.choices[0].message.content);
     return result.analysis || {
       strengths: [],
