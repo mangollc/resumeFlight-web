@@ -383,7 +383,6 @@ Return a simple JSON object with:
             response_format: { type: "json_object" },
             temperature: 0.3,
             max_tokens: 4000
-          });
           }),
             timeoutPromise
           ]);
