@@ -946,7 +946,7 @@ export default function Dashboard() {
                   Strengths
                 </h4>
                 <ul className="space-y-2 text-sm">
-                  {optimizedResume.analysis.strengths.map((strength, idx) => (
+                  {optimizedResume.analysis.strengths.map((strength, idx)=> (
                     <li key={`strength-${idx}`} className="flex items-start">
                       <CheckCircle className="h-4 w-4 mr-2 mt-1 text-green-600 flex-shrink-0" />
                       <span>{strength}</span>
