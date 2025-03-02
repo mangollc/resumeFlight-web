@@ -156,6 +156,8 @@ export async function analyzeResumeDifferences(
     const maxChunks = Math.min(originalChunks.length, optimizedChunks.length);
 
     const allChanges: any[] = [];
+    let overallScore: number | undefined;
+    let scores: any = {};
     console.log(`[Differences] Processing ${maxChunks} chunks`);
 
     for (let i = 0; i < maxChunks; i++) {
@@ -208,9 +210,20 @@ Ensure each score is calculated based on:
 
       const result = JSON.parse(content);
       allChanges.push(...(result.changes || []));
+      
+      // Store scores from the last chunk to use them at the end
+      if (result.overallScore && result.scores) {
+        overallScore = result.overallScore;
+        scores = result.scores;
+      }
     }
 
-    return { changes: allChanges, overallScore: result.overallScore, scores: result.scores };
+    // Use the saved values or provide defaults
+    return { 
+      changes: allChanges, 
+      overallScore: overallScore || 0,
+      scores: scores || {}
+    };
   } catch (err) {
     const error = err as Error;
     console.error("[Differences] Analysis error:", error);
