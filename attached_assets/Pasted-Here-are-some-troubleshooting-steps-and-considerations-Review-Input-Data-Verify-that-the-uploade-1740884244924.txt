@@ -1,0 +1,27 @@
+Here are some troubleshooting steps and considerations:
+
+Review Input Data:
+
+Verify that the uploaded resume text and job description are complete and properly formatted. Missing or malformed input data can trigger optimization failures.
+Ensure that all required fields are correctly provided and that any special characters (e.g., in URLs or JSON) are correctly escaped.
+Inspect Server Logs:
+
+Check your server-side logs for stack traces or more detailed error messages. The generic error message ("Failed to generate optimized content") usually indicates an internal exception or unhandled edge case.
+Look for any error messages related to API timeouts, parsing issues, or resource constraints.
+Heartbeat and Undefined Status Events:
+
+The heartbeat events ({type: "heartbeat", timestamp: ...}) are normal and are meant to keep the EventSource connection alive.
+The "Unknown status: undefined" messages suggest that some events might not include a status field. Consider adding error handling in your client to ignore or properly log events without a status.
+Timeout Settings:
+
+You are using a 60-second timeout per chunk and a 90-second global timeout. Check if increasing these limits helps, especially if the optimization process is resource-intensive.
+API Response Format:
+
+Make sure that the API endpoint returns a valid JSON object as expected. An incorrect response format can trigger parsing errors (Event parsing error: Error {}).
+Validate that all the necessary fields are present in the response before attempting to parse or use them.
+Test with Controlled Data:
+
+Try running the optimization with a known, minimal dataset that previously worked. This can help determine whether the issue is data-specific or a broader problem with the optimization process.
+Error Handling in Mutation:
+
+The "Mutation error" suggests that there might be an issue when updating or saving the optimized content. Check any mutation logic or database updates that run after optimization to ensure they correctly handle empty or error responses.
