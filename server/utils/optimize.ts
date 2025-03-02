@@ -2,11 +2,36 @@ import { openai } from '../openai';
 import { storage } from '../storage';
 import { OptimizedResume, type JobDetails } from '@shared/schema';
 import { logger } from './logger';
+import axios from 'axios';
+
+// Function to extract job details from LinkedIn URL
+async function extractFromLinkedIn(url: string): Promise<string> {
+  try {
+    const response = await axios.get(url);
+    // Extract job description from the HTML response
+    // This is a simplified version, you might need more robust parsing
+    const jobDescription = response.data;
+    return jobDescription;
+  } catch (error) {
+    throw new Error('Failed to fetch job details from LinkedIn');
+  }
+}
 
 // Function to extract job details (exported separately)
 export async function extractJobDetails(input: string): Promise<JobDetails> {
   try {
+    // If input is a LinkedIn URL, fetch the content first
+    if (input.includes('linkedin.com/jobs')) {
+      try {
+        input = await extractFromLinkedIn(input);
+      } catch (error) {
+        logger.error('LinkedIn extraction error:', error);
+        throw new Error('Failed to fetch job details from LinkedIn. Please paste the job description manually.');
+      }
+    }
+
     const response = await openai.chat.completions.create({
+      // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       model: "gpt-4o",
       messages: [
         {

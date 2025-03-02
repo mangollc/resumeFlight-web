@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,9 +44,10 @@ interface JobInputProps {
   resumeId: number;
   onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
   initialJobDetails?: JobDetails;
+  onComplete?: () => void;
 }
 
-export default function JobInput({ resumeId, onOptimized, initialJobDetails }: JobInputProps) {
+export default function JobInput({ resumeId, onOptimized, initialJobDetails, onComplete }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -151,6 +151,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       });
 
       setIsProcessing(false);
+
+      // Call onComplete to enable next step navigation
+      if (onComplete) {
+        onComplete();
+      }
     },
     onError: (error: Error) => {
       console.error("Job details extraction error:", error);
