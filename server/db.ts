@@ -18,20 +18,29 @@ const TIMEOUT_5_MIN = 300000;
 
 // Initialize connection pool with more resilient timeout values
 const DEFAULT_POOL_CONFIG = {
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  statement_timeout: 30000,
-  query_timeout: 30000,
+  max: 20,                          // Increase maximum connections
+  min: 2,                           // Minimum number of connections to maintain
+  idleTimeoutMillis: 60000,         // Increase idle timeout to 1 minute
+  connectionTimeoutMillis: 15000,   // Increase connection timeout
+  statement_timeout: 60000,         // Increase statement timeout
+  query_timeout: 60000,             // Increase query timeout
   allowExitOnIdle: false,
   keepAlive: true,
-  keepAliveInitialDelayMillis: 10000
+  keepAliveInitialDelayMillis: 5000,
+  maxUses: 100,                     // Recycle connections after 100 uses
+  retry: {
+    retries: 3,                     // Retry failed connections
+    delay: 500                      // Delay between retries
+  }
 };
+
+// Use the connection pooler endpoint for Neon
+const connectionString = process.env.DATABASE_URL?.replace('.us-east-2', '-pooler.us-east-2');
 
 export const pool = new Pool({
   ...DEFAULT_POOL_CONFIG,
-  connectionString: process.env.DATABASE_URL,
-  max: 10
+  connectionString,
+  max: 20
 });
 
 // Initialize Drizzle with the pool
@@ -54,23 +63,33 @@ pool.on('error', (err) => {
 });
 
 export async function checkDatabaseConnection() {
-  try {
-    await db.select().from(schema.users).limit(1);
-    console.log('Database connection established');
-    return true;
-  } catch (error) {
-    console.error('Database connection error:', error);
-    // Try to reconnect
+  const maxRetries = 3;
+  let retryCount = 0;
+  
+  while (retryCount < maxRetries) {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
       await db.select().from(schema.users).limit(1);
-      console.log('Database reconnection successful');
+      if (retryCount > 0) {
+        console.log(`Database reconnection successful after ${retryCount} retries`);
+      } else {
+        console.log('Database connection established');
+      }
       return true;
-    } catch (retryError) {
-      console.error('Database reconnection failed:', retryError);
-      return false;
+    } catch (error) {
+      retryCount++;
+      console.error(`Database connection error (attempt ${retryCount}/${maxRetries}):`, error);
+      
+      if (retryCount < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s...
+        const backoffTime = Math.pow(2, retryCount - 1) * 1000;
+        console.log(`Retrying in ${backoffTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+      }
     }
   }
+  
+  console.error('Database connection failed after maximum retries');
+  return false;
 }
 
 // Get current timestamp in EST

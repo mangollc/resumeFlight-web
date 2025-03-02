@@ -239,6 +239,15 @@ Ensure each score is calculated based on:
   } catch (err) {
     const error = err as Error;
     console.error("[Differences] Analysis error:", error);
+    // Return partial results if available
+    if (allChanges.length > 0) {
+      console.log("[Differences] Returning partial results with", allChanges.length, "changes");
+      return { 
+        changes: allChanges, 
+        overallScore: overallScore || 0,
+        scores: scores || {}
+      };
+    }
     throw new Error(`Failed to analyze resume differences: ${error.message}`);
   }
 }
