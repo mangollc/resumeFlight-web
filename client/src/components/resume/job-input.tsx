@@ -303,81 +303,82 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
       </form>
 
       {extractedDetails && !isProcessing && (
-        <div className="space-y-6">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
-            {/* Job Details Display */}
-            {extractedDetails.title && (
-              <div>
-                <p className="font-medium mb-1">Title</p>
-                <p className="text-sm text-muted-foreground">{extractedDetails.title}</p>
-              </div>
-            )}
+            <div className="space-y-6">
+              <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-6">
+                {/* Job Details Display */}
+                {extractedDetails.title && (
+                  <div>
+                    <p className="font-medium mb-1">Title</p>
+                    <p className="text-sm text-muted-foreground">{extractedDetails.title}</p>
+                  </div>
+                )}
 
-            {extractedDetails.company && (
-              <div>
-                <p className="font-medium mb-1">Company</p>
-                <p className="text-sm text-muted-foreground">{extractedDetails.company}</p>
-              </div>
-            )}
+                {extractedDetails.company && (
+                  <div>
+                    <p className="font-medium mb-1">Company</p>
+                    <p className="text-sm text-muted-foreground">{extractedDetails.company}</p>
+                  </div>
+                )}
 
-            {extractedDetails.location && (
-              <div>
-                <p className="font-medium mb-1">Location</p>
-                <p className="text-sm text-muted-foreground">
-                  {extractedDetails.location}
-                  {extractedDetails.workplaceType && (
-                    <Badge variant="outline" className="ml-2">
-                      {extractedDetails.workplaceType}
-                    </Badge>
-                  )}
-                </p>
-              </div>
-            )}
+                {extractedDetails.location && (
+                  <div>
+                    <p className="font-medium mb-1">Location</p>
+                    <p className="text-sm text-muted-foreground">
+                      {extractedDetails.location}
+                      {extractedDetails.workplaceType && (
+                        <Badge variant="outline" className="ml-2">
+                          {extractedDetails.workplaceType}
+                        </Badge>
+                      )}
+                    </p>
+                  </div>
+                )}
 
-            {extractedDetails.salary && (
-              <div>
-                <p className="font-medium mb-1">Salary</p>
-                <p className="text-sm text-muted-foreground">{extractedDetails.salary}</p>
+                {extractedDetails.salary && (
+                  <div>
+                    <p className="font-medium mb-1">Salary</p>
+                    <p className="text-sm text-muted-foreground">{extractedDetails.salary}</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
-            <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-              <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
-              <div className="flex flex-wrap gap-2">
-                {extractedDetails.skillsAndTools.map((skill, index) => (
-                  <Badge key={index} variant="default">
-                    {skill}
-                  </Badge>
-                ))}
+              {extractedDetails.skillsAndTools && extractedDetails.skillsAndTools.length > 0 && (
+                <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+                  <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {extractedDetails.skillsAndTools.map((skill, index) => (
+                      <Badge key={index} variant="default">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={handleNext}
+                  disabled={!extractedDetails || progressSteps.some(step => step.status !== 'completed')}
+                  className="w-full md:w-auto"
+                >
+                  Next
+                </Button>
               </div>
             </div>
           )}
 
-          <div className="flex justify-end">
-            <Button
-              onClick={handleNext}
-              disabled={!extractedDetails || progressSteps.some(step => step.status !== 'completed')}
-              className="w-full md:w-auto"
-            >
-              Next
-            </Button>
-          </div>
+          <LoadingDialog
+            open={isProcessing}
+            title="Analyzing Job Details"
+            description="Please wait while we analyze the job posting..."
+            steps={progressSteps}
+            onOpenChange={(open) => {
+              if (!open && isProcessing) {
+                setIsProcessing(false);
+              }
+            }}
+          />
         </div>
-      )}
 
-      <LoadingDialog
-        open={isProcessing}
-        title="Analyzing Job Details"
-        description="Please wait while we analyze the job posting..."
-        steps={progressSteps}
-        onOpenChange={(open) => {
-          if (!open && isProcessing) {
-            setIsProcessing(false);
-          }
-        }}
-      />
-    </div>
   );
 }
