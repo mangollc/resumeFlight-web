@@ -65,18 +65,26 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   // Fetch job details mutation
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
-      const response = await apiRequest(
-        'POST',
-        `/api/job-details/extract`,
-        data
-      );
+      try {
+        const response = await fetch('/api/job-details/extract', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to extract job details');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to extract job details');
+        }
+
+        const jsonData = await response.json();
+        return jsonData;
+      } catch (error: any) {
+        console.error('Job details fetch error:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onMutate: () => {
       setIsProcessing(true);

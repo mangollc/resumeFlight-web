@@ -12,20 +12,40 @@ const jobDetailsSchema = z.object({
   message: "Either jobUrl or jobDescription must be provided"
 });
 
-jobDetailsRouter.post('/extract', async (req, res) => {
+jobDetailsRouter.post('/job-details/extract', async (req, res) => {
   try {
-    // Set JSON content type
+    // Ensure proper JSON content type
     res.setHeader('Content-Type', 'application/json');
 
+    // Parse and validate request body
     const { jobUrl, jobDescription } = jobDetailsSchema.parse(req.body);
+
+    if (!jobUrl && !jobDescription) {
+      return res.status(400).json({
+        error: true,
+        message: "Either job URL or description must be provided"
+      });
+    }
 
     // Extract job details
     const jobDetails = await extractJobDetails(jobUrl || jobDescription || '');
 
-    res.json(jobDetails);
+    // Return the results
+    return res.json(jobDetails);
   } catch (error: any) {
     logger.error('Error extracting job details:', error);
-    res.status(400).json({
+
+    // Handle validation errors
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        error: true,
+        message: "Invalid input data",
+        details: error.errors
+      });
+    }
+
+    // Handle other errors
+    return res.status(400).json({
       error: true,
       message: error.message || 'Failed to extract job details'
     });
