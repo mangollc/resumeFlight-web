@@ -944,7 +944,8 @@ export default function Dashboard() {
                       <span>{strength}</span>
                     </li>
                   ))}
-                </ul              </div>
+                </ul>
+              </div>
 
               {/* Improvements Section */}
               <div className="rounded-lg border p-4">
