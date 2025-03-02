@@ -3,6 +3,77 @@ import { storage } from '../storage';
 import { OptimizedResume, type JobDetails } from '@shared/schema';
 import { logger } from './logger';
 
+// Function to extract job details (exported separately)
+export async function extractJobDetails(input: string): Promise<JobDetails> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `As an expert job analyzer, extract detailed information from the provided job posting or description.
+Parse and analyze the actual content, do not return placeholder text or template values.
+
+Guidelines:
+- Extract the EXACT title, company, and location as they appear
+- For salary, include any mentioned compensation, benefits, or range
+- For position level, analyze requirements and responsibilities to determine seniority
+- Extract specific technical skills, tools, and requirements
+
+Return a JSON object with these fields populated with ACTUAL content from the input:
+{
+  "title": "Exact job title from posting",
+  "company": "Exact company name",
+  "location": "Full location details",
+  "salary": "Full compensation details or 'Not specified'",
+  "description": "2-3 sentence summary of role",
+  "positionLevel": "entry/mid/senior based on requirements",
+  "keyRequirements": ["Actual requirements, 3-5 items"],
+  "skillsAndTools": ["Actual required skills and technologies"],
+  "workplaceType": "remote/hybrid/onsite based on posting"
+}`
+        },
+        {
+          role: "user",
+          content: input
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3
+    });
+
+    if (!response.choices[0].message.content) {
+      throw new Error("Failed to get response from OpenAI");
+    }
+
+    const parsed = JSON.parse(response.choices[0].message.content);
+
+    // Validate response
+    if (!parsed.title || !parsed.company || !parsed.location) {
+      throw new Error("Missing required fields in job details");
+    }
+
+    // Ensure arrays are properly formatted
+    parsed.keyRequirements = Array.isArray(parsed.keyRequirements) ? parsed.keyRequirements : [];
+    parsed.skillsAndTools = Array.isArray(parsed.skillsAndTools) ? parsed.skillsAndTools : [];
+
+    // Ensure workplaceType is valid
+    if (!['remote', 'hybrid', 'onsite'].includes(parsed.workplaceType?.toLowerCase())) {
+      parsed.workplaceType = 'Not specified';
+    }
+
+    // Ensure positionLevel is valid
+    if (!['entry', 'mid', 'senior'].includes(parsed.positionLevel?.toLowerCase())) {
+      parsed.positionLevel = 'Not specified';
+    }
+
+    return parsed;
+  } catch (error) {
+    logger.error("Error extracting job details:", error);
+    throw new Error("Failed to extract job details: " + (error as Error).message);
+  }
+}
+
 interface OptimizationState {
   currentStep: string;
   sessionId: string;
@@ -47,56 +118,6 @@ const executeWithTimeout = async (
   });
 };
 
-// Function to extract job details (exported separately)
-export async function extractJobDetails(input: string): Promise<JobDetails> {
-  try {
-    const result = await executeWithTimeout(async () => {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are a job details extraction assistant. Extract specific details from the provided job description.
-DO NOT return placeholder text. Parse and return the actual content.
-
-Return the details in this JSON format:
-{
-  "title": "[Extract the actual job title]",
-  "company": "[Extract the company name]",
-  "location": "[Extract the full location]",
-  "salary": "[Extract any salary/compensation information, 'Not specified' if none]",
-  "description": "[Extract a concise job summary]",
-  "positionLevel": "[Determine level: entry/mid/senior based on requirements]",
-  "keyRequirements": ["Extract 3-5 key requirements as bullet points"],
-  "skillsAndTools": ["Extract required skills, tools, technologies"],
-  "workplaceType": "[Identify if remote/hybrid/onsite]"
-}`
-          },
-          {
-            role: "user",
-            content: input
-          }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.3
-      });
-
-      const parsed = JSON.parse(response.choices[0].message.content || "{}");
-
-      // Validate the response has actual content
-      if (parsed.title?.includes("[") || parsed.company?.includes("[")) {
-        throw new Error("Invalid response format: contains placeholder text");
-      }
-
-      return parsed;
-    }, 30000, "Job details extraction timed out");
-
-    return result;
-  } catch (error) {
-    console.error("Error extracting job details:", error);
-    throw error;
-  }
-}
 
 // Error class for specific steps
 class StepError extends Error {
