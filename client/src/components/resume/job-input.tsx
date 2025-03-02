@@ -265,12 +265,15 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
             type="submit"
             disabled={(!jobUrl && !jobDescription) || isProcessing}
             className="w-full md:w-auto"
+            onClick={extractedDetails ? handleNext : undefined}
           >
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Analyzing...
               </>
+            ) : extractedDetails ? (
+              "Next"
             ) : (
               "Fetch Job Info"
             )}
