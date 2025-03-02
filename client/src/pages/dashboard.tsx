@@ -813,14 +813,37 @@ export default function Dashboard() {
     if (canGoNext) {
       const nextStep = currentStep + 1;
 
-      if (currentStep === 4 && !coverLetter) {
+      // Special handling for Step 2 -> 3 transition (Optimization)
+      if (currentStep === 2) {
+        if (!optimizedResume) {
+          // Start optimization process
+          setIsOptimizing(true);
+          handleReoptimize().then(() => {
+            if (!completedSteps.includes(currentStep)) {
+              setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
+            }
+            setCurrentStep(nextStep);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }).catch(error => {
+            console.error('Optimization error:', error);
+            toast({
+              title: "Error",
+              description: "Failed to optimize resume. Please try again.",
+              variant: "destructive",
+            });
+          }).finally(() => {
+            setIsOptimizing(false);
+          });
+          return;
+        }
+      } else if (currentStep === 4 && !coverLetter) {
         setCompletedSteps(prev => Array.from(new Set([...prev, 4])));
       } else if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
       }
 
       setCurrentStep(nextStep);
-      window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to top after next
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -830,18 +853,34 @@ export default function Dashboard() {
         <Button
           variant="outline"
           onClick={handleBack}
-          disabled={!canGoBack}
+          disabled={!canGoBack || isOptimizing}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
         <Button
           onClick={handleNext}
-          disabled={!canGoNext}
+          disabled={!canGoNext || isOptimizing}
           variant="gradient"
         >
-          Next
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {currentStep === 2 ? (
+            isOptimizing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Optimizing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Optimize
+              </>
+            )
+          ) : (
+            <>
+              Next
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </>
+          )}
         </Button>
       </div>
     </div>

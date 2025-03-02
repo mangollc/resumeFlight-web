@@ -13,7 +13,36 @@ interface StepTrackerProps {
   completedSteps: number[];
 }
 
-export default function StepTracker({ currentStep, steps, completedSteps }: StepTrackerProps) {
+const steps: Step[] = [
+  {
+    id: 1,
+    title: "Upload Resume",
+    description: "Upload your current resume in PDF or DOCX format"
+  },
+  {
+    id: 2,
+    title: "Job Details",
+    description: "Enter job details and analyze requirements"
+  },
+  {
+    id: 3,
+    title: "Review",
+    description: "Review your optimized resume"
+  },
+  {
+    id: 4,
+    title: "Cover Letter",
+    description: "Generate a matching cover letter"
+  },
+  {
+    id: 5,
+    title: "Summary",
+    description: "Review all optimized documents"
+  }
+];
+
+
+export default function StepTracker({ currentStep, completedSteps }: StepTrackerProps) {
   return (
     <div className="w-full">
       {/* Desktop view - hide on mobile */}
