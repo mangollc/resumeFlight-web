@@ -303,14 +303,14 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
             {extractedDetails.location && (
               <div>
                 <p className="font-medium mb-1">Location</p>
-                <p className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground">
                   {extractedDetails.location}
                   {extractedDetails.workplaceType && (
                     <Badge variant="outline" className="ml-2">
                       {extractedDetails.workplaceType}
                     </Badge>
                   )}
-                </p>
+                </div>
               </div>
             )}
 
