@@ -353,8 +353,7 @@ Return a JSON object with:
             ],
             response_format: { type: "json_object" },
             temperature: 0.3,
-            max_tokens: 4000,
-            timeout: 30000 // 30-second timeout
+            max_tokens: 4000
           });
           success = true;
         } catch (error: any) {
@@ -429,8 +428,7 @@ Return a JSON object with:
           ],
           response_format: { type: "json_object" },
           temperature: 0.3,
-          max_tokens: 2000,
-          timeout: 30000 // 30-second timeout
+          max_tokens: 2000
         });
         success = true;
       } catch (error: any) {
@@ -584,8 +582,7 @@ Return JSON in this format:
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
-      max_tokens: 4000,
-      timeout: 30000 // 30-second timeout
+      max_tokens: 4000
     });
 
     const content = response.choices[0].message.content;
