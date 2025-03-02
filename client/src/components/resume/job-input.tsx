@@ -1,3 +1,9 @@
+interface ProgressStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'loading' | 'completed' | 'error';
+}
+
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -84,11 +90,19 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   };
 
   const isValidLinkedInUrl = (url: string): boolean => {
-    //No changes needed here
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.includes("linkedin.com") && urlObj.pathname.includes("/jobs/view/");
+    } catch {
+      return false;
+    }
   };
 
   const checkUnsupportedJobSite = (url: string): string | null => {
-    //No changes needed here
+    const unsupportedSite = UNSUPPORTED_JOB_SITES.find((site) =>
+      url.toLowerCase().includes(site.domain)
+    );
+    return unsupportedSite?.name || null;
   };
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -395,6 +409,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           }} disabled={!extractedDetails || isProcessing}>Optimize Resume</Button>
         </div>
       )}
+
 
 
       <LoadingDialog

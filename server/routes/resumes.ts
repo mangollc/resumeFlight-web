@@ -1,5 +1,12 @@
+import { Router } from 'express';
+import { requireAuth } from '../auth';
+import { storage } from '../storage';
+import { logger } from '../utils/logger';
+
+const router = Router();
+
 // Stream the optimization process using SSE
-app.get('/api/uploaded-resumes/:id/optimize', requireAuth, async (req, res) => {
+router.get('/api/uploaded-resumes/:id/optimize', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { jobDescription } = req.query;
 
@@ -59,7 +66,7 @@ app.get('/api/uploaded-resumes/:id/optimize', requireAuth, async (req, res) => {
 });
 
 // Delete optimized resume
-app.delete('/api/optimized-resumes/:id', requireAuth, async (req, res) => {
+router.delete('/api/optimized-resumes/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
@@ -80,3 +87,5 @@ app.delete('/api/optimized-resumes/:id', requireAuth, async (req, res) => {
     return res.status(500).json({ error: true, message: 'Failed to delete resume' });
   }
 });
+
+export const resumesRouter = router;

@@ -1,7 +1,27 @@
 import { openai } from '../openai';
 import { storage } from '../storage';
-import { OptimizedResume } from '@shared/schema';
+import { OptimizedResume, type JobDetails } from '@shared/schema';
 import { logger } from './logger';
+
+interface OptimizationState {
+  currentStep: string;
+  sessionId: string;
+  resumeText: string;
+  jobDescription: string;
+  userId?: number;
+  resumeId?: number;
+  jobUrl?: string;
+  filename?: string;
+  jobDetails: Partial<JobDetails>;
+  parsedResume: Record<string, any>;
+  jobAnalysis: Record<string, any>;
+  optimizedContent: string;
+  changes: string[];
+  metrics: OptimizedResume['metrics'];
+  analysis: OptimizedResume['analysis'];
+  resumeContent: OptimizedResume['resumeContent'];
+  contactInfo: OptimizedResume['contactInfo'];
+}
 
 // Utility for handling timeouts
 const executeWithTimeout = async (
@@ -28,7 +48,7 @@ const executeWithTimeout = async (
 };
 
 // Function to extract job details (exported separately)
-export async function extractJobDetails(input: string) {
+export async function extractJobDetails(input: string): Promise<JobDetails> {
   try {
     const result = await executeWithTimeout(async () => {
       const response = await openai.chat.completions.create({
@@ -80,7 +100,6 @@ class StepError extends Error {
   }
 }
 
-
 // Main optimization function that handles the entire workflow
 export async function optimizeResume(
   resumeText: string,
@@ -88,7 +107,7 @@ export async function optimizeResume(
   onStatusUpdate: (status: any) => void
 ): Promise<any> {
   // State object to track progress and store intermediate results
-  const state = {
+  const state: OptimizationState = {
     currentStep: 'started',
     sessionId: `session_${Date.now()}`,
     resumeText,
@@ -170,7 +189,6 @@ export async function optimizeResume(
 
     try {
       state.jobDetails = await extractJobDetails(jobDescription);
-
 
       // Save job details to temporary storage
       await storage.saveOptimizationStep({
@@ -413,12 +431,28 @@ export async function optimizeResume(
                   "before": {
                     "overall": 0,
                     "keywords": 0,
-                    ... all metrics
+                    "skills": 0,
+                    "experience": 0,
+                    "education": 0,
+                    "personalization": 0,
+                    "aiReadiness": 0,
+                    "confidence": 0,
+                    "relevance": 0,
+                    "clarity": 0,
+                    "impact": 0
                   },
                   "after": {
                     "overall": 0,
                     "keywords": 0,
-                    ... all metrics
+                    "skills": 0,
+                    "experience": 0,
+                    "education": 0,
+                    "personalization": 0,
+                    "aiReadiness": 0,
+                    "confidence": 0,
+                    "relevance": 0,
+                    "clarity": 0,
+                    "impact": 0
                   }
                 }`
               },
