@@ -44,9 +44,6 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       personalization: 0,
       aiReadiness: 0,
       confidence: 0,
-      relevance: 0,
-      clarity: 0,
-      impact: 0
     },
     after: {
       overall: 0,
@@ -57,48 +54,35 @@ export const optimizedResumes = pgTable("optimized_resumes", {
       personalization: 0,
       aiReadiness: 0,
       confidence: 0,
-      relevance: 0,
-      clarity: 0,
-      impact: 0
     }
   }),
   analysis: jsonb("analysis").notNull().default({
     strengths: [],
     improvements: [],
     gaps: [],
-    suggestions: [],
-    keywordMatches: [],
-    skillGaps: [],
-    experienceAlignment: [],
-    impactMetrics: []
+    suggestions: []
   }),
-  resumeContent: jsonb("resume_content").notNull().default({
-    professionalSummary: "",
-    skills: {
-      technical: [],
-      soft: [],
-      certifications: []
-    },
-    experience: [],
-    education: [],
+  professionalSummary: text("professional_summary").notNull().default(''),
+  skills: jsonb("skills").notNull().default({
+    technical: [],
+    soft: [],
+  }),
+  experience: jsonb("experience").notNull().default([]),
+  education: jsonb("education").notNull().default([]),
+  certifications: jsonb("certifications").notNull().default([]),
+  optionalSections: jsonb("optional_sections").notNull().default({
     projects: [],
-    awards: [],
-    volunteerWork: [],
     languages: [],
-    publications: []
+    publications: [],
+    volunteerWork: [],
+    awardsAndAchievements: []
   }),
   contactInfo: jsonb("contact_info").notNull().default({
     fullName: '',
     email: '',
     phone: '',
-    location: {
-      city: '',
-      state: '',
-      country: ''
-    },
-    linkedin: '',
-    portfolio: '',
-    github: ''
+    address: '',
+    linkedin: ''
   }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -219,7 +203,12 @@ export const insertOptimizedResumeSchema = createInsertSchema(optimizedResumes)
     metadata: true,
     metrics: true,
     analysis: true,
-    resumeContent: true,
+    professionalSummary: true,
+    skills: true,
+    experience: true,
+    education: true,
+    certifications: true,
+    optionalSections: true,
     contactInfo: true,
     uploadedResumeId: true,
   });
@@ -276,9 +265,6 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       personalization: number;
       aiReadiness: number;
       confidence: number;
-      relevance: number;
-      clarity: number;
-      impact: number;
     };
     after: {
       overall: number;
@@ -289,9 +275,6 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
       personalization: number;
       aiReadiness: number;
       confidence: number;
-      relevance: number;
-      clarity: number;
-      impact: number;
     };
   };
   analysis: {
@@ -360,11 +343,7 @@ export type OptimizedResume = typeof optimizedResumes.$inferSelect & {
     fullName: string;
     email: string;
     phone: string;
-    location: {
-      city: string;
-      state: string;
-      country: string;
-    };
+    address: string;
     linkedin: string;
     portfolio?: string;
     github?: string;
