@@ -8,6 +8,7 @@ import { authRoutes } from "./auth.routes";
 import { resumeRoutes } from "./resume.routes";
 import { analysisRoutes } from "./analysis.routes";
 import { optimizationRoutes } from "./optimization.routes";
+import { jobDetailsRouter } from "./job-details";
 import { setupAuth } from "../auth";
 import { corsMiddleware } from "../utils/cors";
 
@@ -17,7 +18,7 @@ export function registerRoutes(app: Express): Server {
 
     // Apply CORS middleware globally
     app.use(corsMiddleware);
-    
+
     // Global middleware
     app.use((req, res, next) => {
         res.setHeader("Content-Type", "application/json");
@@ -36,6 +37,7 @@ export function registerRoutes(app: Express): Server {
     app.use('/api', authRoutes);
     app.use('/api', resumeRoutes);  // This handles /api/resume routes including optimized
     app.use('/api', optimizationRoutes);
+    app.use('/api', jobDetailsRouter); // Added job details router
     app.use('/api/analysis', analysisRoutes);
 
     return createServer(app);

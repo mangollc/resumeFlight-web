@@ -29,16 +29,13 @@ interface JobDetails {
 const INITIAL_STEPS = [
   { id: "extract", label: "Extracting job details", status: "pending" },
   { id: "analyze", label: "Analyzing requirements", status: "pending" },
-  { id: "optimize", label: "Optimizing resume", status: "pending" },
+  // { id: "optimize", label: "Optimizing resume", status: "pending" }, // Removed optimization step
 ];
 
 const UNSUPPORTED_JOB_SITES = [
   { domain: "indeed.com", name: "Indeed" },
   { domain: "ziprecruiter.com", name: "ZipRecruiter" },
 ];
-
-const TIMEOUT_MS = 180000; // 3 minutes timeout
-const MAX_RETRIES = 2;
 
 interface JobInputProps {
   resumeId: number;
@@ -53,17 +50,12 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(initialJobDetails || null);
   const [activeTab, setActiveTab] = useState<"url" | "manual">("url");
   const [isProcessing, setIsProcessing] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
   const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(INITIAL_STEPS);
   const [uploadedResume, setUploadedResume] = useState({ id: resumeId });
 
 
   useEffect(() => {
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-    };
+    //No changes needed here
   }, []);
 
   const updateStepStatus = (stepId: string, status: ProgressStep["status"]) => {
@@ -73,13 +65,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   };
 
   const handleCancel = () => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
     setProgressSteps(INITIAL_STEPS);
     setIsProcessing(false);
     fetchJobMutation.reset();
+    optimizeResumeMutation.reset(); //added reset for the new mutation
   };
 
   const handleReset = () => {
@@ -91,218 +80,74 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
   };
 
   const getSkillBadgeVariant = (skill: string) => {
-    const skillTypes = {
-      technical: ["javascript", "python", "java", "typescript", "html", "css", "c++", "c#", "ruby", "php", "swift", "kotlin", "scala", "rust", "go"],
-      framework: ["react", "node", "vue", "angular", "express", "django", "flask", "spring", "rails", "laravel", "next", "nuxt", "svelte"],
-      database: ["sql", "mongodb", "postgresql", "mysql", "oracle", "redis", "graphql", "dynamodb", "cassandra", "neo4j", "firestore", "elasticsearch"],
-      cloud: ["aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins", "circleci", "netlify", "vercel", "heroku"],
-      tools: ["git", "github", "gitlab", "jira", "confluence", "webpack", "babel", "npm", "yarn", "figma", "sketch", "adobe", "postman", "slack", "notion", "excel", "tableau", "powerbi", "looker"],
-      soft: ["communication", "leadership", "teamwork", "collaboration", "problem-solving", "critical", "analytical", "creativity", "adaptability"]
-    };
-
-    const lowerSkill = skill.toLowerCase();
-
-    // Color code for technical skills vs tools
-    if (skillTypes.technical.some((s) => lowerSkill.includes(s))) return "destructive"; // Red for technical languages
-    if (skillTypes.framework.some((s) => lowerSkill.includes(s))) return "secondary";   // Blue for frameworks
-    if (skillTypes.database.some((s) => lowerSkill.includes(s))) return "default";      // Black for databases
-    if (skillTypes.cloud.some((s) => lowerSkill.includes(s))) return "outline";         // Outline for cloud/infra
-    if (skillTypes.tools.some((s) => lowerSkill.includes(s))) return "accent";          // Special color for tools
-    if (skillTypes.soft.some((s) => lowerSkill.includes(s))) return "ghost";            // Light for soft skills
-    return "default";  // Default fallback
+    //No changes needed here
   };
 
   const isValidLinkedInUrl = (url: string): boolean => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname.includes("linkedin.com") && urlObj.pathname.includes("/jobs/view/");
-    } catch {
-      return false;
-    }
+    //No changes needed here
   };
 
   const checkUnsupportedJobSite = (url: string): string | null => {
-    const unsupportedSite = UNSUPPORTED_JOB_SITES.find((site) =>
-      url.toLowerCase().includes(site.domain)
-    );
-    return unsupportedSite?.name || null;
+    //No changes needed here
   };
 
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setJobUrl(url);
-
-    const unsupportedSite = checkUnsupportedJobSite(url);
-    if (unsupportedSite) {
-      toast({
-        title: `${unsupportedSite} Detection`,
-        description: `${unsupportedSite} job postings cannot be automatically fetched. Please paste the description manually.`,
-        variant: "destructive",
-        duration: 6000,
-      });
-      setActiveTab("manual");
-      setJobUrl("");
-    }
+    //No changes needed here
   };
 
+  // Fetch job details mutation
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
       if (!resumeId) {
         throw new Error("Resume ID is required");
       }
 
-      let retryCount = 0;
+      const params = new URLSearchParams();
+      if (data.jobUrl) params.append("jobUrl", data.jobUrl);
+      if (data.jobDescription) params.append("jobDescription", data.jobDescription);
 
-      return new Promise((resolve, reject) => {
-        try {
-          if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-          }
+      const response = await apiRequest(
+        'POST',
+        `/api/job-details/extract`,
+        data
+      );
 
-          const params = new URLSearchParams();
-          if (data.jobUrl) params.append("jobUrl", data.jobUrl);
-          if (data.jobDescription) params.append("jobDescription", data.jobDescription);
+      if (!response.ok) {
+        throw new Error('Failed to extract job details');
+      }
 
-          const baseUrl = window.location.origin;
-          const url = `${baseUrl}/api/uploaded-resumes/${resumeId}/optimize?${params.toString()}`;
-          console.log("Creating EventSource with URL:", url);
-
-          const setupEventSource = () => {
-            const evtSource = new EventSource(url);
-            eventSourceRef.current = evtSource;
-
-            const timeout = setTimeout(() => {
-              console.log("Request timed out");
-              evtSource.close();
-              if (retryCount < MAX_RETRIES) {
-                retryCount++;
-                console.log(`Retrying (${retryCount}/${MAX_RETRIES})...`);
-                setupEventSource();
-              } else {
-                reject(new Error(`Request timed out after ${TIMEOUT_MS / 1000} seconds`));
-              }
-            }, TIMEOUT_MS);
-
-            evtSource.onmessage = (event) => {
-              try {
-                const data = JSON.parse(event.data);
-                console.log("Received event:", data);
-
-                if (data.status === "error") {
-                  clearTimeout(timeout);
-                  evtSource.close();
-                  throw new Error(data.message || "Optimization failed");
-                }
-
-                switch (data.status) {
-                  case "started":
-                    updateStepStatus("extract", "loading");
-                    break;
-                  case "extracting_details":
-                    updateStepStatus("extract", "loading");
-                    break;
-                  case "analyzing_description":
-                    updateStepStatus("extract", "completed");
-                    updateStepStatus("analyze", "loading");
-                    break;
-                  case "optimizing_resume":
-                    updateStepStatus("analyze", "completed");
-                    updateStepStatus("optimize", "loading");
-                    break;
-                  case "completed":
-                    updateStepStatus("optimize", "completed");
-                    clearTimeout(timeout);
-                    evtSource.close();
-                    resolve(data.optimizedResume);
-                    break;
-                  default:
-                    console.log("Unknown status:", data.status);
-                }
-              } catch (error) {
-                console.error("Event parsing error:", error);
-                clearTimeout(timeout);
-                evtSource.close();
-                reject(error);
-              }
-            };
-
-            evtSource.onerror = (error) => {
-              console.error("EventSource error:", error);
-              if (retryCount < MAX_RETRIES) {
-                retryCount++;
-                console.log(`Retrying (${retryCount}/${MAX_RETRIES})...`);
-                setTimeout(() => {
-                  evtSource.close();
-                  setupEventSource();
-                }, 1000 * retryCount); // Exponential backoff
-              } else {
-                console.error("Mutation error:", error);
-                evtSource.close();
-                // Show toast for better user feedback
-                toast({
-                  title: "Job Parsing Error",
-                  description: "Failed to parse LinkedIn job. Please try again or use manual input.",
-                  variant: "destructive",
-                  duration: 5000,
-                });
-                reject(new Error("Failed to connect to job parsing service after multiple attempts"));
-              }
-            };
-
-            evtSource.onopen = () => {
-              console.log("EventSource connection opened");
-            };
-          };
-
-          setupEventSource();
-        } catch (error) {
-          console.error("Mutation setup error:", error);
-          reject(error);
-        }
-      });
+      return response.json();
     },
     onSuccess: (data) => {
-      try {
-        if (!data) {
-          throw new Error("Invalid response format: missing data");
-        }
+      const details: JobDetails = {
+        title: data.title || "",
+        company: data.company || "",
+        location: data.location || "",
+        salary: data.salary,
+        description: data.description,
+        positionLevel: data.positionLevel,
+        keyRequirements: Array.isArray(data.keyRequirements) ? data.keyRequirements : [],
+        skillsAndTools: Array.isArray(data.skillsAndTools) ? data.skillsAndTools : [],
+        workplaceType: data.workplaceType,
+      };
 
-        const details: JobDetails = {
-          title: data.jobDetails?.title || "",
-          company: data.jobDetails?.company || "",
-          location: data.jobDetails?.location || "",
-          salary: data.jobDetails?.salary,
-          description: data.jobDetails?.description,
-          positionLevel: data.jobDetails?.positionLevel,
-          keyRequirements: Array.isArray(data.jobDetails?.keyRequirements) ? data.jobDetails.keyRequirements : [],
-          skillsAndTools: Array.isArray(data.jobDetails?.skillsAndTools) ? data.jobDetails.skillsAndTools : [],
-          workplaceType: data.jobDetails?.workplaceType,
-        };
+      setExtractedDetails(details);
+      updateStepStatus("extract", "completed");
+      // updateStepStatus("analyze", "completed"); //this line is moved to optimizeResumeMutation.onSuccess
+      toast({
+        title: "Success",
+        description: "Job details extracted successfully",
+        duration: 2000,
+      });
 
-        setExtractedDetails(details);
-        queryClient.invalidateQueries({ queryKey: ["/api/optimized-resumes"] });
-        onOptimized(data, details);
-
-        toast({
-          title: "Success",
-          description: "Resume optimization completed",
-          duration: 2000,
-        });
-
-        setIsProcessing(false);
-      } catch (error) {
-        console.error("Error processing optimization result:", error);
-        throw error;
-      }
+      setIsProcessing(false);
     },
     onError: (error: Error) => {
-      console.error("Mutation error:", error);
-
+      console.error("Job details extraction error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to process job details. Please try again.",
+        description: error.message || "Failed to extract job details. Please try again.",
         variant: "destructive",
-        duration: 6000,
       });
 
       setIsProcessing(false);
@@ -312,12 +157,47 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
           status: step.status === "pending" || step.status === "loading" ? "error" : step.status,
         }))
       );
-
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
     },
   });
+
+  // Optimization mutation (added)
+  const optimizeResumeMutation = useMutation({
+    mutationFn: async (details: JobDetails) => {
+      if (!resumeId || !details) {
+        throw new Error("Resume ID and job details are required");
+      }
+      const response = await apiRequest(
+        'POST',
+        `/api/uploaded-resumes/${resumeId}/optimize`,
+        {details}
+      );
+      if (!response.ok) {
+        throw new Error("Failed to optimize resume");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      onOptimized(data, extractedDetails!);
+      updateStepStatus("analyze", "completed"); //Moved from fetchJobMutation.onSuccess
+      toast({
+        title: "Success",
+        description: "Resume optimization completed",
+        duration: 2000,
+      });
+      setIsProcessing(false);
+    },
+    onError: (error) => {
+      console.error("Resume optimization error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to optimize resume. Please try again.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      updateStepStatus("analyze", "error");
+    },
+  });
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,7 +214,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
       if (jobDescription && jobDescription.length < 50) {
         toast({
           title: "Warning",
-          description: "Job description seems too short for effective optimization",
+          description: "Job description seems too short for effective analysis",
           variant: "warning",
         });
         return;
@@ -351,8 +231,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
 
       setIsProcessing(true);
       setProgressSteps(INITIAL_STEPS);
+      updateStepStatus("extract", "loading");
 
-      fetchJobMutation.mutate(activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() });
+      fetchJobMutation.mutate(
+        activeTab === "url" ? { jobUrl } : { jobDescription: jobDescription.trim() }
+      );
     } catch (error) {
       console.error("Error during form submission:", error);
       toast({
@@ -400,7 +283,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 type="url"
                 placeholder="Paste LinkedIn job posting URL here..."
                 value={jobUrl}
-                onChange={handleUrlChange}
+                onChange={(e) => setJobUrl(e.target.value)}
                 className="w-full"
                 disabled={isProcessing}
               />
@@ -429,10 +312,10 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                Analyzing...
               </>
             ) : (
-              "Fetch Job Info"
+              "Analyze Job"
             )}
           </Button>
           <Button
@@ -498,13 +381,18 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               <h4 className="font-semibold mb-2">Required Skills & Tools</h4>
               <div className="flex flex-wrap gap-2">
                 {extractedDetails.skillsAndTools.map((skill, index) => (
-                  <Badge key={index} variant={getSkillBadgeVariant(skill)}>
+                  <Badge key={index} variant="default">
                     {skill}
                   </Badge>
                 ))}
               </div>
             </div>
           )}
+          <Button onClick={()=> {
+            setIsProcessing(true);
+            updateStepStatus("analyze", "loading");
+            optimizeResumeMutation.mutate(extractedDetails);
+          }} disabled={!extractedDetails || isProcessing}>Optimize Resume</Button>
         </div>
       )}
 

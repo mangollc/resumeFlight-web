@@ -3,20 +3,7 @@ import { storage } from '../storage';
 import { OptimizedResume } from '@shared/schema';
 import { logger } from './logger';
 
-// Error class for specific steps
-class StepError extends Error {
-  code: string;
-  step: string;
-
-  constructor(message: string, code: string, step: string) {
-    super(message);
-    this.name = 'StepError';
-    this.code = code;
-    this.step = step;
-  }
-}
-
-// Timeout utility for OpenAI calls
+// Utility for handling timeouts
 const executeWithTimeout = async (
   fn: () => Promise<any>,
   timeoutMs: number,
@@ -25,7 +12,7 @@ const executeWithTimeout = async (
   return new Promise(async (resolve, reject) => {
     const timeoutId = setTimeout(() => {
       const error = new Error(errorMessage);
-      error.code = 'TIMEOUT_ERROR';
+      (error as any).code = 'TIMEOUT_ERROR';
       reject(error);
     }, timeoutMs);
 
@@ -39,6 +26,60 @@ const executeWithTimeout = async (
     }
   });
 };
+
+// Function to extract job details (exported separately)
+export async function extractJobDetails(input: string) {
+  try {
+    const result = await executeWithTimeout(async () => {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: `Extract key details from the following job description and return them in a JSON format with the keys:
+{
+  "title": "job title",
+  "company": "company name",
+  "location": "job location",
+  "salary": "salary (if available)",
+  "description": "job description summary",
+  "positionLevel": "entry/mid/senior",
+  "keyRequirements": ["requirement1", "requirement2"],
+  "skillsAndTools": ["skill1", "skill2"],
+  "workplaceType": "remote/hybrid/onsite"
+}`
+          },
+          {
+            role: "user",
+            content: input
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3
+      });
+      return JSON.parse(response.choices[0].message.content || "{}");
+    }, 30000, "Job details extraction timed out");
+
+    return result;
+  } catch (error) {
+    console.error("Error extracting job details:", error);
+    throw error;
+  }
+}
+
+// Error class for specific steps
+class StepError extends Error {
+  code: string;
+  step: string;
+
+  constructor(message: string, code: string, step: string) {
+    super(message);
+    this.name = 'StepError';
+    this.code = code;
+    this.step = step;
+  }
+}
+
 
 // Main optimization function that handles the entire workflow
 export async function optimizeResume(
@@ -128,40 +169,8 @@ export async function optimizeResume(
     logger.info('[Optimize] Extracting job details');
 
     try {
-      const jobDetailsResult = await executeWithTimeout(
-        async () => {
-          const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content: `Extract key details from this job description and return them in a structured JSON format with the following fields:
-                {
-                  "title": "job title",
-                  "company": "company name",
-                  "location": "job location",
-                  "description": "concise description",
-                  "requirements": ["key requirement 1", "key requirement 2", ...],
-                  "skills": ["required skill 1", "required skill 2", ...],
-                  "level": "entry|mid|senior",
-                  "employmentType": "full-time|part-time|contract"
-                }`
-              },
-              {
-                role: "user",
-                content: jobDescription
-              }
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.3
-          });
-          return JSON.parse(response.choices[0].message.content || "{}");
-        },
-        30000, // 30 second timeout
-        'Job details extraction timed out'
-      );
+      state.jobDetails = await extractJobDetails(jobDescription);
 
-      state.jobDetails = jobDetailsResult;
 
       // Save job details to temporary storage
       await storage.saveOptimizationStep({
@@ -292,7 +301,7 @@ export async function optimizeResume(
                 3. Key responsibilities
                 4. Primary and secondary requirements
                 5. Industry-specific terminology
-
+                
                 Return as JSON:
                 {
                   "skills": ["skill1", "skill2"],
@@ -340,9 +349,9 @@ export async function optimizeResume(
       const optimizationResult = await executeWithTimeout(
         async () => {
           return await performResumeOptimization(
-            resumeText, 
-            jobDescription, 
-            state.jobAnalysis, 
+            resumeText,
+            jobDescription,
+            state.jobAnalysis,
             onStatusUpdate
           );
         },
@@ -398,7 +407,7 @@ export async function optimizeResume(
                 - relevance: Overall relevance to the position
                 - clarity: Clarity and readability
                 - impact: Impact of achievements
-
+                
                 Return as JSON:
                 {
                   "before": {
