@@ -279,8 +279,8 @@ export async function optimizeResume(
           // Race the OpenAI call against our timeout
           response = await Promise.race([
             openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: [
+              model: "gpt-4o",
+              messages: [
               {
                 role: "system",
                 content: `Act as an expert resume optimizer with deep knowledge of industry-specific job roles and applicant tracking systems (ATS). Optimize this section of the resume based on the job description using the following structured format:
