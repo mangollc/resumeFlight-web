@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import { z } from "zod";
 import { findUploadedResume } from "../storage";
@@ -94,7 +93,7 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
         clearInterval(heartbeatInterval);
       }
     }, 15000); // Send heartbeat every 15 seconds
-    
+
     try {
       // Start optimization process with status updates
       const result = await optimizeResume(
@@ -102,7 +101,7 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
         jobDescription || jobDetails?.description || "", 
         (status) => sendEvent(status)
       );
-      
+
       // Save the final optimized resume to the database
       try {
         const optimizedResume = await storage.createOptimizedResume({
@@ -124,31 +123,74 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
           resumeContent: result.resumeContent,
           contactInfo: result.contactInfo
         });
-        
+
         // Send completion with the optimized resume
         sendEvent({ 
           status: "completed", 
-          message: "Resume optimization completed successfully",
-          optimizedResumeId: optimizedResume.id,
-          timestamp: new Date().toISOString()
+          optimizedResume: {
+            id: optimizedResume.id,
+            uploadedResumeId: resumeId,
+            optimisedResume: optimizedResume.optimisedResume,
+            resumeContent: optimizedResume.resumeContent,
+            jobDescription: optimizedResume.jobDescription,
+            changes: result.changes,
+            analysis: result.analysis,
+            metrics: result.metrics || {},
+            createdAt: optimizedResume.createdAt,
+            updatedAt: optimizedResume.updatedAt,
+            contactInfo: result.contactInfo
+          }
         });
-      } catch (saveError) {
-        console.error("Error saving optimized resume:", saveError);
-        sendEvent({ 
-          status: "error", 
-          message: "Resume was optimized but could not be saved",
-          code: "SAVE_ERROR",
-          timestamp: new Date().toISOString()
-        });
+      } catch (error: any) {
+        // Handle various error types
+        clearInterval(heartbeatInterval);
+        console.error("Error during resume optimization:", error);
+
+        // Check if we have result data - this could mean optimization was successful
+        // but there was an error saving to database
+        if (error.code === 'STORAGE_ERROR' && error._result) {
+          // Even if DB save failed, still send successful completion with the result
+          sendEvent({ 
+            status: "completed",
+            optimizedResume: {
+              uploadedResumeId: resumeId,
+              optimisedResume: error._result.optimisedResume,
+              resumeContent: error._result.resumeContent,
+              jobDescription: jobDescription || jobDetails?.description || "",
+              changes: error._result.changes,
+              analysis: error._result.analysis,
+              metrics: error._result.metrics || {},
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              contactInfo: error._result.contactInfo
+            }
+          });
+        }
+        // Send appropriate error message based on error type
+        else if (error.code === 'TIMEOUT_ERROR' || error.message.includes('timed out')) {
+          sendEvent({ 
+            status: "error", 
+            message: "Resume optimization is taking longer than expected. Please try again with a shorter resume.",
+            code: "TIMEOUT_ERROR"
+          });
+        } else {
+          sendEvent({ 
+            status: "error", 
+            message: "Failed to generate optimized content", 
+            code: error.code || "OPTIMIZATION_ERROR" 
+          });
+        }
+      } finally {
+        res.end();
       }
-      
+
       // End the connection
       clearInterval(heartbeatInterval);
       res.end();
     } catch (error: any) {
       // Clear heartbeat on error
       clearInterval(heartbeatInterval);
-      
+
       // Enhanced error reporting
       const errorMessage = error.message || "Unknown error occurred";
       const errorCode = error.code || "OPTIMIZATION_ERROR";
@@ -163,14 +205,14 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
         timestamp: new Date().toISOString(),
         details: error.details || null
       });
-      
+
       logger.error(`Optimization error in ${errorStep} step:`, error);
       res.end();
     }
   } catch (outer_error: any) {
     // Catch any errors during the entire process
     logger.error('Fatal optimization error:', outer_error);
-    
+
     try {
       // Send final error response if not already sent
       sendEvent({ 
@@ -183,7 +225,7 @@ optimizedResumeRouter.get("/:id/optimize", async (req, res) => {
       // Last resort error logging
       console.error('Failed to send error event:', e);
     }
-    
+
     res.end();
   }
 });

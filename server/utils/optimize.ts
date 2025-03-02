@@ -1,4 +1,3 @@
-
 import { openai } from '../openai';
 import { storage } from '../storage';
 import { OptimizedResume } from '@shared/schema';
@@ -8,7 +7,7 @@ import { logger } from './logger';
 class StepError extends Error {
   code: string;
   step: string;
-  
+
   constructor(message: string, code: string, step: string) {
     super(message);
     this.name = 'StepError';
@@ -29,7 +28,7 @@ const executeWithTimeout = async (
       error.code = 'TIMEOUT_ERROR';
       reject(error);
     }, timeoutMs);
-    
+
     try {
       const result = await fn();
       clearTimeout(timeoutId);
@@ -127,7 +126,7 @@ export async function optimizeResume(
     state.currentStep = 'extracting_details';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Extracting job details');
-    
+
     try {
       const jobDetailsResult = await executeWithTimeout(
         async () => {
@@ -161,16 +160,16 @@ export async function optimizeResume(
         30000, // 30 second timeout
         'Job details extraction timed out'
       );
-      
+
       state.jobDetails = jobDetailsResult;
-      
+
       // Save job details to temporary storage
       await storage.saveOptimizationStep({
         sessionId: state.sessionId,
         step: 'job_details',
         data: state.jobDetails
       });
-      
+
     } catch (error) {
       logger.error('[Optimize] Error extracting job details:', error);
       throw new StepError('Failed to extract job details', 'EXTRACTION_ERROR', state.currentStep);
@@ -180,7 +179,7 @@ export async function optimizeResume(
     state.currentStep = 'parsing_resume';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Parsing resume content');
-    
+
     try {
       const parsedResumeResult = await executeWithTimeout(
         async () => {
@@ -257,18 +256,18 @@ export async function optimizeResume(
         60000, // 60 second timeout
         'Resume parsing timed out'
       );
-      
+
       state.parsedResume = parsedResumeResult;
       state.resumeContent = parsedResumeResult; // Store parsed content in resumeContent
       state.contactInfo = parsedResumeResult.contactInfo || state.contactInfo;
-      
+
       // Save parsed resume to temporary storage
       await storage.saveOptimizationStep({
         sessionId: state.sessionId,
         step: 'parsed_resume',
         data: state.parsedResume
       });
-      
+
     } catch (error) {
       logger.error('[Optimize] Error parsing resume:', error);
       throw new StepError('Failed to parse resume', 'PARSING_ERROR', state.currentStep);
@@ -278,7 +277,7 @@ export async function optimizeResume(
     state.currentStep = 'analyzing_description';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Analyzing job requirements');
-    
+
     try {
       const jobAnalysisResult = await executeWithTimeout(
         async () => {
@@ -317,16 +316,16 @@ export async function optimizeResume(
         30000, // 30 second timeout
         'Job analysis timed out'
       );
-      
+
       state.jobAnalysis = jobAnalysisResult;
-      
+
       // Save job analysis to temporary storage
       await storage.saveOptimizationStep({
         sessionId: state.sessionId,
         step: 'job_analysis',
         data: state.jobAnalysis
       });
-      
+
     } catch (error) {
       logger.error('[Optimize] Error analyzing job:', error);
       throw new StepError('Failed to analyze job requirements', 'ANALYSIS_ERROR', state.currentStep);
@@ -355,7 +354,7 @@ export async function optimizeResume(
       state.changes = optimizationResult.changes;
       state.resumeContent = optimizationResult.resumeContent || state.resumeContent;
       state.analysis = optimizationResult.analysis || state.analysis;
-      
+
       // Save optimized content to temporary storage
       await storage.saveOptimizationStep({
         sessionId: state.sessionId,
@@ -367,7 +366,7 @@ export async function optimizeResume(
           analysis: state.analysis
         }
       });
-      
+
     } catch (error) {
       logger.error('[Optimize] Error optimizing resume:', error);
       throw new StepError('Failed to optimize resume content', 'OPTIMIZATION_ERROR', state.currentStep);
@@ -377,7 +376,7 @@ export async function optimizeResume(
     state.currentStep = 'calculating_metrics';
     onStatusUpdate({ status: state.currentStep });
     logger.info('[Optimize] Calculating metrics');
-    
+
     try {
       const metricsResult = await executeWithTimeout(
         async () => {
@@ -427,16 +426,16 @@ export async function optimizeResume(
         30000, // 30 second timeout
         'Metrics calculation timed out'
       );
-      
+
       state.metrics = metricsResult;
-      
+
       // Save metrics to temporary storage
       await storage.saveOptimizationStep({
         sessionId: state.sessionId,
         step: 'metrics',
         data: state.metrics
       });
-      
+
     } catch (error) {
       // Non-fatal - continue with default metrics
       logger.warn('[Optimize] Error calculating metrics:', error);
@@ -445,25 +444,64 @@ export async function optimizeResume(
 
     // Final step: Return complete result
     logger.info('[Optimize] Optimization process completed successfully');
-    
-    return {
-      sessionId: state.sessionId,
-      optimisedResume: state.optimizedContent,
-      jobDetails: state.jobDetails,
-      resumeContent: state.resumeContent,
-      contactInfo: state.contactInfo,
-      metrics: state.metrics,
-      analysis: state.analysis,
-      changes: state.changes
-    };
-    
+
+    // Save the final optimized resume to the database
+    try {
+      const optimizedResume = await storage.createOptimizedResume({
+        userId: state.userId,
+        sessionId: state.sessionId,
+        uploadedResumeId: state.resumeId,
+        optimisedResume: state.optimizedContent,
+        originalContent: state.resumeContent,
+        jobDescription: state.jobDescription,
+        jobUrl: state.jobUrl,
+        jobDetails: state.jobDetails || null,
+        metadata: {
+          filename: state.filename,
+          optimizedAt: new Date().toISOString(),
+          version: '1.0'
+        },
+        metrics: state.metrics || {},
+        analysis: state.analysis,
+        resumeContent: state.resumeContent,
+        contactInfo: state.contactInfo
+      });
+
+      // Return the final result
+      return {
+        sessionId: state.sessionId,
+        optimisedResume: state.optimizedContent,
+        resumeContent: state.resumeContent,
+        changes: state.changes,
+        analysis: state.analysis,
+        metrics: state.metrics || {},
+        contactInfo: state.contactInfo,
+        jobDetails: state.jobDetails
+      };
+    } catch (storageError) {
+      logger.error('[Optimize] Error saving optimized resume:', storageError);
+
+      // Even if storage fails, still return the optimization result to the client
+      // This prevents a successful optimization from appearing as an error to the user
+      return {
+        sessionId: state.sessionId,
+        optimisedResume: state.optimizedContent,
+        resumeContent: state.resumeContent,
+        changes: state.changes,
+        analysis: state.analysis,
+        metrics: state.metrics || {},
+        contactInfo: state.contactInfo,
+        jobDetails: state.jobDetails
+      };
+    }
+
   } catch (error: any) {
     // Handle step-specific errors
     if (error instanceof StepError) {
       logger.error(`[Optimize] Error in step ${error.step}: ${error.message}`);
       throw new Error(`Failed to ${error.step.replace('_', ' ')}: ${error.message}`);
     }
-    
+
     // Handle general errors
     logger.error('[Optimize] Optimization process failed:', error);
     throw new Error(error.message || 'Failed to generate optimized content');
@@ -539,12 +577,12 @@ Return a complete JSON response with:
     }
 
     const result = JSON.parse(response.choices[0].message.content);
-    
+
     // Validate result structure
     if (!result.optimizedContent || result.optimizedContent.length < 100) {
       throw new Error("Insufficient optimized content generated");
     }
-    
+
     return result;
   } catch (error) {
     console.error("Resume optimization error:", error);

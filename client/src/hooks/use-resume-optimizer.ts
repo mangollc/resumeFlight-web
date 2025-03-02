@@ -30,6 +30,7 @@ export function useResumeOptimizer() {
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
   const [resumeContent, setResumeContent] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<any | null>(null);
+  const [parsingErrorCount, setParsingErrorCount] = useState(0); // Added state for parsing error count
 
 
   const cancelOptimization = useCallback(() => {
@@ -56,9 +57,9 @@ export function useResumeOptimizer() {
     if (eventSource) {
       eventSource.close();
     }
-
     setStatus({ status: 'idle' });
     setRetryCount(0);
+    setParsingErrorCount(0); // Reset parsing error count on new optimization
     setOptimizedResume(null);
     setResumeContent(null);
     setAnalysis(null);
@@ -134,119 +135,47 @@ export function useResumeOptimizer() {
       };
 
       newEventSource.onmessage = (event) => {
+        if (!event.data) return;
+
         try {
-          // Validate and parse the event data
-          if (!event.data) {
-            console.warn('Empty event received');
-            return;
-          }
-
           const data = JSON.parse(event.data);
-          console.log('Received event:', data);
+          console.log("Received event:", data);
 
-          // Handle heartbeat messages separately
-          if (data.type === 'heartbeat') {
-            console.log('Heartbeat received:', new Date(data.timestamp).toISOString());
-            // Clear and reset timeout on heartbeat
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-              console.log('Request timed out after heartbeat');
-              newEventSource.close();
-            }, EVENT_SOURCE_TIMEOUT);
-            return;
-          }
-
-          // Clear timeout on any message received
-          clearTimeout(timeoutId);
-
-          // Update timeoutId for next timeout
-          timeoutId = setTimeout(() => {
-            console.log('Request timed out');
+          if (data.status === "completed" && data.optimizedResume) {
+            setOptimizedResume(data.optimizedResume);
+            setResumeContent(data.optimizedResume.resumeContent);
+            setAnalysis(data.optimizedResume.analysis);
+            setStatus({ status: "success" });
             newEventSource.close();
-          }, EVENT_SOURCE_TIMEOUT);
-
-
-          // Update status based on the received event
-          if (!data.status) {
-            console.warn('Unknown status:', data);
-            return;
-          }
-
-          // Handle completion states
-          if (data.status === 'completed' || data.status === 'success') {
-            setStatus({
-              status: 'success',
-              optimizedResume: data.optimizedResume,
-              resumeContent: data.content,
-              analysis: data.analysis
-            });
-
-            toast({
-              title: 'Optimization Complete',
-              description: 'Your resume has been optimized for the job!',
-              variant: 'default',
-            });
-          } else if (data.status === 'error') {
-            const errorMessage = data.message || 'An unknown error occurred';
-            const errorCode = data.code || 'UNKNOWN_ERROR';
-
+            clearTimeout(timeoutId);
+          } else if (data.status === "error") {
             setStatus({ 
-              status: 'error', 
-              error: errorMessage,
-              code: errorCode,
-              step: data.step
+              status: "error", 
+              error: data.message || "Failed to optimize resume",
+              code: data.code || "UNKNOWN_ERROR"
             });
-
-            // Customize error messages based on error code
-            let description = errorMessage;
-            if (errorCode === 'CONTENT_TOO_LARGE') {
-              description = 'Your resume or job description is too long. Please try with a shorter version.';
-            } else if (errorCode === 'RATE_LIMIT') {
-              description = 'Service is busy. Please try again in a few minutes.';
-            } else if (errorCode === 'TIMEOUT_ERROR') {
-              description = 'The operation took too long. Try with a shorter resume or job description.';
-            }
-
-            toast({
-              title: 'Optimization Failed',
-              description: description,
-              variant: 'destructive',
-            });
+            newEventSource.close();
+            clearTimeout(timeoutId);
+          } else if (data.status) {
+            setStatus({ status: data.status });
+          } else if (data.type === "heartbeat") {
+            // Just a heartbeat to keep the connection alive, ignore
           } else {
-            // Update status for in-progress steps
-            setStatus({ status: data.status, data });
-
-            // Show step progress in toast if needed
-            if (['extracting_details', 'analyzing_description', 'optimizing_resume'].includes(data.status)) {
-              const stepMessages = {
-                'extracting_details': 'Extracting job details...',
-                'analyzing_description': 'Analyzing job requirements...',
-                'optimizing_resume': 'Optimizing your resume...'
-              };
-
-              toast({
-                title: "Optimization in progress",
-                description: stepMessages[data.status],
-                duration: 3000,
-              });
-            }
-            resetTimeout();
+            console.log("Unknown event type:", data);
           }
-        } catch (error) {
-          console.error('Event parsing error:', error);
-          setStatus({ 
-            status: 'error', 
-            error: 'Failed to parse server response',
-            code: 'PARSE_ERROR'
-          });
-          newEventSource.close();
-          setEventSource(null);
-          clearTimeout(timeoutId);
-          toast({
-            title: "Error",
-            description: "Failed to process server response",
-            variant: "destructive",
-          });
+        } catch (err) {
+          console.log("Event parsing error:", err);
+          // Don't close the connection for parsing errors that might just be heartbeats
+          // Only set error state if we've had multiple parsing errors
+          if (++parsingErrorCount > 3) {
+            setStatus({ 
+              status: "error", 
+              error: "Failed to parse server responses multiple times",
+              code: "PARSE_ERROR"
+            });
+            newEventSource.close();
+            clearTimeout(timeoutId);
+          }
         }
       };
 
@@ -313,7 +242,7 @@ export function useResumeOptimizer() {
         variant: 'destructive',
       });
     }
-  }, [toast, eventSource, retryCount, setOptimizedResume, setResumeContent, setAnalysis]);
+  }, [toast, eventSource, retryCount, setOptimizedResume, setResumeContent, setAnalysis, setParsingErrorCount]);
 
   return {
     status,
