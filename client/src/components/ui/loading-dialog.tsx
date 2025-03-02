@@ -32,10 +32,11 @@ export function LoadingDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription>
             {description}
           </DialogDescription>
         </DialogHeader>
+        {/* Moved steps outside DialogHeader to avoid nesting div inside p */}
         {steps && (
           <div className="mt-6 space-y-4">
             {steps.map((step, index) => (
