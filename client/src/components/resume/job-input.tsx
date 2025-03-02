@@ -62,6 +62,44 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     );
   };
 
+  const handleCancel = () => {
+    setProgressSteps(INITIAL_STEPS);
+    setIsProcessing(false);
+    fetchJobMutation.reset();
+  };
+
+  const handleReset = () => {
+    setJobUrl("");
+    setJobDescription("");
+    setExtractedDetails(null);
+    setActiveTab("url");
+    handleCancel();
+  };
+
+  const checkUnsupportedJobSite = (url: string): string | null => {
+    const unsupportedSite = UNSUPPORTED_JOB_SITES.find((site) =>
+      url.toLowerCase().includes(site.domain)
+    );
+    return unsupportedSite?.name || null;
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setJobUrl(url);
+
+    const unsupportedSite = checkUnsupportedJobSite(url);
+    if (unsupportedSite) {
+      toast({
+        title: `${unsupportedSite} Detection`,
+        description: `${unsupportedSite} job postings cannot be automatically fetched. Please paste the description manually.`,
+        variant: "destructive",
+        duration: 6000,
+      });
+      setActiveTab("manual");
+      setJobUrl("");
+    }
+  };
+
   // Fetch job details mutation
   const fetchJobMutation = useMutation({
     mutationFn: async (data: { jobUrl?: string; jobDescription?: string }) => {
@@ -132,39 +170,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     }
   });
 
-  // Optimization mutation
-  const optimizeResumeMutation = useMutation({
-    mutationFn: async (details: JobDetails) => {
-      const response = await apiRequest(
-        'POST',
-        `/api/uploaded-resumes/${resumeId}/optimize`,
-        { details }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to optimize resume");
-      }
-
-      return response.json();
-    },
-    onSuccess: (data) => {
-      onOptimized(data, extractedDetails!);
-      toast({
-        title: "Success",
-        description: "Resume optimization completed"
-      });
-    },
-    onError: (error: Error) => {
-      console.error("Resume optimization error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to optimize resume",
-        variant: "destructive",
-      });
-    }
-  });
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -196,6 +201,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
     }
 
     try {
+      setProgressSteps(INITIAL_STEPS);
       fetchJobMutation.mutate(
         activeTab === "url" ? { jobUrl } : { jobDescription }
       );
@@ -240,7 +246,7 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 type="url"
                 placeholder="Paste LinkedIn job posting URL here..."
                 value={jobUrl}
-                onChange={(e) => setJobUrl(e.target.value)}
+                onChange={handleUrlChange}
                 className="w-full"
                 disabled={isProcessing}
               />
@@ -272,8 +278,17 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
                 Analyzing...
               </>
             ) : (
-              "Analyze Job"
+              "Fetch Job Info"
             )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={isProcessing}
+            className="w-full md:w-auto"
+          >
+            Reset
           </Button>
         </div>
       </form>
@@ -330,23 +345,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails }: J
               </div>
             </div>
           )}
-
-          <Button
-            onClick={() => {
-              optimizeResumeMutation.mutate(extractedDetails);
-            }}
-            disabled={optimizeResumeMutation.isPending}
-            className="w-full md:w-auto"
-          >
-            {optimizeResumeMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Optimizing...
-              </>
-            ) : (
-              "Optimize Resume"
-            )}
-          </Button>
         </div>
       )}
 
