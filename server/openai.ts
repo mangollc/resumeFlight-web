@@ -162,12 +162,22 @@ export async function analyzeResumeDifferences(
 
     for (let i = 0; i < maxChunks; i++) {
       console.log(`[Differences] Analyzing chunk ${i + 1}/${maxChunks}`);
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes. Provide detailed analysis and scoring, with special attention to education, personalization, and ATS compatibility. Return a JSON object with the following structure:
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject({
+            message: `Chunk ${i+1} processing timed out`,
+            code: 'CHUNK_TIMEOUT',
+            status: 408
+          });
+        }, 25000); // 25 second timeout per chunk
+      });
+      const response = await Promise.race([
+        openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `You are an expert resume analyst. Compare the original and optimized versions of a resume and identify meaningful changes. Provide detailed analysis and scoring, with special attention to education, personalization, and ATS compatibility. Return a JSON object with the following structure:
 
 {
   "changes": [
@@ -194,14 +204,16 @@ Ensure each score is calculated based on:
 - Education: Check degree relevance, certifications, training
 - Personalization: Measure alignment with job requirements
 - AI Readiness: Evaluate ATS compatibility and formatting`,
-          },
-          {
-            role: "user",
-            content: `Original Resume Section ${i + 1}/${maxChunks}:\n${originalChunks[i]}\n\nOptimized Resume Section ${i + 1}/${maxChunks}:\n${optimizedChunks[i]}`,
-          },
-        ],
-        response_format: { type: "json_object" },
-      });
+            },
+            {
+              role: "user",
+              content: `Original Resume Section ${i + 1}/${maxChunks}:\n${originalChunks[i]}\n\nOptimized Resume Section ${i + 1}/${maxChunks}:\n${optimizedChunks[i]}`,
+            },
+          ],
+          response_format: { type: "json_object" },
+        }),
+        timeoutPromise
+      ]);
 
       const content = response.choices[0].message.content;
       if (!content) {
@@ -210,7 +222,7 @@ Ensure each score is calculated based on:
 
       const result = JSON.parse(content);
       allChanges.push(...(result.changes || []));
-      
+
       // Store scores from the last chunk to use them at the end
       if (result.overallScore && result.scores) {
         overallScore = result.overallScore;
@@ -254,7 +266,7 @@ export async function optimizeResume(
     // Use extremely small chunks to prevent timeouts
     const resumeChunks = splitIntoChunks(resumeText, 1500);
     const jobDescriptionChunks = splitIntoChunks(jobDescription, 1500);
-    
+
     // Log diagnostic info
     logger.info(`[Optimize] Resume length: ${resumeText.length} chars, ${resumeChunks.length} chunks`);
     logger.info(`[Optimize] Job description length: ${jobDescription.length} chars, ${jobDescriptionChunks.length} chunks`);
@@ -265,10 +277,10 @@ export async function optimizeResume(
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
-    
+
     // Use a reference we can clear later
     let globalTimeoutId: NodeJS.Timeout | null = null;
-    
+
     // Create a promise that will reject after the timeout
     const timeoutPromise = new Promise((_, reject) => {
       globalTimeoutId = setTimeout(() => {
@@ -284,7 +296,7 @@ export async function optimizeResume(
     // Process chunks progressively, with a limit on how many to process at once
     const maxChunksToProcess = Math.min(resumeChunks.length, 5); // Only process up to 5 chunks
     logger.info(`[Optimize] Processing ${maxChunksToProcess} chunks out of ${resumeChunks.length}`);
-    
+
     for (let i = 0; i < maxChunksToProcess; i++) {
       console.log(`[Optimize] Processing chunk ${i + 1}/${maxChunksToProcess}`);
       let attempts = 0;
@@ -303,7 +315,7 @@ export async function optimizeResume(
               });
             }, 25000); // 25 second timeout per chunk
           });
-          
+
           // Race the OpenAI call against our timeout
           response = await Promise.race([
             openai.chat.completions.create({
@@ -397,19 +409,19 @@ Return a simple JSON object with:
             temperature: 0.3,
             max_tokens: 4000
           }),
-            timeoutPromise
+            chunkTimeout
           ]);
           success = true;
         } catch (error: any) {
           logger.warn(`[Optimize] Error processing chunk ${i+1} (attempt ${attempts+1}/3):`, error);
           attempts++;
-          
+
           // If we've exhausted all retries, rethrow
           if (attempts === 3) {
             logger.error(`[Optimize] Failed after all retries for chunk ${i+1}`, error);
             throw error;
           }
-          
+
           // Exponential backoff with jitter
           const backoffTime = Math.floor(2000 * attempts * (0.9 + Math.random() * 0.2));
           logger.info(`[Optimize] Retrying in ${backoffTime}ms (attempt ${attempts+1}/3)`);
@@ -431,7 +443,7 @@ Return a simple JSON object with:
       logger.warn(`[Optimize] Only processed ${maxChunksToProcess} chunks out of ${resumeChunks.length} to avoid timeout`);
       allChanges.push("Resume was too long - only the first portion was optimized. For best results, submit a shorter resume.");
     }
-    
+
     // Now perform overall analysis with retries and timeout
     let attempts = 0;
     let success = false;
@@ -554,7 +566,7 @@ Return a JSON object with:
       clearTimeout(globalTimeoutId);
       globalTimeoutId = null;
     }
-    
+
     const result = {
       optimisedResume: finalContent,
       changes: allChanges,
@@ -573,7 +585,7 @@ Return a JSON object with:
       clearTimeout(globalTimeoutId);
       globalTimeoutId = null;
     }
-    
+
     logger.error("[Optimize] Failed to optimize resume", error);
 
     // Handle timeout errors specifically
