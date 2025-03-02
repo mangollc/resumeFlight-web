@@ -102,16 +102,62 @@ export function useResumeOptimizer() {
       };
 
       newEventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('Received event:', data);
+        console.log('Received event:', event.data);
+        try {
+          // Ensure we have valid JSON data
+          if (!event.data || typeof event.data !== 'string') {
+            console.warn('Received invalid event data format:', event.data);
+            return;
+          }
 
-        if (data.status === 'completed') {
-          clearTimeout(timeoutId);
-          newEventSource.close();
-          setEventSource(null);
+          // Safely parse the JSON with error handling
+          let data;
+          try {
+            data = JSON.parse(event.data);
+          } catch (parseError) {
+            console.error('Failed to parse event data:', event.data, parseError);
+            return;
+          }
+
+          // Update status based on the event
+          if (data.status === 'completed' && data.result) {
+            setStatus({
+              status: 'completed',
+              optimizedResume: data.result
+            });
+            newEventSource.close();
+            clearTimeout(timeoutId);
+            setEventSource(null);
+          } else if (data.status === 'error') {
+            console.error('Received error status:', data);
+            setStatus({
+              status: 'error',
+              error: data.message || 'An unknown error occurred',
+              code: data.code || 'UNKNOWN_ERROR'
+            });
+            newEventSource.close();
+            clearTimeout(timeoutId);
+            setEventSource(null);
+
+            toast({
+              title: 'Optimization Error',
+              description: data.message || 'Failed to optimize resume',
+              variant: 'destructive',
+            });
+          } else {
+            setStatus({
+              status: data.status
+            });
+          }
+        } catch (error) {
+          console.error('Event parsing error:', error);
+          // Try to recover from the error
+          setStatus({
+            status: 'error',
+            error: 'Failed to process server response',
+            code: 'CLIENT_ERROR'
+          });
         }
-
-        setStatus(data);
       };
 
       newEventSource.onerror = (error) => {
@@ -124,19 +170,19 @@ export function useResumeOptimizer() {
           setEventSource(null);
           setStatus({ 
             status: 'error', 
-            error: 'Authentication required. Please log in again.',
+            error: 'Authentication required. Please refresh the page and try again.',
             code: 'AUTH_ERROR'
           });
           toast({
             title: 'Authentication Error',
-            description: 'Your session may have expired. Please log in again.',
+            description: 'Your session may have expired. Please refresh the page and try again.',
             variant: 'destructive',
           });
           return;
         }
 
         if (retryCount < MAX_RETRIES) {
-          console.log(`Retrying after error (${retryCount + 1}/${MAX_RETRIES})...`);
+          console.log(`Retrying (${retryCount + 1}/${MAX_RETRIES})...`);
           newEventSource.close();
           setRetryCount(prev => prev + 1);
 

@@ -238,9 +238,9 @@ export async function optimizeResume(
 
   try {
     const optimizationVersion = version || 1.0;
-    // Reduce chunk size to prevent timeouts
-    const resumeChunks = splitIntoChunks(resumeText, 6000);
-    const jobDescriptionChunks = splitIntoChunks(jobDescription, 6000);
+    // Further reduce chunk size to prevent timeouts
+    const resumeChunks = splitIntoChunks(resumeText, 4000);
+    const jobDescriptionChunks = splitIntoChunks(jobDescription, 4000);
 
     console.log(`[Optimize] Starting resume optimization...`);
     console.log(`[Optimize] Version: ${optimizationVersion}`);
@@ -444,7 +444,9 @@ Return a JSON object with:
     let finalContent;
     if (optimizedChunks.length === 0) {
       logger.warn("[Optimize] No content chunks received");
-      throw new Error('No optimized content generated');
+      const error = new Error('No optimized content generated');
+      error.code = 'CONTENT_GENERATION_ERROR';
+      throw error;
     } else if (optimizedChunks.every(chunk => typeof chunk === 'string')) {
       finalContent = optimizedChunks.join("\n\n").trim();
     } else {
@@ -461,7 +463,9 @@ Return a JSON object with:
         contentLength: finalContent?.length || 0,
         sample: finalContent?.substring(0, 100) 
       });
-      throw new Error('Optimization produced insufficient content');
+      const error = new Error('Optimization produced insufficient content');
+      error.code = 'INSUFFICIENT_CONTENT_ERROR';
+      throw error;
     }
       
     // Ensure we have a valid analysis result before accessing it

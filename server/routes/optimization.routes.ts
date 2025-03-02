@@ -65,8 +65,19 @@ router.get('/optimized-resumes', async (req, res) => {
 // Optimize resume with SSE updates
 router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
     try {
+        // Check authentication first
         if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: "Unauthorized" });
+            res.status(401);
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders();
+            res.write(`data: ${JSON.stringify({ 
+                status: "error", 
+                message: "Authentication required. Please log in again.", 
+                code: "AUTH_ERROR" 
+            })}\n\n`);
+            return res.end();
         }
 
         const resumeId = parseInt(req.params.id);
@@ -125,22 +136,34 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             sendEvent({ status: "optimizing_resume" });
             let optimizationResult;
             try {
+                // Use a reduced timeout of 120 seconds to avoid client-side timeout
                 optimizationResult = await Promise.race([
                     optimizeResume(resume.content, jobDetails.description),
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Optimization timed out')), 180000)
-                    )
+                    new Promise((_, reject) => {
+                        const timeoutError = new Error('Optimization timed out');
+                        timeoutError.code = 'TIMEOUT_ERROR';
+                        setTimeout(() => reject(timeoutError), 120000);
+                    })
                 ]);
             } catch (error: any) {
-                if (error.message.includes('timed out')) {
+                console.error("Optimization error:", error);
+                
+                if (error.message.includes('timed out') || error.code === 'TIMEOUT_ERROR') {
                     sendEvent({ 
                         status: "error",
-                        message: "Resume optimization is taking longer than expected. Please try again.",
+                        message: "Resume optimization is taking longer than expected. Please try again with a shorter resume or job description.",
                         code: "TIMEOUT_ERROR"
                     });
                     return res.end();
                 }
-                throw error;
+                
+                // Send a more specific error type if available
+                sendEvent({ 
+                    status: "error",
+                    message: error.message || "Failed to generate optimized content",
+                    code: error.code || "OPTIMIZATION_ERROR"
+                });
+                return res.end();
             }
 
             // Validate optimization result
