@@ -44,9 +44,10 @@ interface JobInputProps {
   onOptimized: (resume: OptimizedResume, details: JobDetails) => void;
   initialJobDetails?: JobDetails;
   onComplete?: () => void;
+  onDetailsExtracted?: (details: JobDetails) => void;
 }
 
-export default function JobInput({ resumeId, onOptimized, initialJobDetails, onComplete }: JobInputProps) {
+export default function JobInput({ resumeId, onOptimized, initialJobDetails, onComplete, onDetailsExtracted }: JobInputProps) {
   const { toast } = useToast();
   const [jobUrl, setJobUrl] = useState("");
   const [jobDescription, setJobDescription] = useState("");
@@ -130,6 +131,11 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
       setExtractedDetails(data);
       updateStepStatus("extract", "completed");
       updateStepStatus("analyze", "completed");
+
+      // Notify parent component that job details were extracted
+      if (onDetailsExtracted) {
+        onDetailsExtracted(data);
+      }
 
       toast({
         title: "Success",

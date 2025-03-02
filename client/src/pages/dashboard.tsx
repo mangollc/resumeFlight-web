@@ -225,6 +225,7 @@ export default function Dashboard() {
 
   const [coverLetter, setCoverLetter] = useState<CoverLetter | null>(null);
   const [optimizedResume, setOptimizedResume] = useState<OptimizedResume | null>(null);
+  const [extractedDetails, setExtractedDetails] = useState<JobDetails | null>(null); // Added state for extracted details
 
 
   // Fetch optimized resume data when in review mode
@@ -810,29 +811,37 @@ export default function Dashboard() {
 
   const handleNext = () => {
     if (canGoNext) {
+      // If we're on step 2 with extracted details but no job details yet, set job details
+      if (currentStep === 2 && extractedDetails && !jobDetails) {
+        setJobDetails(extractedDetails);
+        if (!completedSteps.includes(2)) {
+          setCompletedSteps(prev => [...prev, 2]);
+        }
+        setCurrentStep(3);
+        return;
+      }
+
+      // If we're on step 2 and job details already exist, skip optimization
+      if (currentStep === 2 && jobDetails) {
+        setCurrentStep(3);
+        return;
+      }
+
+      // If we're on step 2 and need to optimize without extracted details
+      if (currentStep === 2) {
+        handleReoptimize();
+        return;
+      }
+
       const nextStep = currentStep + 1;
 
+      // Special handling for Step 2 -> 3 transition (Optimization)
       if (!completedSteps.includes(currentStep)) {
         setCompletedSteps(prev => Array.from(new Set([...prev, currentStep])));
       }
 
-      // When moving from step 2 to 3, trigger optimization
-      if (currentStep === 2 && jobDetails) {
-        handleReoptimize().then(() => {
-          setCurrentStep(nextStep);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }).catch(error => {
-          console.error('Optimization error:', error);
-          toast({
-            title: "Error",
-            description: "Failed to optimize resume. Please try again.",
-            variant: "destructive",
-          });
-        });
-      } else {
-        setCurrentStep(nextStep);
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      setCurrentStep(nextStep);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -935,8 +944,7 @@ export default function Dashboard() {
                       <span>{strength}</span>
                     </li>
                   ))}
-                </ul>
-              </div>
+                </ul              </div>
 
               {/* Improvements Section */}
               <div className="rounded-lg border p-4">
@@ -1248,11 +1256,14 @@ export default function Dashboard() {
           <div className="fade-in">
             <Card {...commonCardProps}>
               <CardContent className="p-8">
-                <JobInput
-                  resumeId={uploadedResume.id}
-                  onOptimized={handleOptimizationComplete}
-                  initialJobDetails={jobDetails}
-                />
+                <div className="pb-4">
+                  <JobInput 
+                    resumeId={uploadedResume?.id || 0}
+                    onOptimized={handleOptimizationComplete}
+                    initialJobDetails={jobDetails}
+                    onDetailsExtracted={(details) => setExtractedDetails(details)}
+                  />
+                </div>
                 {renderNavigation()}
               </CardContent>
             </Card>
