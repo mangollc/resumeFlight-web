@@ -32,14 +32,18 @@ export function LoadingDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {description}
-          </DialogDescription>
+          {typeof description === 'string' ? (
+            <DialogDescription>
+              {description}
+            </DialogDescription>
+          ) : (
+            description
+          )}
         </DialogHeader>
-        {/* Moved steps outside DialogHeader to avoid nesting div inside p */}
+
         {steps && (
-          <div className="mt-6 space-y-4">
-            {steps.map((step, index) => (
+          <div className="mt-4 space-y-4">
+            {steps.map((step) => (
               <div key={step.id} className="flex items-center gap-3">
                 <div className="flex-shrink-0">
                   {step.status === "completed" ? (
@@ -52,17 +56,15 @@ export function LoadingDialog({
                     <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20" />
                   )}
                 </div>
-                <div className="flex-grow min-w-0">
-                  <p className={cn(
-                    "text-sm",
-                    step.status === "completed" && "text-green-500",
-                    step.status === "loading" && "text-primary",
-                    step.status === "error" && "text-destructive",
-                    step.status === "pending" && "text-muted-foreground"
-                  )}>
-                    {step.label}
-                  </p>
-                </div>
+                <span className={cn(
+                  "text-sm",
+                  step.status === "completed" && "text-green-500",
+                  step.status === "loading" && "text-primary",
+                  step.status === "error" && "text-destructive",
+                  step.status === "pending" && "text-muted-foreground"
+                )}>
+                  {step.label}
+                </span>
               </div>
             ))}
           </div>
