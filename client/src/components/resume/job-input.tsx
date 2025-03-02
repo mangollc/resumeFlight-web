@@ -271,8 +271,6 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Analyzing...
               </>
-            ) : extractedDetails ? (
-              "Next"
             ) : (
               "Fetch Job Info"
             )}
@@ -340,6 +338,16 @@ export default function JobInput({ resumeId, onOptimized, initialJobDetails, onC
               </div>
             </div>
           )}
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleNext}
+              disabled={!extractedDetails || isProcessing}
+              className="w-full md:w-auto"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
