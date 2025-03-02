@@ -1,45 +1,80 @@
-import chalk from 'chalk';
+interface LogMessage {
+  message: string;
+  level: 'info' | 'warn' | 'error' | 'debug' | 'success';
+  timestamp: string;
+  context?: any;
+}
 
-import { Request, Response, NextFunction } from 'express';
+class Logger {
+  private logToConsole(message: string, level: string, context?: any) {
+    const timestamp = new Date().toISOString();
+    const prefix = `[${level.toUpperCase()}] ${timestamp}`;
 
-export const logger = {
-  info: (message: string) => {
-    console.log(chalk.blue(`[INFO] ${message}`));
-  },
-  error: (message: string, error?: any) => {
-    console.error(chalk.red(`[ERROR] ${message}`), error || '');
-  },
-  success: (message: string) => {
-    console.log(chalk.green(`[SUCCESS] ${message}`));
-  },
-  warning: (message: string) => {
-    console.log(chalk.yellow(`[WARNING] ${message}`));
+    if (context) {
+      console.log(`${prefix} ${message}`, context);
+    } else {
+      console.log(`${prefix} ${message}`);
+    }
+
+    return {
+      message,
+      level: level as LogMessage['level'],
+      timestamp,
+      context
+    };
   }
-};
 
-// Express middleware for request logging
-export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
-  const startTime = Date.now();
+  info(message: string, context?: any) {
+    return this.logToConsole(message, 'info', context);
+  }
 
-  // Create a patched end method to log the response
+  warn(message: string, context?: any) {
+    return this.logToConsole(message, 'warn', context);
+  }
+
+  error(message: string, context?: any) {
+    return this.logToConsole(message, 'error', context);
+  }
+
+  debug(message: string, context?: any) {
+    if (process.env.NODE_ENV !== 'production') {
+      return this.logToConsole(message, 'debug', context);
+    }
+    return null;
+  }
+
+  success(message: string, context?: any) {
+    return this.logToConsole(message, 'success', context);
+  }
+
+  // Add warning method to match usage in middleware
+  warning(message: string, context?: any) {
+    return this.warn(message, context);
+  }
+}
+
+export const logger = new Logger();
+
+// Middleware for logging HTTP requests
+export const requestLogger = (req, res, next) => {
+  const userIP = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const start = Date.now();
+
+  // Save the original end method
   const originalEnd = res.end;
-  res.end = function(chunk?: any, encoding?: any, callback?: any): any {
-    const responseTime = Date.now() - startTime;
-    const statusCode = res.statusCode;
-    const statusColor = statusCode >= 500
-      ? chalk.red
-      : statusCode >= 400
-        ? chalk.yellow
-        : statusCode >= 300
-          ? chalk.cyan
-          : chalk.green;
 
-    const logLevel = statusCode >= 500 ? 'ERROR' : statusCode >= 400 ? 'WARN' : 'INFO';
-    const method = chalk.bold(req.method);
-    const url = req.originalUrl || req.url;
-    const userIP = req.ip || req.connection.remoteAddress;
+  // Override the end method
+  res.end = function(chunk, encoding, callback) {
+    const responseTime = Date.now() - start;
+    let logLevel = 'INFO';
 
-    const message = `${method} ${url} ${statusColor(statusCode)}`;
+    if (res.statusCode >= 500) {
+      logLevel = 'ERROR';
+    } else if (res.statusCode >= 400) {
+      logLevel = 'WARN';
+    }
+
+    const message = `${req.method} ${req.originalUrl || req.url} - ${res.statusCode} - ${responseTime}ms`;
 
     if(logLevel === 'ERROR'){
         logger.error(message, { responseTime, ip: userIP });
@@ -48,7 +83,6 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     } else {
         logger.info(message, { responseTime, ip: userIP });
     }
-
 
     // Restore the original end
     res.end = originalEnd;
@@ -72,54 +106,3 @@ export const setupGlobalErrorLogging = () => {
     // Do not exit for unhandled promises, as they may be non-critical
   });
 };
-interface LogMessage {
-  message: string;
-  level: 'info' | 'warn' | 'error' | 'debug' | 'success';
-  timestamp: string;
-  context?: any;
-}
-
-class Logger {
-  private logToConsole(message: string, level: string, context?: any) {
-    const timestamp = new Date().toISOString();
-    const prefix = `[${level.toUpperCase()}] ${timestamp}`;
-    
-    if (context) {
-      console.log(`${prefix} ${message}`, context);
-    } else {
-      console.log(`${prefix} ${message}`);
-    }
-    
-    return {
-      message,
-      level: level as LogMessage['level'],
-      timestamp,
-      context
-    };
-  }
-  
-  info(message: string, context?: any) {
-    return this.logToConsole(message, 'info', context);
-  }
-  
-  warn(message: string, context?: any) {
-    return this.logToConsole(message, 'warn', context);
-  }
-  
-  error(message: string, context?: any) {
-    return this.logToConsole(message, 'error', context);
-  }
-  
-  debug(message: string, context?: any) {
-    if (process.env.NODE_ENV !== 'production') {
-      return this.logToConsole(message, 'debug', context);
-    }
-    return null;
-  }
-  
-  success(message: string, context?: any) {
-    return this.logToConsole(message, 'success', context);
-  }
-}
-
-export const logger = new Logger();
