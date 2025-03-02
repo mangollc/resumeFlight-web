@@ -347,7 +347,7 @@ export async function optimizeResume(
             onStatusUpdate
           );
         },
-        120000, // 120 second timeout
+        240000, // 240 second timeout (increased from 120)
         'Resume optimization timed out'
       );
 

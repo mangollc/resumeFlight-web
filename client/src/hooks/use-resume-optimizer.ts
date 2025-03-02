@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { OptimizedResume } from '@shared/schema';
 
-const EVENT_SOURCE_TIMEOUT = 180000; // 3 minutes
+const EVENT_SOURCE_TIMEOUT = 240000; // 4 minutes
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 3000; // 3 seconds
 

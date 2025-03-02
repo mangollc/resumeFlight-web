@@ -169,7 +169,7 @@ export async function analyzeResumeDifferences(
             code: 'CHUNK_TIMEOUT',
             status: 408
           });
-        }, 25000); // 25 second timeout per chunk
+        }, 60000); // 60 second timeout per chunk (increased from 25)
       });
       const response = await Promise.race([
         openai.chat.completions.create({
@@ -313,7 +313,7 @@ export async function optimizeResume(
                 code: 'CHUNK_TIMEOUT',
                 status: 408
               });
-            }, 25000); // 25 second timeout per chunk
+            }, 60000); // 60 second timeout per chunk (increased from 25)
           });
 
           // Race the OpenAI call against our timeout
