@@ -238,9 +238,9 @@ export async function optimizeResume(
 
   try {
     const optimizationVersion = version || 1.0;
-    // Further reduce chunk size to prevent timeouts
-    const resumeChunks = splitIntoChunks(resumeText, 4000);
-    const jobDescriptionChunks = splitIntoChunks(jobDescription, 4000);
+    // Reduce chunk size even further to prevent timeouts
+    const resumeChunks = splitIntoChunks(resumeText, 3000);
+    const jobDescriptionChunks = splitIntoChunks(jobDescription, 3000);
 
     console.log(`[Optimize] Starting resume optimization...`);
     console.log(`[Optimize] Version: ${optimizationVersion}`);
@@ -248,6 +248,14 @@ export async function optimizeResume(
 
     let optimizedChunks: string[] = [];
     let allChanges: string[] = [];
+    
+    // Set a global timeout for the entire operation
+    const globalTimeout = setTimeout(() => {
+      const timeoutError = new Error('Resume optimization timed out');
+      timeoutError.code = 'TIMEOUT_ERROR';
+      timeoutError.status = 408;
+      throw timeoutError;
+    }, 60000); // 60 second global timeout
 
     // First optimize the resume content with retries and timeout
     for (let i = 0; i < resumeChunks.length; i++) {
@@ -493,6 +501,11 @@ Return a JSON object with:
       };
     }
 
+    // Clear the global timeout
+    if (typeof globalTimeout !== 'undefined') {
+      clearTimeout(globalTimeout);
+    }
+    
     const result = {
       optimisedResume: finalContent,
       changes: allChanges,
@@ -506,7 +519,20 @@ Return a JSON object with:
 
     return result;
   } catch (error: any) {
+    // Clear the global timeout if it exists
+    if (typeof globalTimeout !== 'undefined') {
+      clearTimeout(globalTimeout);
+    }
+    
     logger.error("[Optimize] Failed to optimize resume", error);
+
+    // Handle timeout errors specifically
+    if (error.message.includes('timeout') || error.code === 'TIMEOUT_ERROR') {
+      const timeoutError = new Error('Resume optimization is taking longer than expected. Please try with a shorter resume or job description.');
+      timeoutError.code = 'TIMEOUT_ERROR';
+      timeoutError.status = 408;
+      throw timeoutError;
+    }
 
     // Create a structured error with status code
     const enhancedError = new Error(`Failed to optimize resume: ${error.message}`);
