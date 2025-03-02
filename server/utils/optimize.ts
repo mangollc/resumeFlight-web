@@ -56,17 +56,20 @@ export async function extractJobDetails(input: string): Promise<JobDetails> {
         messages: [
           {
             role: "system",
-            content: `Extract key details from the following job description and return them in a JSON format with the keys:
+            content: `You are a job details extraction assistant. Extract specific details from the provided job description.
+DO NOT return placeholder text. Parse and return the actual content.
+
+Return the details in this JSON format:
 {
-  "title": "job title",
-  "company": "company name",
-  "location": "job location",
-  "salary": "salary (if available)",
-  "description": "job description summary",
-  "positionLevel": "entry/mid/senior",
-  "keyRequirements": ["requirement1", "requirement2"],
-  "skillsAndTools": ["skill1", "skill2"],
-  "workplaceType": "remote/hybrid/onsite"
+  "title": "[Extract the actual job title]",
+  "company": "[Extract the company name]",
+  "location": "[Extract the full location]",
+  "salary": "[Extract any salary/compensation information, 'Not specified' if none]",
+  "description": "[Extract a concise job summary]",
+  "positionLevel": "[Determine level: entry/mid/senior based on requirements]",
+  "keyRequirements": ["Extract 3-5 key requirements as bullet points"],
+  "skillsAndTools": ["Extract required skills, tools, technologies"],
+  "workplaceType": "[Identify if remote/hybrid/onsite]"
 }`
           },
           {
@@ -77,7 +80,15 @@ export async function extractJobDetails(input: string): Promise<JobDetails> {
         response_format: { type: "json_object" },
         temperature: 0.3
       });
-      return JSON.parse(response.choices[0].message.content || "{}");
+
+      const parsed = JSON.parse(response.choices[0].message.content || "{}");
+
+      // Validate the response has actual content
+      if (parsed.title?.includes("[") || parsed.company?.includes("[")) {
+        throw new Error("Invalid response format: contains placeholder text");
+      }
+
+      return parsed;
     }, 30000, "Job details extraction timed out");
 
     return result;
