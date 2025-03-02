@@ -945,7 +945,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Strengths Section */}
               <div className="rounded-lg border p-4">
-                <h4<h4 className="font-medium text-lg flex items-center mb-3">
+                <h4 className="font-medium text-lg flex items-center mb-3">
                   <span className="mr-2 bg-green-100 text-green-800 rounded-full h-6 w-6 flex items-center justify-center text-sm">
                     {optimizedResume.analysis.strengths.length}
                   </span>
