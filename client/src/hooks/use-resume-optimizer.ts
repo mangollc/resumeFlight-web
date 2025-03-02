@@ -13,9 +13,10 @@ interface OptimizeResumeOptions {
 }
 
 interface OptimizationStatus {
-  status: 'idle' | 'started' | 'extracting_details' | 'analyzing_description' | 'optimizing_resume' | 'completed' | 'error';
+  status: 'idle' | 'started' | 'extracting_details' | 'analyzing_description' | 'optimizing_resume' | 'completed' | 'success' | 'error';
   error?: string;
   code?: string;
+  step?: string;
   optimizedResume?: OptimizedResume;
   resumeContent?: OptimizedResume['resumeContent'];
   analysis?: OptimizedResume['analysis'];
@@ -72,7 +73,7 @@ export function useResumeOptimizer() {
       setEventSource(newEventSource);
 
       // Set up timeout
-      const timeoutId = setTimeout(() => {
+      let timeoutId = setTimeout(() => {
         console.log('Request timed out');
         newEventSource.close();
 
@@ -96,66 +97,113 @@ export function useResumeOptimizer() {
         }
       }, EVENT_SOURCE_TIMEOUT);
 
+      // Function to reset the timeout when we receive events
+      const resetTimeout = () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          console.log('Request timed out after inactivity');
+          setStatus({ status: 'error', error: 'Optimization process timed out due to inactivity' });
+          newEventSource.close();
+          setEventSource(null);
+          toast({
+            title: 'Optimization Timeout',
+            description: 'The optimization process timed out due to inactivity.',
+            variant: 'destructive',
+          });
+        }, 60000); // Reset to 1 minute after each message
+      };
+
+      // Add a heartbeat handler
+      const heartbeatHandler = () => {
+        console.log('Received heartbeat');
+        resetTimeout();
+      };
+      newEventSource.addEventListener('heartbeat', heartbeatHandler);
+
+
       // Event handlers
       newEventSource.onopen = () => {
         console.log('EventSource connection opened');
       };
 
       newEventSource.onmessage = (event) => {
-        console.log('Received event:', event.data);
         try {
-          // Ensure we have valid JSON data
-          if (!event.data || typeof event.data !== 'string') {
-            console.warn('Received invalid event data format:', event.data);
-            return;
-          }
+          const data = JSON.parse(event.data);
+          console.log('Received event:', data);
 
-          // Safely parse the JSON with error handling
-          let data;
-          try {
-            data = JSON.parse(event.data);
-          } catch (parseError) {
-            console.error('Failed to parse event data:', event.data, parseError);
-            return;
-          }
-
-          // Update status based on the event
-          if (data.status === 'completed' && data.result) {
-            setStatus({
-              status: 'completed',
-              optimizedResume: data.result
-            });
+          // Update the UI based on the current step
+          if (data.status === 'completed' || data.status === 'success') {
+            setStatus({ status: 'success', data });
             newEventSource.close();
-            clearTimeout(timeoutId);
             setEventSource(null);
+            clearTimeout(timeoutId);
+            toast({
+              title: "Success",
+              description: "Resume optimization completed successfully",
+              duration: 3000,
+            });
           } else if (data.status === 'error') {
-            console.error('Received error status:', data);
-            setStatus({
-              status: 'error',
-              error: data.message || 'An unknown error occurred',
-              code: data.code || 'UNKNOWN_ERROR'
+            const errorMessage = data.message || 'An error occurred during optimization';
+            const errorCode = data.code || 'UNKNOWN_ERROR';
+            const errorStep = data.step || 'process';
+
+            setStatus({ 
+              status: 'error', 
+              error: errorMessage,
+              code: errorCode,
+              step: errorStep
             });
+
             newEventSource.close();
-            clearTimeout(timeoutId);
             setEventSource(null);
+            clearTimeout(timeoutId);
+
+            // Show a meaningful error based on the step and code
+            let toastMessage = errorMessage;
+            if (errorCode === 'TIMEOUT_ERROR') {
+              toastMessage = `The ${errorStep} step took too long. Try with a shorter resume or job description.`;
+            }
 
             toast({
-              title: 'Optimization Error',
-              description: data.message || 'Failed to optimize resume',
-              variant: 'destructive',
+              title: `Error in ${errorStep}`,
+              description: toastMessage,
+              variant: "destructive",
+              duration: 5000,
             });
           } else {
-            setStatus({
-              status: data.status
-            });
+            // Update status for in-progress steps
+            setStatus({ status: data.status, data });
+
+            // Show step progress in toast if needed
+            if (['extracting_details', 'analyzing_description', 'optimizing_resume'].includes(data.status)) {
+              const stepMessages = {
+                'extracting_details': 'Extracting job details...',
+                'analyzing_description': 'Analyzing job requirements...',
+                'optimizing_resume': 'Optimizing your resume...'
+              };
+
+              toast({
+                title: "Optimization in progress",
+                description: stepMessages[data.status],
+                duration: 3000,
+              });
+            }
+            resetTimeout();
           }
         } catch (error) {
           console.error('Event parsing error:', error);
-          // Try to recover from the error
-          setStatus({
-            status: 'error',
-            error: 'Failed to process server response',
-            code: 'CLIENT_ERROR'
+          setStatus({ 
+            status: 'error', 
+            error: 'Failed to parse server response',
+            code: 'PARSE_ERROR'
+          });
+          newEventSource.close();
+          setEventSource(null);
+          clearTimeout(timeoutId);
+          toast({
+            title: "Error",
+            description: "Failed to process server response",
+            variant: "destructive",
           });
         }
       };
@@ -207,6 +255,7 @@ export function useResumeOptimizer() {
 
       return () => {
         clearTimeout(timeoutId);
+        newEventSource.removeEventListener('heartbeat', heartbeatHandler);
         newEventSource.close();
       };
     } catch (error: any) {

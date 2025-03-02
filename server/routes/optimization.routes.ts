@@ -132,27 +132,40 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
             sendEvent({ status: "analyzing_description" });
             const originalScores = await calculateMatchScores(resume.content, jobDetails.description);
 
-            // Optimize resume with timeout handling
+            // Start heartbeat interval to keep connection alive
+            const heartbeatInterval = setInterval(() => {
+                try {
+                    sendEvent({ type: 'heartbeat', timestamp: Date.now() });
+                } catch (error) {
+                    clearInterval(heartbeatInterval);
+                }
+            }, 15000); // Send heartbeat every 15 seconds
+            
+            // Optimize resume with improved error handling
             sendEvent({ status: "optimizing_resume" });
             let optimizationResult;
             try {
-                // Use a reduced timeout of 120 seconds to avoid client-side timeout
-                optimizationResult = await Promise.race([
-                    optimizeResume(resume.content, jobDetails.description),
-                    new Promise((_, reject) => {
-                        const timeoutError = new Error('Optimization timed out');
-                        timeoutError.code = 'TIMEOUT_ERROR';
-                        setTimeout(() => reject(timeoutError), 120000);
-                    })
-                ]);
+                // Use the new optimization utility with status updates
+                optimizationResult = await optimizeResume(
+                    resume.content, 
+                    jobDetails.description,
+                    (status) => sendEvent(status)
+                );
+                
+                // Clear heartbeat when done
+                clearInterval(heartbeatInterval);
             } catch (error: any) {
                 console.error("Optimization error:", error);
+                
+                // Clear heartbeat interval on error
+                clearInterval(heartbeatInterval);
                 
                 if (error.message.includes('timed out') || error.code === 'TIMEOUT_ERROR') {
                     sendEvent({ 
                         status: "error",
                         message: "Resume optimization is taking longer than expected. Please try again with a shorter resume or job description.",
-                        code: "TIMEOUT_ERROR"
+                        code: "TIMEOUT_ERROR",
+                        step: error.step || "optimization"
                     });
                     return res.end();
                 }
@@ -161,6 +174,7 @@ router.get('/uploaded-resumes/:id/optimize', async (req, res) => {
                 sendEvent({ 
                     status: "error",
                     message: error.message || "Failed to generate optimized content",
+                    step: error.step || "optimization",
                     code: error.code || "OPTIMIZATION_ERROR"
                 });
                 return res.end();
